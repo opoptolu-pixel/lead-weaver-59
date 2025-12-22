@@ -12,7 +12,8 @@ import {
   LogOut,
   Search,
   Calendar,
-  PoundSterling,
+  Coins,
+  Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface UnlockedLead {
   id: string;
@@ -35,12 +44,14 @@ interface UnlockedLead {
 }
 
 export default function Dashboard() {
-  const { user, profile, signOut, loading: authLoading } = useAuth();
+  const { user, profile, signOut, loading: authLoading, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const [leads, setLeads] = useState<UnlockedLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [buyingCredits, setBuyingCredits] = useState<string | null>(null);
+  const [showCreditDialog, setShowCreditDialog] = useState(false);
 
   // Redirect if not logged in
   useEffect(() => {
@@ -87,6 +98,33 @@ export default function Dashboard() {
     setCopiedField(field);
     toast.success("Copied to clipboard!");
     setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  const handleBuyCredits = async (packSize: string) => {
+    setBuyingCredits(packSize);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error("Please sign in to purchase credits");
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke("buy-credits", {
+        body: { packSize },
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (err) {
+      console.error("Error buying credits:", err);
+      toast.error(err instanceof Error ? err.message : "Failed to start checkout");
+    } finally {
+      setBuyingCredits(null);
+    }
   };
 
   const filteredLeads = leads.filter(
@@ -182,14 +220,79 @@ export default function Dashboard() {
           </div>
 
           <div className="bg-card rounded-xl border border-border p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-lg bg-secondary/20 flex items-center justify-center">
-                <PoundSterling className="w-6 h-6 text-secondary" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-lg bg-secondary/20 flex items-center justify-center">
+                  <Coins className="w-6 h-6 text-secondary" />
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-sm">Credits Available</p>
+                  <p className="text-foreground text-2xl font-bold">{profile?.credits || 0}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-muted-foreground text-sm">Credits Available</p>
-                <p className="text-foreground text-2xl font-bold">{profile?.credits || 0}</p>
-              </div>
+              <Dialog open={showCreditDialog} onOpenChange={setShowCreditDialog}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1">
+                    <Plus className="w-4 h-4" />
+                    Buy
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Buy Credit Pack</DialogTitle>
+                    <DialogDescription>
+                      Save money by buying credits in bulk. Use credits to unlock leads instantly.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 pt-4">
+                    <button
+                      onClick={() => handleBuyCredits("5")}
+                      disabled={buyingCredits !== null}
+                      className="w-full p-4 rounded-xl border-2 border-border hover:border-secondary transition-colors text-left bg-card hover:bg-muted/50 disabled:opacity-50"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-heading font-bold text-lg text-foreground">5 Credits</span>
+                        <span className="text-secondary font-bold text-xl">£90</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground text-sm">£18 per lead</span>
+                        <span className="text-secondary text-sm font-medium">Save £10</span>
+                      </div>
+                      {buyingCredits === "5" && (
+                        <div className="flex items-center justify-center mt-3">
+                          <Loader2 className="w-5 h-5 animate-spin text-secondary" />
+                        </div>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={() => handleBuyCredits("10")}
+                      disabled={buyingCredits !== null}
+                      className="w-full p-4 rounded-xl border-2 border-secondary bg-secondary/10 hover:bg-secondary/20 transition-colors text-left disabled:opacity-50 relative overflow-hidden"
+                    >
+                      <div className="absolute top-2 right-2 bg-secondary text-secondary-foreground text-xs font-bold px-2 py-0.5 rounded">
+                        BEST VALUE
+                      </div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-heading font-bold text-lg text-foreground">10 Credits</span>
+                        <span className="text-secondary font-bold text-xl">£170</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground text-sm">£17 per lead</span>
+                        <span className="text-secondary text-sm font-medium">Save £30</span>
+                      </div>
+                      {buyingCredits === "10" && (
+                        <div className="flex items-center justify-center mt-3">
+                          <Loader2 className="w-5 h-5 animate-spin text-secondary" />
+                        </div>
+                      )}
+                    </button>
+                  </div>
+                  <p className="text-muted-foreground text-xs text-center mt-4">
+                    Or pay £20 per lead without credits
+                  </p>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
 

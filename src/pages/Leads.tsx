@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Lock, MapPin, Calendar, PoundSterling, Loader2, Sparkles } from "lucide-react";
+import { Lock, MapPin, Calendar, PoundSterling, Loader2, Sparkles, Coins, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Lead {
   id: string;
@@ -18,12 +19,15 @@ interface Lead {
 const LEADS_PER_PAGE = 10;
 
 export default function Leads() {
+  const { user, profile, refreshProfile } = useAuth();
+  const navigate = useNavigate();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
   const [unlockingLeadId, setUnlockingLeadId] = useState<string | null>(null);
+  const [usingCreditLeadId, setUsingCreditLeadId] = useState<string | null>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
@@ -134,7 +138,43 @@ export default function Leads() {
       console.error("Error unlocking lead:", err);
       toast.error(err instanceof Error ? err.message : "Failed to start checkout");
     } finally {
-      setUnlockingLeadId(null);
+    setUnlockingLeadId(null);
+    }
+  };
+
+  const handleUseCredit = async (leadId: string) => {
+    if (!user) {
+      toast.error("Please sign in to use credits");
+      navigate("/auth");
+      return;
+    }
+
+    setUsingCreditLeadId(leadId);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error("Please sign in to use credits");
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke("use-credit", {
+        body: { leadId },
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      // Remove the lead from the list
+      setLeads(prev => prev.filter(l => l.id !== leadId));
+      await refreshProfile();
+      
+      toast.success("Lead unlocked! Check your dashboard for details.");
+      navigate("/dashboard");
+    } catch (err) {
+      console.error("Error using credit:", err);
+      toast.error(err instanceof Error ? err.message : "Failed to unlock lead");
+    } finally {
+      setUsingCreditLeadId(null);
     }
   };
 
@@ -145,6 +185,8 @@ export default function Leads() {
       return dateString;
     }
   };
+
+  const userCredits = profile?.credits || 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -161,11 +203,32 @@ export default function Leads() {
               </span>
             </Link>
             <div className="flex items-center gap-4">
-              <Link to="/">
-                <Button variant="outlineHero" size="sm">
-                  Back to Home
-                </Button>
-              </Link>
+              {user ? (
+                <Link to="/dashboard">
+                  <Button variant="outlineHero" size="sm" className="gap-2">
+                    <User className="w-4 h-4" />
+                    Dashboard
+                    {userCredits > 0 && (
+                      <span className="bg-secondary text-secondary-foreground text-xs px-1.5 py-0.5 rounded">
+                        {userCredits} credits
+                      </span>
+                    )}
+                  </Button>
+                </Link>
+              ) : (
+                <>
+                  <Link to="/auth">
+                    <Button variant="outlineHero" size="sm">
+                      Sign In
+                    </Button>
+                  </Link>
+                  <Link to="/">
+                    <Button variant="ghost" size="sm" className="text-primary-foreground">
+                      Home
+                    </Button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -181,7 +244,10 @@ export default function Leads() {
             Browse All Cleaning Jobs
           </h1>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Real leads from homeowners looking for cleaning services. Unlock for just £20 each.
+            Real leads from homeowners looking for cleaning services. 
+            {userCredits > 0 
+              ? ` Use your ${userCredits} credits or pay £20 per lead.`
+              : " Unlock for just £20 each or buy credits to save."}
           </p>
         </div>
 
@@ -230,21 +296,38 @@ export default function Leads() {
                     <div className="text-foreground font-medium">{lead.job_type}</div>
                     <div className="text-secondary font-bold text-lg">{lead.display_value}</div>
                     <div className="text-muted-foreground">{formatDate(lead.date)}</div>
-                    <div className="text-center">
-                      <Button 
-                        variant="unlock" 
-                        size="sm" 
-                        className="gap-2"
-                        onClick={() => handleUnlock(lead.id)}
-                        disabled={unlockingLeadId === lead.id}
-                      >
-                        {unlockingLeadId === lead.id ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Lock className="w-4 h-4" />
-                        )}
-                        Unlock for £20
-                      </Button>
+                    <div className="text-center flex gap-2 justify-center">
+                      {userCredits > 0 ? (
+                        <Button 
+                          variant="cta" 
+                          size="sm" 
+                          className="gap-2"
+                          onClick={() => handleUseCredit(lead.id)}
+                          disabled={usingCreditLeadId === lead.id}
+                        >
+                          {usingCreditLeadId === lead.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Coins className="w-4 h-4" />
+                          )}
+                          Use 1 Credit
+                        </Button>
+                      ) : (
+                        <Button 
+                          variant="unlock" 
+                          size="sm" 
+                          className="gap-2"
+                          onClick={() => handleUnlock(lead.id)}
+                          disabled={unlockingLeadId === lead.id}
+                        >
+                          {unlockingLeadId === lead.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Lock className="w-4 h-4" />
+                          )}
+                          Unlock £20
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -270,19 +353,35 @@ export default function Leads() {
                       <p className="text-muted-foreground text-sm">{formatDate(lead.date)}</p>
                     </div>
                   </div>
-                  <Button 
-                    variant="unlock" 
-                    className="w-full gap-2"
-                    onClick={() => handleUnlock(lead.id)}
-                    disabled={unlockingLeadId === lead.id}
-                  >
-                    {unlockingLeadId === lead.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Lock className="w-4 h-4" />
-                    )}
-                    Unlock for £20
-                  </Button>
+                  {userCredits > 0 ? (
+                    <Button 
+                      variant="cta" 
+                      className="w-full gap-2"
+                      onClick={() => handleUseCredit(lead.id)}
+                      disabled={usingCreditLeadId === lead.id}
+                    >
+                      {usingCreditLeadId === lead.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Coins className="w-4 h-4" />
+                      )}
+                      Use 1 Credit
+                    </Button>
+                  ) : (
+                    <Button 
+                      variant="unlock" 
+                      className="w-full gap-2"
+                      onClick={() => handleUnlock(lead.id)}
+                      disabled={unlockingLeadId === lead.id}
+                    >
+                      {unlockingLeadId === lead.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Lock className="w-4 h-4" />
+                      )}
+                      Unlock for £20
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>
