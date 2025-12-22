@@ -2,8 +2,9 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Lock, MapPin, Calendar, PoundSterling, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 interface Lead {
   id: string;
@@ -22,9 +23,9 @@ export default function Leads() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
+  const [unlockingLeadId, setUnlockingLeadId] = useState<string | null>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
 
   // Fetch leads with pagination
   const fetchLeads = useCallback(async (pageNum: number, append: boolean = false) => {
@@ -115,9 +116,26 @@ export default function Leads() {
     };
   }, [loading, hasMore, loadingMore, page, fetchLeads]);
 
-  const handleUnlock = (leadId: string) => {
-    // Redirect to registration/payment flow
-    navigate(`/auth?redirect=/leads&unlock=${leadId}`);
+  const handleUnlock = async (leadId: string) => {
+    setUnlockingLeadId(leadId);
+    try {
+      const { data, error } = await supabase.functions.invoke("unlock-lead", {
+        body: { leadId },
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      // Redirect to Stripe Checkout
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (err) {
+      console.error("Error unlocking lead:", err);
+      toast.error(err instanceof Error ? err.message : "Failed to start checkout");
+    } finally {
+      setUnlockingLeadId(null);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -218,8 +236,13 @@ export default function Leads() {
                         size="sm" 
                         className="gap-2"
                         onClick={() => handleUnlock(lead.id)}
+                        disabled={unlockingLeadId === lead.id}
                       >
-                        <Lock className="w-4 h-4" />
+                        {unlockingLeadId === lead.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Lock className="w-4 h-4" />
+                        )}
                         Unlock for £20
                       </Button>
                     </div>
@@ -251,8 +274,13 @@ export default function Leads() {
                     variant="unlock" 
                     className="w-full gap-2"
                     onClick={() => handleUnlock(lead.id)}
+                    disabled={unlockingLeadId === lead.id}
                   >
-                    <Lock className="w-4 h-4" />
+                    {unlockingLeadId === lead.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Lock className="w-4 h-4" />
+                    )}
                     Unlock for £20
                   </Button>
                 </div>
