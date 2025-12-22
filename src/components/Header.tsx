@@ -1,0 +1,119 @@
+import { useState, useEffect } from "react";
+import { Sparkles, Menu, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+export const Header = () => {
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollToSection = (id: string) => {
+    setIsMobileMenuOpen(false);
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const navLinks = [
+    { label: "How It Works", id: "how-it-works" },
+    { label: "Leads", id: "job-board" },
+    { label: "Pricing", id: "pricing" },
+    { label: "FAQ", id: "faq" },
+  ];
+
+  return (
+    <header
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        isScrolled
+          ? "bg-background/95 backdrop-blur-md shadow-card border-b border-border"
+          : "bg-transparent"
+      }`}
+    >
+      <div className="container mx-auto px-4">
+        <div className="flex items-center justify-between h-20">
+          {/* Logo */}
+          <div className="flex items-center gap-2">
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
+              isScrolled ? "bg-secondary" : "bg-secondary/20"
+            }`}>
+              <Sparkles className={`w-5 h-5 ${isScrolled ? "text-secondary-foreground" : "text-secondary"}`} />
+            </div>
+            <span className={`font-heading text-xl font-bold transition-colors ${
+              isScrolled ? "text-foreground" : "text-primary-foreground"
+            }`}>
+              Deep Clean UK
+            </span>
+          </div>
+
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center gap-8">
+            {navLinks.map((link) => (
+              <button
+                key={link.id}
+                onClick={() => scrollToSection(link.id)}
+                className={`text-sm font-medium transition-colors hover:text-secondary ${
+                  isScrolled ? "text-foreground" : "text-primary-foreground/90"
+                }`}
+              >
+                {link.label}
+              </button>
+            ))}
+          </nav>
+
+          {/* CTA Button */}
+          <div className="hidden md:block">
+            <Button 
+              variant={isScrolled ? "cta" : "hero"} 
+              size="default"
+              onClick={() => scrollToSection("registration")}
+            >
+              Join Now
+            </Button>
+          </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            className="md:hidden p-2"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            {isMobileMenuOpen ? (
+              <X className={`w-6 h-6 ${isScrolled ? "text-foreground" : "text-primary-foreground"}`} />
+            ) : (
+              <Menu className={`w-6 h-6 ${isScrolled ? "text-foreground" : "text-primary-foreground"}`} />
+            )}
+          </button>
+        </div>
+
+        {/* Mobile Menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden bg-background border-t border-border py-6 px-4 animate-fade-in">
+            <nav className="flex flex-col gap-4">
+              {navLinks.map((link) => (
+                <button
+                  key={link.id}
+                  onClick={() => scrollToSection(link.id)}
+                  className="text-foreground text-base font-medium py-2 text-left hover:text-secondary transition-colors"
+                >
+                  {link.label}
+                </button>
+              ))}
+              <Button 
+                variant="cta" 
+                size="lg" 
+                className="mt-4"
+                onClick={() => scrollToSection("registration")}
+              >
+                Join Now
+              </Button>
+            </nav>
+          </div>
+        )}
+      </div>
+    </header>
+  );
+};
