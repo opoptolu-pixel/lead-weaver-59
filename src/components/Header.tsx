@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Sparkles, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 export const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -20,10 +21,10 @@ export const Header = () => {
   };
 
   const navLinks = [
-    { label: "How It Works", id: "how-it-works" },
-    { label: "Leads", id: "job-board" },
-    { label: "Pricing", id: "pricing" },
-    { label: "FAQ", id: "faq" },
+    { label: "How It Works", id: "how-it-works", type: "scroll" },
+    { label: "Browse Leads", id: "/leads", type: "link" },
+    { label: "Pricing", id: "pricing", type: "scroll" },
+    { label: "FAQ", id: "faq", type: "scroll" },
   ];
 
   return (
@@ -53,15 +54,27 @@ export const Header = () => {
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => (
-              <button
-                key={link.id}
-                onClick={() => scrollToSection(link.id)}
-                className={`text-sm font-medium transition-colors hover:text-secondary ${
-                  isScrolled ? "text-foreground" : "text-primary-foreground/90"
-                }`}
-              >
-                {link.label}
-              </button>
+              link.type === "link" ? (
+                <Link
+                  key={link.id}
+                  to={link.id}
+                  className={`text-sm font-medium transition-colors hover:text-secondary ${
+                    isScrolled ? "text-foreground" : "text-primary-foreground/90"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ) : (
+                <button
+                  key={link.id}
+                  onClick={() => scrollToSection(link.id)}
+                  className={`text-sm font-medium transition-colors hover:text-secondary ${
+                    isScrolled ? "text-foreground" : "text-primary-foreground/90"
+                  }`}
+                >
+                  {link.label}
+                </button>
+              )
             ))}
           </nav>
 
@@ -94,13 +107,24 @@ export const Header = () => {
           <div className="md:hidden bg-background border-t border-border py-6 px-4 animate-fade-in">
             <nav className="flex flex-col gap-4">
               {navLinks.map((link) => (
-                <button
-                  key={link.id}
-                  onClick={() => scrollToSection(link.id)}
-                  className="text-foreground text-base font-medium py-2 text-left hover:text-secondary transition-colors"
-                >
-                  {link.label}
-                </button>
+                link.type === "link" ? (
+                  <Link
+                    key={link.id}
+                    to={link.id}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="text-foreground text-base font-medium py-2 text-left hover:text-secondary transition-colors"
+                  >
+                    {link.label}
+                  </Link>
+                ) : (
+                  <button
+                    key={link.id}
+                    onClick={() => scrollToSection(link.id)}
+                    className="text-foreground text-base font-medium py-2 text-left hover:text-secondary transition-colors"
+                  >
+                    {link.label}
+                  </button>
+                )
               ))}
               <Button 
                 variant="cta" 
