@@ -14,7 +14,102 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      leads: {
+        Row: {
+          created_at: string
+          customer_address: string
+          customer_email: string
+          customer_name: string
+          customer_phone: string
+          date: string
+          display_value: string
+          id: string
+          is_unlocked: boolean
+          job_type: string
+          postcode: string
+          source: string | null
+          unlocked_at: string | null
+          unlocked_by: string | null
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          created_at?: string
+          customer_address: string
+          customer_email: string
+          customer_name: string
+          customer_phone: string
+          date: string
+          display_value: string
+          id?: string
+          is_unlocked?: boolean
+          job_type: string
+          postcode: string
+          source?: string | null
+          unlocked_at?: string | null
+          unlocked_by?: string | null
+          updated_at?: string
+          value: number
+        }
+        Update: {
+          created_at?: string
+          customer_address?: string
+          customer_email?: string
+          customer_name?: string
+          customer_phone?: string
+          date?: string
+          display_value?: string
+          id?: string
+          is_unlocked?: boolean
+          job_type?: string
+          postcode?: string
+          source?: string | null
+          unlocked_at?: string | null
+          unlocked_by?: string | null
+          updated_at?: string
+          value?: number
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          business_name: string | null
+          contact_name: string | null
+          created_at: string
+          credits: number
+          id: string
+          phone: string | null
+          postcode: string | null
+          updated_at: string
+          user_id: string
+          whatsapp_optin: boolean | null
+        }
+        Insert: {
+          business_name?: string | null
+          contact_name?: string | null
+          created_at?: string
+          credits?: number
+          id?: string
+          phone?: string | null
+          postcode?: string | null
+          updated_at?: string
+          user_id: string
+          whatsapp_optin?: boolean | null
+        }
+        Update: {
+          business_name?: string | null
+          contact_name?: string | null
+          created_at?: string
+          credits?: number
+          id?: string
+          phone?: string | null
+          postcode?: string | null
+          updated_at?: string
+          user_id?: string
+          whatsapp_optin?: boolean | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
