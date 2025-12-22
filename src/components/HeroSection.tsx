@@ -12,11 +12,11 @@ const features = [
   },
   {
     icon: Banknote,
-    text: "Only pay for what you unlock",
+    text: "Pay just £20 to unlock a lead",
   },
   {
     icon: Clock,
-    text: "No monthly fees — pay-per-lead only",
+    text: "No monthly fees — flat £20 per lead",
   },
 ];
 
