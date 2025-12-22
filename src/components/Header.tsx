@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
-import { Sparkles, Menu, X } from "lucide-react";
+import { Sparkles, Menu, X, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -79,14 +81,37 @@ export const Header = () => {
           </nav>
 
           {/* CTA Button */}
-          <div className="hidden md:block">
-            <Button 
-              variant={isScrolled ? "cta" : "hero"} 
-              size="default"
-              onClick={() => scrollToSection("registration")}
-            >
-              Join Now
-            </Button>
+          <div className="hidden md:flex items-center gap-3">
+            {user ? (
+              <Link to="/dashboard">
+                <Button 
+                  variant={isScrolled ? "cta" : "hero"} 
+                  size="default"
+                  className="gap-2"
+                >
+                  <User className="w-4 h-4" />
+                  Dashboard
+                </Button>
+              </Link>
+            ) : (
+              <>
+                <Link to="/auth">
+                  <Button 
+                    variant={isScrolled ? "outline" : "outlineHero"} 
+                    size="default"
+                  >
+                    Sign In
+                  </Button>
+                </Link>
+                <Button 
+                  variant={isScrolled ? "cta" : "hero"} 
+                  size="default"
+                  onClick={() => scrollToSection("registration")}
+                >
+                  Join Now
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -126,14 +151,30 @@ export const Header = () => {
                   </button>
                 )
               ))}
-              <Button 
-                variant="cta" 
-                size="lg" 
-                className="mt-4"
-                onClick={() => scrollToSection("registration")}
-              >
-                Join Now
-              </Button>
+              {user ? (
+                <Link to="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Button variant="cta" size="lg" className="w-full mt-4 gap-2">
+                    <User className="w-4 h-4" />
+                    Dashboard
+                  </Button>
+                </Link>
+              ) : (
+                <>
+                  <Link to="/auth" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button variant="outline" size="lg" className="w-full mt-4">
+                      Sign In
+                    </Button>
+                  </Link>
+                  <Button 
+                    variant="cta" 
+                    size="lg" 
+                    className="w-full mt-2"
+                    onClick={() => scrollToSection("registration")}
+                  >
+                    Join Now
+                  </Button>
+                </>
+              )}
             </nav>
           </div>
         )}
