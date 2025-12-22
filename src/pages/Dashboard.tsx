@@ -14,6 +14,7 @@ import {
   Calendar,
   Coins,
   Plus,
+  Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -180,6 +181,15 @@ export default function Dashboard() {
                     {profile?.credits || 0} credits
                   </p>
                 </div>
+                <Link to="/settings">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-primary-foreground hover:bg-primary-foreground/10"
+                  >
+                    <Settings className="w-4 h-4" />
+                  </Button>
+                </Link>
                 <Button
                   variant="ghost"
                   size="sm"
