@@ -4,10 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -39,8 +39,11 @@ import {
   Variable,
   Code,
   Send,
+  BarChart3,
 } from "lucide-react";
 import { format } from "date-fns";
+import { VariableAutocompleteTextarea } from "@/components/admin/VariableAutocompleteTextarea";
+import { EmailLogsPanel } from "@/components/admin/EmailLogsPanel";
 
 interface EmailTemplate {
   id: string;
@@ -1196,6 +1199,9 @@ export default function AdminEmailTemplates() {
           to: testEmail,
           subject: `[TEST] ${subject}`,
           html: html,
+          templateId: selectedTemplate.id,
+          templateName: selectedTemplate.name,
+          isTest: true,
         },
       });
 
@@ -1348,8 +1354,21 @@ export default function AdminEmailTemplates() {
           </div>
         </div>
 
-        {/* Templates Table */}
-        <Card>
+        <Tabs defaultValue="templates" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="templates" className="flex items-center gap-2">
+              <Mail className="w-4 h-4" />
+              Templates
+            </TabsTrigger>
+            <TabsTrigger value="logs" className="flex items-center gap-2">
+              <BarChart3 className="w-4 h-4" />
+              Delivery Tracking
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="templates" className="space-y-6">
+            {/* Templates Table */}
+            <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Mail className="w-5 h-5" />
@@ -1504,6 +1523,12 @@ export default function AdminEmailTemplates() {
             </div>
           </CardContent>
         </Card>
+          </TabsContent>
+
+          <TabsContent value="logs">
+            <EmailLogsPanel />
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Edit Dialog */}
@@ -1569,14 +1594,12 @@ export default function AdminEmailTemplates() {
                 <Code className="w-4 h-4" />
                 HTML Body
               </Label>
-              <Textarea
-                id="body"
+              <VariableAutocompleteTextarea
                 value={formData.body}
-                onChange={(e) =>
-                  setFormData({ ...formData, body: e.target.value })
+                onChange={(value) =>
+                  setFormData({ ...formData, body: value })
                 }
                 placeholder="<html>...</html>"
-                className="font-mono text-sm min-h-[300px]"
               />
             </div>
             <div className="flex items-center gap-2">

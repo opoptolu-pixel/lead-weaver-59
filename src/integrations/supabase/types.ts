@@ -145,6 +145,68 @@ export type Database = {
           },
         ]
       }
+      email_logs: {
+        Row: {
+          bounce_type: string | null
+          bounced_at: string | null
+          clicked_at: string | null
+          created_at: string
+          delivered_at: string | null
+          id: string
+          is_test: boolean | null
+          opened_at: string | null
+          recipient_email: string
+          resend_id: string | null
+          status: string
+          subject: string
+          template_id: string | null
+          template_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          bounce_type?: string | null
+          bounced_at?: string | null
+          clicked_at?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          id?: string
+          is_test?: boolean | null
+          opened_at?: string | null
+          recipient_email: string
+          resend_id?: string | null
+          status?: string
+          subject: string
+          template_id?: string | null
+          template_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bounce_type?: string | null
+          bounced_at?: string | null
+          clicked_at?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          id?: string
+          is_test?: boolean | null
+          opened_at?: string | null
+          recipient_email?: string
+          resend_id?: string | null
+          status?: string
+          subject?: string
+          template_id?: string | null
+          template_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_logs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_templates: {
         Row: {
           body: string
