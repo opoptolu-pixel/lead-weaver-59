@@ -71,17 +71,17 @@ export const HeroSection = () => {
           </form>
 
           {/* Trust indicator */}
-          <p className="mt-8 text-primary-foreground/60 text-sm animate-fade-in stagger-4">
+          <p className="mt-4 text-primary-foreground/60 text-sm animate-fade-in stagger-4">
             ✓ No signup fees &nbsp;&nbsp; ✓ Pay only £20 per lead &nbsp;&nbsp; ✓ Exclusive leads
           </p>
         </div>
       </div>
 
       {/* Bottom wave */}
-      <div className="absolute bottom-0 left-0 right-0 -mb-px">
-        <svg viewBox="0 0 1440 120" fill="none" className="w-full h-auto block">
+      <div className="absolute bottom-0 left-0 right-0 -mb-px pointer-events-none">
+        <svg viewBox="0 0 1440 80" fill="none" className="w-full h-auto block">
           <path
-            d="M0 120L60 105C120 90 240 60 360 45C480 30 600 30 720 37.5C840 45 960 60 1080 67.5C1200 75 1320 75 1380 75L1440 75V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0Z"
+            d="M0 80L60 70C120 60 240 40 360 30C480 20 600 20 720 25C840 30 960 40 1080 45C1200 50 1320 50 1380 50L1440 50V80H1380C1320 80 1200 80 1080 80C960 80 840 80 720 80C600 80 480 80 360 80C240 80 120 80 60 80H0Z"
             fill="hsl(var(--background))"
           />
         </svg>
