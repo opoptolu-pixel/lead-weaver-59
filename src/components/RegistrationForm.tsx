@@ -4,9 +4,11 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Shield, CheckCircle, MessageCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export const RegistrationForm = () => {
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     businessName: "",
     contactName: "",
@@ -16,20 +18,43 @@ export const RegistrationForm = () => {
     whatsappOptIn: false,
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Application Received!",
-      description: "We'll review your application and get back to you within 24 hours.",
-    });
-    setFormData({
-      businessName: "",
-      contactName: "",
-      postcode: "",
-      phone: "",
-      email: "",
-      whatsappOptIn: false,
-    });
+    setIsSubmitting(true);
+
+    try {
+      const { error } = await supabase.from("business_inquiries").insert({
+        business_name: formData.businessName,
+        contact_name: formData.contactName,
+        postcode: formData.postcode,
+        phone: formData.phone,
+        email: formData.email,
+        whatsapp_optin: formData.whatsappOptIn,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Application Received!",
+        description: "We'll review your application and get back to you within 24 hours.",
+      });
+      setFormData({
+        businessName: "",
+        contactName: "",
+        postcode: "",
+        phone: "",
+        email: "",
+        whatsappOptIn: false,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Submission Failed",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -184,8 +209,8 @@ export const RegistrationForm = () => {
                   </label>
                 </div>
 
-                <Button variant="cta" size="lg" className="w-full">
-                  Submit Application
+                <Button variant="cta" size="lg" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? "Submitting..." : "Submit Application"}
                 </Button>
 
                 <p className="text-xs text-muted-foreground text-center">
