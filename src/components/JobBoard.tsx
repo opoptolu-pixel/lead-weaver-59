@@ -21,15 +21,12 @@ export const JobBoard = () => {
   useEffect(() => {
     const fetchLeads = async () => {
       try {
-        // Use secure view that excludes sensitive customer data
-        const { data, error } = await supabase
-          .from("available_leads")
-          .select("id, postcode, job_type, display_value, date")
-          .order("created_at", { ascending: false })
-          .limit(6);
+        // Use secure function that only exposes non-sensitive lead data
+        const { data, error } = await supabase.rpc("get_available_leads");
 
         if (error) throw error;
-        if (data) setLeads(data);
+        // Take only first 6 leads (function returns all, ordered by created_at desc)
+        if (data) setLeads(data.slice(0, 6));
       } catch (error) {
         console.error("Error fetching leads:", error);
       } finally {

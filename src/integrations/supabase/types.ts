@@ -140,13 +140,6 @@ export type Database = {
             foreignKeyName: "disputes_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
-            referencedRelation: "available_leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "disputes_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
             referencedRelation: "leads"
             referencedColumns: ["id"]
           },
@@ -223,13 +216,6 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "fraud_flags_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "available_leads"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "fraud_flags_lead_id_fkey"
             columns: ["lead_id"]
@@ -493,35 +479,20 @@ export type Database = {
       }
     }
     Views: {
-      available_leads: {
-        Row: {
-          created_at: string | null
-          date: string | null
-          display_value: string | null
-          id: string | null
-          job_type: string | null
-          postcode: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          date?: string | null
-          display_value?: string | null
-          id?: string | null
-          job_type?: string | null
-          postcode?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          date?: string | null
-          display_value?: string | null
-          id?: string | null
-          job_type?: string | null
-          postcode?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
+      get_available_leads: {
+        Args: never
+        Returns: {
+          created_at: string
+          date: string
+          display_value: string
+          id: string
+          job_type: string
+          postcode: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

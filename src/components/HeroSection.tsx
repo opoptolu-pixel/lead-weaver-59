@@ -65,42 +65,52 @@ export const HeroSection = () => {
           setMatchedCity(null);
         }
 
-        // Build the leads query using secure view (excludes sensitive data)
-        let leadsQuery = supabase
-          .from("available_leads")
-          .select("id, postcode, job_type, display_value");
+        // Use secure function that only exposes non-sensitive lead data
+        const { data: allLeads, error } = await supabase.rpc("get_available_leads");
 
-        if (prefixes.length > 0) {
-          // For single-letter prefixes, match with digits to avoid false matches
-          // (e.g., W should match W1, W2 but not WN, WA)
-          const expandedConditions: string[] = [];
-          
-          for (const prefix of prefixes) {
-            if (prefix.length === 1) {
-              // Single letter prefix - match with digits 1-20
-              for (let i = 1; i <= 20; i++) {
-                expandedConditions.push(`postcode.ilike.${prefix}${i}%`);
-              }
-            } else {
-              expandedConditions.push(`postcode.ilike.${prefix}%`);
-            }
+        let leads = allLeads || [];
+        
+        if (!error && leads.length > 0) {
+          // Filter leads based on search criteria
+          if (prefixes.length > 0) {
+            leads = leads.filter((lead: LeadResult) => {
+              const postcode = lead.postcode.toUpperCase();
+              const jobType = lead.job_type.toLowerCase();
+              const searchLower = searchTerm.toLowerCase();
+              
+              // Check if postcode matches any prefix pattern
+              const matchesPrefix = prefixes.some(prefix => {
+                if (prefix.length === 1) {
+                  // Single letter - must be followed by a digit
+                  return /^[A-Z]\d/.test(postcode) && postcode.startsWith(prefix.toUpperCase());
+                }
+                return postcode.startsWith(prefix.toUpperCase());
+              });
+              
+              // Also match if postcode or job_type contains search term
+              const matchesSearch = postcode.includes(searchTerm.toUpperCase()) || 
+                                   jobType.includes(searchLower);
+              
+              return matchesPrefix || matchesSearch;
+            });
+          } else {
+            // Standard search
+            leads = leads.filter((lead: LeadResult) => {
+              const postcode = lead.postcode.toUpperCase();
+              const jobType = lead.job_type.toLowerCase();
+              return postcode.includes(searchTerm.toUpperCase()) || 
+                     jobType.includes(searchTerm.toLowerCase());
+            });
           }
           
-          const searchConditions = `postcode.ilike.%${searchTerm.toUpperCase()}%,job_type.ilike.%${searchTerm}%`;
-          leadsQuery = leadsQuery.or(`${expandedConditions.join(',')},${searchConditions}`);
-        } else {
-          // Standard search
-          leadsQuery = leadsQuery.or(
-            `postcode.ilike.%${searchTerm.toUpperCase()}%,job_type.ilike.%${searchTerm}%`
-          );
+          leads = leads.slice(0, 15);
         }
-
-        const { data: leads, error } = await leadsQuery.limit(15);
 
         if (error) {
           console.error("Leads search error:", error);
+          setLeadResults([]);
         } else {
-          setLeadResults(leads || []);
+          setLeadResults(leads);
         }
 
       } catch (err) {
