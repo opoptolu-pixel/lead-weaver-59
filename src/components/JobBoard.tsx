@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
+import { useAutoScroll } from "@/hooks/useAutoScroll";
 
 interface Lead {
   id: string;
@@ -16,6 +17,11 @@ interface Lead {
 export const JobBoard = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Auto-scroll for desktop
+  const desktopScroll = useAutoScroll({ speed: 25, pauseOnHover: true, pauseOnTouch: true });
+  // Auto-scroll for mobile
+  const mobileScroll = useAutoScroll({ speed: 25, pauseOnHover: true, pauseOnTouch: true });
 
   // Fetch initial leads
   useEffect(() => {
@@ -25,8 +31,8 @@ export const JobBoard = () => {
         const { data, error } = await supabase.rpc("get_available_leads");
 
         if (error) throw error;
-        // Take only first 6 leads (function returns all, ordered by created_at desc)
-        if (data) setLeads(data.slice(0, 6));
+        // Take only first 8 leads for scrolling effect
+        if (data) setLeads(data.slice(0, 8));
       } catch (error) {
         console.error("Error fetching leads:", error);
       } finally {
@@ -50,8 +56,8 @@ export const JobBoard = () => {
         },
         (payload) => {
           const newLead = payload.new as Lead;
-          // Add new lead to the top and keep only 6
-          setLeads((prev) => [newLead, ...prev].slice(0, 6));
+          // Add new lead to the top and keep only 8
+          setLeads((prev) => [newLead, ...prev].slice(0, 8));
         }
       )
       .subscribe();
@@ -94,10 +100,10 @@ export const JobBoard = () => {
           </div>
         ) : (
           <>
-            {/* Desktop table view */}
+            {/* Desktop table view with auto-scroll */}
             <div className="hidden md:block max-w-5xl mx-auto">
               <div className="bg-card rounded-2xl shadow-elevated overflow-hidden border border-border">
-                {/* Table header */}
+                {/* Table header - fixed */}
                 <div className="grid grid-cols-5 gap-4 bg-primary text-primary-foreground px-6 py-4 font-heading font-semibold text-sm">
                   <div className="flex items-center gap-2">
                     <MapPin className="w-4 h-4" />
@@ -115,60 +121,88 @@ export const JobBoard = () => {
                   <div className="text-center">Action</div>
                 </div>
 
-                {/* Table rows */}
-                {leads.map((lead, index) => (
+                {/* Scrolling container */}
+                <div 
+                  {...desktopScroll.containerProps}
+                  className="max-h-[280px] overflow-hidden"
+                  style={{ scrollBehavior: 'auto' }}
+                >
+                  {/* Duplicate leads for seamless scrolling */}
+                  {[...leads, ...leads].map((lead, index) => (
+                    <div
+                      key={`${lead.id}-${index}`}
+                      className={`grid grid-cols-5 gap-4 px-6 py-5 items-center transition-colors hover:bg-muted/50 ${
+                        index !== leads.length * 2 - 1 ? "border-b border-border" : ""
+                      }`}
+                    >
+                      <div className="font-semibold text-foreground bg-muted rounded-lg px-3 py-1 inline-block w-fit">
+                        {lead.postcode}
+                      </div>
+                      <div className="text-foreground font-medium">{lead.job_type}</div>
+                      <div className="text-secondary font-bold text-lg">{lead.display_value}</div>
+                      <div className="text-muted-foreground">{formatDate(lead.date)}</div>
+                      <div className="text-center">
+                        <Link to="/leads">
+                          <Button variant="unlock" size="sm" className="gap-2">
+                            <Lock className="w-4 h-4" />
+                            Unlock £20
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Pause indicator */}
+              {desktopScroll.isPaused && (
+                <p className="text-center text-sm text-muted-foreground mt-3">
+                  Scrolling paused • Move away to resume
+                </p>
+              )}
+            </div>
+
+            {/* Mobile card view with auto-scroll */}
+            <div className="md:hidden max-w-md mx-auto">
+              <div 
+                {...mobileScroll.containerProps}
+                className="max-h-[400px] overflow-hidden space-y-4"
+                style={{ scrollBehavior: 'auto' }}
+              >
+                {/* Duplicate leads for seamless scrolling */}
+                {[...leads, ...leads].map((lead, index) => (
                   <div
-                    key={lead.id}
-                    className={`grid grid-cols-5 gap-4 px-6 py-5 items-center transition-colors hover:bg-muted/50 ${
-                      index !== leads.length - 1 ? "border-b border-border" : ""
-                    }`}
+                    key={`mobile-${lead.id}-${index}`}
+                    className="bg-card rounded-xl p-5 shadow-card border border-border"
                   >
-                    <div className="font-semibold text-foreground bg-muted rounded-lg px-3 py-1 inline-block w-fit">
-                      {lead.postcode}
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <span className="inline-block bg-muted text-foreground font-semibold rounded-lg px-3 py-1 text-sm mb-2">
+                          {lead.postcode}
+                        </span>
+                        <h3 className="font-semibold text-foreground">{lead.job_type}</h3>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-secondary font-bold text-xl">{lead.display_value}</p>
+                        <p className="text-muted-foreground text-sm">{formatDate(lead.date)}</p>
+                      </div>
                     </div>
-                    <div className="text-foreground font-medium">{lead.job_type}</div>
-                    <div className="text-secondary font-bold text-lg">{lead.display_value}</div>
-                    <div className="text-muted-foreground">{formatDate(lead.date)}</div>
-                    <div className="text-center">
-                      <Link to="/leads">
-                        <Button variant="unlock" size="sm" className="gap-2">
-                          <Lock className="w-4 h-4" />
-                          Unlock £20
-                        </Button>
-                      </Link>
-                    </div>
+                    <Link to="/leads">
+                      <Button variant="unlock" className="w-full gap-2">
+                        <Lock className="w-4 h-4" />
+                        Unlock £20
+                      </Button>
+                    </Link>
                   </div>
                 ))}
               </div>
-            </div>
-
-            {/* Mobile card view */}
-            <div className="md:hidden space-y-4 max-w-md mx-auto">
-              {leads.map((lead) => (
-                <div
-                  key={lead.id}
-                  className="bg-card rounded-xl p-5 shadow-card border border-border"
-                >
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <span className="inline-block bg-muted text-foreground font-semibold rounded-lg px-3 py-1 text-sm mb-2">
-                        {lead.postcode}
-                      </span>
-                      <h3 className="font-semibold text-foreground">{lead.job_type}</h3>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-secondary font-bold text-xl">{lead.display_value}</p>
-                      <p className="text-muted-foreground text-sm">{formatDate(lead.date)}</p>
-                    </div>
-                  </div>
-                  <Link to="/leads">
-                    <Button variant="unlock" className="w-full gap-2">
-                      <Lock className="w-4 h-4" />
-                      Unlock £20
-                    </Button>
-                  </Link>
-                </div>
-              ))}
+              
+              {/* Pause indicator for mobile */}
+              {mobileScroll.isPaused && (
+                <p className="text-center text-sm text-muted-foreground mt-3">
+                  Tap outside to resume scrolling
+                </p>
+              )}
             </div>
           </>
         )}
