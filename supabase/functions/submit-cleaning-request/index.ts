@@ -18,26 +18,44 @@ interface CleaningRequest {
   estimatedValue?: string;
 }
 
-// Phase 1 Job Types - Only bundled jobs that naturally exceed £100
-const PHASE1_JOB_TYPES: Record<string, { displayValue: string; value: number }> = {
-  "Carpet Cleaning (2–3 Rooms)": { displayValue: "from £100", value: 125 },
-  "Sofa + Carpet Cleaning": { displayValue: "from £120", value: 150 },
-  "Sofa + Mattress Cleaning": { displayValue: "from £100", value: 120 },
-  "Carpet + Mattress Cleaning": { displayValue: "from £110", value: 135 },
-  "Deep Clean (3+ Rooms)": { displayValue: "from £140", value: 170 },
-  "End of Tenancy Clean": { displayValue: "from £150", value: 185 },
-  "Airbnb / Short-Let Refresh": { displayValue: "from £130", value: 155 },
-  "Move-In / Move-Out Clean": { displayValue: "from £140", value: 170 },
-  "Post-Tenancy Carpet & Upholstery": { displayValue: "from £120", value: 140 },
-  "One-Off Deep Clean": { displayValue: "from £100", value: 120 },
+// Job Value Bands for Phase 2 Analytics
+type ValueBand = "standard" | "premium" | "high-value";
+
+const getValueBand = (value: number): ValueBand => {
+  if (value >= 200) return "high-value";
+  if (value >= 150) return "premium";
+  return "standard";
+};
+
+// Phase 1 + Phase 2 Job Types
+const JOB_TYPES: Record<string, { displayValue: string; value: number; phase: number; category: string }> = {
+  // Phase 1 - Core Services (£100+)
+  "Carpet Cleaning (2–3 Rooms)": { displayValue: "from £100", value: 125, phase: 1, category: "carpet" },
+  "Sofa + Carpet Cleaning": { displayValue: "from £120", value: 150, phase: 1, category: "upholstery" },
+  "Sofa + Mattress Cleaning": { displayValue: "from £100", value: 120, phase: 1, category: "upholstery" },
+  "Carpet + Mattress Cleaning": { displayValue: "from £110", value: 135, phase: 1, category: "carpet" },
+  "Deep Clean (3+ Rooms)": { displayValue: "from £140", value: 170, phase: 1, category: "deep-clean" },
+  "End of Tenancy Clean": { displayValue: "from £150", value: 185, phase: 1, category: "tenancy" },
+  "Airbnb / Short-Let Refresh": { displayValue: "from £130", value: 155, phase: 1, category: "short-let" },
+  "Move-In / Move-Out Clean": { displayValue: "from £140", value: 170, phase: 1, category: "tenancy" },
+  "Post-Tenancy Carpet & Upholstery": { displayValue: "from £120", value: 140, phase: 1, category: "tenancy" },
+  "One-Off Deep Clean": { displayValue: "from £100", value: 120, phase: 1, category: "deep-clean" },
+  
+  // Phase 2 - Commercial & Specialist (£120+)
+  "Office Carpet + Upholstery Clean": { displayValue: "from £150", value: 180, phase: 2, category: "commercial" },
+  "Post-Construction Deep Clean": { displayValue: "from £200", value: 250, phase: 2, category: "construction" },
+  "Large Property Window + Interior": { displayValue: "from £180", value: 220, phase: 2, category: "window" },
+  "Multi-Room + Upholstery Deep Clean": { displayValue: "from £160", value: 190, phase: 2, category: "deep-clean" },
+  
   // Legacy mappings for backwards compatibility
-  "End of Tenancy": { displayValue: "from £150", value: 185 },
-  "Deep Clean": { displayValue: "from £140", value: 170 },
-  "Move-In Clean": { displayValue: "from £140", value: 170 },
-  "One-Off Clean": { displayValue: "from £100", value: 120 },
+  "End of Tenancy": { displayValue: "from £150", value: 185, phase: 1, category: "tenancy" },
+  "Deep Clean": { displayValue: "from £140", value: 170, phase: 1, category: "deep-clean" },
+  "Move-In Clean": { displayValue: "from £140", value: 170, phase: 1, category: "tenancy" },
+  "One-Off Clean": { displayValue: "from £100", value: 120, phase: 1, category: "deep-clean" },
 };
 
 const MINIMUM_JOB_VALUE = 100;
+const PHASE2_MINIMUM_VALUE = 120; // Phase 2 jobs require higher minimum
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -63,25 +81,47 @@ serve(async (req) => {
     }
 
     // Get job type info or use defaults
-    const jobTypeInfo = PHASE1_JOB_TYPES[body.jobType];
+    const jobTypeInfo = JOB_TYPES[body.jobType];
     
     // Calculate value - use provided estimate or lookup
-    let displayValue = body.estimatedValue || jobTypeInfo?.displayValue || "£100–£150";
+    let displayValue = body.estimatedValue || jobTypeInfo?.displayValue || "from £100";
     let value = jobTypeInfo?.value || 125;
+    const phase = jobTypeInfo?.phase || 1;
+    const category = jobTypeInfo?.category || "general";
 
-    // CRITICAL: Enforce £100 minimum job value
-    if (value < MINIMUM_JOB_VALUE) {
-      console.error(`Job value ${value} below minimum ${MINIMUM_JOB_VALUE} for job type: ${body.jobType}`);
+    // SMART ENFORCEMENT: Different minimum for Phase 2 jobs
+    const requiredMinimum = phase === 2 ? PHASE2_MINIMUM_VALUE : MINIMUM_JOB_VALUE;
+
+    // CRITICAL: Enforce minimum job value
+    if (value < requiredMinimum) {
+      console.error(`Job value ${value} below minimum ${requiredMinimum} for job type: ${body.jobType} (Phase ${phase})`);
       return new Response(
         JSON.stringify({ 
           error: "Job value too low", 
-          message: "We only accept jobs with a minimum value of £100. Please select a larger service package." 
+          message: `We only accept ${phase === 2 ? 'commercial/specialist' : ''} jobs with a minimum value of £${requiredMinimum}. Please select a larger service package.` 
         }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Insert lead into database
+    // Determine value band for analytics
+    const valueBand = getValueBand(value);
+
+    // Determine initial lead status - auto-flag edge cases for review
+    let leadStatus = "new";
+    let adminNotes = null;
+    
+    // SMART ENFORCEMENT: Flag leads that are borderline
+    if (value < 110) {
+      adminNotes = `[AUTO-FLAG] Borderline value (£${value}). Review for quality.`;
+    }
+    
+    // Flag Phase 2 jobs for priority review
+    if (phase === 2) {
+      adminNotes = (adminNotes ? adminNotes + " | " : "") + `[PHASE 2] ${category} service - verify commercial requirements.`;
+    }
+
+    // Insert lead into database with enhanced metadata
     const { data, error } = await supabase.from("leads").insert({
       customer_name: body.customerName,
       customer_email: body.customerEmail,
@@ -93,9 +133,11 @@ serve(async (req) => {
       display_value: displayValue,
       value: value,
       source: "website",
-      lead_status: "new",
+      lead_status: leadStatus,
       outcome_status: "pending",
       job_notes: body.jobDescription || null,
+      admin_notes: adminNotes,
+      quality_score: phase === 2 ? 80 : 70, // Phase 2 jobs get higher quality score
     }).select().single();
 
     if (error) {
@@ -106,7 +148,16 @@ serve(async (req) => {
       );
     }
 
-    console.log("Lead created successfully:", data.id, "| Job Type:", body.jobType, "| Value:", value);
+    // Enhanced logging for analytics
+    console.log("Lead created:", {
+      id: data.id,
+      jobType: body.jobType,
+      value: value,
+      valueBand: valueBand,
+      phase: phase,
+      category: category,
+      postcode: body.postcode.toUpperCase(),
+    });
 
     return new Response(
       JSON.stringify({ 
