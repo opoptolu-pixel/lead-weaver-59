@@ -121,13 +121,23 @@ serve(async (req) => {
       adminNotes = (adminNotes ? adminNotes + " | " : "") + `[PHASE 2] ${category} service - verify commercial requirements.`;
     }
 
+    // Format postcode: ensure space between outward and inward code
+    const formatPostcode = (pc: string): string => {
+      const cleaned = pc.replace(/\s+/g, '').toUpperCase();
+      // Inward code is always 3 characters (1 number + 2 letters)
+      if (cleaned.length > 3 && !pc.includes(' ')) {
+        return cleaned.slice(0, -3) + ' ' + cleaned.slice(-3);
+      }
+      return pc.toUpperCase();
+    };
+
     // Insert lead into database with enhanced metadata
     const { data, error } = await supabase.from("leads").insert({
       customer_name: body.customerName,
       customer_email: body.customerEmail,
       customer_phone: body.customerPhone,
       customer_address: body.customerAddress,
-      postcode: body.postcode.toUpperCase(),
+      postcode: formatPostcode(body.postcode),
       job_type: body.jobType,
       date: body.preferredDate,
       display_value: displayValue,
