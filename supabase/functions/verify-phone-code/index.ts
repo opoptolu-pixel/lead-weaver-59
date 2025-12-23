@@ -6,6 +6,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 60 * 60 * 1000; // 1 hour lockout
+
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[VERIFY-PHONE-CODE] ${step}${detailsStr}`);
@@ -34,7 +37,12 @@ serve(async (req) => {
 
     const { code } = await req.json();
     if (!code) throw new Error("Verification code is required");
-    logStep("Code received", { code });
+    
+    // Validate code format (must be 8-digit alphanumeric)
+    if (typeof code !== 'string' || code.length !== 8 || !/^[A-Z0-9]+$/.test(code)) {
+      throw new Error("Invalid verification code format");
+    }
+    logStep("Code received and validated format");
 
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -42,27 +50,77 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    // Find valid code
-    const { data: codeRecord, error: codeError } = await supabaseAdmin
+    // Check if user is currently locked out
+    const { data: lockedCode, error: lockCheckError } = await supabaseAdmin
+      .from("phone_verification_codes")
+      .select("locked_until")
+      .eq("user_id", user.id)
+      .eq("verified", false)
+      .gt("locked_until", new Date().toISOString())
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (lockCheckError) {
+      logStep("Lock check error", { error: lockCheckError.message });
+    }
+
+    if (lockedCode?.locked_until) {
+      const lockExpiry = new Date(lockedCode.locked_until);
+      const remainingMinutes = Math.ceil((lockExpiry.getTime() - Date.now()) / (60 * 1000));
+      logStep("User is locked out", { locked_until: lockedCode.locked_until, remainingMinutes });
+      throw new Error(`Too many failed attempts. Please try again in ${remainingMinutes} minutes.`);
+    }
+
+    // Find the latest unverified code for this user
+    const { data: latestCode, error: latestError } = await supabaseAdmin
       .from("phone_verification_codes")
       .select("*")
       .eq("user_id", user.id)
-      .eq("code", code)
       .eq("verified", false)
       .gt("expires_at", new Date().toISOString())
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    if (codeError) throw new Error(`Database error: ${codeError.message}`);
-    if (!codeRecord) throw new Error("Invalid or expired verification code");
-    logStep("Code found and valid");
+    if (latestError) throw new Error(`Database error: ${latestError.message}`);
+    
+    if (!latestCode) {
+      throw new Error("No active verification code found. Please request a new code.");
+    }
+
+    // Check if this code matches
+    if (latestCode.code !== code) {
+      // Increment attempts
+      const newAttempts = (latestCode.attempts || 0) + 1;
+      const updateData: { attempts: number; locked_until?: string } = { attempts: newAttempts };
+      
+      // Lock if max attempts reached
+      if (newAttempts >= MAX_ATTEMPTS) {
+        updateData.locked_until = new Date(Date.now() + LOCKOUT_DURATION_MS).toISOString();
+        logStep("Max attempts reached, locking user", { attempts: newAttempts });
+      }
+
+      await supabaseAdmin
+        .from("phone_verification_codes")
+        .update(updateData)
+        .eq("id", latestCode.id);
+
+      const remainingAttempts = MAX_ATTEMPTS - newAttempts;
+      if (remainingAttempts > 0) {
+        throw new Error(`Invalid verification code. ${remainingAttempts} attempts remaining.`);
+      } else {
+        throw new Error("Too many failed attempts. Your account has been locked for 1 hour.");
+      }
+    }
+
+    logStep("Code verified successfully");
 
     // Mark code as verified
     await supabaseAdmin
       .from("phone_verification_codes")
       .update({ verified: true })
-      .eq("id", codeRecord.id);
+      .eq("id", latestCode.id);
 
     // Update profile
     const { error: profileError } = await supabaseAdmin
@@ -107,7 +165,7 @@ serve(async (req) => {
     logStep("ERROR", { message: errorMessage });
     return new Response(JSON.stringify({ error: errorMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
+      status: 400,
     });
   }
 });
