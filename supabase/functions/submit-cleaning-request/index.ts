@@ -53,9 +53,16 @@ const JOB_TYPES: Record<string, { displayValue: string; value: number; phase: nu
   "Move-In Clean": { displayValue: "from £140", value: 170, phase: 1, category: "tenancy" },
   "One-Off Clean": { displayValue: "from £100", value: 120, phase: 1, category: "deep-clean" },
 };
-
 const MINIMUM_JOB_VALUE = 100;
 const PHASE2_MINIMUM_VALUE = 120; // Phase 2 jobs require higher minimum
+
+// UK Postcode validation regex
+const UK_POSTCODE_REGEX = /^([A-Z]{1,2}[0-9][0-9A-Z]?\s?[0-9][A-Z]{2})$/i;
+
+const validatePostcode = (postcode: string): boolean => {
+  const cleaned = postcode.replace(/\s+/g, '');
+  return UK_POSTCODE_REGEX.test(cleaned);
+};
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -76,6 +83,14 @@ serve(async (req) => {
       console.error("Missing required fields:", body);
       return new Response(
         JSON.stringify({ error: "Missing required fields" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    // Validate UK postcode
+    if (!validatePostcode(body.postcode)) {
+      console.error("Invalid UK postcode:", body.postcode);
+      return new Response(
+        JSON.stringify({ error: "Invalid postcode", message: "Please enter a valid UK postcode (e.g., SW1A 1AA)" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
