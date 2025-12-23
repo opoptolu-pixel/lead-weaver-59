@@ -1,26 +1,68 @@
 import { useState, useRef, useEffect } from "react";
-import { Search, Sparkles } from "lucide-react";
+import { Search, Sparkles, MapPin, Briefcase, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
-const POPULAR_SEARCHES = [
-  "London", "Manchester", "Birmingham", "Leeds", "Liverpool",
-  "Bristol", "Sheffield", "Edinburgh", "Glasgow", "Cardiff",
-  "SW1", "E1", "M1", "B1", "LS1", "L1", "BS1", "S1", "EH1", "G1"
-];
+interface LeadResult {
+  id: string;
+  postcode: string;
+  job_type: string;
+  display_value: string;
+  customer_address: string;
+}
 
 export const HeroSection = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [leadResults, setLeadResults] = useState<LeadResult[]>([]);
+  const [uniqueLocations, setUniqueLocations] = useState<string[]>([]);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
-  const filteredSuggestions = searchQuery.trim()
-    ? POPULAR_SEARCHES.filter(s => 
-        s.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : POPULAR_SEARCHES.slice(0, 6);
+  // Fetch leads based on search query
+  useEffect(() => {
+    const fetchLeads = async () => {
+      if (!searchQuery.trim() || searchQuery.length < 2) {
+        setLeadResults([]);
+        setUniqueLocations([]);
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const searchTerm = searchQuery.trim().toUpperCase();
+        
+        // Search leads by postcode, address, or job type
+        const { data, error } = await supabase
+          .from("leads")
+          .select("id, postcode, job_type, display_value, customer_address")
+          .eq("is_unlocked", false)
+          .or(`postcode.ilike.%${searchTerm}%,customer_address.ilike.%${searchQuery}%,job_type.ilike.%${searchQuery}%`)
+          .limit(10);
+
+        if (error) {
+          console.error("Search error:", error);
+          return;
+        }
+
+        setLeadResults(data || []);
+
+        // Extract unique postcodes/locations for quick navigation
+        const locations = [...new Set((data || []).map(lead => lead.postcode))];
+        setUniqueLocations(locations.slice(0, 5));
+      } catch (err) {
+        console.error("Search error:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    const debounce = setTimeout(fetchLeads, 300);
+    return () => clearTimeout(debounce);
+  }, [searchQuery]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,21 +74,29 @@ export const HeroSection = () => {
     }
   };
 
-  const handleSuggestionClick = (suggestion: string) => {
-    setSearchQuery(suggestion);
+  const handleLocationClick = (location: string) => {
+    setSearchQuery(location);
     setShowSuggestions(false);
-    navigate(`/leads?search=${encodeURIComponent(suggestion)}`);
+    navigate(`/leads?search=${encodeURIComponent(location)}`);
+  };
+
+  const handleLeadClick = (leadId: string, postcode: string) => {
+    setShowSuggestions(false);
+    navigate(`/leads?search=${encodeURIComponent(postcode)}`);
   };
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (searchInputRef.current && !searchInputRef.current.contains(e.target as Node)) {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
         setShowSuggestions(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const hasResults = leadResults.length > 0 || uniqueLocations.length > 0;
+  const showDropdown = showSuggestions && (hasResults || isLoading || searchQuery.length >= 2);
 
   return (
     <section className="relative min-h-[60vh] bg-hero-gradient overflow-hidden flex items-center pt-20">
@@ -80,7 +130,7 @@ export const HeroSection = () => {
           {/* Search bar */}
           <form onSubmit={handleSearch} className="animate-slide-up stagger-3">
             <div className="flex flex-col sm:flex-row gap-4 max-w-2xl mx-auto">
-              <div className="relative flex-1" ref={searchInputRef}>
+              <div className="relative flex-1" ref={searchContainerRef}>
                 <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-muted-foreground z-10" />
                 <Input
                   type="text"
@@ -90,22 +140,91 @@ export const HeroSection = () => {
                   onFocus={() => setShowSuggestions(true)}
                   className="pl-14 h-16 text-lg bg-background border-2 border-border rounded-xl shadow-xl focus:border-secondary"
                 />
-                {showSuggestions && filteredSuggestions.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-background border border-border rounded-xl shadow-xl z-50 overflow-hidden">
-                    <div className="p-2 text-xs text-muted-foreground font-medium border-b border-border">
-                      Popular searches
-                    </div>
-                    {filteredSuggestions.map((suggestion) => (
-                      <button
-                        key={suggestion}
-                        type="button"
-                        onClick={() => handleSuggestionClick(suggestion)}
-                        className="w-full px-4 py-3 text-left text-foreground hover:bg-muted transition-colors flex items-center gap-3"
-                      >
-                        <Search className="w-4 h-4 text-muted-foreground" />
-                        {suggestion}
-                      </button>
-                    ))}
+                
+                {/* Search Results Dropdown */}
+                {showDropdown && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-background border border-border rounded-xl shadow-xl z-50 overflow-hidden max-h-80 overflow-y-auto">
+                    {isLoading ? (
+                      <div className="p-4 flex items-center justify-center gap-2 text-muted-foreground">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Searching...
+                      </div>
+                    ) : hasResults ? (
+                      <>
+                        {/* Matching Locations */}
+                        {uniqueLocations.length > 0 && (
+                          <>
+                            <div className="p-2 text-xs text-muted-foreground font-medium border-b border-border bg-muted/50">
+                              <MapPin className="w-3 h-3 inline mr-1" />
+                              Locations
+                            </div>
+                            {uniqueLocations.map((location) => (
+                              <button
+                                key={location}
+                                type="button"
+                                onClick={() => handleLocationClick(location)}
+                                className="w-full px-4 py-3 text-left text-foreground hover:bg-muted transition-colors flex items-center gap-3"
+                              >
+                                <MapPin className="w-4 h-4 text-secondary" />
+                                <span className="font-medium">{location}</span>
+                                <span className="text-sm text-muted-foreground ml-auto">
+                                  {leadResults.filter(l => l.postcode === location).length} job(s)
+                                </span>
+                              </button>
+                            ))}
+                          </>
+                        )}
+
+                        {/* Matching Jobs */}
+                        {leadResults.length > 0 && (
+                          <>
+                            <div className="p-2 text-xs text-muted-foreground font-medium border-b border-border bg-muted/50">
+                              <Briefcase className="w-3 h-3 inline mr-1" />
+                              Available Jobs
+                            </div>
+                            {leadResults.slice(0, 5).map((lead) => (
+                              <button
+                                key={lead.id}
+                                type="button"
+                                onClick={() => handleLeadClick(lead.id, lead.postcode)}
+                                className="w-full px-4 py-3 text-left hover:bg-muted transition-colors"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <span className="font-medium text-foreground">{lead.job_type}</span>
+                                    <span className="text-sm text-muted-foreground ml-2">in {lead.postcode}</span>
+                                  </div>
+                                  <span className="text-secondary font-semibold">{lead.display_value}</span>
+                                </div>
+                              </button>
+                            ))}
+                          </>
+                        )}
+
+                        {/* View All Results */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowSuggestions(false);
+                            navigate(`/leads?search=${encodeURIComponent(searchQuery)}`);
+                          }}
+                          className="w-full px-4 py-3 text-center text-secondary font-medium hover:bg-muted transition-colors border-t border-border"
+                        >
+                          View all results for "{searchQuery}"
+                        </button>
+                      </>
+                    ) : searchQuery.length >= 2 ? (
+                      <div className="p-4 text-center text-muted-foreground">
+                        No jobs found for "{searchQuery}"
+                        <button
+                          type="button"
+                          onClick={() => navigate("/leads")}
+                          className="block w-full mt-2 text-secondary hover:underline"
+                        >
+                          Browse all available leads
+                        </button>
+                      </div>
+                    ) : null}
                   </div>
                 )}
               </div>
