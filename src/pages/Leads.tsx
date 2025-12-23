@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Lock, MapPin, Calendar, PoundSterling, Loader2, Sparkles, Coins, User } from "lucide-react";
+import { Lock, MapPin, Calendar, PoundSterling, Loader2, Sparkles, Coins, User, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,6 +22,9 @@ const LEADS_PER_PAGE = 10;
 export default function Leads() {
   const { user, profile, refreshProfile } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialSearch = searchParams.get("search") || "";
+  
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -28,11 +32,13 @@ export default function Leads() {
   const [page, setPage] = useState(0);
   const [unlockingLeadId, setUnlockingLeadId] = useState<string | null>(null);
   const [usingCreditLeadId, setUsingCreditLeadId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
+  const [activeFilter, setActiveFilter] = useState(initialSearch);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  // Fetch leads with pagination
-  const fetchLeads = useCallback(async (pageNum: number, append: boolean = false) => {
+  // Fetch leads with pagination and optional search filter
+  const fetchLeads = useCallback(async (pageNum: number, append: boolean = false, filter: string = "") => {
     if (pageNum === 0) setLoading(true);
     else setLoadingMore(true);
 
@@ -40,12 +46,18 @@ export default function Leads() {
       const from = pageNum * LEADS_PER_PAGE;
       const to = from + LEADS_PER_PAGE - 1;
 
-      const { data, error } = await supabase
+      let query = supabase
         .from("leads")
         .select("id, postcode, job_type, display_value, date, created_at")
         .eq("is_unlocked", false)
-        .order("created_at", { ascending: false })
-        .range(from, to);
+        .order("created_at", { ascending: false });
+
+      // Apply postcode/city filter if provided
+      if (filter.trim()) {
+        query = query.ilike("postcode", `%${filter.trim()}%`);
+      }
+
+      const { data, error } = await query.range(from, to);
 
       if (error) throw error;
 
@@ -65,10 +77,11 @@ export default function Leads() {
     }
   }, []);
 
-  // Initial load
+  // Initial load and reload when filter changes
   useEffect(() => {
-    fetchLeads(0);
-  }, [fetchLeads]);
+    setPage(0);
+    fetchLeads(0, false, activeFilter);
+  }, [fetchLeads, activeFilter]);
 
   // Set up real-time subscription for new leads
   useEffect(() => {
@@ -103,7 +116,7 @@ export default function Leads() {
         if (entries[0].isIntersecting && hasMore && !loadingMore) {
           const nextPage = page + 1;
           setPage(nextPage);
-          fetchLeads(nextPage, true);
+          fetchLeads(nextPage, true, activeFilter);
         }
       },
       { threshold: 0.1 }
@@ -186,6 +199,18 @@ export default function Leads() {
     }
   };
 
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setActiveFilter(searchQuery.trim());
+    setSearchParams(searchQuery.trim() ? { search: searchQuery.trim() } : {});
+  };
+
+  const handleClearFilter = () => {
+    setSearchQuery("");
+    setActiveFilter("");
+    setSearchParams({});
+  };
+
   const userCredits = profile?.credits || 0;
 
   return (
@@ -236,19 +261,48 @@ export default function Leads() {
 
       {/* Page Content */}
       <main className="container mx-auto px-4 py-12">
-        <div className="text-center mb-12">
+        <div className="text-center mb-8">
           <span className="inline-block text-secondary font-semibold text-sm uppercase tracking-wider mb-4">
             Available Leads
           </span>
           <h1 className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-6">
-            Browse All Cleaning Jobs
+            {activeFilter ? `Leads in "${activeFilter}"` : "Browse All Cleaning Jobs"}
           </h1>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto mb-8">
             Real leads from homeowners looking for cleaning services. 
             {userCredits > 0 
               ? ` Use your ${userCredits} credits or pay £20 per lead.`
               : " Unlock for just £20 each or buy credits to save."}
           </p>
+
+          {/* Search bar */}
+          <form onSubmit={handleSearchSubmit} className="max-w-lg mx-auto mb-8">
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Search by postcode or city..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-12 h-12"
+                />
+              </div>
+              <Button type="submit" variant="default" className="h-12 px-6">
+                Search
+              </Button>
+              {activeFilter && (
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="h-12 px-4"
+                  onClick={handleClearFilter}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
+          </form>
         </div>
 
         {loading ? (
@@ -257,7 +311,16 @@ export default function Leads() {
           </div>
         ) : leads.length === 0 ? (
           <div className="text-center py-20">
-            <p className="text-muted-foreground text-lg">No leads available at the moment. Check back soon!</p>
+            <p className="text-muted-foreground text-lg mb-4">
+              {activeFilter 
+                ? `No leads found for "${activeFilter}". Try a different search.`
+                : "No leads available at the moment. Check back soon!"}
+            </p>
+            {activeFilter && (
+              <Button variant="outline" onClick={handleClearFilter}>
+                Clear Search
+              </Button>
+            )}
           </div>
         ) : (
           <>

@@ -1,41 +1,32 @@
-import { MapPin, Sparkles, Banknote, Clock } from "lucide-react";
+import { useState } from "react";
+import { Search, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-const features = [
-  {
-    icon: Sparkles,
-    text: "Exclusive deep cleaning leads",
-  },
-  {
-    icon: MapPin,
-    text: "Postcode-targeted jobs",
-  },
-  {
-    icon: Banknote,
-    text: "Pay just £20 to unlock a lead",
-  },
-  {
-    icon: Clock,
-    text: "No monthly fees — flat £20 per lead",
-  },
-];
+import { Input } from "@/components/ui/input";
+import { useNavigate } from "react-router-dom";
 
 export const HeroSection = () => {
-  const scrollToSection = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+  const [searchQuery, setSearchQuery] = useState("");
+  const navigate = useNavigate();
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/leads?search=${encodeURIComponent(searchQuery.trim())}`);
+    } else {
+      navigate("/leads");
+    }
   };
 
   return (
-    <section className="relative min-h-[90vh] bg-hero-gradient overflow-hidden">
+    <section className="relative min-h-[70vh] bg-hero-gradient overflow-hidden flex items-center">
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-20 right-10 w-72 h-72 bg-secondary/10 rounded-full blur-3xl" />
         <div className="absolute bottom-20 left-10 w-96 h-96 bg-secondary/5 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-secondary/5 rounded-full blur-3xl" />
       </div>
 
-      <div className="relative container mx-auto px-4 py-20 lg:py-32">
-        <div className="max-w-4xl mx-auto text-center">
+      <div className="relative container mx-auto px-4 py-20">
+        <div className="max-w-3xl mx-auto text-center">
           {/* Badge */}
           <div className="inline-flex items-center gap-2 bg-secondary/20 backdrop-blur-sm border border-secondary/30 rounded-full px-4 py-2 mb-8 animate-slide-up">
             <Sparkles className="w-4 h-4 text-secondary" />
@@ -46,52 +37,42 @@ export const HeroSection = () => {
 
           {/* Main headline */}
           <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground mb-6 leading-tight animate-slide-up stagger-1">
-            Want More Cleaning Jobs{" "}
-            <span className="text-secondary">in Your Area?</span>
+            Find Cleaning Jobs{" "}
+            <span className="text-secondary">Near You</span>
           </h1>
 
           {/* Subheadline */}
-          <p className="text-lg md:text-xl text-primary-foreground/80 mb-10 max-w-2xl mx-auto animate-slide-up stagger-2">
-            Join Deep Clean UK and access exclusive deep cleaning job requests from real homeowners. 
-            Get leads delivered straight to your phone.
+          <p className="text-lg md:text-xl text-primary-foreground/80 mb-10 max-w-xl mx-auto animate-slide-up stagger-2">
+            Search by postcode or city to find exclusive cleaning leads in your area
           </p>
 
-          {/* Feature bullets */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl mx-auto mb-10 animate-slide-up stagger-3">
-            {features.map((feature, index) => (
-              <div
-                key={index}
-                className="flex items-center gap-3 text-left bg-primary-foreground/5 backdrop-blur-sm rounded-lg px-4 py-3 border border-primary-foreground/10"
-              >
-                <feature.icon className="w-5 h-5 text-secondary flex-shrink-0" />
-                <span className="text-primary-foreground text-sm font-medium">
-                  {feature.text}
-                </span>
+          {/* Search bar */}
+          <form onSubmit={handleSearch} className="animate-slide-up stagger-3">
+            <div className="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto">
+              <div className="relative flex-1">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Enter postcode or city (e.g. SW1, Manchester)"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-12 h-14 text-base bg-background/95 border-border rounded-xl shadow-lg"
+                />
               </div>
-            ))}
-          </div>
-
-          {/* CTA buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center animate-slide-up stagger-4">
-            <Button 
-              variant="hero" 
-              size="xl"
-              onClick={() => scrollToSection("registration")}
-            >
-              Join Now – Start Receiving Leads
-            </Button>
-            <Button 
-              variant="outlineHero" 
-              size="xl"
-              onClick={() => scrollToSection("job-board")}
-            >
-              See Sample Leads
-            </Button>
-          </div>
+              <Button 
+                type="submit"
+                variant="hero" 
+                size="xl"
+                className="h-14 px-8"
+              >
+                Search Leads
+              </Button>
+            </div>
+          </form>
 
           {/* Trust indicator */}
           <p className="mt-8 text-primary-foreground/60 text-sm animate-fade-in stagger-4">
-            ✓ No signup fees &nbsp;&nbsp; ✓ Cancel anytime &nbsp;&nbsp; ✓ Exclusive leads only
+            ✓ No signup fees &nbsp;&nbsp; ✓ Pay only £20 per lead &nbsp;&nbsp; ✓ Exclusive leads
           </p>
         </div>
       </div>
