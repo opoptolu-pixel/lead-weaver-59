@@ -32,3 +32,9 @@ verify_jwt = false
 
 [functions.get-signed-url]
 verify_jwt = true
+
+[functions.send-email]
+verify_jwt = false
+
+[functions.mfa-recovery-codes]
+verify_jwt = false
