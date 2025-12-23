@@ -27,7 +27,10 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const checkAdminStatus = async () => {
+      console.log("AdminContext: checking admin status, user:", user?.id);
+      
       if (!user) {
+        console.log("AdminContext: no user, setting isAdmin to false");
         setIsAdmin(false);
         setIsLoading(false);
         return;
@@ -39,6 +42,8 @@ export function AdminProvider({ children }: { children: ReactNode }) {
           .select("role")
           .eq("user_id", user.id);
 
+        console.log("AdminContext: user_roles query result:", { data, error });
+
         if (error) {
           console.error("Error checking admin status:", error);
           setIsAdmin(false);
@@ -46,8 +51,10 @@ export function AdminProvider({ children }: { children: ReactNode }) {
           const hasAdminRole = data.some(
             (r) => r.role === "admin" || r.role === "super_admin"
           );
+          console.log("AdminContext: hasAdminRole:", hasAdminRole);
           setIsAdmin(hasAdminRole);
         } else {
+          console.log("AdminContext: no roles found");
           setIsAdmin(false);
         }
       } catch (err) {
