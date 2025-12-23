@@ -47,6 +47,51 @@ export type Database = {
         }
         Relationships: []
       }
+      business_inquiries: {
+        Row: {
+          admin_notes: string | null
+          business_name: string
+          contact_name: string
+          created_at: string
+          email: string
+          id: string
+          phone: string
+          postcode: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          whatsapp_optin: boolean | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          business_name: string
+          contact_name: string
+          created_at?: string
+          email: string
+          id?: string
+          phone: string
+          postcode: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          whatsapp_optin?: boolean | null
+        }
+        Update: {
+          admin_notes?: string | null
+          business_name?: string
+          contact_name?: string
+          created_at?: string
+          email?: string
+          id?: string
+          phone?: string
+          postcode?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          whatsapp_optin?: boolean | null
+        }
+        Relationships: []
+      }
       disputes: {
         Row: {
           created_at: string
