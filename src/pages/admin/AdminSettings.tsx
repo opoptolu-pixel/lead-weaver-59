@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Save, Users, Shield, Globe, Bell, Loader2 } from "lucide-react";
+import { Save, Users, Shield, Globe, Bell, Loader2, Mail, Edit, X, Check } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -20,10 +22,28 @@ interface UserWithRole {
   role: string | null;
 }
 
+interface EmailTemplate {
+  id: string;
+  name: string;
+  subject: string;
+  body: string;
+  description: string | null;
+  variables: string[];
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export default function AdminSettings() {
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
+  
+  // Email templates state
+  const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(true);
+  const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
+  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
 
   // Site settings state
   const [siteSettings, setSiteSettings] = useState({
@@ -46,7 +66,26 @@ export default function AdminSettings() {
 
   useEffect(() => {
     fetchUsers();
+    fetchEmailTemplates();
   }, []);
+
+  const fetchEmailTemplates = async () => {
+    setLoadingTemplates(true);
+    try {
+      const { data, error } = await supabase
+        .from("email_templates")
+        .select("*")
+        .order("name");
+
+      if (error) throw error;
+      setEmailTemplates(data || []);
+    } catch (error) {
+      console.error("Error fetching email templates:", error);
+      toast.error("Failed to load email templates");
+    } finally {
+      setLoadingTemplates(false);
+    }
+  };
 
   const fetchUsers = async () => {
     setLoadingUsers(true);
@@ -147,6 +186,55 @@ export default function AdminSettings() {
     setLoading(false);
   };
 
+  const handleEditTemplate = (template: EmailTemplate) => {
+    setEditingTemplate({ ...template });
+    setIsTemplateDialogOpen(true);
+  };
+
+  const handleSaveTemplate = async () => {
+    if (!editingTemplate) return;
+    
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from("email_templates")
+        .update({
+          subject: editingTemplate.subject,
+          body: editingTemplate.body,
+          is_active: editingTemplate.is_active,
+        })
+        .eq("id", editingTemplate.id);
+
+      if (error) throw error;
+
+      toast.success("Template saved successfully");
+      setIsTemplateDialogOpen(false);
+      fetchEmailTemplates();
+    } catch (error) {
+      console.error("Error saving template:", error);
+      toast.error("Failed to save template");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggleTemplateActive = async (template: EmailTemplate) => {
+    try {
+      const { error } = await supabase
+        .from("email_templates")
+        .update({ is_active: !template.is_active })
+        .eq("id", template.id);
+
+      if (error) throw error;
+
+      toast.success(`Template ${template.is_active ? "disabled" : "enabled"}`);
+      fetchEmailTemplates();
+    } catch (error) {
+      console.error("Error toggling template:", error);
+      toast.error("Failed to update template");
+    }
+  };
+
   const getRoleBadge = (role: string | null) => {
     switch (role) {
       case "super_admin":
@@ -158,13 +246,21 @@ export default function AdminSettings() {
     }
   };
 
+  const formatTemplateName = (name: string) => {
+    return name.split("_").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+  };
+
   return (
     <AdminLayout title="Settings">
       <Tabs defaultValue="site" className="space-y-6">
-        <TabsList className="bg-muted/50">
+        <TabsList className="bg-muted/50 flex-wrap h-auto gap-1">
           <TabsTrigger value="site" className="gap-2">
             <Globe className="w-4 h-4" />
             Site Config
+          </TabsTrigger>
+          <TabsTrigger value="emails" className="gap-2">
+            <Mail className="w-4 h-4" />
+            Email Templates
           </TabsTrigger>
           <TabsTrigger value="users" className="gap-2">
             <Users className="w-4 h-4" />
@@ -260,7 +356,75 @@ export default function AdminSettings() {
           </Card>
         </TabsContent>
 
-        {/* User Management */}
+        {/* Email Templates */}
+        <TabsContent value="emails" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Email Templates</CardTitle>
+              <CardDescription>Customize the emails sent to users</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loadingTemplates ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {emailTemplates.map((template) => (
+                    <div
+                      key={template.id}
+                      className="border rounded-lg p-4 flex items-start justify-between gap-4"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-medium">{formatTemplateName(template.name)}</h4>
+                          {template.is_active ? (
+                            <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Active</Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-muted-foreground">Disabled</Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-2">{template.description}</p>
+                        <p className="text-sm"><span className="text-muted-foreground">Subject:</span> {template.subject}</p>
+                        {template.variables && template.variables.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {template.variables.map((variable) => (
+                              <Badge key={variable} variant="secondary" className="text-xs">
+                                {`{{${variable}}}`}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleToggleTemplateActive(template)}
+                        >
+                          {template.is_active ? <X className="w-4 h-4" /> : <Check className="w-4 h-4" />}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditTemplate(template)}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  {emailTemplates.length === 0 && (
+                    <p className="text-center text-muted-foreground py-8">
+                      No email templates found
+                    </p>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="users" className="space-y-6">
           <Card>
             <CardHeader>
@@ -489,6 +653,79 @@ export default function AdminSettings() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Email Template Edit Dialog */}
+      <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Edit Template: {editingTemplate ? formatTemplateName(editingTemplate.name) : ""}
+            </DialogTitle>
+            <DialogDescription>
+              {editingTemplate?.description}
+            </DialogDescription>
+          </DialogHeader>
+
+          {editingTemplate && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="templateSubject">Subject Line</Label>
+                <Input
+                  id="templateSubject"
+                  value={editingTemplate.subject}
+                  onChange={(e) => setEditingTemplate({ ...editingTemplate, subject: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="templateBody">Email Body (HTML)</Label>
+                <Textarea
+                  id="templateBody"
+                  value={editingTemplate.body}
+                  onChange={(e) => setEditingTemplate({ ...editingTemplate, body: e.target.value })}
+                  rows={12}
+                  className="font-mono text-sm"
+                />
+              </div>
+
+              {editingTemplate.variables && editingTemplate.variables.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Available Variables</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {editingTemplate.variables.map((variable) => (
+                      <Badge key={variable} variant="secondary">
+                        {`{{${variable}}}`}
+                      </Badge>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Use these variables in your template. They will be replaced with actual values when emails are sent.
+                  </p>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between pt-4 border-t">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={editingTemplate.is_active}
+                    onCheckedChange={(checked) => setEditingTemplate({ ...editingTemplate, is_active: checked })}
+                  />
+                  <Label>Template Active</Label>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setIsTemplateDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSaveTemplate} disabled={loading}>
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                    Save Template
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }
