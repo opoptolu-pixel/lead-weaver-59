@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Shield, CheckCircle, MessageCircle } from "lucide-react";
+import { HelpCircle, Mail, Phone, MapPin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -10,9 +10,7 @@ export const RegistrationForm = () => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
-    businessName: "",
     contactName: "",
-    postcode: "",
     phone: "",
     email: "",
     whatsappOptIn: false,
@@ -24,9 +22,9 @@ export const RegistrationForm = () => {
 
     try {
       const { error } = await supabase.from("business_inquiries").insert({
-        business_name: formData.businessName,
+        business_name: "Inquiry - Learn More",
         contact_name: formData.contactName,
-        postcode: formData.postcode,
+        postcode: "N/A",
         phone: formData.phone,
         email: formData.email,
         whatsapp_optin: formData.whatsappOptIn,
@@ -35,13 +33,11 @@ export const RegistrationForm = () => {
       if (error) throw error;
 
       toast({
-        title: "Application Received!",
-        description: "We'll review your application and get back to you within 24 hours.",
+        title: "Thanks for your interest!",
+        description: "We'll be in touch within 24 hours to tell you more about our service.",
       });
       setFormData({
-        businessName: "",
         contactName: "",
-        postcode: "",
         phone: "",
         email: "",
         whatsappOptIn: false,
@@ -62,7 +58,7 @@ export const RegistrationForm = () => {
   };
 
   return (
-    <section id="registration" className="py-20 lg:py-28 bg-hero-gradient relative overflow-hidden">
+    <section id="learn-more" className="py-20 lg:py-28 bg-hero-gradient relative overflow-hidden">
       {/* Background decoration */}
       <div className="absolute inset-0">
         <div className="absolute top-20 right-20 w-72 h-72 bg-secondary/10 rounded-full blur-3xl" />
@@ -75,42 +71,42 @@ export const RegistrationForm = () => {
             {/* Left content */}
             <div className="text-primary-foreground">
               <span className="inline-block text-secondary font-semibold text-sm uppercase tracking-wider mb-4">
-                Join the Network
+                Have Questions?
               </span>
               <h2 className="font-heading text-3xl md:text-4xl font-bold mb-6">
-                Register Your Cleaning Business
+                Want to Learn More About Us?
               </h2>
               <p className="text-primary-foreground/80 text-lg mb-8">
-                Start receiving exclusive leads in your area. We only work with vetted, professional cleaners.
+                Not ready to sign up yet? No problem! Fill in your details and we'll get in touch to answer any questions you may have.
               </p>
 
-              {/* Trust badges */}
+              {/* Contact info */}
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-secondary/20 rounded-lg flex items-center justify-center">
-                    <Shield className="w-5 h-5 text-secondary" />
+                    <HelpCircle className="w-5 h-5 text-secondary" />
                   </div>
                   <div>
-                    <p className="font-semibold">Vetted Cleaners Only</p>
-                    <p className="text-primary-foreground/70 text-sm">We protect our client's trust</p>
+                    <p className="font-semibold">Friendly Support</p>
+                    <p className="text-primary-foreground/70 text-sm">We're here to help you succeed</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-secondary/20 rounded-lg flex items-center justify-center">
-                    <CheckCircle className="w-5 h-5 text-secondary" />
+                    <Mail className="w-5 h-5 text-secondary" />
                   </div>
                   <div>
-                    <p className="font-semibold">Exclusive Leads</p>
-                    <p className="text-primary-foreground/70 text-sm">No competing for the same job</p>
+                    <p className="font-semibold">Quick Response</p>
+                    <p className="text-primary-foreground/70 text-sm">We'll get back to you within 24 hours</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-secondary/20 rounded-lg flex items-center justify-center">
-                    <MessageCircle className="w-5 h-5 text-secondary" />
+                    <MapPin className="w-5 h-5 text-secondary" />
                   </div>
                   <div>
-                    <p className="font-semibold">WhatsApp Delivery</p>
-                    <p className="text-primary-foreground/70 text-sm">Get leads straight to your phone</p>
+                    <p className="font-semibold">UK Based</p>
+                    <p className="text-primary-foreground/70 text-sm">Serving cleaning businesses nationwide</p>
                   </div>
                 </div>
               </div>
@@ -119,24 +115,10 @@ export const RegistrationForm = () => {
             {/* Right form */}
             <div className="bg-card rounded-2xl p-8 shadow-elevated border border-border">
               <h3 className="font-heading text-xl font-bold text-foreground mb-6">
-                Apply to Join
+                Get in Touch
               </h3>
 
               <form onSubmit={handleSubmit} className="space-y-5">
-                <div>
-                  <label htmlFor="businessName" className="block text-sm font-medium text-foreground mb-2">
-                    Business Name
-                  </label>
-                  <Input
-                    id="businessName"
-                    name="businessName"
-                    value={formData.businessName}
-                    onChange={handleChange}
-                    placeholder="e.g. Sparkle Clean Ltd"
-                    required
-                  />
-                </div>
-
                 <div>
                   <label htmlFor="contactName" className="block text-sm font-medium text-foreground mb-2">
                     Your Name
@@ -151,34 +133,19 @@ export const RegistrationForm = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="postcode" className="block text-sm font-medium text-foreground mb-2">
-                      Postcode Area
-                    </label>
-                    <Input
-                      id="postcode"
-                      name="postcode"
-                      value={formData.postcode}
-                      onChange={handleChange}
-                      placeholder="e.g. M14"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="phone" className="block text-sm font-medium text-foreground mb-2">
-                      Phone Number
-                    </label>
-                    <Input
-                      id="phone"
-                      name="phone"
-                      type="tel"
-                      value={formData.phone}
-                      onChange={handleChange}
-                      placeholder="07700 900000"
-                      required
-                    />
-                  </div>
+                <div>
+                  <label htmlFor="phone" className="block text-sm font-medium text-foreground mb-2">
+                    Phone Number
+                  </label>
+                  <Input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    placeholder="07700 900000"
+                    required
+                  />
                 </div>
 
                 <div>
@@ -191,7 +158,7 @@ export const RegistrationForm = () => {
                     type="email"
                     value={formData.email}
                     onChange={handleChange}
-                    placeholder="john@sparkleclean.co.uk"
+                    placeholder="john@example.co.uk"
                     required
                   />
                 </div>
@@ -205,16 +172,16 @@ export const RegistrationForm = () => {
                     }
                   />
                   <label htmlFor="whatsappOptIn" className="text-sm text-muted-foreground cursor-pointer">
-                    I'd like to receive leads via WhatsApp (recommended)
+                    I'd prefer to be contacted via WhatsApp
                   </label>
                 </div>
 
                 <Button variant="cta" size="lg" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting ? "Submitting..." : "Submit Application"}
+                  {isSubmitting ? "Sending..." : "Send Enquiry"}
                 </Button>
 
                 <p className="text-xs text-muted-foreground text-center">
-                  By submitting, you agree to our Terms of Service and Privacy Policy
+                  We respect your privacy and won't share your details
                 </p>
               </form>
             </div>
