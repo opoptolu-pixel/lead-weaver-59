@@ -69,37 +69,33 @@ export default function Leads() {
       const from = pageNum * LEADS_PER_PAGE;
       const to = from + LEADS_PER_PAGE - 1;
 
-      // Use the secure view that excludes sensitive customer data
-      let query = supabase
-        .from("available_leads")
-        .select("id, postcode, job_type, display_value, date, created_at")
-        .order("created_at", { ascending: false });
+      // Use secure function that only exposes non-sensitive lead data
+      const { data: allLeads, error } = await supabase.rpc("get_available_leads");
 
+      if (error) throw error;
+
+      let filteredLeads = allLeads || [];
+      
       // Apply filter based on prefixes (for city search) or direct postcode search
       if (prefixes.length > 0) {
-        // For single-letter prefixes, we need to match prefix followed by a digit
-        // to avoid matching other areas (e.g., W should match W1, W2 but not WN, WA)
-        const expandedConditions: string[] = [];
-        
-        for (const prefix of prefixes) {
-          if (prefix.length === 1) {
-            // Single letter prefix - match with digits 1-20 to be safe
-            for (let i = 1; i <= 20; i++) {
-              expandedConditions.push(`postcode.ilike.${prefix}${i}%`);
+        filteredLeads = filteredLeads.filter((lead: Lead) => {
+          const postcode = lead.postcode.toUpperCase();
+          return prefixes.some(prefix => {
+            if (prefix.length === 1) {
+              return /^[A-Z]\d/.test(postcode) && postcode.startsWith(prefix.toUpperCase());
             }
-          } else {
-            // Multi-letter prefix - use as-is
-            expandedConditions.push(`postcode.ilike.${prefix}%`);
-          }
-        }
-        
-        query = query.or(expandedConditions.join(','));
+            return postcode.startsWith(prefix.toUpperCase());
+          });
+        });
       } else if (filter.trim()) {
-        // Standard postcode search
-        query = query.ilike("postcode", `%${filter.trim()}%`);
+        const filterUpper = filter.trim().toUpperCase();
+        filteredLeads = filteredLeads.filter((lead: Lead) => 
+          lead.postcode.toUpperCase().includes(filterUpper)
+        );
       }
 
-      const { data, error } = await query.range(from, to);
+      // Apply pagination
+      const data = filteredLeads.slice(from, to + 1);
 
       if (error) throw error;
 
@@ -171,32 +167,36 @@ export default function Leads() {
           setMatchedCity(null);
         }
 
-        // Build leads query for dropdown preview using secure view
-        let leadsQuery = supabase
-          .from("available_leads")
-          .select("id, postcode, job_type, display_value");
-
+        // Use secure function for dropdown preview
+        const { data: allLeads } = await supabase.rpc("get_available_leads");
+        
+        let filteredLeads = allLeads || [];
+        
         if (prefixes.length > 0) {
-          const expandedConditions: string[] = [];
-          for (const prefix of prefixes) {
-            if (prefix.length === 1) {
-              for (let i = 1; i <= 20; i++) {
-                expandedConditions.push(`postcode.ilike.${prefix}${i}%`);
+          filteredLeads = filteredLeads.filter((lead: SearchLead) => {
+            const postcode = lead.postcode.toUpperCase();
+            const jobType = lead.job_type.toLowerCase();
+            
+            const matchesPrefix = prefixes.some(prefix => {
+              if (prefix.length === 1) {
+                return /^[A-Z]\d/.test(postcode) && postcode.startsWith(prefix.toUpperCase());
               }
-            } else {
-              expandedConditions.push(`postcode.ilike.${prefix}%`);
-            }
-          }
-          const searchConditions = `postcode.ilike.%${searchTerm.toUpperCase()}%,job_type.ilike.%${searchTerm}%`;
-          leadsQuery = leadsQuery.or(`${expandedConditions.join(',')},${searchConditions}`);
+              return postcode.startsWith(prefix.toUpperCase());
+            });
+            
+            const matchesSearch = postcode.includes(searchTerm.toUpperCase()) || 
+                                 jobType.includes(searchTerm.toLowerCase());
+            
+            return matchesPrefix || matchesSearch;
+          });
         } else {
-          leadsQuery = leadsQuery.or(
-            `postcode.ilike.%${searchTerm.toUpperCase()}%,job_type.ilike.%${searchTerm}%`
+          filteredLeads = filteredLeads.filter((lead: SearchLead) => 
+            lead.postcode.toUpperCase().includes(searchTerm.toUpperCase()) || 
+            lead.job_type.toLowerCase().includes(searchTerm.toLowerCase())
           );
         }
-
-        const { data: leads } = await leadsQuery.limit(15);
-        setSearchLeadResults(leads || []);
+        
+        setSearchLeadResults(filteredLeads.slice(0, 15));
       } catch (err) {
         console.error("Search error:", err);
       } finally {
