@@ -14,8 +14,106 @@ export type Database = {
   }
   public: {
     Tables: {
+      disputes: {
+        Row: {
+          created_at: string
+          description: string | null
+          evidence_urls: string[] | null
+          id: string
+          lead_id: string
+          reason_code: string
+          resolution: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          evidence_urls?: string[] | null
+          id?: string
+          lead_id: string
+          reason_code: string
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          evidence_urls?: string[] | null
+          id?: string
+          lead_id?: string
+          reason_code?: string
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disputes_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fraud_flags: {
+        Row: {
+          created_at: string
+          description: string | null
+          flag_type: string
+          id: string
+          lead_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          flag_type: string
+          id?: string
+          lead_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          flag_type?: string
+          id?: string
+          lead_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fraud_flags_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
+          admin_notes: string | null
           created_at: string
           customer_address: string
           customer_email: string
@@ -23,20 +121,28 @@ export type Database = {
           customer_phone: string
           date: string
           display_value: string
+          expired_at: string | null
           id: string
           is_unlocked: boolean
           job_completed_at: string | null
           job_notes: string | null
           job_status: string | null
           job_type: string
+          lead_status: string | null
           postcode: string
+          published_at: string | null
+          quality_score: number | null
+          refund_reason: string | null
+          refunded_at: string | null
           source: string | null
           unlocked_at: string | null
           unlocked_by: string | null
           updated_at: string
+          validated_at: string | null
           value: number
         }
         Insert: {
+          admin_notes?: string | null
           created_at?: string
           customer_address: string
           customer_email: string
@@ -44,20 +150,28 @@ export type Database = {
           customer_phone: string
           date: string
           display_value: string
+          expired_at?: string | null
           id?: string
           is_unlocked?: boolean
           job_completed_at?: string | null
           job_notes?: string | null
           job_status?: string | null
           job_type: string
+          lead_status?: string | null
           postcode: string
+          published_at?: string | null
+          quality_score?: number | null
+          refund_reason?: string | null
+          refunded_at?: string | null
           source?: string | null
           unlocked_at?: string | null
           unlocked_by?: string | null
           updated_at?: string
+          validated_at?: string | null
           value: number
         }
         Update: {
+          admin_notes?: string | null
           created_at?: string
           customer_address?: string
           customer_email?: string
@@ -65,17 +179,24 @@ export type Database = {
           customer_phone?: string
           date?: string
           display_value?: string
+          expired_at?: string | null
           id?: string
           is_unlocked?: boolean
           job_completed_at?: string | null
           job_notes?: string | null
           job_status?: string | null
           job_type?: string
+          lead_status?: string | null
           postcode?: string
+          published_at?: string | null
+          quality_score?: number | null
+          refund_reason?: string | null
+          refunded_at?: string | null
           source?: string | null
           unlocked_at?: string | null
           unlocked_by?: string | null
           updated_at?: string
+          validated_at?: string | null
           value?: number
         }
         Relationships: []
@@ -118,11 +239,15 @@ export type Database = {
           created_at: string
           credits: number
           id: string
+          is_suspended: boolean | null
           is_verified: boolean
+          last_login: string | null
           leads_purchased: number
           phone: string | null
           phone_verified: boolean
           postcode: string | null
+          risk_score: number | null
+          suspension_reason: string | null
           updated_at: string
           user_id: string
           verification_status: string | null
@@ -135,11 +260,15 @@ export type Database = {
           created_at?: string
           credits?: number
           id?: string
+          is_suspended?: boolean | null
           is_verified?: boolean
+          last_login?: string | null
           leads_purchased?: number
           phone?: string | null
           phone_verified?: boolean
           postcode?: string | null
+          risk_score?: number | null
+          suspension_reason?: string | null
           updated_at?: string
           user_id: string
           verification_status?: string | null
@@ -152,15 +281,40 @@ export type Database = {
           created_at?: string
           credits?: number
           id?: string
+          is_suspended?: boolean | null
           is_verified?: boolean
+          last_login?: string | null
           leads_purchased?: number
           phone?: string | null
           phone_verified?: boolean
           postcode?: string | null
+          risk_score?: number | null
+          suspension_reason?: string | null
           updated_at?: string
           user_id?: string
           verification_status?: string | null
           whatsapp_optin?: boolean | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
         }
         Relationships: []
       }
@@ -202,10 +356,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "super_admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -332,6 +493,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "super_admin"],
+    },
   },
 } as const
