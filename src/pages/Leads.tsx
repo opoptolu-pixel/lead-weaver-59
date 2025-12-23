@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Lock, MapPin, Calendar, PoundSterling, Loader2, Coins, User, Search, X } from "lucide-react";
+import { Lock, MapPin, Calendar, PoundSterling, Loader2, Coins, User, Search, X, Briefcase, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,13 +18,21 @@ interface Lead {
   created_at: string;
 }
 
-const LEADS_PER_PAGE = 10;
+interface SearchLead {
+  id: string;
+  postcode: string;
+  job_type: string;
+  display_value: string;
+  customer_address: string;
+}
 
-const POPULAR_SEARCHES = [
-  "London", "Manchester", "Birmingham", "Leeds", "Liverpool",
-  "Sheffield", "Bristol", "Glasgow", "Edinburgh", "Cardiff",
-  "SW1", "E1", "NW1", "SE1", "M1", "B1", "LS1", "L1"
-];
+interface UKLocation {
+  postcode: string;
+  area: string;
+  type: 'postcode' | 'place' | 'city';
+}
+
+const LEADS_PER_PAGE = 10;
 
 export default function Leads() {
   const { user, profile, refreshProfile } = useAuth();
@@ -44,7 +52,12 @@ export default function Leads() {
   const [activeFilter, setActiveFilter] = useState(initialSearch);
   const [activePrefixes, setActivePrefixes] = useState<string[]>(initialPrefixes);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchLeadResults, setSearchLeadResults] = useState<SearchLead[]>([]);
+  const [ukLocations, setUkLocations] = useState<UKLocation[]>([]);
+  const [postcodePrefixes, setPostcodePrefixes] = useState<string[]>([]);
+  const [matchedCity, setMatchedCity] = useState<string | null>(null);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
@@ -112,6 +125,90 @@ export default function Leads() {
     setPage(0);
     fetchLeads(0, false, activeFilter, activePrefixes);
   }, [fetchLeads, activeFilter, activePrefixes]);
+
+  // Handle click outside search dropdown
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Fetch UK locations and search leads for dropdown
+  useEffect(() => {
+    const fetchSearchData = async () => {
+      if (!searchQuery.trim() || searchQuery.length < 2) {
+        setSearchLeadResults([]);
+        setUkLocations([]);
+        setPostcodePrefixes([]);
+        setMatchedCity(null);
+        return;
+      }
+
+      setIsSearching(true);
+      try {
+        const searchTerm = searchQuery.trim();
+
+        // Fetch UK locations from API
+        const locationsResponse = await supabase.functions.invoke('search-uk-locations', {
+          body: { query: searchTerm }
+        });
+
+        let prefixes: string[] = [];
+        let city: string | null = null;
+
+        if (locationsResponse.data?.success) {
+          setUkLocations(locationsResponse.data.locations || []);
+          prefixes = locationsResponse.data.postcodePrefixes || [];
+          city = locationsResponse.data.matchedCity || null;
+          setPostcodePrefixes(prefixes);
+          setMatchedCity(city);
+        } else {
+          setUkLocations([]);
+          setPostcodePrefixes([]);
+          setMatchedCity(null);
+        }
+
+        // Build leads query for dropdown preview
+        let leadsQuery = supabase
+          .from("leads")
+          .select("id, postcode, job_type, display_value, customer_address")
+          .eq("is_unlocked", false);
+
+        if (prefixes.length > 0) {
+          const expandedConditions: string[] = [];
+          for (const prefix of prefixes) {
+            if (prefix.length === 1) {
+              for (let i = 1; i <= 20; i++) {
+                expandedConditions.push(`postcode.ilike.${prefix}${i}%`);
+              }
+            } else {
+              expandedConditions.push(`postcode.ilike.${prefix}%`);
+            }
+          }
+          const searchConditions = `postcode.ilike.%${searchTerm.toUpperCase()}%,customer_address.ilike.%${searchTerm}%,job_type.ilike.%${searchTerm}%`;
+          leadsQuery = leadsQuery.or(`${expandedConditions.join(',')},${searchConditions}`);
+        } else {
+          leadsQuery = leadsQuery.or(
+            `postcode.ilike.%${searchTerm.toUpperCase()}%,customer_address.ilike.%${searchTerm}%,job_type.ilike.%${searchTerm}%`
+          );
+        }
+
+        const { data: leads } = await leadsQuery.limit(15);
+        setSearchLeadResults(leads || []);
+      } catch (err) {
+        console.error("Search error:", err);
+      } finally {
+        setIsSearching(false);
+      }
+    };
+
+    const debounce = setTimeout(fetchSearchData, 300);
+    return () => clearTimeout(debounce);
+  }, [searchQuery]);
 
   // Set up real-time subscription for new leads
   useEffect(() => {
@@ -328,89 +425,166 @@ export default function Leads() {
           </p>
 
           {/* Search bar */}
-          <form onSubmit={handleSearchSubmit} className="max-w-lg mx-auto mb-8">
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10" />
+          <form onSubmit={handleSearchSubmit} className="max-w-2xl mx-auto mb-8">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1" ref={searchContainerRef}>
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10" />
                 <Input
-                  ref={searchInputRef}
                   type="text"
-                  placeholder="Search by postcode or city..."
+                  placeholder="Enter postcode or city (e.g. SW1, Manchester)"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onFocus={() => setShowSuggestions(true)}
-                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                  className="pl-12 h-12"
+                  className="pl-14 h-14 text-lg border-2 border-border rounded-xl focus:border-secondary"
                 />
-                {/* Suggestions dropdown */}
-                {showSuggestions && searchQuery.length === 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-elevated z-50 overflow-hidden">
-                    <div className="p-2 text-xs text-muted-foreground font-medium uppercase tracking-wider">
-                      Popular Searches
-                    </div>
-                    <div className="flex flex-wrap gap-2 p-3 pt-0">
-                      {POPULAR_SEARCHES.slice(0, 10).map((suggestion) => (
-                        <button
-                          key={suggestion}
-                          type="button"
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            setSearchQuery(suggestion);
-                            setActiveFilter(suggestion);
-                            setSearchParams({ search: suggestion });
-                            setShowSuggestions(false);
-                          }}
-                          className="px-3 py-1.5 text-sm bg-muted hover:bg-secondary/20 hover:text-secondary rounded-full transition-colors"
-                        >
-                          {suggestion}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {/* Filtered suggestions */}
-                {showSuggestions && searchQuery.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-elevated z-50 overflow-hidden">
-                    {POPULAR_SEARCHES.filter(s => 
-                      s.toLowerCase().includes(searchQuery.toLowerCase())
-                    ).slice(0, 5).map((suggestion) => (
-                      <button
-                        key={suggestion}
-                        type="button"
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          setSearchQuery(suggestion);
-                          setActiveFilter(suggestion);
-                          setSearchParams({ search: suggestion });
-                          setShowSuggestions(false);
-                        }}
-                        className="w-full px-4 py-3 text-left hover:bg-muted transition-colors flex items-center gap-2"
-                      >
-                        <MapPin className="w-4 h-4 text-muted-foreground" />
-                        <span>{suggestion}</span>
-                      </button>
-                    ))}
-                    {POPULAR_SEARCHES.filter(s => 
-                      s.toLowerCase().includes(searchQuery.toLowerCase())
-                    ).length === 0 && (
-                      <div className="px-4 py-3 text-sm text-muted-foreground">
-                        Press Enter to search for "{searchQuery}"
+                
+                {/* Search Results Dropdown */}
+                {showSuggestions && (isSearching || ukLocations.length > 0 || searchLeadResults.length > 0 || searchQuery.length >= 2) && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-background border border-border rounded-xl shadow-xl z-50 overflow-hidden max-h-96 overflow-y-auto">
+                    {isSearching ? (
+                      <div className="p-4 flex items-center justify-center gap-2 text-muted-foreground">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Searching UK locations...
                       </div>
-                    )}
+                    ) : (ukLocations.length > 0 || searchLeadResults.length > 0) ? (
+                      <>
+                        {/* UK Locations */}
+                        {ukLocations.length > 0 && (
+                          <>
+                            <div className="p-2 text-xs text-muted-foreground font-medium border-b border-border bg-muted/50">
+                              <MapPin className="w-3 h-3 inline mr-1" />
+                              UK Locations
+                            </div>
+                            {ukLocations.map((location, idx) => {
+                              const leadCount = location.type === 'city' 
+                                ? searchLeadResults.length
+                                : searchLeadResults.filter(l => l.postcode.startsWith(location.postcode.split(' ')[0])).length;
+                              
+                              return (
+                                <button
+                                  key={`${location.postcode}-${idx}`}
+                                  type="button"
+                                  onClick={() => {
+                                    setShowSuggestions(false);
+                                    if (location.type === 'city' && postcodePrefixes.length > 0) {
+                                      setActiveFilter(matchedCity || searchQuery);
+                                      setActivePrefixes(postcodePrefixes);
+                                      setSearchParams({ search: matchedCity || searchQuery, prefixes: postcodePrefixes.join(',') });
+                                    } else {
+                                      setActiveFilter(location.postcode);
+                                      setActivePrefixes([]);
+                                      setSearchParams({ search: location.postcode });
+                                    }
+                                    setSearchQuery(location.type === 'city' ? (matchedCity || searchQuery) : location.postcode);
+                                  }}
+                                  className="w-full px-4 py-3 text-left hover:bg-muted transition-colors flex items-center gap-3"
+                                >
+                                  <MapPin className={`w-4 h-4 flex-shrink-0 ${location.type === 'city' ? 'text-primary' : 'text-secondary'}`} />
+                                  <div className="flex-1 min-w-0">
+                                    <span className="font-medium text-foreground">
+                                      {location.type === 'city' ? (matchedCity ? matchedCity.charAt(0).toUpperCase() + matchedCity.slice(1) : location.postcode) : location.postcode}
+                                    </span>
+                                    <span className="text-sm text-muted-foreground ml-2">{location.area}</span>
+                                  </div>
+                                  {leadCount > 0 ? (
+                                    <span className="text-xs bg-secondary/20 text-secondary px-2 py-1 rounded-full font-medium">
+                                      {leadCount} lead{leadCount !== 1 ? 's' : ''}
+                                    </span>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                      <AlertCircle className="w-3 h-3" />
+                                      No leads yet
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </>
+                        )}
+
+                        {/* Available Jobs */}
+                        {searchLeadResults.length > 0 && (
+                          <>
+                            <div className="p-2 text-xs text-muted-foreground font-medium border-b border-border bg-muted/50">
+                              <Briefcase className="w-3 h-3 inline mr-1" />
+                              Available Jobs {matchedCity && `in ${matchedCity.charAt(0).toUpperCase() + matchedCity.slice(1)}`}
+                            </div>
+                            {searchLeadResults.slice(0, 6).map((lead) => (
+                              <button
+                                key={lead.id}
+                                type="button"
+                                onClick={() => {
+                                  setShowSuggestions(false);
+                                  setSearchQuery(lead.postcode);
+                                  setActiveFilter(lead.postcode);
+                                  setActivePrefixes([]);
+                                  setSearchParams({ search: lead.postcode });
+                                }}
+                                className="w-full px-4 py-3 text-left hover:bg-muted transition-colors"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <span className="font-medium text-foreground">{lead.job_type}</span>
+                                    <span className="text-sm text-muted-foreground ml-2">in {lead.postcode}</span>
+                                  </div>
+                                  <span className="text-secondary font-semibold">{lead.display_value}</span>
+                                </div>
+                              </button>
+                            ))}
+                          </>
+                        )}
+
+                        {/* View All Results */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowSuggestions(false);
+                            if (postcodePrefixes.length > 0) {
+                              setActiveFilter(searchQuery);
+                              setActivePrefixes(postcodePrefixes);
+                              setSearchParams({ search: searchQuery, prefixes: postcodePrefixes.join(',') });
+                            } else {
+                              setActiveFilter(searchQuery);
+                              setActivePrefixes([]);
+                              setSearchParams({ search: searchQuery });
+                            }
+                          }}
+                          className="w-full px-4 py-3 text-center text-secondary font-medium hover:bg-muted transition-colors border-t border-border"
+                        >
+                          View all {searchLeadResults.length > 0 ? `${searchLeadResults.length}+ ` : ''}results for "{searchQuery}"
+                        </button>
+                      </>
+                    ) : searchQuery.length >= 2 ? (
+                      <div className="p-4 text-center text-muted-foreground">
+                        No locations found for "{searchQuery}"
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowSuggestions(false);
+                            setActiveFilter("");
+                            setActivePrefixes([]);
+                            setSearchParams({});
+                          }}
+                          className="block w-full mt-2 text-secondary hover:underline"
+                        >
+                          Browse all available leads
+                        </button>
+                      </div>
+                    ) : null}
                   </div>
                 )}
               </div>
-              <Button type="submit" variant="default" className="h-12 px-6">
+              <Button type="submit" variant="default" className="h-14 px-8 text-base font-semibold">
                 Search
               </Button>
               {activeFilter && (
                 <Button 
                   type="button" 
                   variant="outline" 
-                  className="h-12 px-4"
+                  className="h-14 px-4"
                   onClick={handleClearFilter}
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-5 h-5" />
                 </Button>
               )}
             </div>
