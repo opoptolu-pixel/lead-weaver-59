@@ -6,6 +6,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Rate limit configuration
+const RATE_LIMIT_MAX_REQUESTS = 5; // Max 5 credit uses per window
+const RATE_LIMIT_WINDOW_SECONDS = 60; // Per 60 seconds
+
 const logStep = (step: string, details?: Record<string, unknown>) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[USE-CREDIT] ${step}${detailsStr}`);
@@ -36,6 +40,43 @@ serve(async (req) => {
     const user = userData.user;
     if (!user) throw new Error("User not authenticated");
     logStep("User authenticated", { userId: user.id });
+
+    // Check rate limit before processing
+    const { data: rateLimitResult, error: rateLimitError } = await supabaseClient
+      .rpc("check_rate_limit", {
+        p_user_id: user.id,
+        p_action: "use_credit",
+        p_max_requests: RATE_LIMIT_MAX_REQUESTS,
+        p_window_seconds: RATE_LIMIT_WINDOW_SECONDS,
+      });
+
+    if (rateLimitError) {
+      logStep("Rate limit check error", { error: rateLimitError.message });
+      // Don't block on rate limit errors, just log and continue
+    } else if (rateLimitResult?.[0] && !rateLimitResult[0].allowed) {
+      const resetAt = new Date(rateLimitResult[0].reset_at);
+      const waitSeconds = Math.ceil((resetAt.getTime() - Date.now()) / 1000);
+      logStep("Rate limit exceeded", { 
+        currentCount: rateLimitResult[0].current_count,
+        resetAt: rateLimitResult[0].reset_at 
+      });
+      
+      return new Response(JSON.stringify({ 
+        error: `Too many requests. Please wait ${waitSeconds} seconds before trying again.`,
+        retryAfter: waitSeconds,
+      }), {
+        headers: { 
+          ...corsHeaders, 
+          "Content-Type": "application/json",
+          "Retry-After": String(waitSeconds),
+        },
+        status: 429,
+      });
+    } else {
+      logStep("Rate limit check passed", { 
+        currentCount: rateLimitResult?.[0]?.current_count || 1 
+      });
+    }
 
     const { leadId } = await req.json();
     if (!leadId) throw new Error("Lead ID is required");
