@@ -12,18 +12,17 @@ const logStep = (step: string, details?: any) => {
   console.log(`[BUY-CREDITS] ${step}${detailsStr}`);
 };
 
-// Credit pack configurations
-const CREDIT_PACKS = {
-  "5": {
-    priceId: "price_1ShIOvHaP2wEKuykcLfnYe6p",
-    credits: 5,
-    amount: 9000, // £90
-  },
-  "10": {
-    priceId: "price_1ShIRMHaP2wEKuykOtPHqxo4",
-    credits: 10,
-    amount: 17000, // £170
-  },
+// Credit pack configurations by priceId
+const CREDIT_PACKS_BY_PRICE = {
+  "price_1ShICWHaP2wEKuykqMEyAcKq": { credits: 1, name: "Pay As You Go" },
+  "price_1ShIOvHaP2wEKuykcLfnYe6p": { credits: 5, name: "5 Credit Pack" },
+  "price_1ShIRMHaP2wEKuykOtPHqxo4": { credits: 10, name: "10 Credit Pack" },
+};
+
+// Legacy support by pack size
+const CREDIT_PACKS_BY_SIZE = {
+  "5": "price_1ShIOvHaP2wEKuykcLfnYe6p",
+  "10": "price_1ShIRMHaP2wEKuykOtPHqxo4",
 };
 
 serve(async (req) => {
@@ -54,13 +53,26 @@ serve(async (req) => {
     if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { userId: user.id, email: user.email });
 
-    const { packSize } = await req.json();
-    if (!packSize || !CREDIT_PACKS[packSize as keyof typeof CREDIT_PACKS]) {
-      throw new Error("Invalid credit pack size. Choose '5' or '10'");
-    }
+    const body = await req.json();
+    let priceId: string;
+    let credits: number;
 
-    const pack = CREDIT_PACKS[packSize as keyof typeof CREDIT_PACKS];
-    logStep("Credit pack selected", { packSize, credits: pack.credits, priceId: pack.priceId });
+    // Support both priceId directly or packSize for backwards compatibility
+    if (body.priceId) {
+      priceId = body.priceId;
+      const pack = CREDIT_PACKS_BY_PRICE[priceId as keyof typeof CREDIT_PACKS_BY_PRICE];
+      if (!pack) throw new Error("Invalid price ID");
+      credits = pack.credits;
+      logStep("Using priceId", { priceId, credits });
+    } else if (body.packSize) {
+      const packSize = body.packSize;
+      priceId = CREDIT_PACKS_BY_SIZE[packSize as keyof typeof CREDIT_PACKS_BY_SIZE];
+      if (!priceId) throw new Error("Invalid credit pack size. Choose '5' or '10'");
+      credits = CREDIT_PACKS_BY_PRICE[priceId as keyof typeof CREDIT_PACKS_BY_PRICE].credits;
+      logStep("Using packSize", { packSize, priceId, credits });
+    } else {
+      throw new Error("Either priceId or packSize is required");
+    }
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
@@ -78,21 +90,21 @@ serve(async (req) => {
       customer_email: customerId ? undefined : user.email,
       line_items: [
         {
-          price: pack.priceId,
+          price: priceId,
           quantity: 1,
         },
       ],
       mode: "payment",
-      success_url: `${origin}/credits-success?session_id={CHECKOUT_SESSION_ID}&credits=${pack.credits}`,
-      cancel_url: `${origin}/dashboard`,
+      success_url: `${origin}/credits-success?session_id={CHECKOUT_SESSION_ID}&credits=${credits}`,
+      cancel_url: `${origin}/billing`,
       metadata: {
         user_id: user.id,
-        credits: pack.credits.toString(),
-        pack_size: packSize,
+        credits: credits.toString(),
+        price_id: priceId,
       },
     });
 
-    logStep("Checkout session created", { sessionId: session.id });
+    logStep("Checkout session created", { sessionId: session.id, credits });
 
     return new Response(JSON.stringify({ url: session.url, sessionId: session.id }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

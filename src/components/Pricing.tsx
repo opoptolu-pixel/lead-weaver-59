@@ -1,5 +1,10 @@
-import { Check, Zap, Package, Crown } from "lucide-react";
+import { useState } from "react";
+import { Check, Zap, Package, Crown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const pricingTiers = [
   {
@@ -8,6 +13,7 @@ const pricingTiers = [
     description: "Perfect for getting started",
     price: "£20",
     priceLabel: "per lead",
+    priceId: "price_1ShICWHaP2wEKuykqMEyAcKq",
     features: [
       "No upfront commitment",
       "Pay only for leads you want",
@@ -23,6 +29,7 @@ const pricingTiers = [
     description: "Best value for regular cleaners",
     price: "£85",
     priceLabel: "for 5 leads",
+    priceId: "price_1ShIOvHaP2wEKuykcLfnYe6p",
     saveLabel: "Save 15%",
     features: [
       "5 lead credits",
@@ -40,6 +47,7 @@ const pricingTiers = [
     description: "For growing cleaning businesses",
     price: "£140",
     priceLabel: "for 10 leads",
+    priceId: "price_1ShIRMHaP2wEKuykOtPHqxo4",
     saveLabel: "Save 30%",
     features: [
       "10 lead credits",
@@ -55,6 +63,42 @@ const pricingTiers = [
 ];
 
 export const Pricing = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [loadingTier, setLoadingTier] = useState<string | null>(null);
+
+  const handlePurchase = async (tier: typeof pricingTiers[0]) => {
+    // If user is not logged in, redirect to auth with return URL
+    if (!user) {
+      navigate(`/auth?redirect=/billing&tier=${tier.name}`);
+      return;
+    }
+
+    setLoadingTier(tier.name);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("buy-credits", {
+        body: { priceId: tier.priceId },
+      });
+
+      if (error) throw error;
+
+      if (data?.url) {
+        window.open(data.url, "_blank");
+      }
+    } catch (error: any) {
+      console.error("Payment error:", error);
+      toast({
+        title: "Payment Error",
+        description: "Failed to initiate payment. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingTier(null);
+    }
+  };
+
   return (
     <section id="pricing" className="py-20 lg:py-28 bg-background">
       <div className="container mx-auto px-4">
@@ -140,9 +184,17 @@ export const Pricing = () => {
                 variant={tier.popular ? "hero" : "cta"}
                 className="w-full"
                 size="lg"
-                onClick={() => document.getElementById("registration")?.scrollIntoView({ behavior: "smooth" })}
+                onClick={() => handlePurchase(tier)}
+                disabled={loadingTier === tier.name}
               >
-                {tier.cta}
+                {loadingTier === tier.name ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  tier.cta
+                )}
               </Button>
             </div>
           ))}

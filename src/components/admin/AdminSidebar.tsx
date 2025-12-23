@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Activity,
   ShieldAlert,
+  Inbox,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ import { Logo } from "@/components/Logo";
 const navItems = [
   { title: "Overview", url: "/admin", icon: LayoutDashboard },
   { title: "Lead Pipeline", url: "/admin/leads", icon: FileText },
+  { title: "Business Inquiries", url: "/admin/inquiries", icon: Inbox },
   { title: "Businesses", url: "/admin/businesses", icon: Users },
   { title: "Verifications", url: "/admin/verifications", icon: Shield },
   { title: "Payments", url: "/admin/payments", icon: CreditCard },

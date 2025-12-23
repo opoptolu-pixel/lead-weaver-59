@@ -27,6 +27,7 @@ import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminActivityLogs from "./pages/admin/AdminActivityLogs";
 import AdminFraud from "./pages/admin/AdminFraud";
+import AdminInquiries from "./pages/admin/AdminInquiries";
 
 const queryClient = new QueryClient();
 
@@ -52,6 +53,7 @@ const App = () => (
               <Route path="/credits-success" element={<CreditsSuccess />} />
               {/* Admin Routes */}
               <Route path="/admin" element={<AdminOverview />} />
+              <Route path="/admin/inquiries" element={<AdminInquiries />} />
               <Route path="/admin/leads" element={<AdminLeads />} />
               <Route path="/admin/businesses" element={<AdminBusinesses />} />
               <Route path="/admin/verifications" element={<AdminVerifications />} />
