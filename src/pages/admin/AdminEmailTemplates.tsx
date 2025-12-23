@@ -9,6 +9,13 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -1719,20 +1726,45 @@ export default function AdminEmailTemplates() {
 
       {/* Test Email Dialog */}
       <Dialog open={testEmailDialogOpen} onOpenChange={setTestEmailDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {isScheduling ? <Calendar className="w-5 h-5" /> : <Send className="w-5 h-5" />}
-              {isScheduling ? "Schedule Test Email" : "Send Test Email"}
+              {isScheduling ? "Schedule Email" : "Send Test Email"}
             </DialogTitle>
             <DialogDescription>
               {isScheduling 
-                ? "Schedule a test email to be sent at a specific time"
+                ? "Select a template and schedule it to be sent at a specific time"
                 : "Send a test email using sample data to verify the template looks correct"
               }
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Template Selector (for scheduling) */}
+            {isScheduling && (
+              <div className="space-y-2">
+                <Label>Select Template</Label>
+                <Select
+                  value={selectedTemplate?.id || ""}
+                  onValueChange={(value) => {
+                    const template = templates.find(t => t.id === value);
+                    setSelectedTemplate(template || null);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a template" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {templates.filter(t => t.is_active).map((template) => (
+                      <SelectItem key={template.id} value={template.id}>
+                        {template.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="test-email">Recipient Email</Label>
               <Input
@@ -1784,8 +1816,20 @@ export default function AdminEmailTemplates() {
                   <strong>Name:</strong> {selectedTemplate.name}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  <strong>Subject:</strong> [TEST] {selectedTemplate.subject}
+                  <strong>Subject:</strong> {isScheduling ? "" : "[TEST] "}{selectedTemplate.subject}
                 </p>
+                {selectedTemplate.variables && selectedTemplate.variables.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-xs font-medium text-muted-foreground mb-1">Available Variables:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {selectedTemplate.variables.map((v) => (
+                        <Badge key={v} variant="secondary" className="text-xs">
+                          {`{{${v}}}`}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <p className="text-xs text-muted-foreground mt-2">
                   Variables will be replaced with sample data
                 </p>
@@ -1798,7 +1842,7 @@ export default function AdminEmailTemplates() {
               {isScheduling ? (
                 <Button 
                   onClick={scheduleEmail} 
-                  disabled={sendingTest || !testEmail || !scheduledDate || !scheduledTime}
+                  disabled={sendingTest || !testEmail || !scheduledDate || !scheduledTime || !selectedTemplate}
                 >
                   {sendingTest && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                   <Calendar className="w-4 h-4 mr-2" />

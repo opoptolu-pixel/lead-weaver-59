@@ -32,6 +32,7 @@ import { Search, FileText, MessageSquare, CheckCircle, XCircle, Clock, AlertCirc
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useSignedUrl } from "@/hooks/useSignedUrl";
+import { useAdmin } from "@/contexts/AdminContext";
 
 interface Dispute {
   id: string;
@@ -78,6 +79,7 @@ const getStatusBadge = (status: string) => {
 };
 
 export default function AdminDisputes() {
+  const { getDateFilter, dateRange } = useAdmin();
   const [disputes, setDisputes] = useState<DisputeWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -93,15 +95,19 @@ export default function AdminDisputes() {
 
   useEffect(() => {
     fetchDisputes();
-  }, []);
+  }, [dateRange]);
 
   const fetchDisputes = async () => {
     setLoading(true);
+    const { start, end } = getDateFilter();
+    
     try {
       // Fetch disputes
       const { data: disputesData, error: disputesError } = await supabase
         .from("disputes")
         .select("*")
+        .gte("created_at", start.toISOString())
+        .lte("created_at", end.toISOString())
         .order("created_at", { ascending: false });
 
       if (disputesError) throw disputesError;
