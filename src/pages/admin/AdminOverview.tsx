@@ -25,25 +25,18 @@ import {
   BarChart,
   Bar,
 } from "recharts";
+import { format, subDays, startOfDay, endOfDay } from "date-fns";
 
-// Placeholder data for charts
-const revenueData = [
-  { date: "Mon", revenue: 240, leads: 12 },
-  { date: "Tue", revenue: 300, leads: 15 },
-  { date: "Wed", revenue: 280, leads: 14 },
-  { date: "Thu", revenue: 400, leads: 20 },
-  { date: "Fri", revenue: 380, leads: 19 },
-  { date: "Sat", revenue: 200, leads: 10 },
-  { date: "Sun", revenue: 160, leads: 8 },
-];
+interface DailyData {
+  date: string;
+  revenue: number;
+  leads: number;
+}
 
-const postcodeData = [
-  { postcode: "M1", purchases: 45 },
-  { postcode: "M2", purchases: 38 },
-  { postcode: "M3", purchases: 32 },
-  { postcode: "M4", purchases: 28 },
-  { postcode: "M5", purchases: 24 },
-];
+interface PostcodeData {
+  postcode: string;
+  purchases: number;
+}
 
 export default function AdminOverview() {
   const { getDateFilter } = useAdmin();
@@ -63,10 +56,69 @@ export default function AdminOverview() {
     fraudQueue: 0,
     disputesAwaiting: 0,
   });
+  const [revenueData, setRevenueData] = useState<DailyData[]>([]);
+  const [postcodeData, setPostcodeData] = useState<PostcodeData[]>([]);
 
   useEffect(() => {
     fetchStats();
+    fetchChartData();
   }, []);
+
+  const fetchChartData = async () => {
+    // Fetch leads for chart data (last 7 days)
+    const { data: leads } = await supabase
+      .from("leads")
+      .select("created_at, unlocked_at, is_unlocked, value, postcode")
+      .gte("created_at", subDays(new Date(), 7).toISOString());
+
+    if (leads) {
+      // Generate daily revenue/leads data
+      const dailyMap = new Map<string, { revenue: number; leads: number }>();
+      
+      // Initialize last 7 days
+      for (let i = 6; i >= 0; i--) {
+        const date = format(subDays(new Date(), i), "EEE");
+        dailyMap.set(date, { revenue: 0, leads: 0 });
+      }
+
+      // Populate with actual data
+      leads.forEach((lead) => {
+        const dayKey = format(new Date(lead.created_at), "EEE");
+        if (dailyMap.has(dayKey)) {
+          const current = dailyMap.get(dayKey)!;
+          current.leads += 1;
+          if (lead.is_unlocked) {
+            current.revenue += 20; // £20 per lead
+          }
+        }
+      });
+
+      const chartData = Array.from(dailyMap.entries()).map(([date, data]) => ({
+        date,
+        revenue: data.revenue,
+        leads: data.leads,
+      }));
+
+      setRevenueData(chartData);
+
+      // Generate postcode data
+      const postcodeMap = new Map<string, number>();
+      leads.filter(l => l.is_unlocked).forEach((lead) => {
+        // Get postcode prefix (e.g., "SW1" from "SW1A 1AA")
+        const prefix = lead.postcode.split(/\s/)[0].replace(/\d.*$/, '') + 
+                       lead.postcode.match(/\d+/)?.[0] || lead.postcode.split(/\s/)[0];
+        postcodeMap.set(prefix, (postcodeMap.get(prefix) || 0) + 1);
+      });
+
+      // Sort by purchases and take top 5
+      const sortedPostcodes = Array.from(postcodeMap.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([postcode, purchases]) => ({ postcode, purchases }));
+
+      setPostcodeData(sortedPostcodes);
+    }
+  };
 
   const fetchStats = async () => {
     const { start, end } = getDateFilter();
@@ -74,7 +126,7 @@ export default function AdminOverview() {
     // Fetch leads stats
     const { data: leads } = await supabase
       .from("leads")
-      .select("id, is_unlocked, lead_status, created_at")
+      .select("id, is_unlocked, lead_status, created_at, refunded_at")
       .gte("created_at", start.toISOString())
       .lte("created_at", end.toISOString());
 
@@ -104,6 +156,7 @@ export default function AdminOverview() {
     const leadsPurchased = leads?.filter(l => l.is_unlocked).length || 0;
     const revenue = leadsPurchased * 20; // £20 per lead
     const activeBuyers = profiles?.filter(p => (p.leads_purchased || 0) > 0).length || 0;
+    const refundsIssued = leads?.filter(l => l.refunded_at !== null).length || 0;
     const disputesOpen = disputes?.filter(d => d.status === "open").length || 0;
     const pendingFraud = fraudFlags?.filter(f => f.status === "pending").length || 0;
 
@@ -113,7 +166,7 @@ export default function AdminOverview() {
       leadsPurchased,
       revenue,
       activeBuyers,
-      refundsIssued: 0,
+      refundsIssued,
       disputesOpen,
       fraudFlags: pendingFraud,
     });

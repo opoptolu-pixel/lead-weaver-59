@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.search-uk-locations]
 verify_jwt = false
+
+[functions.submit-cleaning-request]
+verify_jwt = false
