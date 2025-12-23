@@ -364,9 +364,18 @@ Deno.serve(async (req) => {
             area: `${place.name_1}${place.county_unitary ? ', ' + place.county_unitary : ''}`,
             type: 'place'
           });
+          
+          // Extract postcode prefix from outcode for filtering leads
+          // e.g., "NG34" -> "NG34", "NG" -> "NG"
+          if (outcode) {
+            matchedPrefixes.push(outcode);
+          }
         }
       }
     }
+    
+    // De-duplicate prefixes
+    matchedPrefixes = [...new Set(matchedPrefixes)];
 
     // If still no results and looks like a full postcode, try direct lookup
     if (locations.length === 0 && searchTermUpper.length >= 5) {
