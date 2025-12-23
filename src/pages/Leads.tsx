@@ -8,7 +8,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Logo } from "@/components/Logo";
-
+import { useAutoScroll } from "@/hooks/useAutoScroll";
 interface Lead {
   id: string;
   postcode: string;
@@ -33,6 +33,210 @@ interface UKLocation {
 
 const LEADS_PER_PAGE = 10;
 
+// Leads scroll container with auto-scroll on interaction pause
+interface LeadsScrollContainerProps {
+  leads: Lead[];
+  userCredits: number;
+  unlockingLeadId: string | null;
+  usingCreditLeadId: string | null;
+  onUnlock: (leadId: string) => void;
+  onUseCredit: (leadId: string) => void;
+  formatDate: (dateString: string) => string;
+  hasMore: boolean;
+  loadingMore: boolean;
+  loadMoreRef: React.RefObject<HTMLDivElement>;
+}
+
+const LeadsScrollContainer = ({
+  leads,
+  userCredits,
+  unlockingLeadId,
+  usingCreditLeadId,
+  onUnlock,
+  onUseCredit,
+  formatDate,
+  hasMore,
+  loadingMore,
+  loadMoreRef,
+}: LeadsScrollContainerProps) => {
+  // Auto-scroll for desktop (slower speed for leads page)
+  const desktopScroll = useAutoScroll({ speed: 20, pauseOnHover: true, pauseOnTouch: true });
+  // Auto-scroll for mobile  
+  const mobileScroll = useAutoScroll({ speed: 20, pauseOnHover: true, pauseOnTouch: true });
+
+  // Only enable auto-scroll if we have enough leads
+  const enableAutoScroll = leads.length >= 6;
+
+  // Duplicate leads for seamless scrolling effect
+  const displayLeads = enableAutoScroll ? [...leads, ...leads] : leads;
+
+  return (
+    <>
+      {/* Desktop table view */}
+      <div className="hidden md:block max-w-5xl mx-auto">
+        <div className="bg-card rounded-2xl shadow-elevated overflow-hidden border border-border">
+          {/* Table header - fixed */}
+          <div className="grid grid-cols-5 gap-4 bg-primary text-primary-foreground px-6 py-4 font-heading font-semibold text-sm">
+            <div className="flex items-center gap-2">
+              <MapPin className="w-4 h-4" />
+              Postcode
+            </div>
+            <div>Job Type</div>
+            <div className="flex items-center gap-2">
+              <PoundSterling className="w-4 h-4" />
+              Value
+            </div>
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4" />
+              Date
+            </div>
+            <div className="text-center">Action</div>
+          </div>
+
+          {/* Scrolling container */}
+          <div 
+            {...(enableAutoScroll ? desktopScroll.containerProps : {})}
+            ref={enableAutoScroll ? desktopScroll.containerRef : undefined}
+            className={enableAutoScroll ? "max-h-[350px] overflow-hidden" : ""}
+            style={enableAutoScroll ? { scrollBehavior: 'auto' } : undefined}
+          >
+            {displayLeads.map((lead, index) => (
+              <div
+                key={enableAutoScroll ? `${lead.id}-${index}` : lead.id}
+                className={`grid grid-cols-5 gap-4 px-6 py-5 items-center transition-colors hover:bg-muted/50 ${
+                  index !== displayLeads.length - 1 ? "border-b border-border" : ""
+                }`}
+              >
+                <div className="font-semibold text-foreground bg-muted rounded-lg px-3 py-1 inline-block w-fit">
+                  {lead.postcode}
+                </div>
+                <div className="text-foreground font-medium">{lead.job_type}</div>
+                <div className="text-secondary font-bold text-lg">{lead.display_value}</div>
+                <div className="text-muted-foreground">{formatDate(lead.date)}</div>
+                <div className="text-center flex gap-2 justify-center">
+                  {userCredits > 0 ? (
+                    <Button 
+                      variant="cta" 
+                      size="sm" 
+                      className="gap-2"
+                      onClick={() => onUseCredit(lead.id)}
+                      disabled={usingCreditLeadId === lead.id}
+                    >
+                      {usingCreditLeadId === lead.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Coins className="w-4 h-4" />
+                      )}
+                      Use 1 Credit
+                    </Button>
+                  ) : (
+                    <Button 
+                      variant="unlock" 
+                      size="sm" 
+                      className="gap-2"
+                      onClick={() => onUnlock(lead.id)}
+                      disabled={unlockingLeadId === lead.id}
+                    >
+                      {unlockingLeadId === lead.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Lock className="w-4 h-4" />
+                      )}
+                      Unlock £20
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        
+        {/* Pause indicator */}
+        {enableAutoScroll && desktopScroll.isPaused && (
+          <p className="text-center text-sm text-muted-foreground mt-3">
+            Scrolling paused • Move away to resume
+          </p>
+        )}
+      </div>
+
+      {/* Mobile card view */}
+      <div className="md:hidden max-w-md mx-auto">
+        <div 
+          {...(enableAutoScroll ? mobileScroll.containerProps : {})}
+          ref={enableAutoScroll ? mobileScroll.containerRef : undefined}
+          className={enableAutoScroll ? "max-h-[450px] overflow-hidden space-y-4" : "space-y-4"}
+          style={enableAutoScroll ? { scrollBehavior: 'auto' } : undefined}
+        >
+          {displayLeads.map((lead, index) => (
+            <div
+              key={enableAutoScroll ? `mobile-${lead.id}-${index}` : lead.id}
+              className="bg-card rounded-xl p-5 shadow-card border border-border"
+            >
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <span className="inline-block bg-muted text-foreground font-semibold rounded-lg px-3 py-1 text-sm mb-2">
+                    {lead.postcode}
+                  </span>
+                  <h3 className="font-semibold text-foreground">{lead.job_type}</h3>
+                </div>
+                <div className="text-right">
+                  <p className="text-secondary font-bold text-xl">{lead.display_value}</p>
+                  <p className="text-muted-foreground text-sm">{formatDate(lead.date)}</p>
+                </div>
+              </div>
+              {userCredits > 0 ? (
+                <Button 
+                  variant="cta" 
+                  className="w-full gap-2"
+                  onClick={() => onUseCredit(lead.id)}
+                  disabled={usingCreditLeadId === lead.id}
+                >
+                  {usingCreditLeadId === lead.id ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Coins className="w-4 h-4" />
+                  )}
+                  Use 1 Credit
+                </Button>
+              ) : (
+                <Button 
+                  variant="unlock" 
+                  className="w-full gap-2"
+                  onClick={() => onUnlock(lead.id)}
+                  disabled={unlockingLeadId === lead.id}
+                >
+                  {unlockingLeadId === lead.id ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Lock className="w-4 h-4" />
+                  )}
+                  Unlock for £20
+                </Button>
+              )}
+            </div>
+          ))}
+        </div>
+        
+        {/* Pause indicator for mobile */}
+        {enableAutoScroll && mobileScroll.isPaused && (
+          <p className="text-center text-sm text-muted-foreground mt-3">
+            Tap outside to resume scrolling
+          </p>
+        )}
+      </div>
+
+      {/* Load more trigger */}
+      <div ref={loadMoreRef} className="py-8 flex justify-center">
+        {loadingMore && (
+          <Loader2 className="w-6 h-6 animate-spin text-secondary" />
+        )}
+        {!hasMore && leads.length > 0 && (
+          <p className="text-muted-foreground text-sm">You've seen all available leads</p>
+        )}
+      </div>
+    </>
+  );
+};
 export default function Leads() {
   const { user, profile, refreshProfile } = useAuth();
   const navigate = useNavigate();
@@ -607,142 +811,18 @@ export default function Leads() {
             )}
           </div>
         ) : (
-          <>
-            {/* Desktop table view */}
-            <div className="hidden md:block max-w-5xl mx-auto">
-              <div className="bg-card rounded-2xl shadow-elevated overflow-hidden border border-border">
-                {/* Table header */}
-                <div className="grid grid-cols-5 gap-4 bg-primary text-primary-foreground px-6 py-4 font-heading font-semibold text-sm">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4" />
-                    Postcode
-                  </div>
-                  <div>Job Type</div>
-                  <div className="flex items-center gap-2">
-                    <PoundSterling className="w-4 h-4" />
-                    Value
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    Date
-                  </div>
-                  <div className="text-center">Action</div>
-                </div>
-
-                {/* Table rows */}
-                {leads.map((lead, index) => (
-                  <div
-                    key={lead.id}
-                    className={`grid grid-cols-5 gap-4 px-6 py-5 items-center transition-colors hover:bg-muted/50 ${
-                      index !== leads.length - 1 ? "border-b border-border" : ""
-                    }`}
-                  >
-                    <div className="font-semibold text-foreground bg-muted rounded-lg px-3 py-1 inline-block w-fit">
-                      {lead.postcode}
-                    </div>
-                    <div className="text-foreground font-medium">{lead.job_type}</div>
-                    <div className="text-secondary font-bold text-lg">{lead.display_value}</div>
-                    <div className="text-muted-foreground">{formatDate(lead.date)}</div>
-                    <div className="text-center flex gap-2 justify-center">
-                      {userCredits > 0 ? (
-                        <Button 
-                          variant="cta" 
-                          size="sm" 
-                          className="gap-2"
-                          onClick={() => handleUseCredit(lead.id)}
-                          disabled={usingCreditLeadId === lead.id}
-                        >
-                          {usingCreditLeadId === lead.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Coins className="w-4 h-4" />
-                          )}
-                          Use 1 Credit
-                        </Button>
-                      ) : (
-                        <Button 
-                          variant="unlock" 
-                          size="sm" 
-                          className="gap-2"
-                          onClick={() => handleUnlock(lead.id)}
-                          disabled={unlockingLeadId === lead.id}
-                        >
-                          {unlockingLeadId === lead.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Lock className="w-4 h-4" />
-                          )}
-                          Unlock £20
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Mobile card view */}
-            <div className="md:hidden space-y-4 max-w-md mx-auto">
-              {leads.map((lead) => (
-                <div
-                  key={lead.id}
-                  className="bg-card rounded-xl p-5 shadow-card border border-border"
-                >
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <span className="inline-block bg-muted text-foreground font-semibold rounded-lg px-3 py-1 text-sm mb-2">
-                        {lead.postcode}
-                      </span>
-                      <h3 className="font-semibold text-foreground">{lead.job_type}</h3>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-secondary font-bold text-xl">{lead.display_value}</p>
-                      <p className="text-muted-foreground text-sm">{formatDate(lead.date)}</p>
-                    </div>
-                  </div>
-                  {userCredits > 0 ? (
-                    <Button 
-                      variant="cta" 
-                      className="w-full gap-2"
-                      onClick={() => handleUseCredit(lead.id)}
-                      disabled={usingCreditLeadId === lead.id}
-                    >
-                      {usingCreditLeadId === lead.id ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Coins className="w-4 h-4" />
-                      )}
-                      Use 1 Credit
-                    </Button>
-                  ) : (
-                    <Button 
-                      variant="unlock" 
-                      className="w-full gap-2"
-                      onClick={() => handleUnlock(lead.id)}
-                      disabled={unlockingLeadId === lead.id}
-                    >
-                      {unlockingLeadId === lead.id ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Lock className="w-4 h-4" />
-                      )}
-                      Unlock for £20
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {/* Load more trigger */}
-            <div ref={loadMoreRef} className="py-8 flex justify-center">
-              {loadingMore && (
-                <Loader2 className="w-6 h-6 animate-spin text-secondary" />
-              )}
-              {!hasMore && leads.length > 0 && (
-                <p className="text-muted-foreground text-sm">You've seen all available leads</p>
-              )}
-            </div>
-          </>
+          <LeadsScrollContainer 
+            leads={leads}
+            userCredits={userCredits}
+            unlockingLeadId={unlockingLeadId}
+            usingCreditLeadId={usingCreditLeadId}
+            onUnlock={handleUnlock}
+            onUseCredit={handleUseCredit}
+            formatDate={formatDate}
+            hasMore={hasMore}
+            loadingMore={loadingMore}
+            loadMoreRef={loadMoreRef}
+          />
         )}
 
         {/* CTA */}
