@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_logs: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          ip_address: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          ip_address?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          ip_address?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       disputes: {
         Row: {
           created_at: string
@@ -165,6 +198,10 @@ export type Database = {
           job_status: string | null
           job_type: string
           lead_status: string | null
+          lost_reason: string | null
+          outcome_notes: string | null
+          outcome_status: string | null
+          outcome_updated_at: string | null
           postcode: string
           published_at: string | null
           quality_score: number | null
@@ -194,6 +231,10 @@ export type Database = {
           job_status?: string | null
           job_type: string
           lead_status?: string | null
+          lost_reason?: string | null
+          outcome_notes?: string | null
+          outcome_status?: string | null
+          outcome_updated_at?: string | null
           postcode: string
           published_at?: string | null
           quality_score?: number | null
@@ -223,6 +264,10 @@ export type Database = {
           job_status?: string | null
           job_type?: string
           lead_status?: string | null
+          lost_reason?: string | null
+          outcome_notes?: string | null
+          outcome_status?: string | null
+          outcome_updated_at?: string | null
           postcode?: string
           published_at?: string | null
           quality_score?: number | null

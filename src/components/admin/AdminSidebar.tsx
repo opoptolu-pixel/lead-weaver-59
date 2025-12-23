@@ -11,6 +11,8 @@ import {
   Sparkles,
   ChevronLeft,
   ChevronRight,
+  Activity,
+  ShieldAlert,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -23,7 +25,9 @@ const navItems = [
   { title: "Verifications", url: "/admin/verifications", icon: Shield },
   { title: "Payments", url: "/admin/payments", icon: CreditCard },
   { title: "Disputes", url: "/admin/disputes", icon: AlertTriangle },
+  { title: "Fraud & Risk", url: "/admin/fraud", icon: ShieldAlert },
   { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
+  { title: "Activity Logs", url: "/admin/activity-logs", icon: Activity },
   { title: "Settings", url: "/admin/settings", icon: Settings },
 ];
 
