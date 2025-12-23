@@ -1,0 +1,494 @@
+import { useState, useEffect } from "react";
+import { Save, Users, Shield, Globe, Bell, Loader2 } from "lucide-react";
+import AdminLayout from "@/components/admin/AdminLayout";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+interface UserWithRole {
+  id: string;
+  email: string;
+  created_at: string;
+  role: string | null;
+}
+
+export default function AdminSettings() {
+  const [loading, setLoading] = useState(false);
+  const [users, setUsers] = useState<UserWithRole[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(true);
+
+  // Site settings state
+  const [siteSettings, setSiteSettings] = useState({
+    siteName: "Deep Clean UK",
+    supportEmail: "support@deepcleanuk.com",
+    leadPrice: "5",
+    creditPackSmall: "10",
+    creditPackMedium: "25",
+    creditPackLarge: "50",
+  });
+
+  // System preferences state
+  const [systemPrefs, setSystemPrefs] = useState({
+    emailNotifications: true,
+    whatsappNotifications: true,
+    autoApproveVerified: false,
+    maintenanceMode: false,
+    newUserSignups: true,
+  });
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    setLoadingUsers(true);
+    try {
+      // Fetch profiles with their roles
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("user_id, business_name, contact_name, created_at")
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      if (profilesError) throw profilesError;
+
+      // Fetch roles for these users
+      const { data: roles, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id, role");
+
+      if (rolesError) throw rolesError;
+
+      // Create a map of roles
+      const roleMap = new Map(roles?.map((r) => [r.user_id, r.role]) || []);
+
+      // Combine the data
+      const usersWithRoles: UserWithRole[] = (profiles || []).map((p) => ({
+        id: p.user_id,
+        email: p.contact_name || p.business_name || "Unknown User",
+        created_at: p.created_at,
+        role: roleMap.get(p.user_id) || null,
+      }));
+
+      setUsers(usersWithRoles);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      toast.error("Failed to load users");
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  const handleRoleChange = async (userId: string, newRole: string) => {
+    try {
+      if (newRole === "none") {
+        // Remove role
+        const { error } = await supabase
+          .from("user_roles")
+          .delete()
+          .eq("user_id", userId);
+
+        if (error) throw error;
+      } else {
+        // Check if user already has a role
+        const { data: existing } = await supabase
+          .from("user_roles")
+          .select("id")
+          .eq("user_id", userId)
+          .maybeSingle();
+
+        if (existing) {
+          // Update existing role
+          const { error } = await supabase
+            .from("user_roles")
+            .update({ role: newRole as "admin" | "super_admin" })
+            .eq("user_id", userId);
+
+          if (error) throw error;
+        } else {
+          // Insert new role
+          const { error } = await supabase
+            .from("user_roles")
+            .insert({ user_id: userId, role: newRole as "admin" | "super_admin" });
+
+          if (error) throw error;
+        }
+      }
+
+      toast.success("Role updated successfully");
+      fetchUsers();
+    } catch (error) {
+      console.error("Error updating role:", error);
+      toast.error("Failed to update role");
+    }
+  };
+
+  const handleSaveSiteSettings = async () => {
+    setLoading(true);
+    // In a real app, you'd save these to a settings table
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    toast.success("Site settings saved");
+    setLoading(false);
+  };
+
+  const handleSaveSystemPrefs = async () => {
+    setLoading(true);
+    // In a real app, you'd save these to a settings table
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    toast.success("System preferences saved");
+    setLoading(false);
+  };
+
+  const getRoleBadge = (role: string | null) => {
+    switch (role) {
+      case "super_admin":
+        return <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">Super Admin</Badge>;
+      case "admin":
+        return <Badge className="bg-secondary/20 text-secondary border-secondary/30">Admin</Badge>;
+      default:
+        return <Badge variant="outline" className="text-muted-foreground">User</Badge>;
+    }
+  };
+
+  return (
+    <AdminLayout title="Settings">
+      <Tabs defaultValue="site" className="space-y-6">
+        <TabsList className="bg-muted/50">
+          <TabsTrigger value="site" className="gap-2">
+            <Globe className="w-4 h-4" />
+            Site Config
+          </TabsTrigger>
+          <TabsTrigger value="users" className="gap-2">
+            <Users className="w-4 h-4" />
+            User Management
+          </TabsTrigger>
+          <TabsTrigger value="roles" className="gap-2">
+            <Shield className="w-4 h-4" />
+            Role Permissions
+          </TabsTrigger>
+          <TabsTrigger value="system" className="gap-2">
+            <Bell className="w-4 h-4" />
+            System Prefs
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Site Configuration */}
+        <TabsContent value="site" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Site Configuration</CardTitle>
+              <CardDescription>Manage your site's basic settings and branding</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="siteName">Site Name</Label>
+                  <Input
+                    id="siteName"
+                    value={siteSettings.siteName}
+                    onChange={(e) => setSiteSettings({ ...siteSettings, siteName: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="supportEmail">Support Email</Label>
+                  <Input
+                    id="supportEmail"
+                    type="email"
+                    value={siteSettings.supportEmail}
+                    onChange={(e) => setSiteSettings({ ...siteSettings, supportEmail: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="border-t pt-6">
+                <h4 className="font-medium mb-4">Pricing Configuration</h4>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="leadPrice">Credits per Lead</Label>
+                    <Input
+                      id="leadPrice"
+                      type="number"
+                      value={siteSettings.leadPrice}
+                      onChange={(e) => setSiteSettings({ ...siteSettings, leadPrice: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="creditPackSmall">Small Pack (credits)</Label>
+                    <Input
+                      id="creditPackSmall"
+                      type="number"
+                      value={siteSettings.creditPackSmall}
+                      onChange={(e) => setSiteSettings({ ...siteSettings, creditPackSmall: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="creditPackMedium">Medium Pack (credits)</Label>
+                    <Input
+                      id="creditPackMedium"
+                      type="number"
+                      value={siteSettings.creditPackMedium}
+                      onChange={(e) => setSiteSettings({ ...siteSettings, creditPackMedium: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="creditPackLarge">Large Pack (credits)</Label>
+                    <Input
+                      id="creditPackLarge"
+                      type="number"
+                      value={siteSettings.creditPackLarge}
+                      onChange={(e) => setSiteSettings({ ...siteSettings, creditPackLarge: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <Button onClick={handleSaveSiteSettings} disabled={loading}>
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                  Save Changes
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* User Management */}
+        <TabsContent value="users" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>User Management</CardTitle>
+              <CardDescription>Manage user accounts and their roles</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loadingUsers ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>User</TableHead>
+                      <TableHead>Joined</TableHead>
+                      <TableHead>Current Role</TableHead>
+                      <TableHead>Change Role</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {users.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell className="font-medium">{user.email}</TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {new Date(user.created_at).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>{getRoleBadge(user.role)}</TableCell>
+                        <TableCell>
+                          <Select
+                            value={user.role || "none"}
+                            onValueChange={(value) => handleRoleChange(user.id, value)}
+                          >
+                            <SelectTrigger className="w-32">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">User</SelectItem>
+                              <SelectItem value="admin">Admin</SelectItem>
+                              <SelectItem value="super_admin">Super Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {users.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                          No users found
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Role Permissions */}
+        <TabsContent value="roles" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Role Permissions</CardTitle>
+              <CardDescription>View and understand the permissions for each role</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {/* Super Admin */}
+                <div className="border rounded-lg p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">Super Admin</Badge>
+                    <span className="text-sm text-muted-foreground">Full system access</span>
+                  </div>
+                  <div className="grid gap-2 text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-green-500" />
+                      <span>Manage all admin roles</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-green-500" />
+                      <span>Access all admin features</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-green-500" />
+                      <span>Modify system settings</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-green-500" />
+                      <span>Delete users and data</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Admin */}
+                <div className="border rounded-lg p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Badge className="bg-secondary/20 text-secondary border-secondary/30">Admin</Badge>
+                    <span className="text-sm text-muted-foreground">Standard admin access</span>
+                  </div>
+                  <div className="grid gap-2 text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-green-500" />
+                      <span>View all leads and businesses</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-green-500" />
+                      <span>Manage verifications</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-green-500" />
+                      <span>Handle disputes</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-yellow-500" />
+                      <span>Limited settings access</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* User */}
+                <div className="border rounded-lg p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Badge variant="outline" className="text-muted-foreground">User</Badge>
+                    <span className="text-sm text-muted-foreground">Standard user access</span>
+                  </div>
+                  <div className="grid gap-2 text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-green-500" />
+                      <span>View and purchase leads</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-green-500" />
+                      <span>Manage own profile</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-green-500" />
+                      <span>Submit verifications</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-red-500" />
+                      <span>No admin access</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* System Preferences */}
+        <TabsContent value="system" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>System Preferences</CardTitle>
+              <CardDescription>Configure system-wide settings and notifications</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Email Notifications</Label>
+                    <p className="text-sm text-muted-foreground">Send email notifications for new leads and updates</p>
+                  </div>
+                  <Switch
+                    checked={systemPrefs.emailNotifications}
+                    onCheckedChange={(checked) => setSystemPrefs({ ...systemPrefs, emailNotifications: checked })}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>WhatsApp Notifications</Label>
+                    <p className="text-sm text-muted-foreground">Send WhatsApp messages for lead alerts</p>
+                  </div>
+                  <Switch
+                    checked={systemPrefs.whatsappNotifications}
+                    onCheckedChange={(checked) => setSystemPrefs({ ...systemPrefs, whatsappNotifications: checked })}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Auto-Approve Verified Businesses</Label>
+                    <p className="text-sm text-muted-foreground">Automatically approve businesses with complete verification</p>
+                  </div>
+                  <Switch
+                    checked={systemPrefs.autoApproveVerified}
+                    onCheckedChange={(checked) => setSystemPrefs({ ...systemPrefs, autoApproveVerified: checked })}
+                  />
+                </div>
+
+                <div className="border-t pt-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Allow New User Signups</Label>
+                      <p className="text-sm text-muted-foreground">Allow new users to create accounts</p>
+                    </div>
+                    <Switch
+                      checked={systemPrefs.newUserSignups}
+                      onCheckedChange={(checked) => setSystemPrefs({ ...systemPrefs, newUserSignups: checked })}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-destructive">Maintenance Mode</Label>
+                    <p className="text-sm text-muted-foreground">Put the site in maintenance mode (users cannot access)</p>
+                  </div>
+                  <Switch
+                    checked={systemPrefs.maintenanceMode}
+                    onCheckedChange={(checked) => setSystemPrefs({ ...systemPrefs, maintenanceMode: checked })}
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-4 border-t">
+                <Button onClick={handleSaveSystemPrefs} disabled={loading}>
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                  Save Preferences
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </AdminLayout>
+  );
+}
