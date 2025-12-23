@@ -488,6 +488,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      deduct_credit_atomic: {
+        Args: { p_lead_id: string; p_user_id: string }
+        Returns: {
+          error_message: string
+          remaining_credits: number
+          success: boolean
+        }[]
+      }
       get_available_leads: {
         Args: never
         Returns: {

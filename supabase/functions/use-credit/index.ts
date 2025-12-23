@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const logStep = (step: string, details?: any) => {
+const logStep = (step: string, details?: Record<string, unknown>) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[USE-CREDIT] ${step}${detailsStr}`);
 };
@@ -41,97 +41,51 @@ serve(async (req) => {
     if (!leadId) throw new Error("Lead ID is required");
     logStep("Lead ID received", { leadId });
 
-    // Get user's current credits and suspension status
-    const { data: profile, error: profileError } = await supabaseClient
-      .from("profiles")
-      .select("credits, is_suspended, suspension_reason")
-      .eq("user_id", user.id)
-      .single();
+    // Use atomic database function with row-level locking to prevent race conditions
+    // This function locks the profile and lead rows, validates all conditions,
+    // and performs the credit deduction + lead unlock in a single transaction
+    const { data: result, error: rpcError } = await supabaseClient
+      .rpc("deduct_credit_atomic", {
+        p_user_id: user.id,
+        p_lead_id: leadId,
+      });
 
-    if (profileError) throw new Error(`Failed to fetch profile: ${profileError.message}`);
-
-    // CRITICAL: Check if user is suspended
-    if (profile?.is_suspended) {
-      throw new Error(profile.suspension_reason || "Your account is suspended. Please contact support.");
+    if (rpcError) {
+      logStep("RPC error", { error: rpcError.message });
+      throw new Error(`Database error: ${rpcError.message}`);
     }
 
-    const currentCredits = profile?.credits || 0;
-    if (currentCredits < 1) {
-      throw new Error("Insufficient credits. Please purchase more credits.");
+    // The function returns an array with one row
+    const atomicResult = result?.[0];
+    
+    if (!atomicResult) {
+      throw new Error("Unexpected database response");
     }
-    logStep("Credits check passed", { currentCredits });
 
-    // Verify the lead exists and is not already unlocked
+    if (!atomicResult.success) {
+      logStep("Atomic operation failed", { error: atomicResult.error_message });
+      throw new Error(atomicResult.error_message || "Failed to process credit");
+    }
+
+    logStep("Credit deducted atomically", { remainingCredits: atomicResult.remaining_credits });
+
+    // Fetch the unlocked lead details to return to client
     const { data: lead, error: leadError } = await supabaseClient
       .from("leads")
-      .select("*")
+      .select("id, postcode, job_type, display_value, customer_name, customer_email, customer_phone, customer_address, date")
       .eq("id", leadId)
-      .maybeSingle();
+      .single();
 
-    if (leadError) throw new Error(`Error fetching lead: ${leadError.message}`);
-    if (!lead) throw new Error("Lead not found");
-    if (lead.is_unlocked) throw new Error("This lead has already been unlocked");
-    logStep("Lead verified", { postcode: lead.postcode });
+    if (leadError) {
+      logStep("Warning: Could not fetch lead details", { error: leadError.message });
+    }
 
-    // Deduct credit
-    const { error: creditError } = await supabaseClient
-      .from("profiles")
-      .update({ credits: currentCredits - 1 })
-      .eq("user_id", user.id);
-
-    if (creditError) throw new Error(`Failed to deduct credit: ${creditError.message}`);
-    logStep("Credit deducted", { newCredits: currentCredits - 1 });
-
-    // Unlock the lead and update status
-    const { error: updateError } = await supabaseClient
-      .from("leads")
-      .update({
-        is_unlocked: true,
-        unlocked_by: user.id,
-        unlocked_at: new Date().toISOString(),
-        lead_status: "purchased",
-        outcome_status: "purchased",
-      })
-      .eq("id", leadId);
-
-    if (updateError) throw new Error(`Failed to unlock lead: ${updateError.message}`);
     logStep("Lead unlocked successfully");
-
-    // Increment leads_purchased counter (fire-and-forget)
-    const incrementLeads = async () => {
-      try {
-        const { data: currentProfile } = await supabaseClient
-          .from("profiles")
-          .select("leads_purchased")
-          .eq("user_id", user.id)
-          .single();
-        
-        await supabaseClient
-          .from("profiles")
-          .update({ leads_purchased: (currentProfile?.leads_purchased || 0) + 1 })
-          .eq("user_id", user.id);
-        
-        logStep("Leads purchased counter updated");
-      } catch (err) {
-        logStep("Failed to update leads_purchased", { error: (err as Error).message });
-      }
-    };
-    incrementLeads();
 
     return new Response(JSON.stringify({
       success: true,
-      lead: {
-        id: lead.id,
-        postcode: lead.postcode,
-        job_type: lead.job_type,
-        display_value: lead.display_value,
-        customer_name: lead.customer_name,
-        customer_email: lead.customer_email,
-        customer_phone: lead.customer_phone,
-        customer_address: lead.customer_address,
-        date: lead.date,
-      },
-      remainingCredits: currentCredits - 1,
+      lead: lead || { id: leadId },
+      remainingCredits: atomicResult.remaining_credits,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
