@@ -25,6 +25,9 @@ export type Database = {
           display_value: string
           id: string
           is_unlocked: boolean
+          job_completed_at: string | null
+          job_notes: string | null
+          job_status: string | null
           job_type: string
           postcode: string
           source: string | null
@@ -43,6 +46,9 @@ export type Database = {
           display_value: string
           id?: string
           is_unlocked?: boolean
+          job_completed_at?: string | null
+          job_notes?: string | null
+          job_status?: string | null
           job_type: string
           postcode: string
           source?: string | null
@@ -61,6 +67,9 @@ export type Database = {
           display_value?: string
           id?: string
           is_unlocked?: boolean
+          job_completed_at?: string | null
+          job_notes?: string | null
+          job_status?: string | null
           job_type?: string
           postcode?: string
           source?: string | null

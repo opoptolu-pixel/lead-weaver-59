@@ -15,6 +15,10 @@ import {
   Coins,
   Plus,
   Settings,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  MessageSquareX,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +34,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 interface UnlockedLead {
   id: string;
@@ -42,6 +54,9 @@ interface UnlockedLead {
   customer_address: string;
   date: string;
   unlocked_at: string;
+  job_status: string | null;
+  job_notes: string | null;
+  job_completed_at: string | null;
 }
 
 export default function Dashboard() {
@@ -53,6 +68,7 @@ export default function Dashboard() {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [buyingCredits, setBuyingCredits] = useState<string | null>(null);
   const [showCreditDialog, setShowCreditDialog] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
 
   // Redirect if not logged in
   useEffect(() => {
@@ -125,6 +141,70 @@ export default function Dashboard() {
       toast.error(err instanceof Error ? err.message : "Failed to start checkout");
     } finally {
       setBuyingCredits(null);
+    }
+  };
+
+  const handleStatusUpdate = async (leadId: string, newStatus: string, notes?: string) => {
+    setUpdatingStatus(leadId);
+    try {
+      const updateData: any = {
+        job_status: newStatus,
+      };
+      
+      if (newStatus === 'completed') {
+        updateData.job_completed_at = new Date().toISOString();
+      }
+      
+      if (notes !== undefined) {
+        updateData.job_notes = notes;
+      }
+
+      const { error } = await supabase
+        .from("leads")
+        .update(updateData)
+        .eq("id", leadId);
+
+      if (error) throw error;
+
+      // Update local state
+      setLeads(prev => prev.map(lead => 
+        lead.id === leadId 
+          ? { ...lead, ...updateData }
+          : lead
+      ));
+
+      toast.success("Job status updated!");
+    } catch (error) {
+      console.error("Error updating status:", error);
+      toast.error("Failed to update status");
+    } finally {
+      setUpdatingStatus(null);
+    }
+  };
+
+  const getStatusIcon = (status: string | null) => {
+    switch (status) {
+      case 'completed':
+        return <CheckCircle2 className="w-4 h-4 text-green-500" />;
+      case 'lost':
+        return <XCircle className="w-4 h-4 text-destructive" />;
+      case 'no_response':
+        return <MessageSquareX className="w-4 h-4 text-muted-foreground" />;
+      default:
+        return <Clock className="w-4 h-4 text-secondary" />;
+    }
+  };
+
+  const getStatusLabel = (status: string | null) => {
+    switch (status) {
+      case 'completed':
+        return 'Completed';
+      case 'lost':
+        return 'Lost';
+      case 'no_response':
+        return 'No Response';
+      default:
+        return 'Pending';
     }
   };
 
@@ -453,19 +533,67 @@ export default function Dashboard() {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex lg:flex-col gap-2">
-                      <a href={`tel:${lead.customer_phone}`} className="flex-1 lg:flex-none">
-                        <Button variant="cta" size="sm" className="w-full gap-2">
-                          <Phone className="w-4 h-4" />
-                          Call
-                        </Button>
-                      </a>
-                      <a href={`mailto:${lead.customer_email}`} className="flex-1 lg:flex-none">
-                        <Button variant="outline" size="sm" className="w-full gap-2">
-                          <Mail className="w-4 h-4" />
-                          Email
-                        </Button>
-                      </a>
+                    <div className="flex flex-col gap-3 min-w-[160px]">
+                      {/* Job Status */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm">
+                          {getStatusIcon(lead.job_status)}
+                          <span className="font-medium text-foreground">
+                            {getStatusLabel(lead.job_status)}
+                          </span>
+                        </div>
+                        <Select
+                          value={lead.job_status || 'pending'}
+                          onValueChange={(value) => handleStatusUpdate(lead.id, value)}
+                          disabled={updatingStatus === lead.id}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Update status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pending">
+                              <div className="flex items-center gap-2">
+                                <Clock className="w-4 h-4" />
+                                Pending
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="completed">
+                              <div className="flex items-center gap-2">
+                                <CheckCircle2 className="w-4 h-4 text-green-500" />
+                                Completed
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="lost">
+                              <div className="flex items-center gap-2">
+                                <XCircle className="w-4 h-4 text-destructive" />
+                                Lost to competitor
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="no_response">
+                              <div className="flex items-center gap-2">
+                                <MessageSquareX className="w-4 h-4" />
+                                No response
+                              </div>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Call/Email buttons */}
+                      <div className="flex gap-2">
+                        <a href={`tel:${lead.customer_phone}`} className="flex-1">
+                          <Button variant="cta" size="sm" className="w-full gap-1">
+                            <Phone className="w-4 h-4" />
+                            Call
+                          </Button>
+                        </a>
+                        <a href={`mailto:${lead.customer_email}`} className="flex-1">
+                          <Button variant="outline" size="sm" className="w-full gap-1">
+                            <Mail className="w-4 h-4" />
+                            Email
+                          </Button>
+                        </a>
+                      </div>
                     </div>
                   </div>
                 </div>
