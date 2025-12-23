@@ -19,7 +19,7 @@ const emailSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
 });
 
-type AuthMode = "login" | "signup" | "forgot";
+type AuthMode = "login" | "signup" | "forgot" | "magic";
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
@@ -85,11 +85,39 @@ export default function Auth() {
     }
   };
 
+  const handleMagicLink = async () => {
+    if (!validateForm()) return;
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`,
+        },
+      });
+      
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      
+      toast.success("Magic link sent! Check your email to sign in.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (mode === "forgot") {
       await handleForgotPassword();
+      return;
+    }
+
+    if (mode === "magic") {
+      await handleMagicLink();
       return;
     }
 
@@ -133,6 +161,7 @@ export default function Auth() {
       case "login": return "Welcome Back";
       case "signup": return "Create Account";
       case "forgot": return "Reset Password";
+      case "magic": return "Get Login Link";
     }
   };
 
@@ -141,6 +170,7 @@ export default function Auth() {
       case "login": return "Sign in to access your unlocked leads";
       case "signup": return "Join to start getting cleaning leads";
       case "forgot": return "Enter your email to receive a reset link";
+      case "magic": return "We'll send you a secure link to sign in";
     }
   };
 
@@ -159,7 +189,7 @@ export default function Auth() {
       <main className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md">
           <div className="bg-card rounded-2xl shadow-elevated border border-border p-8">
-            {mode === "forgot" && (
+            {(mode === "forgot" || mode === "magic") && (
               <button
                 type="button"
                 onClick={() => {
@@ -201,7 +231,7 @@ export default function Auth() {
                 )}
               </div>
 
-              {mode !== "forgot" && (
+              {(mode !== "forgot" && mode !== "magic") && (
                 <div className="space-y-2">
                   <Label htmlFor="password">Password</Label>
                   <div className="relative">
@@ -229,7 +259,17 @@ export default function Auth() {
               )}
 
               {mode === "login" && (
-                <div className="text-right">
+                <div className="flex justify-between items-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode("magic");
+                      setErrors({});
+                    }}
+                    className="text-sm text-secondary hover:underline"
+                  >
+                    Send me a login link
+                  </button>
                   <button
                     type="button"
                     onClick={() => {
@@ -256,13 +296,15 @@ export default function Auth() {
                   "Sign In"
                 ) : mode === "signup" ? (
                   "Create Account"
+                ) : mode === "magic" ? (
+                  "Send Login Link"
                 ) : (
                   "Send Reset Link"
                 )}
               </Button>
             </form>
 
-            {mode !== "forgot" && (
+            {(mode !== "forgot" && mode !== "magic") && (
               <div className="mt-6 text-center">
                 <p className="text-muted-foreground">
                   {mode === "login" ? "Don't have an account?" : "Already have an account?"}{" "}
