@@ -17,6 +17,10 @@ import CreditsSuccess from "./pages/CreditsSuccess";
 import Performance from "./pages/Performance";
 import Disputes from "./pages/Disputes";
 import NotFound from "./pages/NotFound";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import RefundPolicy from "./pages/RefundPolicy";
+import GDPR from "./pages/GDPR";
+import TermsOfUse from "./pages/TermsOfUse";
 import AdminOverview from "./pages/admin/AdminOverview";
 import AdminLeads from "./pages/admin/AdminLeads";
 import AdminBusinesses from "./pages/admin/AdminBusinesses";
@@ -51,6 +55,11 @@ const App = () => (
               <Route path="/disputes" element={<Disputes />} />
               <Route path="/payment-success" element={<PaymentSuccess />} />
               <Route path="/credits-success" element={<CreditsSuccess />} />
+              {/* Legal Pages */}
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/refund-policy" element={<RefundPolicy />} />
+              <Route path="/gdpr" element={<GDPR />} />
+              <Route path="/terms-of-use" element={<TermsOfUse />} />
               {/* Admin Routes */}
               <Route path="/admin" element={<AdminOverview />} />
               <Route path="/admin/inquiries" element={<AdminInquiries />} />
