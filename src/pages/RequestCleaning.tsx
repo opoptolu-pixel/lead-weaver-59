@@ -27,16 +27,16 @@ import { Logo } from "@/components/Logo";
 import { cn } from "@/lib/utils";
 
 const cleaningTypes = [
-  { id: "end-of-tenancy", label: "End of Tenancy", icon: Home, description: "Moving out? Leave it spotless" },
-  { id: "deep-clean", label: "Deep Clean", icon: Sparkles, description: "Thorough top-to-bottom clean" },
-  { id: "regular-clean", label: "Regular Clean", icon: ClipboardCheck, description: "Weekly or bi-weekly service" },
-  { id: "carpet-cleaning", label: "Carpet Cleaning", icon: Paintbrush, description: "Professional carpet care" },
-  { id: "oven-cleaning", label: "Oven Cleaning", icon: Utensils, description: "Restore your oven to new" },
-  { id: "window-cleaning", label: "Window Cleaning", icon: Wind, description: "Crystal clear windows" },
-  { id: "office-clean", label: "Office Clean", icon: Building2, description: "Commercial workspace cleaning" },
-  { id: "move-in-clean", label: "Move-In Clean", icon: Truck, description: "Fresh start in your new home" },
-  { id: "post-construction", label: "Post-Construction", icon: Wrench, description: "After builders cleanup" },
-  { id: "one-off-clean", label: "One-Off Clean", icon: Calendar, description: "Single deep clean session" },
+  { id: "end-of-tenancy", label: "End of Tenancy", icon: Home, color: "bg-rose-100 text-rose-600" },
+  { id: "deep-clean", label: "Deep Clean", icon: Sparkles, color: "bg-violet-100 text-violet-600" },
+  { id: "regular-clean", label: "Regular Clean", icon: ClipboardCheck, color: "bg-emerald-100 text-emerald-600" },
+  { id: "carpet-cleaning", label: "Carpet Cleaning", icon: Paintbrush, color: "bg-amber-100 text-amber-600" },
+  { id: "oven-cleaning", label: "Oven Cleaning", icon: Utensils, color: "bg-orange-100 text-orange-600" },
+  { id: "window-cleaning", label: "Window Cleaning", icon: Wind, color: "bg-sky-100 text-sky-600" },
+  { id: "office-clean", label: "Office Clean", icon: Building2, color: "bg-indigo-100 text-indigo-600" },
+  { id: "move-in-clean", label: "Move-In Clean", icon: Truck, color: "bg-teal-100 text-teal-600" },
+  { id: "post-construction", label: "Post-Construction", icon: Wrench, color: "bg-slate-100 text-slate-600" },
+  { id: "one-off-clean", label: "One-Off Clean", icon: Calendar, color: "bg-pink-100 text-pink-600" },
 ];
 
 const TOTAL_STEPS = 4;
@@ -136,9 +136,19 @@ export default function RequestCleaning() {
       {/* Main Hero Form Section */}
       <main className="flex-1 flex flex-col items-center justify-center px-4 py-8 lg:py-12">
         <div className="w-full max-w-2xl">
-          {/* Step Indicator */}
+          {/* Hero Headline */}
           <div className="text-center mb-8">
-            <span className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2 mb-4">
+            <h1 className="font-heading text-4xl lg:text-5xl font-bold text-white mb-4">
+              Get Your Home <span className="text-secondary">Sparkling Clean</span>
+            </h1>
+            <p className="text-white/80 text-lg lg:text-xl max-w-lg mx-auto">
+              Connect with verified local cleaners. Get free quotes within 24 hours.
+            </p>
+          </div>
+
+          {/* Step Indicator */}
+          <div className="text-center mb-6">
+            <span className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2">
               <Sparkles className="w-4 h-4 text-secondary" />
               <span className="text-white/90 text-sm font-medium">
                 Step {currentStep} of {TOTAL_STEPS}
@@ -170,13 +180,13 @@ export default function RequestCleaning() {
                         className={cn(
                           "flex items-center gap-3 p-4 rounded-xl border-2 transition-all duration-200 text-left group hover:border-primary hover:bg-primary/5",
                           isSelected 
-                            ? "border-primary bg-primary/10 shadow-md" 
+                            ? "border-primary bg-primary/10 shadow-md ring-2 ring-primary/20" 
                             : "border-gray-200 bg-white"
                         )}
                       >
                         <div className={cn(
-                          "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors",
-                          isSelected ? "bg-primary text-white" : "bg-gray-100 text-gray-600 group-hover:bg-primary/20"
+                          "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0",
+                          type.color
                         )}>
                           <Icon className="w-5 h-5" />
                         </div>
@@ -340,7 +350,7 @@ export default function RequestCleaning() {
                 type="button"
                 onClick={handleNext}
                 disabled={!canProceed() || isSubmitting}
-                className="gap-2 bg-primary hover:bg-primary/90 text-white px-8 h-12 rounded-xl shadow-lg shadow-primary/30"
+                className="gap-2 bg-secondary hover:bg-secondary/90 text-secondary-foreground px-8 h-12 rounded-xl shadow-lg shadow-secondary/30 font-semibold"
               >
                 {isSubmitting ? (
                   <>
