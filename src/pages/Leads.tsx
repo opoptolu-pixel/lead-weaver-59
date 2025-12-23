@@ -97,7 +97,7 @@ const LeadsScrollContainer = ({
           <div 
             {...(enableAutoScroll ? desktopScroll.containerProps : {})}
             ref={enableAutoScroll ? desktopScroll.containerRef : undefined}
-            className={enableAutoScroll ? "max-h-[350px] overflow-hidden" : ""}
+            className={enableAutoScroll ? "max-h-[500px] overflow-hidden" : ""}
             style={enableAutoScroll ? { scrollBehavior: 'auto' } : undefined}
           >
             {displayLeads.map((lead, index) => (
@@ -164,7 +164,7 @@ const LeadsScrollContainer = ({
         <div 
           {...(enableAutoScroll ? mobileScroll.containerProps : {})}
           ref={enableAutoScroll ? mobileScroll.containerRef : undefined}
-          className={enableAutoScroll ? "max-h-[450px] overflow-hidden space-y-4" : "space-y-4"}
+          className={enableAutoScroll ? "max-h-[550px] overflow-hidden space-y-4" : "space-y-4"}
           style={enableAutoScroll ? { scrollBehavior: 'auto' } : undefined}
         >
           {displayLeads.map((lead, index) => (
