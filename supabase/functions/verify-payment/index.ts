@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,6 +25,9 @@ serve(async (req) => {
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
 
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    if (!resendApiKey) throw new Error("RESEND_API_KEY is not set");
+
     const { sessionId, leadId } = await req.json();
     if (!sessionId) throw new Error("Session ID is required");
     if (!leadId) throw new Error("Lead ID is required");
@@ -38,6 +42,9 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
       { auth: { persistSession: false } }
     );
+
+    // Initialize Resend
+    const resend = new Resend(resendApiKey);
 
     // Retrieve the checkout session from Stripe
     const session = await stripe.checkout.sessions.retrieve(sessionId, {
@@ -66,17 +73,16 @@ serve(async (req) => {
     
     let userId: string;
     let isNewUser = false;
-    let tempPassword: string | null = null;
 
     if (userExists) {
       userId = userExists.id;
       logStep("Existing user found", { userId });
     } else {
-      // Create a new user account with a random password
-      tempPassword = crypto.randomUUID().slice(0, 12);
+      // Create a new user account with a secure random password (user will never see this)
+      const securePassword = crypto.randomUUID() + crypto.randomUUID(); // Very long random password
       const { data: newUser, error: createError } = await supabaseClient.auth.admin.createUser({
         email: customerEmail,
-        password: tempPassword,
+        password: securePassword,
         email_confirm: true,
       });
 
@@ -86,6 +92,75 @@ serve(async (req) => {
       userId = newUser.user.id;
       isNewUser = true;
       logStep("New user created", { userId });
+
+      // Generate magic link for the new user
+      const { data: magicLinkData, error: magicLinkError } = await supabaseClient.auth.admin.generateLink({
+        type: "magiclink",
+        email: customerEmail,
+        options: {
+          redirectTo: `${Deno.env.get("SUPABASE_URL")?.replace('.supabase.co', '.lovable.app')}/dashboard`,
+        },
+      });
+
+      if (magicLinkError) {
+        logStep("Magic link generation failed", { error: magicLinkError.message });
+      } else {
+        logStep("Magic link generated successfully");
+
+        // Send welcome email with magic link via Resend
+        try {
+          const magicLink = magicLinkData.properties?.action_link;
+          
+          await resend.emails.send({
+            from: "Shine Leads <onboarding@resend.dev>",
+            to: [customerEmail],
+            subject: "Welcome to Shine Leads - Access Your Account",
+            html: `
+              <!DOCTYPE html>
+              <html>
+              <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              </head>
+              <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+                  <h1 style="color: #ffffff; margin: 0; font-size: 28px;">Welcome to Shine Leads!</h1>
+                </div>
+                
+                <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e5e5; border-top: none; border-radius: 0 0 12px 12px;">
+                  <p style="font-size: 16px; margin-bottom: 20px;">
+                    Thank you for your purchase! Your lead has been unlocked and your account is ready.
+                  </p>
+                  
+                  <p style="font-size: 16px; margin-bottom: 25px;">
+                    Click the button below to securely access your dashboard:
+                  </p>
+                  
+                  <div style="text-align: center; margin: 30px 0;">
+                    <a href="${magicLink}" style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; padding: 14px 40px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; display: inline-block;">
+                      Access Your Dashboard
+                    </a>
+                  </div>
+                  
+                  <p style="font-size: 14px; color: #666; margin-top: 25px;">
+                    This magic link will expire in 24 hours. If you didn't make this purchase, please ignore this email.
+                  </p>
+                  
+                  <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 25px 0;">
+                  
+                  <p style="font-size: 12px; color: #999; text-align: center;">
+                    Shine Leads - Quality Cleaning Leads for Your Business
+                  </p>
+                </div>
+              </body>
+              </html>
+            `,
+          });
+          logStep("Welcome email sent successfully");
+        } catch (emailError: any) {
+          logStep("Welcome email failed (non-blocking)", { error: emailError.message });
+        }
+      }
     }
 
     // Update the lead as unlocked
@@ -143,7 +218,7 @@ serve(async (req) => {
       success: true,
       isNewUser,
       email: customerEmail,
-      tempPassword: isNewUser ? tempPassword : null,
+      // No longer returning tempPassword - using magic link instead
       lead: {
         id: lead.id,
         postcode: lead.postcode,
