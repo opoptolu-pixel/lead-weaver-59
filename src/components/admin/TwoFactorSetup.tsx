@@ -17,7 +17,11 @@ interface MFAFactor {
   created_at: string;
 }
 
-export default function TwoFactorSetup() {
+interface TwoFactorSetupProps {
+  onComplete?: () => void;
+}
+
+export default function TwoFactorSetup({ onComplete }: TwoFactorSetupProps = {}) {
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
   const [verifying, setVerifying] = useState(false);
@@ -103,6 +107,7 @@ export default function TwoFactorSetup() {
       setFactorId(null);
       setVerificationCode("");
       fetchMFAFactors();
+      onComplete?.();
     } catch (error: any) {
       console.error("Error verifying MFA:", error);
       toast.error(error.message || "Invalid verification code");

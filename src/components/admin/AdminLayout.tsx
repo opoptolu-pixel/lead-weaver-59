@@ -1,10 +1,12 @@
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { Loader2, Shield } from "lucide-react";
 import { useAdmin } from "@/contexts/AdminContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import AdminSidebar from "./AdminSidebar";
 import AdminTopBar from "./AdminTopBar";
+import TwoFactorSetup from "./TwoFactorSetup";
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -15,6 +17,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const { isAdmin, isLoading: adminLoading } = useAdmin();
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const [mfaStatus, setMfaStatus] = useState<'loading' | 'enrolled' | 'not_enrolled'>('loading');
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -24,7 +27,36 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
     }
   }, [user, authLoading, isAdmin, adminLoading, navigate]);
 
-  if (authLoading || adminLoading) {
+  // Check MFA enrollment status for admins
+  useEffect(() => {
+    const checkMfaStatus = async () => {
+      if (!user || !isAdmin) {
+        setMfaStatus('loading');
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase.auth.mfa.listFactors();
+        if (error) {
+          console.error("Error checking MFA status:", error);
+          setMfaStatus('not_enrolled');
+          return;
+        }
+
+        const hasVerifiedTotp = data.totp.some(f => f.status === 'verified');
+        setMfaStatus(hasVerifiedTotp ? 'enrolled' : 'not_enrolled');
+      } catch (err) {
+        console.error("Error checking MFA status:", err);
+        setMfaStatus('not_enrolled');
+      }
+    };
+
+    if (!adminLoading && isAdmin) {
+      checkMfaStatus();
+    }
+  }, [user, isAdmin, adminLoading]);
+
+  if (authLoading || adminLoading || (isAdmin && mfaStatus === 'loading')) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-secondary" />
@@ -34,6 +66,31 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
 
   if (!isAdmin) {
     return null;
+  }
+
+  // Force 2FA enrollment for admins who haven't set it up
+  if (mfaStatus === 'not_enrolled') {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="max-w-md w-full space-y-6">
+          <div className="text-center">
+            <div className="bg-secondary/20 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+              <Shield className="w-8 h-8 text-secondary" />
+            </div>
+            <h1 className="font-heading text-2xl font-bold text-foreground mb-2">
+              Two-Factor Authentication Required
+            </h1>
+            <p className="text-muted-foreground">
+              As an admin, you must enable two-factor authentication to access the admin dashboard.
+            </p>
+          </div>
+          
+          <div className="bg-card border border-border rounded-lg p-6">
+            <TwoFactorSetup onComplete={() => setMfaStatus('enrolled')} />
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
