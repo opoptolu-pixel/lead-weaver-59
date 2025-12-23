@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  Sparkles,
   Loader2,
   AlertTriangle,
   Upload,
@@ -12,6 +11,7 @@ import {
   ArrowLeft,
   Plus,
 } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -219,14 +219,7 @@ export default function Disputes() {
       <header className="bg-primary border-b border-border sticky top-0 z-50">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-20">
-            <Link to="/" className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-secondary/20">
-                <Sparkles className="w-5 h-5 text-secondary" />
-              </div>
-              <span className="font-heading text-xl font-bold text-primary-foreground">
-                Deep Clean UK
-              </span>
-            </Link>
+            <Logo size="md" />
             <Link to="/dashboard">
               <Button variant="outlineHero" size="sm" className="gap-2">
                 <ArrowLeft className="w-4 h-4" />
