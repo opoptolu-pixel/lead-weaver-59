@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Search, Sparkles, MapPin, Briefcase, Loader2 } from "lucide-react";
+import { Search, Sparkles, MapPin, Briefcase, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
@@ -13,46 +13,68 @@ interface LeadResult {
   customer_address: string;
 }
 
+interface UKLocation {
+  postcode: string;
+  area: string;
+  type: 'postcode' | 'place';
+}
+
 export const HeroSection = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [leadResults, setLeadResults] = useState<LeadResult[]>([]);
-  const [uniqueLocations, setUniqueLocations] = useState<string[]>([]);
+  const [ukLocations, setUkLocations] = useState<UKLocation[]>([]);
+  const [leadCountByPostcode, setLeadCountByPostcode] = useState<Record<string, number>>({});
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
-  // Fetch leads based on search query
+  // Fetch UK locations and leads based on search query
   useEffect(() => {
-    const fetchLeads = async () => {
+    const fetchData = async () => {
       if (!searchQuery.trim() || searchQuery.length < 2) {
         setLeadResults([]);
-        setUniqueLocations([]);
+        setUkLocations([]);
+        setLeadCountByPostcode({});
         return;
       }
 
       setIsLoading(true);
       try {
-        const searchTerm = searchQuery.trim().toUpperCase();
-        
-        // Search leads by postcode, address, or job type
-        const { data, error } = await supabase
-          .from("leads")
-          .select("id, postcode, job_type, display_value, customer_address")
-          .eq("is_unlocked", false)
-          .or(`postcode.ilike.%${searchTerm}%,customer_address.ilike.%${searchQuery}%,job_type.ilike.%${searchQuery}%`)
-          .limit(10);
+        const searchTerm = searchQuery.trim();
 
-        if (error) {
-          console.error("Search error:", error);
-          return;
+        // Fetch UK locations from API and leads from database in parallel
+        const [locationsResponse, leadsResponse] = await Promise.all([
+          supabase.functions.invoke('search-uk-locations', {
+            body: { query: searchTerm }
+          }),
+          supabase
+            .from("leads")
+            .select("id, postcode, job_type, display_value, customer_address")
+            .eq("is_unlocked", false)
+            .or(`postcode.ilike.%${searchTerm.toUpperCase()}%,customer_address.ilike.%${searchTerm}%,job_type.ilike.%${searchTerm}%`)
+            .limit(10)
+        ]);
+
+        // Process UK locations
+        if (locationsResponse.data?.success && locationsResponse.data.locations) {
+          setUkLocations(locationsResponse.data.locations);
+        } else {
+          setUkLocations([]);
         }
 
-        setLeadResults(data || []);
+        // Process leads
+        const leads = leadsResponse.data || [];
+        setLeadResults(leads);
 
-        // Extract unique postcodes/locations for quick navigation
-        const locations = [...new Set((data || []).map(lead => lead.postcode))];
-        setUniqueLocations(locations.slice(0, 5));
+        // Count leads per postcode prefix
+        const counts: Record<string, number> = {};
+        for (const lead of leads) {
+          const prefix = lead.postcode.split(' ')[0];
+          counts[prefix] = (counts[prefix] || 0) + 1;
+        }
+        setLeadCountByPostcode(counts);
+
       } catch (err) {
         console.error("Search error:", err);
       } finally {
@@ -60,7 +82,7 @@ export const HeroSection = () => {
       }
     };
 
-    const debounce = setTimeout(fetchLeads, 300);
+    const debounce = setTimeout(fetchData, 300);
     return () => clearTimeout(debounce);
   }, [searchQuery]);
 
@@ -80,11 +102,6 @@ export const HeroSection = () => {
     navigate(`/leads?search=${encodeURIComponent(location)}`);
   };
 
-  const handleLeadClick = (leadId: string, postcode: string) => {
-    setShowSuggestions(false);
-    navigate(`/leads?search=${encodeURIComponent(postcode)}`);
-  };
-
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
@@ -95,7 +112,12 @@ export const HeroSection = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const hasResults = leadResults.length > 0 || uniqueLocations.length > 0;
+  const getLeadCount = (postcode: string): number => {
+    const prefix = postcode.split(' ')[0];
+    return leadCountByPostcode[prefix] || 0;
+  };
+
+  const hasResults = ukLocations.length > 0 || leadResults.length > 0;
   const showDropdown = showSuggestions && (hasResults || isLoading || searchQuery.length >= 2);
 
   return (
@@ -143,39 +165,52 @@ export const HeroSection = () => {
                 
                 {/* Search Results Dropdown */}
                 {showDropdown && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-background border border-border rounded-xl shadow-xl z-50 overflow-hidden max-h-80 overflow-y-auto">
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-background border border-border rounded-xl shadow-xl z-50 overflow-hidden max-h-96 overflow-y-auto">
                     {isLoading ? (
                       <div className="p-4 flex items-center justify-center gap-2 text-muted-foreground">
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        Searching...
+                        Searching UK locations...
                       </div>
                     ) : hasResults ? (
                       <>
-                        {/* Matching Locations */}
-                        {uniqueLocations.length > 0 && (
+                        {/* UK Locations */}
+                        {ukLocations.length > 0 && (
                           <>
                             <div className="p-2 text-xs text-muted-foreground font-medium border-b border-border bg-muted/50">
                               <MapPin className="w-3 h-3 inline mr-1" />
-                              Locations
+                              UK Locations
                             </div>
-                            {uniqueLocations.map((location) => (
-                              <button
-                                key={location}
-                                type="button"
-                                onClick={() => handleLocationClick(location)}
-                                className="w-full px-4 py-3 text-left text-foreground hover:bg-muted transition-colors flex items-center gap-3"
-                              >
-                                <MapPin className="w-4 h-4 text-secondary" />
-                                <span className="font-medium">{location}</span>
-                                <span className="text-sm text-muted-foreground ml-auto">
-                                  {leadResults.filter(l => l.postcode === location).length} job(s)
-                                </span>
-                              </button>
-                            ))}
+                            {ukLocations.map((location, idx) => {
+                              const leadCount = getLeadCount(location.postcode);
+                              return (
+                                <button
+                                  key={`${location.postcode}-${idx}`}
+                                  type="button"
+                                  onClick={() => handleLocationClick(location.postcode)}
+                                  className="w-full px-4 py-3 text-left hover:bg-muted transition-colors flex items-center gap-3"
+                                >
+                                  <MapPin className="w-4 h-4 text-secondary flex-shrink-0" />
+                                  <div className="flex-1 min-w-0">
+                                    <span className="font-medium text-foreground">{location.postcode}</span>
+                                    <span className="text-sm text-muted-foreground ml-2">{location.area}</span>
+                                  </div>
+                                  {leadCount > 0 ? (
+                                    <span className="text-xs bg-secondary/20 text-secondary px-2 py-1 rounded-full font-medium">
+                                      {leadCount} lead{leadCount !== 1 ? 's' : ''}
+                                    </span>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                      <AlertCircle className="w-3 h-3" />
+                                      No leads yet
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })}
                           </>
                         )}
 
-                        {/* Matching Jobs */}
+                        {/* Available Jobs */}
                         {leadResults.length > 0 && (
                           <>
                             <div className="p-2 text-xs text-muted-foreground font-medium border-b border-border bg-muted/50">
@@ -186,7 +221,7 @@ export const HeroSection = () => {
                               <button
                                 key={lead.id}
                                 type="button"
-                                onClick={() => handleLeadClick(lead.id, lead.postcode)}
+                                onClick={() => handleLocationClick(lead.postcode)}
                                 className="w-full px-4 py-3 text-left hover:bg-muted transition-colors"
                               >
                                 <div className="flex items-center justify-between">
@@ -215,7 +250,7 @@ export const HeroSection = () => {
                       </>
                     ) : searchQuery.length >= 2 ? (
                       <div className="p-4 text-center text-muted-foreground">
-                        No jobs found for "{searchQuery}"
+                        No locations found for "{searchQuery}"
                         <button
                           type="button"
                           onClick={() => navigate("/leads")}
