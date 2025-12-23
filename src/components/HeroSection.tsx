@@ -73,10 +73,23 @@ export const HeroSection = () => {
           .eq("is_unlocked", false);
 
         if (prefixes.length > 0) {
-          // Search by any of the postcode prefixes (e.g., M for Manchester)
-          const prefixConditions = prefixes.map(p => `postcode.ilike.${p}%`).join(',');
+          // For single-letter prefixes, match with digits to avoid false matches
+          // (e.g., W should match W1, W2 but not WN, WA)
+          const expandedConditions: string[] = [];
+          
+          for (const prefix of prefixes) {
+            if (prefix.length === 1) {
+              // Single letter prefix - match with digits 1-20
+              for (let i = 1; i <= 20; i++) {
+                expandedConditions.push(`postcode.ilike.${prefix}${i}%`);
+              }
+            } else {
+              expandedConditions.push(`postcode.ilike.${prefix}%`);
+            }
+          }
+          
           const searchConditions = `postcode.ilike.%${searchTerm.toUpperCase()}%,customer_address.ilike.%${searchTerm}%,job_type.ilike.%${searchTerm}%`;
-          leadsQuery = leadsQuery.or(`${prefixConditions},${searchConditions}`);
+          leadsQuery = leadsQuery.or(`${expandedConditions.join(',')},${searchConditions}`);
         } else {
           // Standard search
           leadsQuery = leadsQuery.or(
