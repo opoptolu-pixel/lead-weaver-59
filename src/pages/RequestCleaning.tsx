@@ -111,9 +111,14 @@ export default function RequestCleaning() {
     }
   };
 
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleNext = () => {
     if (currentStep < TOTAL_STEPS) {
       setCurrentStep(currentStep + 1);
+      scrollToTop();
     } else {
       handleSubmit();
     }
@@ -122,6 +127,7 @@ export default function RequestCleaning() {
   const handleBack = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
+      scrollToTop();
     }
   };
 
@@ -129,6 +135,7 @@ export default function RequestCleaning() {
     setFormData({ ...formData, jobType: type.label, jobValue: type.value });
     // Auto-advance to step 2 when selecting a cleaning type
     setCurrentStep(2);
+    scrollToTop();
   };
 
   // Get tomorrow's date as minimum date
