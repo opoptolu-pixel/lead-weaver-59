@@ -149,12 +149,9 @@ export default function Disputes() {
           console.error("Upload error:", uploadError);
           // Continue without the file
         } else {
-          const { data: urlData } = supabase.storage
-            .from("verification-documents")
-            .getPublicUrl(filePath);
-          if (urlData?.publicUrl) {
-            evidenceUrls = [urlData.publicUrl];
-          }
+          // Store only the file path, not the public URL
+          // Signed URLs will be generated when viewing
+          evidenceUrls = [filePath];
         }
         setUploadingEvidence(false);
       }
