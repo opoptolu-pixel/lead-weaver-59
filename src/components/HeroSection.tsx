@@ -16,7 +16,7 @@ interface LeadResult {
 interface UKLocation {
   postcode: string;
   area: string;
-  type: 'postcode' | 'place';
+  type: 'postcode' | 'place' | 'city';
 }
 
 export const HeroSection = () => {
@@ -25,7 +25,8 @@ export const HeroSection = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [leadResults, setLeadResults] = useState<LeadResult[]>([]);
   const [ukLocations, setUkLocations] = useState<UKLocation[]>([]);
-  const [leadCountByPostcode, setLeadCountByPostcode] = useState<Record<string, number>>({});
+  const [postcodePrefixes, setPostcodePrefixes] = useState<string[]>([]);
+  const [matchedCity, setMatchedCity] = useState<string | null>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
@@ -35,7 +36,8 @@ export const HeroSection = () => {
       if (!searchQuery.trim() || searchQuery.length < 2) {
         setLeadResults([]);
         setUkLocations([]);
-        setLeadCountByPostcode({});
+        setPostcodePrefixes([]);
+        setMatchedCity(null);
         return;
       }
 
@@ -43,37 +45,52 @@ export const HeroSection = () => {
       try {
         const searchTerm = searchQuery.trim();
 
-        // Fetch UK locations from API and leads from database in parallel
-        const [locationsResponse, leadsResponse] = await Promise.all([
-          supabase.functions.invoke('search-uk-locations', {
-            body: { query: searchTerm }
-          }),
-          supabase
-            .from("leads")
-            .select("id, postcode, job_type, display_value, customer_address")
-            .eq("is_unlocked", false)
-            .or(`postcode.ilike.%${searchTerm.toUpperCase()}%,customer_address.ilike.%${searchTerm}%,job_type.ilike.%${searchTerm}%`)
-            .limit(10)
-        ]);
+        // Fetch UK locations from API first
+        const locationsResponse = await supabase.functions.invoke('search-uk-locations', {
+          body: { query: searchTerm }
+        });
+
+        let prefixes: string[] = [];
+        let city: string | null = null;
 
         // Process UK locations
-        if (locationsResponse.data?.success && locationsResponse.data.locations) {
-          setUkLocations(locationsResponse.data.locations);
+        if (locationsResponse.data?.success) {
+          setUkLocations(locationsResponse.data.locations || []);
+          prefixes = locationsResponse.data.postcodePrefixes || [];
+          city = locationsResponse.data.matchedCity || null;
+          setPostcodePrefixes(prefixes);
+          setMatchedCity(city);
         } else {
           setUkLocations([]);
+          setPostcodePrefixes([]);
+          setMatchedCity(null);
         }
 
-        // Process leads
-        const leads = leadsResponse.data || [];
-        setLeadResults(leads);
+        // Build the leads query - search by postcode prefixes if we have city match
+        let leadsQuery = supabase
+          .from("leads")
+          .select("id, postcode, job_type, display_value, customer_address")
+          .eq("is_unlocked", false);
 
-        // Count leads per postcode prefix
-        const counts: Record<string, number> = {};
-        for (const lead of leads) {
-          const prefix = lead.postcode.split(' ')[0];
-          counts[prefix] = (counts[prefix] || 0) + 1;
+        if (prefixes.length > 0) {
+          // Search by any of the postcode prefixes (e.g., M for Manchester)
+          const prefixConditions = prefixes.map(p => `postcode.ilike.${p}%`).join(',');
+          const searchConditions = `postcode.ilike.%${searchTerm.toUpperCase()}%,customer_address.ilike.%${searchTerm}%,job_type.ilike.%${searchTerm}%`;
+          leadsQuery = leadsQuery.or(`${prefixConditions},${searchConditions}`);
+        } else {
+          // Standard search
+          leadsQuery = leadsQuery.or(
+            `postcode.ilike.%${searchTerm.toUpperCase()}%,customer_address.ilike.%${searchTerm}%,job_type.ilike.%${searchTerm}%`
+          );
         }
-        setLeadCountByPostcode(counts);
+
+        const { data: leads, error } = await leadsQuery.limit(15);
+
+        if (error) {
+          console.error("Leads search error:", error);
+        } else {
+          setLeadResults(leads || []);
+        }
 
       } catch (err) {
         console.error("Search error:", err);
@@ -90,16 +107,30 @@ export const HeroSection = () => {
     e.preventDefault();
     setShowSuggestions(false);
     if (searchQuery.trim()) {
-      navigate(`/leads?search=${encodeURIComponent(searchQuery.trim())}`);
+      // Pass postcode prefixes if we have a city match
+      if (postcodePrefixes.length > 0) {
+        navigate(`/leads?search=${encodeURIComponent(searchQuery.trim())}&prefixes=${encodeURIComponent(postcodePrefixes.join(','))}`);
+      } else {
+        navigate(`/leads?search=${encodeURIComponent(searchQuery.trim())}`);
+      }
     } else {
       navigate("/leads");
     }
   };
 
-  const handleLocationClick = (location: string) => {
-    setSearchQuery(location);
+  const handleLocationClick = (location: UKLocation) => {
     setShowSuggestions(false);
-    navigate(`/leads?search=${encodeURIComponent(location)}`);
+    if (location.type === 'city' && postcodePrefixes.length > 0) {
+      // For city searches, pass the prefixes
+      navigate(`/leads?search=${encodeURIComponent(matchedCity || searchQuery)}&prefixes=${encodeURIComponent(postcodePrefixes.join(','))}`);
+    } else {
+      navigate(`/leads?search=${encodeURIComponent(location.postcode)}`);
+    }
+  };
+
+  const handleLeadClick = (postcode: string) => {
+    setShowSuggestions(false);
+    navigate(`/leads?search=${encodeURIComponent(postcode)}`);
   };
 
   useEffect(() => {
@@ -111,11 +142,6 @@ export const HeroSection = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  const getLeadCount = (postcode: string): number => {
-    const prefix = postcode.split(' ')[0];
-    return leadCountByPostcode[prefix] || 0;
-  };
 
   const hasResults = ukLocations.length > 0 || leadResults.length > 0;
   const showDropdown = showSuggestions && (hasResults || isLoading || searchQuery.length >= 2);
@@ -181,17 +207,23 @@ export const HeroSection = () => {
                               UK Locations
                             </div>
                             {ukLocations.map((location, idx) => {
-                              const leadCount = getLeadCount(location.postcode);
+                              // For city type, show total leads across all prefixes
+                              const leadCount = location.type === 'city' 
+                                ? leadResults.length
+                                : leadResults.filter(l => l.postcode.startsWith(location.postcode.split(' ')[0])).length;
+                              
                               return (
                                 <button
                                   key={`${location.postcode}-${idx}`}
                                   type="button"
-                                  onClick={() => handleLocationClick(location.postcode)}
+                                  onClick={() => handleLocationClick(location)}
                                   className="w-full px-4 py-3 text-left hover:bg-muted transition-colors flex items-center gap-3"
                                 >
-                                  <MapPin className="w-4 h-4 text-secondary flex-shrink-0" />
+                                  <MapPin className={`w-4 h-4 flex-shrink-0 ${location.type === 'city' ? 'text-primary' : 'text-secondary'}`} />
                                   <div className="flex-1 min-w-0">
-                                    <span className="font-medium text-foreground">{location.postcode}</span>
+                                    <span className="font-medium text-foreground">
+                                      {location.type === 'city' ? (matchedCity ? matchedCity.charAt(0).toUpperCase() + matchedCity.slice(1) : location.postcode) : location.postcode}
+                                    </span>
                                     <span className="text-sm text-muted-foreground ml-2">{location.area}</span>
                                   </div>
                                   {leadCount > 0 ? (
@@ -215,13 +247,13 @@ export const HeroSection = () => {
                           <>
                             <div className="p-2 text-xs text-muted-foreground font-medium border-b border-border bg-muted/50">
                               <Briefcase className="w-3 h-3 inline mr-1" />
-                              Available Jobs
+                              Available Jobs {matchedCity && `in ${matchedCity.charAt(0).toUpperCase() + matchedCity.slice(1)}`}
                             </div>
-                            {leadResults.slice(0, 5).map((lead) => (
+                            {leadResults.slice(0, 6).map((lead) => (
                               <button
                                 key={lead.id}
                                 type="button"
-                                onClick={() => handleLocationClick(lead.postcode)}
+                                onClick={() => handleLeadClick(lead.postcode)}
                                 className="w-full px-4 py-3 text-left hover:bg-muted transition-colors"
                               >
                                 <div className="flex items-center justify-between">
@@ -241,11 +273,15 @@ export const HeroSection = () => {
                           type="button"
                           onClick={() => {
                             setShowSuggestions(false);
-                            navigate(`/leads?search=${encodeURIComponent(searchQuery)}`);
+                            if (postcodePrefixes.length > 0) {
+                              navigate(`/leads?search=${encodeURIComponent(searchQuery)}&prefixes=${encodeURIComponent(postcodePrefixes.join(','))}`);
+                            } else {
+                              navigate(`/leads?search=${encodeURIComponent(searchQuery)}`);
+                            }
                           }}
                           className="w-full px-4 py-3 text-center text-secondary font-medium hover:bg-muted transition-colors border-t border-border"
                         >
-                          View all results for "{searchQuery}"
+                          View all {leadResults.length > 0 ? `${leadResults.length}+ ` : ''}results for "{searchQuery}"
                         </button>
                       </>
                     ) : searchQuery.length >= 2 ? (

@@ -31,6 +31,7 @@ export default function Leads() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialSearch = searchParams.get("search") || "";
+  const initialPrefixes = searchParams.get("prefixes")?.split(',').filter(Boolean) || [];
   
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,13 +42,14 @@ export default function Leads() {
   const [usingCreditLeadId, setUsingCreditLeadId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [activeFilter, setActiveFilter] = useState(initialSearch);
+  const [activePrefixes, setActivePrefixes] = useState<string[]>(initialPrefixes);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
   // Fetch leads with pagination and optional search filter
-  const fetchLeads = useCallback(async (pageNum: number, append: boolean = false, filter: string = "") => {
+  const fetchLeads = useCallback(async (pageNum: number, append: boolean = false, filter: string = "", prefixes: string[] = []) => {
     if (pageNum === 0) setLoading(true);
     else setLoadingMore(true);
 
@@ -61,8 +63,13 @@ export default function Leads() {
         .eq("is_unlocked", false)
         .order("created_at", { ascending: false });
 
-      // Apply postcode/city filter if provided
-      if (filter.trim()) {
+      // Apply filter based on prefixes (for city search) or direct postcode search
+      if (prefixes.length > 0) {
+        // Search by postcode prefixes (e.g., M for Manchester)
+        const prefixConditions = prefixes.map(p => `postcode.ilike.${p}%`).join(',');
+        query = query.or(prefixConditions);
+      } else if (filter.trim()) {
+        // Standard postcode search
         query = query.ilike("postcode", `%${filter.trim()}%`);
       }
 
@@ -89,8 +96,8 @@ export default function Leads() {
   // Initial load and reload when filter changes
   useEffect(() => {
     setPage(0);
-    fetchLeads(0, false, activeFilter);
-  }, [fetchLeads, activeFilter]);
+    fetchLeads(0, false, activeFilter, activePrefixes);
+  }, [fetchLeads, activeFilter, activePrefixes]);
 
   // Set up real-time subscription for new leads
   useEffect(() => {
@@ -125,7 +132,7 @@ export default function Leads() {
         if (entries[0].isIntersecting && hasMore && !loadingMore) {
           const nextPage = page + 1;
           setPage(nextPage);
-          fetchLeads(nextPage, true, activeFilter);
+          fetchLeads(nextPage, true, activeFilter, activePrefixes);
         }
       },
       { threshold: 0.1 }
@@ -208,15 +215,44 @@ export default function Leads() {
     }
   };
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
+  const handleSearchSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setActiveFilter(searchQuery.trim());
-    setSearchParams(searchQuery.trim() ? { search: searchQuery.trim() } : {});
+    const searchTerm = searchQuery.trim();
+    
+    if (!searchTerm) {
+      setActiveFilter("");
+      setActivePrefixes([]);
+      setSearchParams({});
+      return;
+    }
+    
+    // Check if the search term matches a city and get prefixes
+    try {
+      const { data } = await supabase.functions.invoke('search-uk-locations', {
+        body: { query: searchTerm }
+      });
+      
+      if (data?.success && data.postcodePrefixes?.length > 0) {
+        setActivePrefixes(data.postcodePrefixes);
+        setActiveFilter(searchTerm);
+        setSearchParams({ search: searchTerm, prefixes: data.postcodePrefixes.join(',') });
+      } else {
+        setActivePrefixes([]);
+        setActiveFilter(searchTerm);
+        setSearchParams({ search: searchTerm });
+      }
+    } catch (err) {
+      // Fallback to direct search
+      setActivePrefixes([]);
+      setActiveFilter(searchTerm);
+      setSearchParams({ search: searchTerm });
+    }
   };
 
   const handleClearFilter = () => {
     setSearchQuery("");
     setActiveFilter("");
+    setActivePrefixes([]);
     setSearchParams({});
   };
 
