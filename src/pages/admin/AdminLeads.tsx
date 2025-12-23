@@ -45,6 +45,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { useAdmin } from "@/contexts/AdminContext";
 
 interface Lead {
   id: string;
@@ -100,6 +101,7 @@ const SOURCES = [
 ];
 
 export default function AdminLeads() {
+  const { getDateFilter, dateRange } = useAdmin();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -112,12 +114,16 @@ export default function AdminLeads() {
 
   useEffect(() => {
     fetchLeads();
-  }, [statusFilter]);
+  }, [statusFilter, dateRange]);
 
   const fetchLeads = async () => {
+    const { start, end } = getDateFilter();
+    
     let query = supabase
       .from("leads")
       .select("*")
+      .gte("created_at", start.toISOString())
+      .lte("created_at", end.toISOString())
       .order("created_at", { ascending: false });
 
     if (statusFilter !== "all") {

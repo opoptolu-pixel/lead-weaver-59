@@ -231,6 +231,14 @@ export default function Dashboard() {
       lead.customer_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Separate pending and completed leads
+  const pendingLeads = filteredLeads.filter(
+    (lead) => lead.job_status !== 'completed'
+  );
+  const completedLeads = filteredLeads.filter(
+    (lead) => lead.job_status === 'completed'
+  );
+
   const formatDate = (dateString: string) => {
     try {
       return format(new Date(dateString), "d MMM yyyy");
@@ -490,12 +498,12 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Leads section */}
-        <div className="bg-card rounded-2xl border border-border overflow-hidden">
+        {/* Pending Leads section */}
+        <div className="bg-card rounded-2xl border border-border overflow-hidden mb-8">
           <div className="p-6 border-b border-border">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <h2 className="font-heading text-xl font-bold text-foreground">
-                Your Unlocked Leads
+                Pending Leads
               </h2>
               <div className="relative w-full sm:w-64">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -513,8 +521,8 @@ export default function Dashboard() {
             <div className="flex items-center justify-center py-20">
               <Loader2 className="w-8 h-8 animate-spin text-secondary" />
             </div>
-          ) : filteredLeads.length === 0 ? (
-            <div className="text-center py-20 px-4">
+          ) : pendingLeads.length === 0 ? (
+            <div className="text-center py-12 px-4">
               {leads.length === 0 ? (
                 <>
                   <p className="text-muted-foreground text-lg mb-4">
@@ -524,15 +532,19 @@ export default function Dashboard() {
                     <Button variant="cta">Browse Available Leads</Button>
                   </Link>
                 </>
+              ) : pendingLeads.length === 0 && completedLeads.length > 0 ? (
+                <p className="text-muted-foreground text-lg">
+                  All leads have been completed! 🎉
+                </p>
               ) : (
                 <p className="text-muted-foreground text-lg">
-                  No leads match your search
+                  No pending leads match your search
                 </p>
               )}
             </div>
           ) : (
             <div className="divide-y divide-border">
-              {filteredLeads.map((lead) => (
+              {pendingLeads.map((lead) => (
                 <div key={lead.id} className={`p-6 hover:bg-muted/30 transition-colors ${lead.is_access_expired ? 'bg-muted/20' : ''}`}>
                   {/* Access expiration warning */}
                   {lead.is_access_expired ? (
@@ -728,6 +740,67 @@ export default function Dashboard() {
             </div>
           )}
         </div>
+
+        {/* Completed Leads section */}
+        {completedLeads.length > 0 && (
+          <div className="bg-card rounded-2xl border border-border overflow-hidden">
+            <div className="p-6 border-b border-border">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-green-500" />
+                <h2 className="font-heading text-xl font-bold text-foreground">
+                  Completed ({completedLeads.length})
+                </h2>
+              </div>
+            </div>
+
+            <div className="divide-y divide-border">
+              {completedLeads.map((lead) => (
+                <div key={lead.id} className="p-6 hover:bg-muted/30 transition-colors bg-green-50/30 dark:bg-green-950/10">
+                  <div className="flex flex-col lg:flex-row lg:items-start gap-6">
+                    {/* Lead info */}
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <span className="inline-block bg-muted text-foreground font-semibold rounded-lg px-3 py-1 text-sm mb-2">
+                            {lead.postcode}
+                          </span>
+                          <h3 className="font-semibold text-foreground text-lg">
+                            {lead.job_type}
+                          </h3>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-secondary font-bold text-xl">
+                            {lead.display_value}
+                          </p>
+                          <p className="text-muted-foreground text-sm">
+                            {formatDate(lead.date)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <p className="font-medium text-foreground mb-2">
+                        {lead.customer_name}
+                      </p>
+                      
+                      <div className="flex items-center gap-2 text-sm text-green-600">
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>Completed {lead.job_completed_at ? `on ${formatDate(lead.job_completed_at)}` : ''}</span>
+                      </div>
+                    </div>
+
+                    {/* Status indicator */}
+                    <div className="flex flex-col gap-3 min-w-[160px]">
+                      <div className="flex items-center gap-2 text-sm">
+                        <CheckCircle2 className="w-4 h-4 text-green-500" />
+                        <span className="font-medium text-green-600">Completed</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

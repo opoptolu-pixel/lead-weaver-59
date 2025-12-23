@@ -65,7 +65,7 @@ const VALUE_BAND_COLORS = {
 };
 
 export default function AdminOverview() {
-  const { getDateFilter } = useAdmin();
+  const { getDateFilter, dateRange } = useAdmin();
   const [stats, setStats] = useState({
     leadsReceived: 0,
     leadsPublished: 0,
@@ -89,32 +89,37 @@ export default function AdminOverview() {
   const [valueBandData, setValueBandData] = useState<ValueBandData[]>([]);
   const [jobTypeStats, setJobTypeStats] = useState<JobTypeStats[]>([]);
 
+  const { start, end } = getDateFilter();
+
   useEffect(() => {
     fetchStats();
     fetchChartData();
-  }, []);
+  }, [dateRange]);
 
   const fetchChartData = async () => {
-    // Fetch leads for chart data (last 7 days)
+    const { start, end } = getDateFilter();
+    
+    // Fetch leads for chart data
     const { data: leads } = await supabase
       .from("leads")
       .select("created_at, unlocked_at, is_unlocked, value, postcode, job_type, refunded_at")
-      .gte("created_at", subDays(new Date(), 30).toISOString());
+      .gte("created_at", start.toISOString())
+      .lte("created_at", end.toISOString());
 
     if (leads) {
-      // Generate daily revenue/leads data (last 7 days)
+      // Generate daily revenue/leads data for the date range
       const dailyMap = new Map<string, { revenue: number; leads: number }>();
       
-      for (let i = 6; i >= 0; i--) {
-        const date = format(subDays(new Date(), i), "EEE");
+      // Calculate number of days in range
+      const daysDiff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+      const daysToShow = Math.min(daysDiff, 7);
+      
+      for (let i = daysToShow - 1; i >= 0; i--) {
+        const date = format(subDays(end, i), "EEE");
         dailyMap.set(date, { revenue: 0, leads: 0 });
       }
 
-      const last7DaysLeads = leads.filter(l => 
-        new Date(l.created_at) >= subDays(new Date(), 7)
-      );
-
-      last7DaysLeads.forEach((lead) => {
+      leads.forEach((lead) => {
         const dayKey = format(new Date(lead.created_at), "EEE");
         if (dailyMap.has(dayKey)) {
           const current = dailyMap.get(dayKey)!;
@@ -148,7 +153,7 @@ export default function AdminOverview() {
 
       setPostcodeData(sortedPostcodes);
 
-      // Phase 2: Job Value Bands Analytics
+      // Job Value Bands Analytics
       const valueBands = {
         "£100–£140": 0,
         "£150–£200": 0,
@@ -171,7 +176,7 @@ export default function AdminOverview() {
         { name: "£200+", value: valueBands["£200+"], color: VALUE_BAND_COLORS["£200+"] },
       ]);
 
-      // Phase 2: Job Type Analytics (purchase rate, refund rate)
+      // Job Type Analytics (purchase rate, refund rate)
       const jobTypeMap = new Map<string, { total: number; purchased: number; refunded: number }>();
 
       leads.forEach((lead) => {
@@ -271,7 +276,6 @@ export default function AdminOverview() {
           title="Leads Received"
           value={stats.leadsReceived}
           icon={<FileText className="w-5 h-5 text-secondary" />}
-          change={{ value: 12, positive: true }}
         />
         <KPICard
           title="Leads Purchased"
@@ -282,7 +286,6 @@ export default function AdminOverview() {
           title="Revenue"
           value={`£${stats.revenue.toLocaleString()}`}
           icon={<CreditCard className="w-5 h-5 text-secondary" />}
-          change={{ value: 8, positive: true }}
         />
         <KPICard
           title="Conversion Rate"

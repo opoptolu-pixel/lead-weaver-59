@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { useAdmin } from "@/contexts/AdminContext";
 import {
   Dialog,
   DialogContent,
@@ -30,6 +31,7 @@ interface VerificationDoc {
 }
 
 export default function AdminVerifications() {
+  const { getDateFilter, dateRange } = useAdmin();
   const [documents, setDocuments] = useState<VerificationDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDoc, setSelectedDoc] = useState<VerificationDoc | null>(null);
@@ -38,12 +40,16 @@ export default function AdminVerifications() {
 
   useEffect(() => {
     fetchDocuments();
-  }, []);
+  }, [dateRange]);
 
   const fetchDocuments = async () => {
+    const { start, end } = getDateFilter();
+    
     const { data, error } = await supabase
       .from("verification_documents")
       .select("*")
+      .gte("created_at", start.toISOString())
+      .lte("created_at", end.toISOString())
       .order("created_at", { ascending: false });
 
     if (error) {
