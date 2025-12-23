@@ -78,6 +78,10 @@ export default function AdminBusinesses() {
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [purchaseHistory, setPurchaseHistory] = useState<PurchaseHistory[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   useEffect(() => {
     fetchBusinesses();
@@ -96,6 +100,23 @@ export default function AdminBusinesses() {
       setBusinesses(data || []);
     }
     setLoading(false);
+  };
+
+  const viewProfile = async (business: Business) => {
+    setSelectedBusiness(business);
+    setIsProfileOpen(true);
+    setLoadingHistory(true);
+
+    const { data, error } = await supabase
+      .from("leads")
+      .select("id, job_type, postcode, unlocked_at")
+      .eq("unlocked_by", business.user_id)
+      .order("unlocked_at", { ascending: false });
+
+    if (!error && data) {
+      setPurchaseHistory(data);
+    }
+    setLoadingHistory(false);
   };
 
   const toggleSuspension = async (business: Business) => {
@@ -245,6 +266,7 @@ export default function AdminBusinesses() {
                     <td className="p-4">{getRiskBadge(business.risk_score || 0)}</td>
                     <td className="p-4">
                       <p className="text-foreground">{business.leads_purchased}</p>
+                      <p className="text-xs text-muted-foreground">£{business.leads_purchased * 20} spent</p>
                     </td>
                     <td className="p-4 text-muted-foreground">
                       {format(new Date(business.created_at), "d MMM yyyy")}
@@ -257,7 +279,7 @@ export default function AdminBusinesses() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => viewProfile(business)}>
                             <Eye className="w-4 h-4 mr-2" />
                             View Profile
                           </DropdownMenuItem>
@@ -294,6 +316,165 @@ export default function AdminBusinesses() {
           </div>
         )}
       </div>
+
+      {/* Business Profile Dialog */}
+      <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {selectedBusiness?.business_name || selectedBusiness?.contact_name || "Business Profile"}
+              {selectedBusiness && getVerificationBadge(selectedBusiness)}
+            </DialogTitle>
+            <DialogDescription>
+              Business details and purchase history
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedBusiness && (
+            <Tabs defaultValue="details" className="mt-4">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="details">Details</TabsTrigger>
+                <TabsTrigger value="purchases">Purchase History</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="details" className="space-y-4 mt-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <Label className="text-muted-foreground text-xs">Business Name</Label>
+                    <p className="font-medium">{selectedBusiness.business_name || "Not set"}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-muted-foreground text-xs">Contact Name</Label>
+                    <p className="font-medium">{selectedBusiness.contact_name || "Not set"}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-muted-foreground text-xs flex items-center gap-1">
+                      <Phone className="w-3 h-3" /> Phone
+                    </Label>
+                    <p className="font-medium">{selectedBusiness.phone || "Not set"}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-muted-foreground text-xs flex items-center gap-1">
+                      <MapPin className="w-3 h-3" /> Postcode
+                    </Label>
+                    <p className="font-medium">{selectedBusiness.postcode || "Not set"}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-muted-foreground text-xs flex items-center gap-1">
+                      <Calendar className="w-3 h-3" /> Joined
+                    </Label>
+                    <p className="font-medium">{format(new Date(selectedBusiness.created_at), "d MMM yyyy")}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-muted-foreground text-xs flex items-center gap-1">
+                      <Calendar className="w-3 h-3" /> Last Login
+                    </Label>
+                    <p className="font-medium">
+                      {selectedBusiness.last_login 
+                        ? format(new Date(selectedBusiness.last_login), "d MMM yyyy HH:mm") 
+                        : "Never"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="border-t border-border pt-4 mt-4">
+                  <h4 className="font-medium mb-3">Account Summary</h4>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="bg-muted/50 rounded-lg p-3 text-center">
+                      <p className="text-2xl font-bold text-foreground">{selectedBusiness.leads_purchased}</p>
+                      <p className="text-xs text-muted-foreground">Leads Purchased</p>
+                    </div>
+                    <div className="bg-muted/50 rounded-lg p-3 text-center">
+                      <p className="text-2xl font-bold text-foreground">£{selectedBusiness.leads_purchased * 20}</p>
+                      <p className="text-xs text-muted-foreground">Total Spend</p>
+                    </div>
+                    <div className="bg-muted/50 rounded-lg p-3 text-center">
+                      <p className="text-2xl font-bold text-foreground">{selectedBusiness.credits}</p>
+                      <p className="text-xs text-muted-foreground">Credits Balance</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-4">
+                  {!selectedBusiness.is_verified && (
+                    <Button 
+                      onClick={() => {
+                        verifyBusiness(selectedBusiness);
+                        setIsProfileOpen(false);
+                      }}
+                      className="flex-1"
+                    >
+                      <Shield className="w-4 h-4 mr-2" />
+                      Verify Business
+                    </Button>
+                  )}
+                  <Button
+                    variant={selectedBusiness.is_suspended ? "default" : "destructive"}
+                    onClick={() => {
+                      toggleSuspension(selectedBusiness);
+                      setIsProfileOpen(false);
+                    }}
+                    className="flex-1"
+                  >
+                    {selectedBusiness.is_suspended ? (
+                      <>
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Unsuspend
+                      </>
+                    ) : (
+                      <>
+                        <Ban className="w-4 h-4 mr-2" />
+                        Suspend
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="purchases" className="mt-4">
+                {loadingHistory ? (
+                  <div className="py-8 text-center">
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground" />
+                  </div>
+                ) : purchaseHistory.length === 0 ? (
+                  <div className="py-8 text-center text-muted-foreground">
+                    No purchases yet
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Lead ID</TableHead>
+                        <TableHead>Job Type</TableHead>
+                        <TableHead>Postcode</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Date</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {purchaseHistory.map((purchase) => (
+                        <TableRow key={purchase.id}>
+                          <TableCell className="font-mono text-xs">
+                            {purchase.id.slice(0, 8)}...
+                          </TableCell>
+                          <TableCell>{purchase.job_type}</TableCell>
+                          <TableCell>{purchase.postcode}</TableCell>
+                          <TableCell>£20</TableCell>
+                          <TableCell>
+                            {purchase.unlocked_at 
+                              ? format(new Date(purchase.unlocked_at), "d MMM yyyy HH:mm")
+                              : "-"}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </TabsContent>
+            </Tabs>
+          )}
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }
