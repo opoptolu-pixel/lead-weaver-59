@@ -95,11 +95,20 @@ serve(async (req) => {
         is_unlocked: true,
         unlocked_by: userId,
         unlocked_at: new Date().toISOString(),
+        lead_status: "purchased",
+        outcome_status: "purchased",
       })
       .eq("id", leadId);
 
     if (updateError) throw new Error(`Failed to unlock lead: ${updateError.message}`);
     logStep("Lead unlocked successfully", { leadId, userId });
+
+    // Increment leads_purchased counter on profile
+    const { error: profileUpdateError } = await supabaseClient.rpc('increment_leads_purchased', { user_uuid: userId });
+    if (profileUpdateError) {
+      // Non-blocking - just log the error
+      logStep("Failed to increment leads_purchased (non-blocking)", { error: profileUpdateError.message });
+    }
 
     // Fetch the full lead details to return to the user
     const { data: lead, error: leadError } = await supabaseClient

@@ -56,15 +56,20 @@ serve(async (req) => {
         userId = user.id;
         logStep("User identified", { userId });
 
-        // Check user's verification status and lead count
+        // Check user's verification status, suspension, and lead count
         const { data: profile, error: profileError } = await supabaseClient
           .from("profiles")
-          .select("is_verified, leads_purchased")
+          .select("is_verified, leads_purchased, is_suspended, suspension_reason")
           .eq("user_id", userId)
           .maybeSingle();
 
         if (profileError) {
           logStep("Profile fetch error", { error: profileError.message });
+        }
+
+        // CRITICAL: Check if user is suspended
+        if (profile?.is_suspended) {
+          throw new Error(profile.suspension_reason || "Your account is suspended. Please contact support.");
         }
 
         const MAX_UNVERIFIED_LEADS = 3;
