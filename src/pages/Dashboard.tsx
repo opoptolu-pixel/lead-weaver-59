@@ -20,6 +20,10 @@ import {
   MessageSquareX,
   Lock,
   AlertTriangle,
+  Menu,
+  BarChart3,
+  CreditCard,
+  FileWarning,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +49,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface UnlockedLead {
   id: string;
@@ -245,30 +256,80 @@ export default function Dashboard() {
             <Logo size="md" />
 
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
+              {/* Desktop navigation */}
+              <div className="hidden sm:flex items-center gap-2">
                 <Link to="/leads">
                   <Button variant="outlineHero" size="sm">
                     Browse Leads
                   </Button>
                 </Link>
-                <Link to="/performance" className="hidden sm:block">
+                <Link to="/performance">
                   <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10">
                     Performance
                   </Button>
                 </Link>
-                <Link to="/billing" className="hidden sm:block">
+                <Link to="/billing">
                   <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10">
                     Billing
                   </Button>
                 </Link>
-                <Link to="/disputes" className="hidden sm:block">
+                <Link to="/disputes">
                   <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10">
                     Disputes
                   </Button>
                 </Link>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="hidden sm:block text-right">
+
+              {/* Mobile navigation menu */}
+              <div className="sm:hidden">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10">
+                      <Menu className="w-5 h-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem asChild>
+                      <Link to="/leads" className="flex items-center gap-2">
+                        <Search className="w-4 h-4" />
+                        Browse Leads
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/performance" className="flex items-center gap-2">
+                        <BarChart3 className="w-4 h-4" />
+                        Performance
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/billing" className="flex items-center gap-2">
+                        <CreditCard className="w-4 h-4" />
+                        Billing
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/disputes" className="flex items-center gap-2">
+                        <FileWarning className="w-4 h-4" />
+                        Disputes
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link to="/settings" className="flex items-center gap-2">
+                        <Settings className="w-4 h-4" />
+                        Settings
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleSignOut} className="flex items-center gap-2 text-destructive">
+                      <LogOut className="w-4 h-4" />
+                      Sign Out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+
+              <div className="hidden sm:flex items-center gap-3">
+                <div className="text-right">
                   <p className="text-primary-foreground text-sm font-medium">
                     {profile?.business_name || user?.email}
                   </p>
