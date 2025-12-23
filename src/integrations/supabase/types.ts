@@ -547,6 +547,27 @@ export type Database = {
           postcode: string
         }[]
       }
+      get_user_leads_with_access_control: {
+        Args: { p_user_id: string }
+        Returns: {
+          access_expires_at: string
+          customer_address: string
+          customer_email: string
+          customer_name: string
+          customer_phone: string
+          date: string
+          display_value: string
+          id: string
+          is_access_expired: boolean
+          job_completed_at: string
+          job_notes: string
+          job_status: string
+          job_type: string
+          postcode: string
+          unlocked_at: string
+          value: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -559,6 +580,10 @@ export type Database = {
         Returns: undefined
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_lead_access_expired: {
+        Args: { unlocked_at_param: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "super_admin"
