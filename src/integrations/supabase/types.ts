@@ -329,28 +329,34 @@ export type Database = {
       }
       phone_verification_codes: {
         Row: {
+          attempts: number
           code: string
           created_at: string
           expires_at: string
           id: string
+          locked_until: string | null
           phone: string
           user_id: string
           verified: boolean
         }
         Insert: {
+          attempts?: number
           code: string
           created_at?: string
           expires_at: string
           id?: string
+          locked_until?: string | null
           phone: string
           user_id: string
           verified?: boolean
         }
         Update: {
+          attempts?: number
           code?: string
           created_at?: string
           expires_at?: string
           id?: string
+          locked_until?: string | null
           phone?: string
           user_id?: string
           verified?: boolean

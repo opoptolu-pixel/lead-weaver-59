@@ -11,6 +11,15 @@ const logStep = (step: string, details?: any) => {
   console.log(`[SEND-VERIFICATION-CODE] ${step}${detailsStr}`);
 };
 
+// Generate secure 8-character alphanumeric code (increases entropy significantly)
+// 36^8 = ~2.8 trillion possible combinations vs 10^6 = 1 million for 6-digit
+function generateSecureCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Excluding similar characters (I, O, 0, 1)
+  const array = new Uint8Array(8);
+  crypto.getRandomValues(array);
+  return Array.from(array, (byte) => chars[byte % chars.length]).join('');
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -37,11 +46,12 @@ serve(async (req) => {
 
     const { phone } = await req.json();
     if (!phone) throw new Error("Phone number is required");
+    
+    // Validate phone format (basic validation)
+    if (typeof phone !== 'string' || phone.length < 10 || phone.length > 20) {
+      throw new Error("Invalid phone number format");
+    }
     logStep("Phone received", { phone });
-
-    // Generate 6-digit code
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     // Use service role for database operations
     const supabaseAdmin = createClient(
@@ -49,6 +59,35 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
       { auth: { persistSession: false } }
     );
+
+    // Check if user is currently locked out from too many failed attempts
+    const { data: lockedCode } = await supabaseAdmin
+      .from("phone_verification_codes")
+      .select("locked_until")
+      .eq("user_id", user.id)
+      .gt("locked_until", new Date().toISOString())
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (lockedCode?.locked_until) {
+      const lockExpiry = new Date(lockedCode.locked_until);
+      const remainingMinutes = Math.ceil((lockExpiry.getTime() - Date.now()) / (60 * 1000));
+      logStep("User is locked out", { locked_until: lockedCode.locked_until });
+      throw new Error(`Too many failed attempts. Please try again in ${remainingMinutes} minutes.`);
+    }
+
+    // Generate secure 8-character alphanumeric code
+    const code = generateSecureCode();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Invalidate any existing unverified codes for this user
+    await supabaseAdmin
+      .from("phone_verification_codes")
+      .update({ expires_at: new Date().toISOString() })
+      .eq("user_id", user.id)
+      .eq("verified", false)
+      .gt("expires_at", new Date().toISOString());
 
     // Store code in database
     const { error: insertError } = await supabaseAdmin
@@ -58,6 +97,7 @@ serve(async (req) => {
         phone: phone,
         code: code,
         expires_at: expiresAt.toISOString(),
+        attempts: 0,
       });
 
     if (insertError) throw new Error(`Failed to store code: ${insertError.message}`);
@@ -76,7 +116,7 @@ serve(async (req) => {
     const formData = new URLSearchParams();
     formData.append("To", `whatsapp:${phone}`);
     formData.append("From", twilioFrom);
-    formData.append("Body", `Your Deep Clean UK verification code is: ${code}. Valid for 10 minutes.`);
+    formData.append("Body", `Your Deep Clean UK verification code is: ${code}. Valid for 10 minutes. Do not share this code with anyone.`);
 
     const twilioResponse = await fetch(twilioUrl, {
       method: "POST",
@@ -104,7 +144,7 @@ serve(async (req) => {
     logStep("ERROR", { message: errorMessage });
     return new Response(JSON.stringify({ error: errorMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
+      status: 400,
     });
   }
 });
