@@ -67,8 +67,12 @@ interface Lead {
   unlocked_by: string | null;
   unlocked_at: string | null;
   refund_reason: string | null;
+  outcome_status: string | null;
+  outcome_notes: string | null;
+  lost_reason: string | null;
 }
 
+// Admin pipeline statuses
 const LEAD_STATUSES = [
   { value: "new", label: "New", color: "bg-blue-500/20 text-blue-500" },
   { value: "approved", label: "Approved", color: "bg-cyan-500/20 text-cyan-500" },
@@ -77,6 +81,15 @@ const LEAD_STATUSES = [
   { value: "expired", label: "Expired", color: "bg-muted text-muted-foreground" },
   { value: "refunded", label: "Refunded", color: "bg-destructive/20 text-destructive" },
   { value: "spam", label: "Spam/Fraud", color: "bg-red-500/20 text-red-500" },
+];
+
+// Outcome tracking statuses (for purchased leads)
+const OUTCOME_STATUSES = [
+  { value: "purchased", label: "Purchased", color: "bg-purple-500/20 text-purple-500" },
+  { value: "contacted", label: "Contacted", color: "bg-blue-500/20 text-blue-500" },
+  { value: "booked", label: "Booked", color: "bg-cyan-500/20 text-cyan-500" },
+  { value: "completed", label: "Completed", color: "bg-green-500/20 text-green-500" },
+  { value: "lost", label: "Lost", color: "bg-destructive/20 text-destructive" },
 ];
 
 const SOURCES = [

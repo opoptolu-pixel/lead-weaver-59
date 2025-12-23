@@ -55,12 +55,23 @@ const timeToPurchase = [
   { range: "> 24 hours", count: 18 },
 ];
 
+const topPostcodes = [
+  { prefix: "SW", leads: 156, purchased: 120, rate: 76.9 },
+  { prefix: "SE", leads: 134, purchased: 98, rate: 73.1 },
+  { prefix: "E", leads: 112, purchased: 89, rate: 79.5 },
+  { prefix: "N", leads: 98, purchased: 72, rate: 73.5 },
+  { prefix: "W", leads: 87, purchased: 65, rate: 74.7 },
+  { prefix: "NW", leads: 76, purchased: 58, rate: 76.3 },
+  { prefix: "EC", leads: 54, purchased: 45, rate: 83.3 },
+  { prefix: "WC", leads: 42, purchased: 36, rate: 85.7 },
+];
+
 const topBuyers = [
-  { name: "CleanPro Services", purchases: 45, spend: 900, refunds: 2, refundRate: 4.4 },
-  { name: "Sparkle Clean Ltd", purchases: 38, spend: 760, refunds: 1, refundRate: 2.6 },
-  { name: "Fresh & Tidy", purchases: 32, spend: 640, refunds: 3, refundRate: 9.4 },
-  { name: "Deep Clean Experts", purchases: 28, spend: 560, refunds: 0, refundRate: 0 },
-  { name: "Premier Cleaning", purchases: 25, spend: 500, refunds: 2, refundRate: 8.0 },
+  { name: "CleanPro Services", purchases: 45, spend: 900, refunds: 2, refundRate: 4.4, closeRate: 68 },
+  { name: "Sparkle Clean Ltd", purchases: 38, spend: 760, refunds: 1, refundRate: 2.6, closeRate: 72 },
+  { name: "Fresh & Tidy", purchases: 32, spend: 640, refunds: 3, refundRate: 9.4, closeRate: 55 },
+  { name: "Deep Clean Experts", purchases: 28, spend: 560, refunds: 0, refundRate: 0, closeRate: 82 },
+  { name: "Premier Cleaning", purchases: 25, spend: 500, refunds: 2, refundRate: 8.0, closeRate: 60 },
 ];
 
 const COLORS = ["hsl(var(--primary))", "hsl(var(--secondary))", "hsl(var(--accent))", "hsl(var(--muted))", "hsl(var(--destructive))"];
@@ -174,6 +185,38 @@ export default function AdminAnalytics() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Top Postcodes */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Top Postcode Prefixes</CardTitle>
+                <CardDescription>Lead volume and purchase rates by area</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Postcode</TableHead>
+                      <TableHead className="text-right">Leads</TableHead>
+                      <TableHead className="text-right">Purchased</TableHead>
+                      <TableHead className="text-right">Purchase Rate</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {topPostcodes.map((pc) => (
+                      <TableRow key={pc.prefix}>
+                        <TableCell className="font-medium">{pc.prefix}</TableCell>
+                        <TableCell className="text-right">{pc.leads}</TableCell>
+                        <TableCell className="text-right">{pc.purchased}</TableCell>
+                        <TableCell className="text-right">
+                          <Badge variant="secondary">{pc.rate}%</Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Marketplace Tab */}
@@ -302,7 +345,7 @@ export default function AdminAnalytics() {
                       <TableHead>Business</TableHead>
                       <TableHead className="text-right">Purchases</TableHead>
                       <TableHead className="text-right">Total Spend</TableHead>
-                      <TableHead className="text-right">Refunds</TableHead>
+                      <TableHead className="text-right">Close Rate</TableHead>
                       <TableHead className="text-right">Refund Rate</TableHead>
                       <TableHead className="text-right">Trend</TableHead>
                     </TableRow>
@@ -320,7 +363,11 @@ export default function AdminAnalytics() {
                         </TableCell>
                         <TableCell className="text-right">{buyer.purchases}</TableCell>
                         <TableCell className="text-right font-medium">£{buyer.spend}</TableCell>
-                        <TableCell className="text-right">{buyer.refunds}</TableCell>
+                        <TableCell className="text-right">
+                          <Badge className={buyer.closeRate >= 70 ? "bg-green-500/20 text-green-500" : buyer.closeRate >= 50 ? "bg-amber-500/20 text-amber-500" : "bg-destructive/20 text-destructive"}>
+                            {buyer.closeRate}%
+                          </Badge>
+                        </TableCell>
                         <TableCell className="text-right">
                           <Badge variant={buyer.refundRate > 5 ? "destructive" : "default"}>
                             {buyer.refundRate}%

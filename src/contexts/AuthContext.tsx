@@ -16,6 +16,9 @@ interface Profile {
   leads_purchased: number;
   phone_verified: boolean;
   address_verified: boolean;
+  is_suspended: boolean | null;
+  suspension_reason: string | null;
+  risk_score: number | null;
 }
 
 interface AuthContextType {
