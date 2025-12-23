@@ -60,14 +60,14 @@ export const ServicesGrid = () => {
                   "hover:border-primary/30 hover:shadow-md transition-all duration-200"
                 )}
               >
-                <div className={cn("p-2.5 rounded-lg shrink-0", service.color)}>
-                  <Icon className="w-5 h-5" />
+                <div className={cn("p-3 rounded-lg shrink-0", service.color)}>
+                  <Icon className="w-6 h-6 stroke-[2.5]" />
                 </div>
                 <div className="min-w-0">
-                  <p className="font-medium text-foreground text-sm leading-tight truncate">
+                  <p className="font-semibold text-foreground text-sm leading-tight truncate">
                     {service.label}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="text-sm font-medium text-muted-foreground mt-0.5">
                     {service.value}
                   </p>
                 </div>
