@@ -52,10 +52,19 @@ const cleaningTypes = [
 
 const TOTAL_STEPS = 4;
 
+// UK Postcode validation regex
+const UK_POSTCODE_REGEX = /^([A-Z]{1,2}[0-9][0-9A-Z]?\s?[0-9][A-Z]{2})$/i;
+
+const validatePostcode = (postcode: string): boolean => {
+  const cleaned = postcode.replace(/\s+/g, '').toUpperCase();
+  return UK_POSTCODE_REGEX.test(cleaned);
+};
+
 export default function RequestCleaning() {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [postcodeError, setPostcodeError] = useState("");
   const [formData, setFormData] = useState({
     jobType: "",
     jobValue: "",
@@ -101,7 +110,7 @@ export default function RequestCleaning() {
       case 1:
         return formData.jobType !== "";
       case 2:
-        return formData.postcode.length >= 3;
+        return formData.postcode.length >= 5 && validatePostcode(formData.postcode);
       case 3:
         return formData.customerName && formData.customerEmail && formData.customerPhone;
       case 4:
@@ -248,15 +257,30 @@ export default function RequestCleaning() {
                       <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                       <Input
                         value={formData.postcode}
-                        onChange={(e) => setFormData({ ...formData, postcode: e.target.value.toUpperCase() })}
+                        onChange={(e) => {
+                          const value = e.target.value.toUpperCase();
+                          setFormData({ ...formData, postcode: value });
+                          if (value.length >= 5) {
+                            setPostcodeError(validatePostcode(value) ? "" : "Please enter a valid UK postcode");
+                          } else {
+                            setPostcodeError("");
+                          }
+                        }}
                         placeholder="e.g. SW1A 1AA"
-                        className="pl-12 h-14 text-lg text-center uppercase tracking-wider border-2 border-gray-200 focus:border-primary rounded-xl"
+                        className={cn(
+                          "pl-12 h-14 text-lg text-center uppercase tracking-wider border-2 rounded-xl",
+                          postcodeError ? "border-red-500 focus:border-red-500" : "border-gray-200 focus:border-primary"
+                        )}
                         autoFocus
                       />
                     </div>
-                    <p className="text-center text-sm text-gray-400 mt-3">
-                      You'll provide your full address when contacted
-                    </p>
+                    {postcodeError ? (
+                      <p className="text-center text-sm text-red-500 mt-3">{postcodeError}</p>
+                    ) : (
+                      <p className="text-center text-sm text-gray-400 mt-3">
+                        You'll provide your full address when contacted
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
