@@ -27,14 +27,16 @@ import { cn } from "@/lib/utils";
 
 // Phase 1 Job Types - Bundled jobs that naturally exceed £100
 const cleaningTypes = [
-  { id: "carpet-2-3-rooms", label: "Carpet Cleaning (2–3 Rooms)", icon: Layers, color: "bg-amber-100 text-amber-600", value: "£100–£150" },
-  { id: "sofa-carpet", label: "Sofa + Carpet Cleaning", icon: Sofa, color: "bg-violet-100 text-violet-600", value: "£120–£180" },
-  { id: "sofa-mattress", label: "Sofa + Mattress Cleaning", icon: BedDouble, color: "bg-rose-100 text-rose-600", value: "£100–£140" },
-  { id: "carpet-mattress", label: "Carpet + Mattress Cleaning", icon: Droplets, color: "bg-sky-100 text-sky-600", value: "£110–£160" },
-  { id: "3-rooms-deep-clean", label: "3 Rooms Deep Clean", icon: Sparkles, color: "bg-emerald-100 text-emerald-600", value: "£140–£200" },
-  { id: "end-of-tenancy", label: "End of Tenancy Clean (1–2 Bed)", icon: Home, color: "bg-indigo-100 text-indigo-600", value: "£150–£220" },
-  { id: "airbnb-refresh", label: "Airbnb Refresh (Full Package)", icon: Building2, color: "bg-teal-100 text-teal-600", value: "£130–£180" },
-  { id: "move-in-clean", label: "Move-In / Move-Out Clean", icon: Truck, color: "bg-orange-100 text-orange-600", value: "£140–£200" },
+  { id: "carpet-2-3-rooms", label: "Carpet Cleaning (2–3 Rooms)", icon: Layers, color: "bg-amber-100 text-amber-600", value: "from £100" },
+  { id: "sofa-carpet", label: "Sofa + Carpet Cleaning", icon: Sofa, color: "bg-violet-100 text-violet-600", value: "from £120" },
+  { id: "sofa-mattress", label: "Sofa + Mattress Cleaning", icon: BedDouble, color: "bg-rose-100 text-rose-600", value: "from £100" },
+  { id: "carpet-mattress", label: "Carpet + Mattress Cleaning", icon: Droplets, color: "bg-sky-100 text-sky-600", value: "from £110" },
+  { id: "3-rooms-deep-clean", label: "Deep Clean (3+ Rooms)", icon: Sparkles, color: "bg-emerald-100 text-emerald-600", value: "from £140" },
+  { id: "end-of-tenancy", label: "End of Tenancy Clean", icon: Home, color: "bg-indigo-100 text-indigo-600", value: "from £150" },
+  { id: "airbnb-refresh", label: "Airbnb / Short-Let Refresh", icon: Building2, color: "bg-teal-100 text-teal-600", value: "from £130" },
+  { id: "move-in-out", label: "Move-In / Move-Out Clean", icon: Truck, color: "bg-orange-100 text-orange-600", value: "from £140" },
+  { id: "post-tenancy-upholstery", label: "Post-Tenancy Carpet & Upholstery", icon: Layers, color: "bg-pink-100 text-pink-600", value: "from £120" },
+  { id: "one-off-deep", label: "One-Off Deep Clean", icon: Sparkles, color: "bg-cyan-100 text-cyan-600", value: "from £100" },
 ];
 
 const TOTAL_STEPS = 4;

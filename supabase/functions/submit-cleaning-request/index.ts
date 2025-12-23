@@ -20,18 +20,21 @@ interface CleaningRequest {
 
 // Phase 1 Job Types - Only bundled jobs that naturally exceed £100
 const PHASE1_JOB_TYPES: Record<string, { displayValue: string; value: number }> = {
-  "Carpet Cleaning (2–3 Rooms)": { displayValue: "£100–£150", value: 125 },
-  "Sofa + Carpet Cleaning": { displayValue: "£120–£180", value: 150 },
-  "Sofa + Mattress Cleaning": { displayValue: "£100–£140", value: 120 },
-  "Carpet + Mattress Cleaning": { displayValue: "£110–£160", value: 135 },
-  "3 Rooms Deep Clean": { displayValue: "£140–£200", value: 170 },
-  "End of Tenancy Clean (1–2 Bed)": { displayValue: "£150–£220", value: 185 },
-  "Airbnb Refresh (Full Package)": { displayValue: "£130–£180", value: 155 },
-  "Move-In / Move-Out Clean": { displayValue: "£140–£200", value: 170 },
+  "Carpet Cleaning (2–3 Rooms)": { displayValue: "from £100", value: 125 },
+  "Sofa + Carpet Cleaning": { displayValue: "from £120", value: 150 },
+  "Sofa + Mattress Cleaning": { displayValue: "from £100", value: 120 },
+  "Carpet + Mattress Cleaning": { displayValue: "from £110", value: 135 },
+  "Deep Clean (3+ Rooms)": { displayValue: "from £140", value: 170 },
+  "End of Tenancy Clean": { displayValue: "from £150", value: 185 },
+  "Airbnb / Short-Let Refresh": { displayValue: "from £130", value: 155 },
+  "Move-In / Move-Out Clean": { displayValue: "from £140", value: 170 },
+  "Post-Tenancy Carpet & Upholstery": { displayValue: "from £120", value: 140 },
+  "One-Off Deep Clean": { displayValue: "from £100", value: 120 },
   // Legacy mappings for backwards compatibility
-  "End of Tenancy": { displayValue: "£150–£220", value: 185 },
-  "Deep Clean": { displayValue: "£140–£200", value: 170 },
-  "Move-In Clean": { displayValue: "£140–£200", value: 170 },
+  "End of Tenancy": { displayValue: "from £150", value: 185 },
+  "Deep Clean": { displayValue: "from £140", value: 170 },
+  "Move-In Clean": { displayValue: "from £140", value: 170 },
+  "One-Off Clean": { displayValue: "from £100", value: 120 },
 };
 
 const MINIMUM_JOB_VALUE = 100;
