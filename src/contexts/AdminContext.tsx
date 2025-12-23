@@ -18,7 +18,7 @@ interface AdminContextType {
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
 
 export function AdminProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [dateRange, setDateRange] = useState<DateRange>("7d");
@@ -26,11 +26,14 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const [customEndDate, setCustomEndDate] = useState<Date | null>(null);
 
   useEffect(() => {
+    // Don't check admin status until auth is done loading
+    if (authLoading) {
+      setIsLoading(true);
+      return;
+    }
+
     const checkAdminStatus = async () => {
-      console.log("AdminContext: checking admin status, user:", user?.id);
-      
       if (!user) {
-        console.log("AdminContext: no user, setting isAdmin to false");
         setIsAdmin(false);
         setIsLoading(false);
         return;
@@ -42,8 +45,6 @@ export function AdminProvider({ children }: { children: ReactNode }) {
           .select("role")
           .eq("user_id", user.id);
 
-        console.log("AdminContext: user_roles query result:", { data, error });
-
         if (error) {
           console.error("Error checking admin status:", error);
           setIsAdmin(false);
@@ -51,10 +52,8 @@ export function AdminProvider({ children }: { children: ReactNode }) {
           const hasAdminRole = data.some(
             (r) => r.role === "admin" || r.role === "super_admin"
           );
-          console.log("AdminContext: hasAdminRole:", hasAdminRole);
           setIsAdmin(hasAdminRole);
         } else {
-          console.log("AdminContext: no roles found");
           setIsAdmin(false);
         }
       } catch (err) {
@@ -65,7 +64,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     };
 
     checkAdminStatus();
-  }, [user]);
+  }, [user, authLoading]);
 
   const setCustomDates = (start: Date | null, end: Date | null) => {
     setCustomStartDate(start);
