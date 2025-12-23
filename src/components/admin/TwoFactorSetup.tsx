@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Shield, ShieldCheck, ShieldOff, Loader2, Copy, Check, AlertTriangle } from "lucide-react";
+import { Shield, ShieldCheck, ShieldOff, Loader2, Copy, Check, AlertTriangle, Key, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,7 +21,7 @@ interface TwoFactorSetupProps {
   onComplete?: () => void;
 }
 
-export default function TwoFactorSetup({ onComplete }: TwoFactorSetupProps = {}) {
+export default function TwoFactorSetup({ onComplete }: TwoFactorSetupProps) {
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
   const [verifying, setVerifying] = useState(false);
@@ -35,10 +35,23 @@ export default function TwoFactorSetup({ onComplete }: TwoFactorSetupProps = {})
   const [showDisableDialog, setShowDisableDialog] = useState(false);
   const [disableCode, setDisableCode] = useState("");
   const [copiedSecret, setCopiedSecret] = useState(false);
+  
+  // Recovery codes state
+  const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
+  const [showRecoveryCodesDialog, setShowRecoveryCodesDialog] = useState(false);
+  const [recoveryCodeCount, setRecoveryCodeCount] = useState<number>(0);
+  const [generatingCodes, setGeneratingCodes] = useState(false);
+  const [copiedCodes, setCopiedCodes] = useState(false);
 
   useEffect(() => {
     fetchMFAFactors();
   }, []);
+
+  useEffect(() => {
+    if (factors.length > 0) {
+      fetchRecoveryCodeCount();
+    }
+  }, [factors]);
 
   const fetchMFAFactors = async () => {
     setLoading(true);
@@ -54,6 +67,68 @@ export default function TwoFactorSetup({ onComplete }: TwoFactorSetupProps = {})
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchRecoveryCodeCount = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const response = await supabase.functions.invoke('mfa-recovery-codes', {
+        body: { action: 'count' },
+      });
+
+      if (response.data?.count !== undefined) {
+        setRecoveryCodeCount(response.data.count);
+      }
+    } catch (error) {
+      console.error("Error fetching recovery code count:", error);
+    }
+  };
+
+  const generateRecoveryCodes = async () => {
+    setGeneratingCodes(true);
+    try {
+      const response = await supabase.functions.invoke('mfa-recovery-codes', {
+        body: { action: 'generate' },
+      });
+
+      if (response.error) throw response.error;
+      
+      if (response.data?.codes) {
+        setRecoveryCodes(response.data.codes);
+        setShowRecoveryCodesDialog(true);
+        setRecoveryCodeCount(response.data.codes.length);
+        toast.success("Recovery codes generated successfully");
+      }
+    } catch (error: any) {
+      console.error("Error generating recovery codes:", error);
+      toast.error(error.message || "Failed to generate recovery codes");
+    } finally {
+      setGeneratingCodes(false);
+    }
+  };
+
+  const copyAllCodes = async () => {
+    const codesText = recoveryCodes.join("\n");
+    await navigator.clipboard.writeText(codesText);
+    setCopiedCodes(true);
+    toast.success("Recovery codes copied to clipboard");
+    setTimeout(() => setCopiedCodes(false), 2000);
+  };
+
+  const downloadCodes = () => {
+    const codesText = `DeepClean 2FA Recovery Codes\n${"=".repeat(30)}\n\nKeep these codes in a safe place. Each code can only be used once.\n\n${recoveryCodes.join("\n")}\n\nGenerated: ${new Date().toLocaleString()}`;
+    const blob = new Blob([codesText], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "deepclean-recovery-codes.txt";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success("Recovery codes downloaded");
   };
 
   const startEnrollment = async () => {
@@ -106,7 +181,11 @@ export default function TwoFactorSetup({ onComplete }: TwoFactorSetupProps = {})
       setSecret(null);
       setFactorId(null);
       setVerificationCode("");
-      fetchMFAFactors();
+      
+      // Generate recovery codes after successful enrollment
+      await fetchMFAFactors();
+      await generateRecoveryCodes();
+      
       onComplete?.();
     } catch (error: any) {
       console.error("Error verifying MFA:", error);
@@ -218,6 +297,43 @@ export default function TwoFactorSetup({ onComplete }: TwoFactorSetupProps = {})
                   Disable
                 </Button>
               </div>
+
+              {/* Recovery Codes Section */}
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div>
+                  <p className="font-medium flex items-center gap-2">
+                    <Key className="w-4 h-4" />
+                    Recovery Codes
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {recoveryCodeCount > 0 
+                      ? `${recoveryCodeCount} unused codes remaining`
+                      : "No recovery codes generated"}
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={generateRecoveryCodes}
+                  disabled={generatingCodes}
+                >
+                  {generatingCodes ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Key className="w-4 h-4 mr-2" />
+                  )}
+                  {recoveryCodeCount > 0 ? "Regenerate" : "Generate"}
+                </Button>
+              </div>
+
+              {recoveryCodeCount > 0 && recoveryCodeCount <= 3 && (
+                <Alert className="bg-yellow-500/10 border-yellow-500/30">
+                  <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                  <AlertDescription className="text-yellow-400">
+                    You have only {recoveryCodeCount} recovery code{recoveryCodeCount !== 1 ? 's' : ''} left. Consider regenerating new codes.
+                  </AlertDescription>
+                </Alert>
+              )}
             </>
           ) : (
             <>
@@ -355,6 +471,52 @@ export default function TwoFactorSetup({ onComplete }: TwoFactorSetupProps = {})
                 <ShieldOff className="w-4 h-4 mr-2" />
               )}
               Disable 2FA
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Recovery Codes Dialog */}
+      <Dialog open={showRecoveryCodesDialog} onOpenChange={setShowRecoveryCodesDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Key className="w-5 h-5" />
+              Your Recovery Codes
+            </DialogTitle>
+            <DialogDescription>
+              Save these codes in a safe place. Each code can only be used once to regain access if you lose your authenticator.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <Alert className="bg-yellow-500/10 border-yellow-500/30">
+              <AlertTriangle className="h-4 w-4 text-yellow-500" />
+              <AlertDescription className="text-yellow-400">
+                These codes will only be shown once. Make sure to save them now!
+              </AlertDescription>
+            </Alert>
+            
+            <div className="grid grid-cols-2 gap-2 p-4 bg-muted rounded-lg font-mono text-sm">
+              {recoveryCodes.map((code, index) => (
+                <div key={index} className="p-2 bg-background rounded text-center">
+                  {code}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={copyAllCodes} className="w-full sm:w-auto">
+              {copiedCodes ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+              Copy All
+            </Button>
+            <Button variant="outline" onClick={downloadCodes} className="w-full sm:w-auto">
+              <Download className="w-4 h-4 mr-2" />
+              Download
+            </Button>
+            <Button onClick={() => setShowRecoveryCodesDialog(false)} className="w-full sm:w-auto">
+              I've Saved My Codes
             </Button>
           </DialogFooter>
         </DialogContent>
