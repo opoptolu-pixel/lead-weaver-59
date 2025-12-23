@@ -248,11 +248,23 @@ export default function Dashboard() {
             </Link>
 
             <div className="flex items-center gap-4">
-              <Link to="/leads">
-                <Button variant="outlineHero" size="sm">
-                  Browse Leads
-                </Button>
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link to="/leads">
+                  <Button variant="outlineHero" size="sm">
+                    Browse Leads
+                  </Button>
+                </Link>
+                <Link to="/performance" className="hidden sm:block">
+                  <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10">
+                    Performance
+                  </Button>
+                </Link>
+                <Link to="/disputes" className="hidden sm:block">
+                  <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10">
+                    Disputes
+                  </Button>
+                </Link>
+              </div>
               <div className="flex items-center gap-3">
                 <div className="hidden sm:block text-right">
                   <p className="text-primary-foreground text-sm font-medium">
