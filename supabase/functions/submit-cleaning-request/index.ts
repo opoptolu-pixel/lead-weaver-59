@@ -18,6 +18,24 @@ interface CleaningRequest {
   estimatedValue?: string;
 }
 
+// Phase 1 Job Types - Only bundled jobs that naturally exceed £100
+const PHASE1_JOB_TYPES: Record<string, { displayValue: string; value: number }> = {
+  "Carpet Cleaning (2–3 Rooms)": { displayValue: "£100–£150", value: 125 },
+  "Sofa + Carpet Cleaning": { displayValue: "£120–£180", value: 150 },
+  "Sofa + Mattress Cleaning": { displayValue: "£100–£140", value: 120 },
+  "Carpet + Mattress Cleaning": { displayValue: "£110–£160", value: 135 },
+  "3 Rooms Deep Clean": { displayValue: "£140–£200", value: 170 },
+  "End of Tenancy Clean (1–2 Bed)": { displayValue: "£150–£220", value: 185 },
+  "Airbnb Refresh (Full Package)": { displayValue: "£130–£180", value: 155 },
+  "Move-In / Move-Out Clean": { displayValue: "£140–£200", value: 170 },
+  // Legacy mappings for backwards compatibility
+  "End of Tenancy": { displayValue: "£150–£220", value: 185 },
+  "Deep Clean": { displayValue: "£140–£200", value: 170 },
+  "Move-In Clean": { displayValue: "£140–£200", value: 170 },
+};
+
+const MINIMUM_JOB_VALUE = 100;
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -41,39 +59,24 @@ serve(async (req) => {
       );
     }
 
-    // Determine display value based on job type
-    const getDisplayValue = (jobType: string): string => {
-      const values: Record<string, string> = {
-        "End of Tenancy": "£150-£350",
-        "Deep Clean": "£100-£250",
-        "Regular Clean": "£60-£120",
-        "Carpet Cleaning": "£80-£200",
-        "Oven Cleaning": "£50-£100",
-        "Window Cleaning": "£40-£120",
-        "Office Clean": "£100-£300",
-        "Move-In Clean": "£120-£300",
-        "Post-Construction": "£200-£500",
-        "One-Off Clean": "£80-£180",
-      };
-      return values[jobType] || "£80-£200";
-    };
+    // Get job type info or use defaults
+    const jobTypeInfo = PHASE1_JOB_TYPES[body.jobType];
+    
+    // Calculate value - use provided estimate or lookup
+    let displayValue = body.estimatedValue || jobTypeInfo?.displayValue || "£100–£150";
+    let value = jobTypeInfo?.value || 125;
 
-    // Calculate value (use middle of range for sorting)
-    const getValue = (jobType: string): number => {
-      const values: Record<string, number> = {
-        "End of Tenancy": 250,
-        "Deep Clean": 175,
-        "Regular Clean": 90,
-        "Carpet Cleaning": 140,
-        "Oven Cleaning": 75,
-        "Window Cleaning": 80,
-        "Office Clean": 200,
-        "Move-In Clean": 210,
-        "Post-Construction": 350,
-        "One-Off Clean": 130,
-      };
-      return values[jobType] || 100;
-    };
+    // CRITICAL: Enforce £100 minimum job value
+    if (value < MINIMUM_JOB_VALUE) {
+      console.error(`Job value ${value} below minimum ${MINIMUM_JOB_VALUE} for job type: ${body.jobType}`);
+      return new Response(
+        JSON.stringify({ 
+          error: "Job value too low", 
+          message: "We only accept jobs with a minimum value of £100. Please select a larger service package." 
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Insert lead into database
     const { data, error } = await supabase.from("leads").insert({
@@ -84,8 +87,8 @@ serve(async (req) => {
       postcode: body.postcode.toUpperCase(),
       job_type: body.jobType,
       date: body.preferredDate,
-      display_value: body.estimatedValue || getDisplayValue(body.jobType),
-      value: getValue(body.jobType),
+      display_value: displayValue,
+      value: value,
       source: "website",
       lead_status: "new",
       outcome_status: "pending",
@@ -100,7 +103,7 @@ serve(async (req) => {
       );
     }
 
-    console.log("Lead created successfully:", data.id);
+    console.log("Lead created successfully:", data.id, "| Job Type:", body.jobType, "| Value:", value);
 
     return new Response(
       JSON.stringify({ 
