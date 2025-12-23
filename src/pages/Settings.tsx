@@ -10,6 +10,7 @@ import {
   Phone,
   MapPin,
   MessageSquare,
+  Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +38,7 @@ export default function Settings() {
   const [postcode, setPostcode] = useState("");
   const [whatsappOptin, setWhatsappOptin] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [testingWhatsapp, setTestingWhatsapp] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Redirect if not logged in
@@ -106,6 +108,49 @@ export default function Settings() {
       toast.error("Failed to update profile. Please try again.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleTestWhatsapp = async () => {
+    if (!phone) {
+      toast.error("Please enter your phone number first");
+      return;
+    }
+    if (!whatsappOptin) {
+      toast.error("Please enable WhatsApp notifications first");
+      return;
+    }
+
+    setTestingWhatsapp(true);
+    try {
+      // First save the profile to ensure phone is stored
+      await handleSave();
+
+      // Get a sample lead to test with (or create a test message)
+      const { data: leads } = await supabase
+        .from("leads")
+        .select("id")
+        .limit(1);
+
+      if (leads && leads.length > 0) {
+        const { error } = await supabase.functions.invoke("send-whatsapp", {
+          body: {
+            type: "lead_unlocked",
+            leadId: leads[0].id,
+            userId: user?.id,
+          },
+        });
+
+        if (error) throw error;
+        toast.success("Test message sent! Check your WhatsApp.");
+      } else {
+        toast.error("No leads available to test with");
+      }
+    } catch (error: any) {
+      console.error("Error sending test WhatsApp:", error);
+      toast.error(error.message || "Failed to send test message");
+    } finally {
+      setTestingWhatsapp(false);
     }
   };
 
@@ -264,6 +309,24 @@ export default function Settings() {
                   onCheckedChange={setWhatsappOptin}
                 />
               </div>
+
+              {/* Test WhatsApp button */}
+              {whatsappOptin && phone && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={handleTestWhatsapp}
+                  disabled={testingWhatsapp}
+                >
+                  {testingWhatsapp ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                  Send Test WhatsApp Message
+                </Button>
+              )}
 
               {/* Save button */}
               <Button
