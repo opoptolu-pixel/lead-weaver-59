@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Save, Users, Shield, Globe, Bell, Loader2, Mail, Edit, X, Check } from "lucide-react";
+import { Save, Users, Shield, Globe, Bell, Loader2, Mail, Edit, X, Check, Lock } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import TwoFactorSetup from "@/components/admin/TwoFactorSetup";
 
 interface UserWithRole {
   id: string;
@@ -258,6 +259,10 @@ export default function AdminSettings() {
             <Globe className="w-4 h-4" />
             Site Config
           </TabsTrigger>
+          <TabsTrigger value="security" className="gap-2">
+            <Lock className="w-4 h-4" />
+            Security
+          </TabsTrigger>
           <TabsTrigger value="emails" className="gap-2">
             <Mail className="w-4 h-4" />
             Email Templates
@@ -350,6 +355,38 @@ export default function AdminSettings() {
                 <Button onClick={handleSaveSiteSettings} disabled={loading}>
                   {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
                   Save Changes
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Security */}
+        <TabsContent value="security" className="space-y-6">
+          <TwoFactorSetup />
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Session Security</CardTitle>
+              <CardDescription>Manage your active sessions and security preferences</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Current Session</p>
+                  <p className="text-sm text-muted-foreground">
+                    Last active: Just now
+                  </p>
+                </div>
+                <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Active</Badge>
+              </div>
+              <div className="pt-4 border-t">
+                <Button variant="outline" onClick={async () => {
+                  await supabase.auth.signOut();
+                  toast.success("Signed out of all sessions");
+                  window.location.href = "/auth";
+                }}>
+                  Sign Out All Sessions
                 </Button>
               </div>
             </CardContent>
