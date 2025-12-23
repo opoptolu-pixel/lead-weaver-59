@@ -41,14 +41,19 @@ serve(async (req) => {
     if (!leadId) throw new Error("Lead ID is required");
     logStep("Lead ID received", { leadId });
 
-    // Get user's current credits
+    // Get user's current credits and suspension status
     const { data: profile, error: profileError } = await supabaseClient
       .from("profiles")
-      .select("credits")
+      .select("credits, is_suspended, suspension_reason")
       .eq("user_id", user.id)
       .single();
 
     if (profileError) throw new Error(`Failed to fetch profile: ${profileError.message}`);
+
+    // CRITICAL: Check if user is suspended
+    if (profile?.is_suspended) {
+      throw new Error(profile.suspension_reason || "Your account is suspended. Please contact support.");
+    }
 
     const currentCredits = profile?.credits || 0;
     if (currentCredits < 1) {
@@ -77,18 +82,41 @@ serve(async (req) => {
     if (creditError) throw new Error(`Failed to deduct credit: ${creditError.message}`);
     logStep("Credit deducted", { newCredits: currentCredits - 1 });
 
-    // Unlock the lead
+    // Unlock the lead and update status
     const { error: updateError } = await supabaseClient
       .from("leads")
       .update({
         is_unlocked: true,
         unlocked_by: user.id,
         unlocked_at: new Date().toISOString(),
+        lead_status: "purchased",
+        outcome_status: "purchased",
       })
       .eq("id", leadId);
 
     if (updateError) throw new Error(`Failed to unlock lead: ${updateError.message}`);
     logStep("Lead unlocked successfully");
+
+    // Increment leads_purchased counter (fire-and-forget)
+    const incrementLeads = async () => {
+      try {
+        const { data: currentProfile } = await supabaseClient
+          .from("profiles")
+          .select("leads_purchased")
+          .eq("user_id", user.id)
+          .single();
+        
+        await supabaseClient
+          .from("profiles")
+          .update({ leads_purchased: (currentProfile?.leads_purchased || 0) + 1 })
+          .eq("user_id", user.id);
+        
+        logStep("Leads purchased counter updated");
+      } catch (err) {
+        logStep("Failed to update leads_purchased", { error: (err as Error).message });
+      }
+    };
+    incrementLeads();
 
     return new Response(JSON.stringify({
       success: true,
