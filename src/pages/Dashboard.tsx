@@ -252,6 +252,11 @@ export default function Dashboard() {
                     Performance
                   </Button>
                 </Link>
+                <Link to="/billing" className="hidden sm:block">
+                  <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10">
+                    Billing
+                  </Button>
+                </Link>
                 <Link to="/disputes" className="hidden sm:block">
                   <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10">
                     Disputes

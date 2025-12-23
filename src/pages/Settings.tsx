@@ -342,6 +342,23 @@ export default function Settings() {
             </div>
           </div>
 
+          {/* Quick links */}
+          <div className="mt-8 p-6 rounded-2xl border border-border bg-card">
+            <h2 className="font-heading text-lg font-semibold text-foreground mb-4">
+              Account Management
+            </h2>
+            <div className="space-y-3">
+              <Link to="/billing" className="flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors">
+                <span className="text-foreground">Billing & Receipts</span>
+                <ArrowLeft className="w-4 h-4 text-muted-foreground rotate-180" />
+              </Link>
+              <Link to="/settings/verification" className="flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors">
+                <span className="text-foreground">Verification Status</span>
+                <ArrowLeft className="w-4 h-4 text-muted-foreground rotate-180" />
+              </Link>
+            </div>
+          </div>
+
           {/* Danger zone */}
           <div className="mt-8 p-6 rounded-2xl border border-destructive/30 bg-destructive/5">
             <h2 className="font-heading text-lg font-semibold text-foreground mb-2">
