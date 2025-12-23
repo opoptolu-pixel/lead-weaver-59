@@ -18,14 +18,14 @@ export const HeroSection = () => {
   };
 
   return (
-    <section className="relative min-h-[70vh] bg-hero-gradient overflow-hidden flex items-center">
+    <section className="relative min-h-[60vh] bg-hero-gradient overflow-hidden flex items-center pt-20">
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-20 right-10 w-72 h-72 bg-secondary/10 rounded-full blur-3xl" />
         <div className="absolute bottom-20 left-10 w-96 h-96 bg-secondary/5 rounded-full blur-3xl" />
       </div>
 
-      <div className="relative container mx-auto px-4 py-20">
+      <div className="relative container mx-auto px-4 py-12">
         <div className="max-w-3xl mx-auto text-center">
           {/* Badge */}
           <div className="inline-flex items-center gap-2 bg-secondary/20 backdrop-blur-sm border border-secondary/30 rounded-full px-4 py-2 mb-8 animate-slide-up">
@@ -48,22 +48,22 @@ export const HeroSection = () => {
 
           {/* Search bar */}
           <form onSubmit={handleSearch} className="animate-slide-up stagger-3">
-            <div className="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto">
+            <div className="flex flex-col sm:flex-row gap-4 max-w-2xl mx-auto">
               <div className="relative flex-1">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-muted-foreground" />
                 <Input
                   type="text"
                   placeholder="Enter postcode or city (e.g. SW1, Manchester)"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-12 h-14 text-base bg-background/95 border-border rounded-xl shadow-lg"
+                  className="pl-14 h-16 text-lg bg-background border-2 border-border rounded-xl shadow-xl focus:border-secondary"
                 />
               </div>
               <Button 
                 type="submit"
                 variant="hero" 
                 size="xl"
-                className="h-14 px-8"
+                className="h-16 px-10 text-lg font-semibold shadow-xl"
               >
                 Search Leads
               </Button>

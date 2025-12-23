@@ -45,7 +45,7 @@ export const Header = () => {
             <img 
               src={logo} 
               alt="Deep Clean UK" 
-              className="h-10 w-auto"
+              className="h-14 w-auto"
             />
           </Link>
 
