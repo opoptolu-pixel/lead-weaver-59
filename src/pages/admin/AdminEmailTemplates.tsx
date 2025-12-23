@@ -56,49 +56,192 @@ interface EmailTemplate {
 const DEFAULT_TEMPLATES = [
   {
     name: "cleaning_request_confirmation",
-    subject: "Cleaning Request Confirmed - Ref #{{reference_id}}",
+    subject: "Your Cleaning Request is Confirmed ✓ Ref #{{reference_id}}",
     description: "Sent to customers when they submit a cleaning request",
-    variables: ["customer_name", "job_type", "preferred_date", "postcode", "reference_id"],
+    variables: ["customer_name", "job_type", "preferred_date", "postcode", "reference_id", "current_year"],
     body: `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f4f4f4; padding: 20px 0;">
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f0f4f3; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f0f4f3; padding: 40px 20px;">
     <tr>
       <td align="center">
-        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden;">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(11, 61, 46, 0.08);">
+          
+          <!-- Header with Logo -->
           <tr>
-            <td style="background-color: #0B3D2E; padding: 30px 40px; text-align: center;">
-              <h1 style="color: #ffffff; margin: 0; font-size: 28px;">Deep Clean UK</h1>
+            <td style="background: linear-gradient(135deg, #0B3D2E 0%, #145A44 100%); padding: 40px 40px 35px 40px; text-align: center;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center">
+                    <div style="width: 60px; height: 60px; background-color: rgba(255,255,255,0.15); border-radius: 12px; margin-bottom: 16px; display: inline-block; line-height: 60px;">
+                      <span style="font-size: 28px;">🧹</span>
+                    </div>
+                    <h1 style="color: #ffffff; margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.5px;">Deep Clean UK</h1>
+                    <p style="color: #7DD3A8; margin: 6px 0 0 0; font-size: 13px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">Professional Cleaning Network</p>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
+          
+          <!-- Success Banner -->
           <tr>
-            <td style="padding: 40px;">
-              <h2 style="color: #0B3D2E; margin: 0 0 20px 0;">Request Received!</h2>
-              <p style="color: #666666; font-size: 16px; line-height: 1.6;">
-                Hi {{customer_name}}, thank you for choosing Deep Clean UK. We have received your cleaning request.
-              </p>
-              <div style="background-color: #f8f9fa; border-radius: 8px; padding: 20px; margin: 20px 0;">
-                <p style="margin: 5px 0;"><strong>Reference:</strong> #{{reference_id}}</p>
-                <p style="margin: 5px 0;"><strong>Service:</strong> {{job_type}}</p>
-                <p style="margin: 5px 0;"><strong>Date:</strong> {{preferred_date}}</p>
-                <p style="margin: 5px 0;"><strong>Location:</strong> {{postcode}}</p>
-              </div>
-              <p style="color: #666666; font-size: 16px; line-height: 1.6;">
-                A verified local cleaner will contact you within 24 hours to confirm details.
-              </p>
+            <td style="padding: 0;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #E8F5E9;">
+                <tr>
+                  <td style="padding: 20px 40px; text-align: center;">
+                    <span style="display: inline-block; background-color: #4CAF50; color: white; font-size: 18px; width: 32px; height: 32px; line-height: 32px; border-radius: 50%; margin-right: 10px;">✓</span>
+                    <span style="color: #2E7D32; font-size: 18px; font-weight: 600;">Request Successfully Submitted</span>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
+          
+          <!-- Main Content -->
           <tr>
-            <td style="background-color: #f8f9fa; padding: 20px 40px; text-align: center;">
-              <p style="color: #888888; font-size: 12px; margin: 0;">
-                © {{current_year}} Deep Clean UK. All rights reserved.
+            <td style="padding: 35px 40px;">
+              <p style="color: #333333; font-size: 17px; line-height: 1.7; margin: 0 0 25px 0;">
+                Hi <strong>{{customer_name}}</strong>,
               </p>
+              <p style="color: #555555; font-size: 16px; line-height: 1.7; margin: 0 0 30px 0;">
+                Thank you for choosing Deep Clean UK! Your cleaning request has been received and we are now matching you with a trusted, verified cleaner in your area.
+              </p>
+              
+              <!-- Booking Details Card -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: linear-gradient(135deg, #fafbfc 0%, #f5f7f6 100%); border-radius: 12px; border: 1px solid #e8ebe9; margin-bottom: 30px;">
+                <tr>
+                  <td style="padding: 25px;">
+                    <h3 style="color: #0B3D2E; margin: 0 0 20px 0; font-size: 15px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Your Booking Details</h3>
+                    
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e8ebe9;">
+                          <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                            <tr>
+                              <td width="40" valign="top"><span style="font-size: 20px;">🏷️</span></td>
+                              <td>
+                                <span style="color: #888888; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Reference</span><br>
+                                <span style="color: #0B3D2E; font-size: 18px; font-weight: 700;">#{{reference_id}}</span>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e8ebe9;">
+                          <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                            <tr>
+                              <td width="40" valign="top"><span style="font-size: 20px;">🧽</span></td>
+                              <td>
+                                <span style="color: #888888; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Service</span><br>
+                                <span style="color: #333333; font-size: 16px; font-weight: 500;">{{job_type}}</span>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #e8ebe9;">
+                          <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                            <tr>
+                              <td width="40" valign="top"><span style="font-size: 20px;">📅</span></td>
+                              <td>
+                                <span style="color: #888888; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Preferred Date</span><br>
+                                <span style="color: #333333; font-size: 16px; font-weight: 500;">{{preferred_date}}</span>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0;">
+                          <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                            <tr>
+                              <td width="40" valign="top"><span style="font-size: 20px;">📍</span></td>
+                              <td>
+                                <span style="color: #888888; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Location</span><br>
+                                <span style="color: #333333; font-size: 16px; font-weight: 500;">{{postcode}}</span>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              
+              <!-- What Happens Next -->
+              <h3 style="color: #0B3D2E; margin: 0 0 18px 0; font-size: 18px; font-weight: 600;">What Happens Next?</h3>
+              
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td style="padding: 10px 0;">
+                    <table role="presentation" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td width="36" valign="top">
+                          <div style="width: 28px; height: 28px; background-color: #0B3D2E; color: white; border-radius: 50%; text-align: center; line-height: 28px; font-size: 14px; font-weight: 600;">1</div>
+                        </td>
+                        <td style="padding-left: 12px;">
+                          <p style="color: #333333; font-size: 15px; margin: 0; line-height: 1.5;"><strong>Matching in progress</strong> — We are finding the best cleaner for your job</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 0;">
+                    <table role="presentation" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td width="36" valign="top">
+                          <div style="width: 28px; height: 28px; background-color: #0B3D2E; color: white; border-radius: 50%; text-align: center; line-height: 28px; font-size: 14px; font-weight: 600;">2</div>
+                        </td>
+                        <td style="padding-left: 12px;">
+                          <p style="color: #333333; font-size: 15px; margin: 0; line-height: 1.5;"><strong>Cleaner contacts you</strong> — Within 24 hours to confirm details</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 0;">
+                    <table role="presentation" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td width="36" valign="top">
+                          <div style="width: 28px; height: 28px; background-color: #0B3D2E; color: white; border-radius: 50%; text-align: center; line-height: 28px; font-size: 14px; font-weight: 600;">3</div>
+                        </td>
+                        <td style="padding-left: 12px;">
+                          <p style="color: #333333; font-size: 15px; margin: 0; line-height: 1.5;"><strong>Enjoy a sparkling clean space!</strong></p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
+          
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #0B3D2E; padding: 30px 40px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center">
+                    <p style="color: #7DD3A8; font-size: 14px; margin: 0 0 8px 0;">Questions? Just reply to this email.</p>
+                    <p style="color: rgba(255,255,255,0.5); font-size: 12px; margin: 0;">
+                      © {{current_year}} Deep Clean UK · All rights reserved
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          
         </table>
       </td>
     </tr>
@@ -108,39 +251,119 @@ const DEFAULT_TEMPLATES = [
   },
   {
     name: "lead_available_notification",
-    subject: "New Lead Available in {{postcode}} - {{job_type}}",
+    subject: "🔔 New {{job_type}} Lead in {{postcode_area}} — Act Fast!",
     description: "Sent to businesses when a new lead matches their area",
-    variables: ["business_name", "job_type", "postcode", "display_value", "lead_date"],
+    variables: ["business_name", "contact_name", "job_type", "postcode_area", "display_value", "lead_date", "dashboard_url", "current_year"],
     body: `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #f4f4f4;">
-  <table width="100%" cellspacing="0" cellpadding="0" style="background-color: #f4f4f4; padding: 20px 0;">
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f0f4f3; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f0f4f3; padding: 40px 20px;">
     <tr>
       <td align="center">
-        <table width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 8px;">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(11, 61, 46, 0.08);">
+          
+          <!-- Header -->
           <tr>
-            <td style="background-color: #0B3D2E; padding: 25px; text-align: center;">
-              <h1 style="color: #ffffff; margin: 0;">New Lead Available!</h1>
+            <td style="background: linear-gradient(135deg, #0B3D2E 0%, #145A44 100%); padding: 35px 40px; text-align: center;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700;">Deep Clean UK</h1>
+              <p style="color: #7DD3A8; margin: 6px 0 0 0; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">Partner Network</p>
             </td>
           </tr>
+          
+          <!-- Alert Banner -->
           <tr>
-            <td style="padding: 30px;">
-              <p style="color: #333; font-size: 16px;">Hi {{business_name}},</p>
-              <p style="color: #666; font-size: 16px;">A new cleaning lead is available in your area:</p>
-              <div style="background: #E8F5E9; border-left: 4px solid #4CAF50; padding: 15px; margin: 20px 0;">
-                <p style="margin: 5px 0;"><strong>Service:</strong> {{job_type}}</p>
-                <p style="margin: 5px 0;"><strong>Location:</strong> {{postcode}}</p>
-                <p style="margin: 5px 0;"><strong>Value:</strong> {{display_value}}</p>
-                <p style="margin: 5px 0;"><strong>Date:</strong> {{lead_date}}</p>
-              </div>
-              <p style="text-align: center; margin-top: 25px;">
-                <a href="{{dashboard_url}}" style="background-color: #0B3D2E; color: #ffffff; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold;">View Lead</a>
+            <td style="padding: 0;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: linear-gradient(90deg, #FF6B35 0%, #F7931E 100%);">
+                <tr>
+                  <td style="padding: 16px 40px; text-align: center;">
+                    <span style="color: #ffffff; font-size: 15px; font-weight: 600;">🔥 New Lead Available — First Come, First Served!</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          
+          <!-- Main Content -->
+          <tr>
+            <td style="padding: 35px 40px;">
+              <p style="color: #333333; font-size: 17px; line-height: 1.6; margin: 0 0 25px 0;">
+                Hi <strong>{{contact_name}}</strong>,
+              </p>
+              <p style="color: #555555; font-size: 16px; line-height: 1.7; margin: 0 0 28px 0;">
+                Great news! A new cleaning lead has just come in that matches your service area. Act quickly to secure this job before another cleaner does.
+              </p>
+              
+              <!-- Lead Card -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%); border-radius: 12px; border: 2px solid #4CAF50; margin-bottom: 28px;">
+                <tr>
+                  <td style="padding: 28px;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td colspan="2" style="padding-bottom: 18px; border-bottom: 1px solid rgba(76, 175, 80, 0.3);">
+                          <span style="background-color: #4CAF50; color: white; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 12px; text-transform: uppercase; letter-spacing: 0.5px;">New Lead</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td width="50%" style="padding: 18px 10px 18px 0; vertical-align: top;">
+                          <span style="color: #666666; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Service Type</span><br>
+                          <span style="color: #0B3D2E; font-size: 18px; font-weight: 700; display: block; margin-top: 4px;">{{job_type}}</span>
+                        </td>
+                        <td width="50%" style="padding: 18px 0 18px 10px; vertical-align: top; border-left: 1px solid rgba(76, 175, 80, 0.3);">
+                          <span style="color: #666666; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Estimated Value</span><br>
+                          <span style="color: #2E7D32; font-size: 18px; font-weight: 700; display: block; margin-top: 4px;">{{display_value}}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td width="50%" style="padding: 0 10px 0 0; vertical-align: top;">
+                          <span style="color: #666666; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">📍 Area</span><br>
+                          <span style="color: #333333; font-size: 16px; font-weight: 600; display: block; margin-top: 4px;">{{postcode_area}}</span>
+                        </td>
+                        <td width="50%" style="padding: 0 0 0 10px; vertical-align: top; border-left: 1px solid rgba(76, 175, 80, 0.3);">
+                          <span style="color: #666666; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">📅 Date Needed</span><br>
+                          <span style="color: #333333; font-size: 16px; font-weight: 600; display: block; margin-top: 4px;">{{lead_date}}</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              
+              <!-- CTA Button -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center" style="padding: 10px 0 25px 0;">
+                    <a href="{{dashboard_url}}" style="display: inline-block; background: linear-gradient(135deg, #0B3D2E 0%, #145A44 100%); color: #ffffff; padding: 16px 40px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 16px; box-shadow: 0 4px 12px rgba(11, 61, 46, 0.3);">View Lead & Unlock →</a>
+                  </td>
+                </tr>
+              </table>
+              
+              <p style="color: #888888; font-size: 13px; text-align: center; margin: 0; line-height: 1.5;">
+                Leads are available on a first-come, first-served basis.<br>
+                Use 1 credit to unlock full customer details.
               </p>
             </td>
           </tr>
+          
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #0B3D2E; padding: 25px 40px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center">
+                    <p style="color: rgba(255,255,255,0.6); font-size: 12px; margin: 0;">
+                      You are receiving this because you are a registered {{business_name}} partner.<br>
+                      © {{current_year}} Deep Clean UK
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          
         </table>
       </td>
     </tr>
@@ -150,42 +373,136 @@ const DEFAULT_TEMPLATES = [
   },
   {
     name: "welcome_business",
-    subject: "Welcome to Deep Clean UK, {{business_name}}!",
+    subject: "Welcome to Deep Clean UK, {{business_name}}! 🎉",
     description: "Sent to new businesses when they sign up",
-    variables: ["business_name", "contact_name"],
+    variables: ["business_name", "contact_name", "dashboard_url", "current_year"],
     body: `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #f4f4f4;">
-  <table width="100%" cellspacing="0" cellpadding="0" style="background-color: #f4f4f4; padding: 20px 0;">
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f0f4f3; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f0f4f3; padding: 40px 20px;">
     <tr>
       <td align="center">
-        <table width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 8px;">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(11, 61, 46, 0.08);">
+          
+          <!-- Header -->
           <tr>
-            <td style="background-color: #0B3D2E; padding: 25px; text-align: center;">
-              <h1 style="color: #ffffff; margin: 0;">Welcome to Deep Clean UK!</h1>
+            <td style="background: linear-gradient(135deg, #0B3D2E 0%, #145A44 100%); padding: 50px 40px; text-align: center;">
+              <div style="font-size: 48px; margin-bottom: 16px;">🎉</div>
+              <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 700;">Welcome to Deep Clean UK!</h1>
+              <p style="color: #7DD3A8; margin: 10px 0 0 0; font-size: 16px;">You are now part of our trusted cleaner network</p>
             </td>
           </tr>
+          
+          <!-- Main Content -->
           <tr>
-            <td style="padding: 30px;">
-              <p style="color: #333; font-size: 16px;">Hi {{contact_name}},</p>
-              <p style="color: #666; font-size: 16px; line-height: 1.6;">
-                Welcome to Deep Clean UK! We are excited to have {{business_name}} join our network of professional cleaners.
+            <td style="padding: 40px;">
+              <p style="color: #333333; font-size: 17px; line-height: 1.6; margin: 0 0 25px 0;">
+                Hi <strong>{{contact_name}}</strong>,
               </p>
-              <h3 style="color: #0B3D2E;">Getting Started:</h3>
-              <ol style="color: #666; line-height: 1.8;">
-                <li>Complete your business verification</li>
-                <li>Add credits to your account</li>
-                <li>Browse and unlock leads in your area</li>
-                <li>Contact customers and win jobs!</li>
-              </ol>
-              <p style="text-align: center; margin-top: 25px;">
-                <a href="{{dashboard_url}}" style="background-color: #0B3D2E; color: #ffffff; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold;">Go to Dashboard</a>
+              <p style="color: #555555; font-size: 16px; line-height: 1.7; margin: 0 0 30px 0;">
+                Welcome aboard! We are thrilled to have <strong>{{business_name}}</strong> join our growing network of professional cleaners across the UK. You now have access to quality leads in your area.
               </p>
+              
+              <!-- Getting Started Steps -->
+              <h3 style="color: #0B3D2E; margin: 0 0 20px 0; font-size: 18px; font-weight: 600;">Get Started in 4 Simple Steps</h3>
+              
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 30px;">
+                <tr>
+                  <td style="padding: 16px; background-color: #f8faf9; border-radius: 10px; margin-bottom: 12px;">
+                    <table role="presentation" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td width="50" valign="top">
+                          <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #0B3D2E, #145A44); color: white; border-radius: 50%; text-align: center; line-height: 36px; font-size: 16px; font-weight: 700;">1</div>
+                        </td>
+                        <td style="padding-left: 8px;">
+                          <p style="color: #0B3D2E; font-size: 15px; font-weight: 600; margin: 0 0 4px 0;">Complete Your Verification</p>
+                          <p style="color: #666666; font-size: 14px; margin: 0;">Upload your business documents to get verified</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr><td style="height: 12px;"></td></tr>
+                <tr>
+                  <td style="padding: 16px; background-color: #f8faf9; border-radius: 10px;">
+                    <table role="presentation" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td width="50" valign="top">
+                          <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #0B3D2E, #145A44); color: white; border-radius: 50%; text-align: center; line-height: 36px; font-size: 16px; font-weight: 700;">2</div>
+                        </td>
+                        <td style="padding-left: 8px;">
+                          <p style="color: #0B3D2E; font-size: 15px; font-weight: 600; margin: 0 0 4px 0;">Add Credits to Your Account</p>
+                          <p style="color: #666666; font-size: 14px; margin: 0;">Purchase credit packs to unlock leads</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr><td style="height: 12px;"></td></tr>
+                <tr>
+                  <td style="padding: 16px; background-color: #f8faf9; border-radius: 10px;">
+                    <table role="presentation" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td width="50" valign="top">
+                          <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #0B3D2E, #145A44); color: white; border-radius: 50%; text-align: center; line-height: 36px; font-size: 16px; font-weight: 700;">3</div>
+                        </td>
+                        <td style="padding-left: 8px;">
+                          <p style="color: #0B3D2E; font-size: 15px; font-weight: 600; margin: 0 0 4px 0;">Browse Available Leads</p>
+                          <p style="color: #666666; font-size: 14px; margin: 0;">Find cleaning jobs in your area</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr><td style="height: 12px;"></td></tr>
+                <tr>
+                  <td style="padding: 16px; background-color: #f8faf9; border-radius: 10px;">
+                    <table role="presentation" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td width="50" valign="top">
+                          <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #0B3D2E, #145A44); color: white; border-radius: 50%; text-align: center; line-height: 36px; font-size: 16px; font-weight: 700;">4</div>
+                        </td>
+                        <td style="padding-left: 8px;">
+                          <p style="color: #0B3D2E; font-size: 15px; font-weight: 600; margin: 0 0 4px 0;">Win Jobs & Grow Your Business</p>
+                          <p style="color: #666666; font-size: 14px; margin: 0;">Contact customers and deliver great service</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              
+              <!-- CTA Button -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center" style="padding: 10px 0;">
+                    <a href="{{dashboard_url}}" style="display: inline-block; background: linear-gradient(135deg, #0B3D2E 0%, #145A44 100%); color: #ffffff; padding: 16px 40px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 16px; box-shadow: 0 4px 12px rgba(11, 61, 46, 0.3);">Go to Your Dashboard →</a>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
+          
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #0B3D2E; padding: 30px 40px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center">
+                    <p style="color: #7DD3A8; font-size: 14px; margin: 0 0 8px 0;">Need help? Reply to this email anytime.</p>
+                    <p style="color: rgba(255,255,255,0.5); font-size: 12px; margin: 0;">
+                      © {{current_year}} Deep Clean UK · All rights reserved
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          
         </table>
       </td>
     </tr>
@@ -359,6 +676,7 @@ export default function AdminEmailTemplates() {
       contact_name: "Jane Doe",
       job_type: "End of Tenancy Clean",
       postcode: "SW1A 1AA",
+      postcode_area: "SW1A",
       display_value: "from £150",
       reference_id: "ABC12345",
       preferred_date: "Monday, 15 January 2025",
@@ -529,7 +847,9 @@ export default function AdminEmailTemplates() {
                 <ul className="text-muted-foreground space-y-1 mt-1">
                   <li><code className="bg-muted px-1 rounded">{"{{job_type}}"}</code></li>
                   <li><code className="bg-muted px-1 rounded">{"{{postcode}}"}</code></li>
+                  <li><code className="bg-muted px-1 rounded">{"{{postcode_area}}"}</code></li>
                   <li><code className="bg-muted px-1 rounded">{"{{display_value}}"}</code></li>
+                  <li><code className="bg-muted px-1 rounded">{"{{lead_date}}"}</code></li>
                 </ul>
               </div>
               <div>
