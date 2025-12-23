@@ -187,8 +187,18 @@ const generateConfirmationEmail = (
   `;
 };
 
+// Replace template variables with actual values
+const replaceTemplateVariables = (template: string, variables: Record<string, string>): string => {
+  let result = template;
+  Object.entries(variables).forEach(([key, value]) => {
+    result = result.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
+  });
+  return result;
+};
+
 // Send confirmation email via Resend
 const sendConfirmationEmail = async (
+  supabase: any,
   customerEmail: string,
   customerName: string,
   jobType: string,
@@ -203,7 +213,44 @@ const sendConfirmationEmail = async (
   }
 
   try {
-    const html = generateConfirmationEmail(customerName, jobType, preferredDate, postcode, referenceId);
+    // Try to fetch template from database
+    const { data: template } = await supabase
+      .from("email_templates")
+      .select("subject, body")
+      .eq("name", "cleaning_request_confirmation")
+      .eq("is_active", true)
+      .maybeSingle();
+
+    const formattedDate = new Date(preferredDate).toLocaleDateString('en-GB', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    const variables: Record<string, string> = {
+      customer_name: customerName,
+      job_type: jobType,
+      preferred_date: formattedDate,
+      postcode: postcode,
+      reference_id: referenceId,
+      current_year: new Date().getFullYear().toString(),
+    };
+
+    let subject: string;
+    let html: string;
+
+    if (template) {
+      // Use database template
+      subject = replaceTemplateVariables(template.subject, variables);
+      html = replaceTemplateVariables(template.body, variables);
+      console.log("[SUBMIT-CLEANING] Using database template");
+    } else {
+      // Use fallback template
+      subject = `Cleaning Request Confirmed - Ref #${referenceId}`;
+      html = generateConfirmationEmail(customerName, jobType, preferredDate, postcode, referenceId);
+      console.log("[SUBMIT-CLEANING] Using fallback template (no database template found)");
+    }
 
     const response = await fetch(RESEND_API_URL, {
       method: "POST",
@@ -214,7 +261,7 @@ const sendConfirmationEmail = async (
       body: JSON.stringify({
         from: FROM_EMAIL,
         to: [customerEmail],
-        subject: `Cleaning Request Confirmed - Ref #${referenceId}`,
+        subject: subject,
         html: html,
       }),
     });
@@ -356,6 +403,7 @@ serve(async (req) => {
 
     // Send confirmation email (non-blocking)
     await sendConfirmationEmail(
+      supabase,
       body.customerEmail,
       body.customerName,
       body.jobType,
