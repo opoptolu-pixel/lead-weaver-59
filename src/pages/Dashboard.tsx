@@ -18,6 +18,8 @@ import {
   XCircle,
   Clock,
   MessageSquareX,
+  Lock,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,6 +60,8 @@ interface UnlockedLead {
   job_status: string | null;
   job_notes: string | null;
   job_completed_at: string | null;
+  access_expires_at: string | null;
+  is_access_expired: boolean;
 }
 
 export default function Dashboard() {
@@ -78,17 +82,17 @@ export default function Dashboard() {
     }
   }, [user, authLoading, navigate]);
 
-  // Fetch unlocked leads
+  // Fetch unlocked leads using secure function with time-limited access
   useEffect(() => {
     const fetchLeads = async () => {
       if (!user) return;
 
       try {
+        // Use secure function that masks customer data after 30 days
         const { data, error } = await supabase
-          .from("leads")
-          .select("*")
-          .eq("unlocked_by", user.id)
-          .order("unlocked_at", { ascending: false });
+          .rpc("get_user_leads_with_access_control", {
+            p_user_id: user.id,
+          });
 
         if (error) throw error;
         setLeads(data || []);
@@ -468,7 +472,24 @@ export default function Dashboard() {
           ) : (
             <div className="divide-y divide-border">
               {filteredLeads.map((lead) => (
-                <div key={lead.id} className="p-6 hover:bg-muted/30 transition-colors">
+                <div key={lead.id} className={`p-6 hover:bg-muted/30 transition-colors ${lead.is_access_expired ? 'bg-muted/20' : ''}`}>
+                  {/* Access expiration warning */}
+                  {lead.is_access_expired ? (
+                    <div className="flex items-center gap-2 bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2 mb-4">
+                      <Lock className="w-4 h-4 text-destructive" />
+                      <span className="text-destructive text-sm font-medium">
+                        Contact access expired - Customer data is no longer available
+                      </span>
+                    </div>
+                  ) : lead.access_expires_at && (
+                    <div className="flex items-center gap-2 bg-secondary/10 border border-secondary/20 rounded-lg px-3 py-2 mb-4">
+                      <AlertTriangle className="w-4 h-4 text-secondary" />
+                      <span className="text-secondary text-sm">
+                        Contact access expires: {formatDate(lead.access_expires_at)}
+                      </span>
+                    </div>
+                  )}
+                  
                   <div className="flex flex-col lg:flex-row lg:items-start gap-6">
                     {/* Lead info */}
                     <div className="flex-1">
@@ -491,67 +512,81 @@ export default function Dashboard() {
                         </div>
                       </div>
 
-                      <p className="text-foreground font-medium mb-4">
+                      <p className={`font-medium mb-4 ${lead.is_access_expired ? 'text-muted-foreground' : 'text-foreground'}`}>
                         {lead.customer_name}
                       </p>
 
                       {/* Contact details */}
                       <div className="grid md:grid-cols-2 gap-3">
-                        <div className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2">
-                          <Phone className="w-4 h-4 text-secondary" />
-                          <a
-                            href={`tel:${lead.customer_phone}`}
-                            className="text-foreground hover:text-secondary transition-colors flex-1"
-                          >
-                            {lead.customer_phone}
-                          </a>
-                          <button
-                            onClick={() => copyToClipboard(lead.customer_phone, `phone-${lead.id}`)}
-                            className="text-muted-foreground hover:text-foreground"
-                          >
-                            {copiedField === `phone-${lead.id}` ? (
-                              <Check className="w-4 h-4" />
-                            ) : (
-                              <Copy className="w-4 h-4" />
-                            )}
-                          </button>
+                        <div className={`flex items-center gap-2 rounded-lg px-3 py-2 ${lead.is_access_expired ? 'bg-muted/30' : 'bg-muted/50'}`}>
+                          <Phone className={`w-4 h-4 ${lead.is_access_expired ? 'text-muted-foreground' : 'text-secondary'}`} />
+                          {lead.is_access_expired ? (
+                            <span className="text-muted-foreground flex-1">{lead.customer_phone}</span>
+                          ) : (
+                            <>
+                              <a
+                                href={`tel:${lead.customer_phone}`}
+                                className="text-foreground hover:text-secondary transition-colors flex-1"
+                              >
+                                {lead.customer_phone}
+                              </a>
+                              <button
+                                onClick={() => copyToClipboard(lead.customer_phone, `phone-${lead.id}`)}
+                                className="text-muted-foreground hover:text-foreground"
+                              >
+                                {copiedField === `phone-${lead.id}` ? (
+                                  <Check className="w-4 h-4" />
+                                ) : (
+                                  <Copy className="w-4 h-4" />
+                                )}
+                              </button>
+                            </>
+                          )}
                         </div>
 
-                        <div className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2">
-                          <Mail className="w-4 h-4 text-secondary" />
-                          <a
-                            href={`mailto:${lead.customer_email}`}
-                            className="text-foreground hover:text-secondary transition-colors flex-1 truncate"
-                          >
-                            {lead.customer_email}
-                          </a>
-                          <button
-                            onClick={() => copyToClipboard(lead.customer_email, `email-${lead.id}`)}
-                            className="text-muted-foreground hover:text-foreground"
-                          >
-                            {copiedField === `email-${lead.id}` ? (
-                              <Check className="w-4 h-4" />
-                            ) : (
-                              <Copy className="w-4 h-4" />
-                            )}
-                          </button>
+                        <div className={`flex items-center gap-2 rounded-lg px-3 py-2 ${lead.is_access_expired ? 'bg-muted/30' : 'bg-muted/50'}`}>
+                          <Mail className={`w-4 h-4 ${lead.is_access_expired ? 'text-muted-foreground' : 'text-secondary'}`} />
+                          {lead.is_access_expired ? (
+                            <span className="text-muted-foreground flex-1 truncate">{lead.customer_email}</span>
+                          ) : (
+                            <>
+                              <a
+                                href={`mailto:${lead.customer_email}`}
+                                className="text-foreground hover:text-secondary transition-colors flex-1 truncate"
+                              >
+                                {lead.customer_email}
+                              </a>
+                              <button
+                                onClick={() => copyToClipboard(lead.customer_email, `email-${lead.id}`)}
+                                className="text-muted-foreground hover:text-foreground"
+                              >
+                                {copiedField === `email-${lead.id}` ? (
+                                  <Check className="w-4 h-4" />
+                                ) : (
+                                  <Copy className="w-4 h-4" />
+                                )}
+                              </button>
+                            </>
+                          )}
                         </div>
 
-                        <div className="md:col-span-2 flex items-start gap-2 bg-muted/50 rounded-lg px-3 py-2">
-                          <MapPin className="w-4 h-4 text-secondary mt-0.5" />
-                          <span className="text-foreground flex-1">
+                        <div className={`md:col-span-2 flex items-start gap-2 rounded-lg px-3 py-2 ${lead.is_access_expired ? 'bg-muted/30' : 'bg-muted/50'}`}>
+                          <MapPin className={`w-4 h-4 mt-0.5 ${lead.is_access_expired ? 'text-muted-foreground' : 'text-secondary'}`} />
+                          <span className={`flex-1 ${lead.is_access_expired ? 'text-muted-foreground' : 'text-foreground'}`}>
                             {lead.customer_address}
                           </span>
-                          <button
-                            onClick={() => copyToClipboard(lead.customer_address, `address-${lead.id}`)}
-                            className="text-muted-foreground hover:text-foreground"
-                          >
-                            {copiedField === `address-${lead.id}` ? (
-                              <Check className="w-4 h-4" />
-                            ) : (
-                              <Copy className="w-4 h-4" />
-                            )}
-                          </button>
+                          {!lead.is_access_expired && (
+                            <button
+                              onClick={() => copyToClipboard(lead.customer_address, `address-${lead.id}`)}
+                              className="text-muted-foreground hover:text-foreground"
+                            >
+                              {copiedField === `address-${lead.id}` ? (
+                                <Check className="w-4 h-4" />
+                              ) : (
+                                <Copy className="w-4 h-4" />
+                              )}
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -604,20 +639,27 @@ export default function Dashboard() {
                       </div>
 
                       {/* Call/Email buttons */}
-                      <div className="flex gap-2">
-                        <a href={`tel:${lead.customer_phone}`} className="flex-1">
-                          <Button variant="cta" size="sm" className="w-full gap-1">
-                            <Phone className="w-4 h-4" />
-                            Call
-                          </Button>
-                        </a>
-                        <a href={`mailto:${lead.customer_email}`} className="flex-1">
-                          <Button variant="outline" size="sm" className="w-full gap-1">
-                            <Mail className="w-4 h-4" />
-                            Email
-                          </Button>
-                        </a>
-                      </div>
+                      {lead.is_access_expired ? (
+                        <div className="flex items-center justify-center gap-2 text-muted-foreground text-sm py-2">
+                          <Lock className="w-4 h-4" />
+                          <span>Access expired</span>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2">
+                          <a href={`tel:${lead.customer_phone}`} className="flex-1">
+                            <Button variant="cta" size="sm" className="w-full gap-1">
+                              <Phone className="w-4 h-4" />
+                              Call
+                            </Button>
+                          </a>
+                          <a href={`mailto:${lead.customer_email}`} className="flex-1">
+                            <Button variant="outline" size="sm" className="w-full gap-1">
+                              <Mail className="w-4 h-4" />
+                              Email
+                            </Button>
+                          </a>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
