@@ -9,6 +9,7 @@ import Leads from "./pages/Leads";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Settings from "./pages/Settings";
+import Verification from "./pages/Verification";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import CreditsSuccess from "./pages/CreditsSuccess";
 import NotFound from "./pages/NotFound";
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/settings/verification" element={<Verification />} />
             <Route path="/payment-success" element={<PaymentSuccess />} />
             <Route path="/credits-success" element={<CreditsSuccess />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

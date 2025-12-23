@@ -80,42 +80,120 @@ export type Database = {
         }
         Relationships: []
       }
+      phone_verification_codes: {
+        Row: {
+          code: string
+          created_at: string
+          expires_at: string
+          id: string
+          phone: string
+          user_id: string
+          verified: boolean
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          phone: string
+          user_id: string
+          verified?: boolean
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          phone?: string
+          user_id?: string
+          verified?: boolean
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
+          address_verified: boolean
           business_name: string | null
           contact_name: string | null
           created_at: string
           credits: number
           id: string
+          is_verified: boolean
+          leads_purchased: number
           phone: string | null
+          phone_verified: boolean
           postcode: string | null
           updated_at: string
           user_id: string
+          verification_status: string | null
           whatsapp_optin: boolean | null
         }
         Insert: {
+          address_verified?: boolean
           business_name?: string | null
           contact_name?: string | null
           created_at?: string
           credits?: number
           id?: string
+          is_verified?: boolean
+          leads_purchased?: number
           phone?: string | null
+          phone_verified?: boolean
           postcode?: string | null
           updated_at?: string
           user_id: string
+          verification_status?: string | null
           whatsapp_optin?: boolean | null
         }
         Update: {
+          address_verified?: boolean
           business_name?: string | null
           contact_name?: string | null
           created_at?: string
           credits?: number
           id?: string
+          is_verified?: boolean
+          leads_purchased?: number
           phone?: string | null
+          phone_verified?: boolean
           postcode?: string | null
           updated_at?: string
           user_id?: string
+          verification_status?: string | null
           whatsapp_optin?: boolean | null
+        }
+        Relationships: []
+      }
+      verification_documents: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          document_type: string
+          file_path: string
+          id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          document_type: string
+          file_path: string
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          document_type?: string
+          file_path?: string
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
