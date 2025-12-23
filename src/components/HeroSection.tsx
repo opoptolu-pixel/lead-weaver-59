@@ -1,21 +1,52 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Search, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 
+const POPULAR_SEARCHES = [
+  "London", "Manchester", "Birmingham", "Leeds", "Liverpool",
+  "Bristol", "Sheffield", "Edinburgh", "Glasgow", "Cardiff",
+  "SW1", "E1", "M1", "B1", "LS1", "L1", "BS1", "S1", "EH1", "G1"
+];
+
 export const HeroSection = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+
+  const filteredSuggestions = searchQuery.trim()
+    ? POPULAR_SEARCHES.filter(s => 
+        s.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : POPULAR_SEARCHES.slice(0, 6);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    setShowSuggestions(false);
     if (searchQuery.trim()) {
       navigate(`/leads?search=${encodeURIComponent(searchQuery.trim())}`);
     } else {
       navigate("/leads");
     }
   };
+
+  const handleSuggestionClick = (suggestion: string) => {
+    setSearchQuery(suggestion);
+    setShowSuggestions(false);
+    navigate(`/leads?search=${encodeURIComponent(suggestion)}`);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchInputRef.current && !searchInputRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
     <section className="relative min-h-[60vh] bg-hero-gradient overflow-hidden flex items-center pt-20">
@@ -49,15 +80,34 @@ export const HeroSection = () => {
           {/* Search bar */}
           <form onSubmit={handleSearch} className="animate-slide-up stagger-3">
             <div className="flex flex-col sm:flex-row gap-4 max-w-2xl mx-auto">
-              <div className="relative flex-1">
-                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-muted-foreground" />
+              <div className="relative flex-1" ref={searchInputRef}>
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-muted-foreground z-10" />
                 <Input
                   type="text"
                   placeholder="Enter postcode or city (e.g. SW1, Manchester)"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => setShowSuggestions(true)}
                   className="pl-14 h-16 text-lg bg-background border-2 border-border rounded-xl shadow-xl focus:border-secondary"
                 />
+                {showSuggestions && filteredSuggestions.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-background border border-border rounded-xl shadow-xl z-50 overflow-hidden">
+                    <div className="p-2 text-xs text-muted-foreground font-medium border-b border-border">
+                      Popular searches
+                    </div>
+                    {filteredSuggestions.map((suggestion) => (
+                      <button
+                        key={suggestion}
+                        type="button"
+                        onClick={() => handleSuggestionClick(suggestion)}
+                        className="w-full px-4 py-3 text-left text-foreground hover:bg-muted transition-colors flex items-center gap-3"
+                      >
+                        <Search className="w-4 h-4 text-muted-foreground" />
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <Button 
                 type="submit"

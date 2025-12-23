@@ -93,13 +93,14 @@ export const Header = () => {
                     Sign In
                   </Button>
                 </Link>
-                <Button 
-                  variant={isScrolled ? "cta" : "hero"} 
-                  size="default"
-                  onClick={() => scrollToSection("registration")}
-                >
-                  Join Now
-                </Button>
+                <Link to="/auth?mode=signup">
+                  <Button 
+                    variant={isScrolled ? "cta" : "hero"} 
+                    size="default"
+                  >
+                    Join Now
+                  </Button>
+                </Link>
               </>
             )}
           </div>
@@ -155,14 +156,15 @@ export const Header = () => {
                       Sign In
                     </Button>
                   </Link>
-                  <Button 
-                    variant="cta" 
-                    size="lg" 
-                    className="w-full mt-2"
-                    onClick={() => scrollToSection("registration")}
-                  >
-                    Join Now
-                  </Button>
+                  <Link to="/auth?mode=signup" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button 
+                      variant="cta" 
+                      size="lg" 
+                      className="w-full mt-2"
+                    >
+                      Join Now
+                    </Button>
+                  </Link>
                 </>
               )}
             </nav>
