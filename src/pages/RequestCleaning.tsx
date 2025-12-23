@@ -6,14 +6,12 @@ import {
   ArrowRight,
   ArrowLeft,
   Home,
-  Building2,
   Truck,
   Droplets,
-  Flame,
-  Grid2X2,
-  Hammer,
-  RefreshCw,
-  CalendarCheck,
+  Sofa,
+  BedDouble,
+  Building2,
+  Layers,
   MapPin,
   User,
   Mail,
@@ -27,17 +25,16 @@ import { toast } from "sonner";
 import { Logo } from "@/components/Logo";
 import { cn } from "@/lib/utils";
 
+// Phase 1 Job Types - Bundled jobs that naturally exceed £100
 const cleaningTypes = [
-  { id: "end-of-tenancy", label: "End of Tenancy", icon: Home, color: "bg-rose-100 text-rose-600" },
-  { id: "deep-clean", label: "Deep Clean", icon: Sparkles, color: "bg-violet-100 text-violet-600" },
-  { id: "regular-clean", label: "Regular Clean", icon: RefreshCw, color: "bg-emerald-100 text-emerald-600" },
-  { id: "carpet-cleaning", label: "Carpet Cleaning", icon: Droplets, color: "bg-amber-100 text-amber-600" },
-  { id: "oven-cleaning", label: "Oven Cleaning", icon: Flame, color: "bg-orange-100 text-orange-600" },
-  { id: "window-cleaning", label: "Window Cleaning", icon: Grid2X2, color: "bg-sky-100 text-sky-600" },
-  { id: "office-clean", label: "Office Clean", icon: Building2, color: "bg-indigo-100 text-indigo-600" },
-  { id: "move-in-clean", label: "Move-In Clean", icon: Truck, color: "bg-teal-100 text-teal-600" },
-  { id: "post-construction", label: "Post-Construction", icon: Hammer, color: "bg-slate-100 text-slate-600" },
-  { id: "one-off-clean", label: "One-Off Clean", icon: CalendarCheck, color: "bg-pink-100 text-pink-600" },
+  { id: "carpet-2-3-rooms", label: "Carpet Cleaning (2–3 Rooms)", icon: Layers, color: "bg-amber-100 text-amber-600", value: "£100–£150" },
+  { id: "sofa-carpet", label: "Sofa + Carpet Cleaning", icon: Sofa, color: "bg-violet-100 text-violet-600", value: "£120–£180" },
+  { id: "sofa-mattress", label: "Sofa + Mattress Cleaning", icon: BedDouble, color: "bg-rose-100 text-rose-600", value: "£100–£140" },
+  { id: "carpet-mattress", label: "Carpet + Mattress Cleaning", icon: Droplets, color: "bg-sky-100 text-sky-600", value: "£110–£160" },
+  { id: "3-rooms-deep-clean", label: "3 Rooms Deep Clean", icon: Sparkles, color: "bg-emerald-100 text-emerald-600", value: "£140–£200" },
+  { id: "end-of-tenancy", label: "End of Tenancy Clean (1–2 Bed)", icon: Home, color: "bg-indigo-100 text-indigo-600", value: "£150–£220" },
+  { id: "airbnb-refresh", label: "Airbnb Refresh (Full Package)", icon: Building2, color: "bg-teal-100 text-teal-600", value: "£130–£180" },
+  { id: "move-in-clean", label: "Move-In / Move-Out Clean", icon: Truck, color: "bg-orange-100 text-orange-600", value: "£140–£200" },
 ];
 
 const TOTAL_STEPS = 4;
@@ -48,6 +45,7 @@ export default function RequestCleaning() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     jobType: "",
+    jobValue: "",
     postcode: "",
     customerName: "",
     customerEmail: "",
@@ -65,9 +63,10 @@ export default function RequestCleaning() {
       const { data, error } = await supabase.functions.invoke("submit-cleaning-request", {
         body: {
           ...formData,
-          customerAddress: formData.postcode, // Using postcode as address placeholder
+          customerAddress: formData.postcode,
           preferredDate: formData.dateFrom,
           jobDescription: formData.dateTo ? `Preferred dates: ${formData.dateFrom} to ${formData.dateTo}` : "",
+          estimatedValue: formData.jobValue,
         },
       });
 
@@ -111,6 +110,10 @@ export default function RequestCleaning() {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     }
+  };
+
+  const handleJobTypeSelect = (type: typeof cleaningTypes[0]) => {
+    setFormData({ ...formData, jobType: type.label, jobValue: type.value });
   };
 
   // Get tomorrow's date as minimum date
@@ -162,14 +165,14 @@ export default function RequestCleaning() {
             {/* Step 1: Type of Clean */}
             {currentStep === 1 && (
               <div className="flex-1 animate-in fade-in slide-in-from-right-4 duration-300">
-                <h1 className="font-heading text-2xl lg:text-3xl font-bold text-gray-900 text-center mb-2">
+                <h2 className="font-heading text-2xl lg:text-3xl font-bold text-gray-900 text-center mb-2">
                   What type of cleaning do you need?
-                </h1>
+                </h2>
                 <p className="text-gray-500 text-center mb-8">
-                  Select the service that best fits your needs
+                  Select a service package (all jobs £100+)
                 </p>
 
-                <div className="grid grid-cols-2 gap-3 lg:gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
                   {cleaningTypes.map((type) => {
                     const Icon = type.icon;
                     const isSelected = formData.jobType === type.label;
@@ -177,7 +180,7 @@ export default function RequestCleaning() {
                       <button
                         key={type.id}
                         type="button"
-                        onClick={() => setFormData({ ...formData, jobType: type.label })}
+                        onClick={() => handleJobTypeSelect(type)}
                         className={cn(
                           "flex items-center gap-3 p-4 rounded-xl border-2 transition-all duration-200 text-left group hover:border-primary hover:bg-primary/5",
                           isSelected 
@@ -191,12 +194,15 @@ export default function RequestCleaning() {
                         )}>
                           <Icon className="w-6 h-6" />
                         </div>
-                        <span className={cn(
-                          "font-medium text-sm lg:text-base transition-colors",
-                          isSelected ? "text-primary" : "text-gray-700"
-                        )}>
-                          {type.label}
-                        </span>
+                        <div className="flex-1 min-w-0">
+                          <span className={cn(
+                            "font-medium text-sm lg:text-base transition-colors block",
+                            isSelected ? "text-primary" : "text-gray-700"
+                          )}>
+                            {type.label}
+                          </span>
+                          <span className="text-xs text-gray-500">{type.value}</span>
+                        </div>
                       </button>
                     );
                   })}
@@ -207,9 +213,9 @@ export default function RequestCleaning() {
             {/* Step 2: Postcode */}
             {currentStep === 2 && (
               <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-right-4 duration-300">
-                <h1 className="font-heading text-2xl lg:text-3xl font-bold text-gray-900 text-center mb-2">
+                <h2 className="font-heading text-2xl lg:text-3xl font-bold text-gray-900 text-center mb-2">
                   Where do you need cleaning?
-                </h1>
+                </h2>
                 <p className="text-gray-500 text-center mb-8">
                   Enter your postcode to find cleaners in your area
                 </p>
@@ -237,9 +243,9 @@ export default function RequestCleaning() {
             {/* Step 3: Contact Details */}
             {currentStep === 3 && (
               <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-right-4 duration-300">
-                <h1 className="font-heading text-2xl lg:text-3xl font-bold text-gray-900 text-center mb-2">
+                <h2 className="font-heading text-2xl lg:text-3xl font-bold text-gray-900 text-center mb-2">
                   How can cleaners reach you?
-                </h1>
+                </h2>
                 <p className="text-gray-500 text-center mb-8">
                   Enter your contact details for quotes
                 </p>
@@ -284,9 +290,9 @@ export default function RequestCleaning() {
             {/* Step 4: Date Range */}
             {currentStep === 4 && (
               <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-right-4 duration-300">
-                <h1 className="font-heading text-2xl lg:text-3xl font-bold text-gray-900 text-center mb-2">
+                <h2 className="font-heading text-2xl lg:text-3xl font-bold text-gray-900 text-center mb-2">
                   When would you like the cleaning?
-                </h1>
+                </h2>
                 <p className="text-gray-500 text-center mb-8">
                   Select your preferred date range
                 </p>
