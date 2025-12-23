@@ -1,5 +1,6 @@
-import { Sparkles, Mail, Phone, MapPin } from "lucide-react";
+import { Mail, Phone, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Logo } from "@/components/Logo";
 
 export const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -10,11 +11,8 @@ export const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
           {/* Brand */}
           <div className="md:col-span-1">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 bg-secondary rounded-lg flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-secondary-foreground" />
-              </div>
-              <span className="font-heading text-xl font-bold">Deep Clean UK</span>
+            <div className="mb-4">
+              <Logo size="md" linkTo="/" />
             </div>
             <p className="text-primary-foreground/70 text-sm mb-6">
               Connecting professional cleaners with homeowners across the UK. 

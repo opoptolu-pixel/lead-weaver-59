@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import { CheckCircle, Loader2, AlertCircle, Phone, Mail, MapPin, Copy, Check, Sparkles } from "lucide-react";
+import { CheckCircle, Loader2, AlertCircle, Phone, Mail, MapPin, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Logo } from "@/components/Logo";
 
 interface LeadDetails {
   id: string;
@@ -110,14 +111,7 @@ export default function PaymentSuccess() {
       <header className="bg-primary border-b border-border">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-20">
-            <Link to="/" className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-secondary/20">
-                <Sparkles className="w-5 h-5 text-secondary" />
-              </div>
-              <span className="font-heading text-xl font-bold text-primary-foreground">
-                Deep Clean UK
-              </span>
-            </Link>
+            <Logo size="md" />
           </div>
         </div>
       </header>

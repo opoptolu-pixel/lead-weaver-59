@@ -8,7 +8,6 @@ import {
   BarChart3,
   Shield,
   Settings,
-  Sparkles,
   ChevronLeft,
   ChevronRight,
   Activity,
@@ -17,6 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { Logo } from "@/components/Logo";
 
 const navItems = [
   { title: "Overview", url: "/admin", icon: LayoutDashboard },
@@ -52,14 +52,7 @@ export default function AdminSidebar() {
       {/* Logo */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-border">
         {!collapsed && (
-          <Link to="/admin" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-secondary/20">
-              <Sparkles className="w-4 h-4 text-secondary" />
-            </div>
-            <span className="font-heading font-bold text-foreground">
-              Admin
-            </span>
-          </Link>
+          <Logo size="sm" linkTo="/admin" />
         )}
         <Button
           variant="ghost"

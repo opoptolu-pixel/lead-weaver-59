@@ -3,7 +3,7 @@ import { Menu, X, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import logo from "@/assets/logo.svg";
+import { Logo } from "@/components/Logo";
 
 export const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -41,13 +41,7 @@ export const Header = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
-          <Link to="/" className="flex items-center">
-            <img 
-              src={logo} 
-              alt="Deep Clean UK" 
-              className="h-14 w-auto"
-            />
-          </Link>
+          <Logo size="lg" />
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-8">

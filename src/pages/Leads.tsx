@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Lock, MapPin, Calendar, PoundSterling, Loader2, Sparkles, Coins, User, Search, X } from "lucide-react";
+import { Lock, MapPin, Calendar, PoundSterling, Loader2, Coins, User, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +7,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { Logo } from "@/components/Logo";
 
 interface Lead {
   id: string;
@@ -219,14 +220,7 @@ export default function Leads() {
       <header className="bg-primary border-b border-border">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-20">
-            <Link to="/" className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-secondary/20">
-                <Sparkles className="w-5 h-5 text-secondary" />
-              </div>
-              <span className="font-heading text-xl font-bold text-primary-foreground">
-                Deep Clean UK
-              </span>
-            </Link>
+            <Logo size="md" />
             <div className="flex items-center gap-4">
               {user ? (
                 <Link to="/dashboard">

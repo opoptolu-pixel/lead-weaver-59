@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  Sparkles,
   Phone,
   Mail,
   MapPin,
@@ -27,6 +26,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import VerificationStatus from "@/components/VerificationStatus";
+import { Logo } from "@/components/Logo";
 import {
   Dialog,
   DialogContent,
@@ -238,14 +238,7 @@ export default function Dashboard() {
       <header className="bg-primary border-b border-border sticky top-0 z-50">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-20">
-            <Link to="/" className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-secondary/20">
-                <Sparkles className="w-5 h-5 text-secondary" />
-              </div>
-              <span className="font-heading text-xl font-bold text-primary-foreground">
-                Deep Clean UK
-              </span>
-            </Link>
+            <Logo size="md" />
 
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
