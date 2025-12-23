@@ -22,6 +22,7 @@ import RefundPolicy from "./pages/RefundPolicy";
 import GDPR from "./pages/GDPR";
 import TermsOfUse from "./pages/TermsOfUse";
 import RequestCleaning from "./pages/RequestCleaning";
+import RequestCleaningThankYou from "./pages/RequestCleaningThankYou";
 import AdminOverview from "./pages/admin/AdminOverview";
 import AdminLeads from "./pages/admin/AdminLeads";
 import AdminBusinesses from "./pages/admin/AdminBusinesses";
@@ -58,6 +59,7 @@ const App = () => (
               <Route path="/credits-success" element={<CreditsSuccess />} />
               {/* Customer-facing Pages */}
               <Route path="/request-cleaning" element={<RequestCleaning />} />
+              <Route path="/request-cleaning/thank-you" element={<RequestCleaningThankYou />} />
               {/* Legal Pages */}
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
               <Route path="/refund-policy" element={<RefundPolicy />} />
