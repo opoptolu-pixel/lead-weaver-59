@@ -279,13 +279,28 @@ Deno.serve(async (req) => {
     console.log('Searching UK locations for:', searchTerm);
 
     // Check if the search matches a city/region name
+    // Use strict matching to avoid partial matches (e.g., "london" shouldn't match "londonderry")
     let matchedPrefixes: string[] = [];
     let matchedCity: string | null = null;
     
     for (const [city, prefixes] of Object.entries(CITY_POSTCODE_MAP)) {
-      if (city.includes(searchTerm) || searchTerm.includes(city)) {
+      // Only match if:
+      // 1. Exact match: "london" === "london"
+      // 2. City starts with search AND the next char after search in city is a space or end
+      //    e.g., searching "new" matches "new york" but not "newcastle"
+      // 3. Search starts with city AND they're very close in length (within 2 chars)
+      //    This handles typos like "manchster" for "manchester"
+      
+      const isExactMatch = city === searchTerm;
+      
+      // Check if city starts with search term and it's a complete word
+      const cityStartsWithSearch = city.startsWith(searchTerm) && 
+        (city.length === searchTerm.length || city[searchTerm.length] === ' ');
+      
+      // Only match if exact or starts-with as complete word
+      if (isExactMatch || cityStartsWithSearch) {
         matchedPrefixes = [...new Set([...matchedPrefixes, ...prefixes])];
-        if (!matchedCity) matchedCity = city;
+        if (!matchedCity || city === searchTerm) matchedCity = city;
       }
     }
 

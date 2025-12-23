@@ -65,9 +65,23 @@ export default function Leads() {
 
       // Apply filter based on prefixes (for city search) or direct postcode search
       if (prefixes.length > 0) {
-        // Search by postcode prefixes (e.g., M for Manchester)
-        const prefixConditions = prefixes.map(p => `postcode.ilike.${p}%`).join(',');
-        query = query.or(prefixConditions);
+        // For single-letter prefixes, we need to match prefix followed by a digit
+        // to avoid matching other areas (e.g., W should match W1, W2 but not WN, WA)
+        const expandedConditions: string[] = [];
+        
+        for (const prefix of prefixes) {
+          if (prefix.length === 1) {
+            // Single letter prefix - match with digits 1-20 to be safe
+            for (let i = 1; i <= 20; i++) {
+              expandedConditions.push(`postcode.ilike.${prefix}${i}%`);
+            }
+          } else {
+            // Multi-letter prefix - use as-is
+            expandedConditions.push(`postcode.ilike.${prefix}%`);
+          }
+        }
+        
+        query = query.or(expandedConditions.join(','));
       } else if (filter.trim()) {
         // Standard postcode search
         query = query.ilike("postcode", `%${filter.trim()}%`);
