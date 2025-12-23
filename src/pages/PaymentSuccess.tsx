@@ -22,7 +22,6 @@ interface VerifyResponse {
   success: boolean;
   isNewUser: boolean;
   email: string;
-  tempPassword: string | null;
   lead: LeadDetails;
   error?: string;
 }
@@ -131,46 +130,34 @@ export default function PaymentSuccess() {
             </p>
           </div>
 
-          {/* New account info */}
-          {result.isNewUser && result.tempPassword && (
+          {/* New account info - Passwordless flow */}
+          {result.isNewUser && (
             <div className="bg-secondary/10 border border-secondary/30 rounded-xl p-6 mb-8">
-              <h2 className="font-heading text-lg font-semibold text-foreground mb-3">
-                Your Account Has Been Created
-              </h2>
-              <p className="text-muted-foreground text-sm mb-4">
-                We've created an account for you using your payment email. Save your login details:
-              </p>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between bg-background rounded-lg px-4 py-3">
-                  <div>
-                    <span className="text-muted-foreground text-sm">Email:</span>
-                    <p className="font-medium text-foreground">{result.email}</p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => copyToClipboard(result.email, "email")}
-                  >
-                    {copiedField === "email" ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                  </Button>
+              <div className="flex items-start gap-4">
+                <div className="bg-secondary/20 rounded-full p-3 flex-shrink-0">
+                  <Mail className="w-6 h-6 text-secondary" />
                 </div>
-                <div className="flex items-center justify-between bg-background rounded-lg px-4 py-3">
-                  <div>
-                    <span className="text-muted-foreground text-sm">Temporary Password:</span>
-                    <p className="font-medium text-foreground font-mono">{result.tempPassword}</p>
+                <div>
+                  <h2 className="font-heading text-lg font-semibold text-foreground mb-2">
+                    Check Your Email to Access Your Account
+                  </h2>
+                  <p className="text-muted-foreground text-sm mb-3">
+                    We've sent a secure login link to <span className="font-semibold text-foreground">{result.email}</span>
+                  </p>
+                  <p className="text-muted-foreground text-sm">
+                    Click the link in your email to access your dashboard where you can manage all your leads, 
+                    purchase credits, and track your business performance.
+                  </p>
+                  <div className="mt-4 p-3 bg-background rounded-lg border border-border">
+                    <p className="text-xs text-muted-foreground">
+                      <strong>Didn't receive the email?</strong> Check your spam folder, or{" "}
+                      <Link to="/auth" className="text-secondary hover:underline font-medium">
+                        request a new login link
+                      </Link>
+                    </p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => copyToClipboard(result.tempPassword!, "password")}
-                  >
-                    {copiedField === "password" ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                  </Button>
                 </div>
               </div>
-              <p className="text-muted-foreground text-xs mt-4">
-                Please change your password after logging in for security.
-              </p>
             </div>
           )}
 
