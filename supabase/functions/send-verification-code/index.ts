@@ -63,10 +63,10 @@ serve(async (req) => {
     if (insertError) throw new Error(`Failed to store code: ${insertError.message}`);
     logStep("Code stored in database");
 
-    // Send SMS via Twilio
+    // Send via WhatsApp (using existing Twilio WhatsApp configuration)
     const twilioAccountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
     const twilioAuthToken = Deno.env.get("TWILIO_AUTH_TOKEN");
-    const twilioFrom = Deno.env.get("TWILIO_WHATSAPP_FROM")?.replace("whatsapp:", "");
+    const twilioFrom = Deno.env.get("TWILIO_WHATSAPP_FROM");
 
     if (!twilioAccountSid || !twilioAuthToken || !twilioFrom) {
       throw new Error("Twilio credentials not configured");
@@ -74,7 +74,7 @@ serve(async (req) => {
 
     const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`;
     const formData = new URLSearchParams();
-    formData.append("To", phone);
+    formData.append("To", `whatsapp:${phone}`);
     formData.append("From", twilioFrom);
     formData.append("Body", `Your Deep Clean UK verification code is: ${code}. Valid for 10 minutes.`);
 
@@ -90,10 +90,10 @@ serve(async (req) => {
     if (!twilioResponse.ok) {
       const errorText = await twilioResponse.text();
       logStep("Twilio error", { status: twilioResponse.status, error: errorText });
-      throw new Error("Failed to send SMS");
+      throw new Error("Failed to send WhatsApp message");
     }
 
-    logStep("SMS sent successfully");
+    logStep("WhatsApp verification message sent successfully");
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
