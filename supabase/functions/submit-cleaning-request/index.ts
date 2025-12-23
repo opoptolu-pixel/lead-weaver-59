@@ -6,6 +6,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const FROM_EMAIL = "Deep Clean UK <noreply@deepcleanco.uk>";
+const RESEND_API_URL = "https://api.resend.com/emails";
+
 interface CleaningRequest {
   customerName: string;
   customerEmail: string;
@@ -62,6 +65,171 @@ const UK_POSTCODE_REGEX = /^([A-Z]{1,2}[0-9][0-9A-Z]?\s?[0-9][A-Z]{2})$/i;
 const validatePostcode = (postcode: string): boolean => {
   const cleaned = postcode.replace(/\s+/g, '');
   return UK_POSTCODE_REGEX.test(cleaned);
+};
+
+// Generate confirmation email HTML
+const generateConfirmationEmail = (
+  customerName: string,
+  jobType: string,
+  preferredDate: string,
+  postcode: string,
+  referenceId: string
+): string => {
+  const formattedDate = new Date(preferredDate).toLocaleDateString('en-GB', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Booking Confirmation</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f4f4f4; padding: 20px 0;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+          <!-- Header -->
+          <tr>
+            <td style="background-color: #0B3D2E; padding: 30px 40px; text-align: center;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 700;">Deep Clean UK</h1>
+              <p style="color: #7DD3A8; margin: 8px 0 0 0; font-size: 14px;">Professional Cleaning Services</p>
+            </td>
+          </tr>
+          
+          <!-- Success Icon -->
+          <tr>
+            <td style="padding: 40px 40px 20px 40px; text-align: center;">
+              <div style="width: 70px; height: 70px; background-color: #E8F5E9; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;">
+                <span style="font-size: 36px;">✓</span>
+              </div>
+            </td>
+          </tr>
+          
+          <!-- Main Content -->
+          <tr>
+            <td style="padding: 0 40px 30px 40px;">
+              <h2 style="color: #0B3D2E; margin: 0 0 10px 0; font-size: 24px; text-align: center;">Request Received!</h2>
+              <p style="color: #666666; font-size: 16px; line-height: 1.6; text-align: center; margin: 0 0 30px 0;">
+                Hi ${customerName}, thank you for choosing Deep Clean UK. We've received your cleaning request and will connect you with a trusted local cleaner soon.
+              </p>
+              
+              <!-- Booking Details Box -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f8f9fa; border-radius: 8px; padding: 25px; margin-bottom: 25px;">
+                <tr>
+                  <td>
+                    <h3 style="color: #0B3D2E; margin: 0 0 20px 0; font-size: 18px;">Your Request Details</h3>
+                    
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;">
+                          <span style="color: #888888; font-size: 14px;">Reference Number</span><br>
+                          <span style="color: #0B3D2E; font-size: 16px; font-weight: 600;">#${referenceId}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;">
+                          <span style="color: #888888; font-size: 14px;">Service Type</span><br>
+                          <span style="color: #333333; font-size: 16px;">${jobType}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;">
+                          <span style="color: #888888; font-size: 14px;">Preferred Date</span><br>
+                          <span style="color: #333333; font-size: 16px;">${formattedDate}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0;">
+                          <span style="color: #888888; font-size: 14px;">Location</span><br>
+                          <span style="color: #333333; font-size: 16px;">${postcode}</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              
+              <!-- What's Next -->
+              <h3 style="color: #0B3D2E; margin: 0 0 15px 0; font-size: 18px;">What Happens Next?</h3>
+              <ol style="color: #666666; font-size: 15px; line-height: 1.8; padding-left: 20px; margin: 0 0 25px 0;">
+                <li>A verified local cleaner will review your request</li>
+                <li>They'll contact you within 24 hours to confirm details</li>
+                <li>You'll agree on the final price and schedule</li>
+                <li>Enjoy your sparkling clean space!</li>
+              </ol>
+            </td>
+          </tr>
+          
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f8f9fa; padding: 25px 40px; text-align: center; border-top: 1px solid #e0e0e0;">
+              <p style="color: #888888; font-size: 14px; margin: 0 0 10px 0;">
+                Questions? Reply to this email or visit our website.
+              </p>
+              <p style="color: #aaaaaa; font-size: 12px; margin: 0;">
+                © ${new Date().getFullYear()} Deep Clean UK. All rights reserved.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+};
+
+// Send confirmation email via Resend
+const sendConfirmationEmail = async (
+  customerEmail: string,
+  customerName: string,
+  jobType: string,
+  preferredDate: string,
+  postcode: string,
+  referenceId: string
+): Promise<void> => {
+  const resendApiKey = Deno.env.get("RESEND_API_KEY");
+  if (!resendApiKey) {
+    console.log("[SUBMIT-CLEANING] RESEND_API_KEY not configured, skipping email");
+    return;
+  }
+
+  try {
+    const html = generateConfirmationEmail(customerName, jobType, preferredDate, postcode, referenceId);
+
+    const response = await fetch(RESEND_API_URL, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${resendApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: FROM_EMAIL,
+        to: [customerEmail],
+        subject: `Cleaning Request Confirmed - Ref #${referenceId}`,
+        html: html,
+      }),
+    });
+
+    const responseData = await response.json();
+
+    if (!response.ok) {
+      console.error("[SUBMIT-CLEANING] Email send failed:", responseData);
+    } else {
+      console.log("[SUBMIT-CLEANING] Confirmation email sent:", { id: responseData.id, to: customerEmail });
+    }
+  } catch (error) {
+    console.error("[SUBMIT-CLEANING] Email error:", error);
+    // Don't throw - email failure shouldn't fail the request
+  }
 };
 
 serve(async (req) => {
@@ -173,6 +341,8 @@ serve(async (req) => {
       );
     }
 
+    const referenceId = data.id.slice(0, 8).toUpperCase();
+
     // Enhanced logging for analytics
     console.log("Lead created:", {
       id: data.id,
@@ -184,11 +354,21 @@ serve(async (req) => {
       postcode: body.postcode.toUpperCase(),
     });
 
+    // Send confirmation email (non-blocking)
+    await sendConfirmationEmail(
+      body.customerEmail,
+      body.customerName,
+      body.jobType,
+      body.preferredDate,
+      formatPostcode(body.postcode),
+      referenceId
+    );
+
     return new Response(
       JSON.stringify({ 
         success: true, 
         message: "Your cleaning request has been submitted successfully!",
-        referenceId: data.id.slice(0, 8).toUpperCase()
+        referenceId: referenceId
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
