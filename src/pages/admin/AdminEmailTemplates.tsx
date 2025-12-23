@@ -512,7 +512,10 @@ const DEFAULT_TEMPLATES = [
   },
 ];
 
+import { useAdmin } from "@/contexts/AdminContext";
+
 export default function AdminEmailTemplates() {
+  const { isAdmin, isLoading: adminLoading } = useAdmin();
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -529,8 +532,11 @@ export default function AdminEmailTemplates() {
   });
 
   useEffect(() => {
-    fetchTemplates();
-  }, []);
+    // Only fetch templates after confirming user is admin
+    if (!adminLoading && isAdmin) {
+      fetchTemplates();
+    }
+  }, [adminLoading, isAdmin]);
 
   const fetchTemplates = async () => {
     try {
