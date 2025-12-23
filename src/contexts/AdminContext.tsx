@@ -33,17 +33,26 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      try {
+        const { data, error } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id);
 
-      if (error) {
-        console.error("Error checking admin status:", error);
+        if (error) {
+          console.error("Error checking admin status:", error);
+          setIsAdmin(false);
+        } else if (data && data.length > 0) {
+          const hasAdminRole = data.some(
+            (r) => r.role === "admin" || r.role === "super_admin"
+          );
+          setIsAdmin(hasAdminRole);
+        } else {
+          setIsAdmin(false);
+        }
+      } catch (err) {
+        console.error("Error checking admin status:", err);
         setIsAdmin(false);
-      } else {
-        setIsAdmin(data?.role === "admin" || data?.role === "super_admin");
       }
       setIsLoading(false);
     };
