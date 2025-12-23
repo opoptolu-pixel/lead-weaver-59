@@ -38,6 +38,7 @@ import {
   Mail,
   Variable,
   Code,
+  Send,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -1088,6 +1089,9 @@ export default function AdminEmailTemplates() {
   const [saving, setSaving] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
+  const [testEmailDialogOpen, setTestEmailDialogOpen] = useState(false);
+  const [testEmail, setTestEmail] = useState("");
+  const [sendingTest, setSendingTest] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null);
   const [formData, setFormData] = useState({
     name: "",
@@ -1151,6 +1155,60 @@ export default function AdminEmailTemplates() {
   const handlePreview = (template: EmailTemplate) => {
     setSelectedTemplate(template);
     setPreviewDialogOpen(true);
+  };
+
+  const handleTestEmail = (template: EmailTemplate) => {
+    setSelectedTemplate(template);
+    setTestEmail("");
+    setTestEmailDialogOpen(true);
+  };
+
+  const sendTestEmail = async () => {
+    if (!selectedTemplate || !testEmail) return;
+
+    setSendingTest(true);
+    try {
+      // Prepare the email HTML with sample data
+      const html = getPreviewHtml(selectedTemplate);
+      
+      // Replace variables in subject too
+      let subject = selectedTemplate.subject;
+      const sampleData: Record<string, string> = {
+        customer_name: "John Smith",
+        business_name: "Sparkle Clean Ltd",
+        contact_name: "Jane Doe",
+        job_type: "End of Tenancy Clean",
+        postcode: "SW1A 1AA",
+        postcode_area: "SW1A",
+        display_value: "from £150",
+        reference_id: "TEST12345",
+        preferred_date: "Monday, 15 January 2025",
+        lead_date: "15 Jan 2025",
+        current_year: new Date().getFullYear().toString(),
+        dashboard_url: window.location.origin + "/dashboard",
+      };
+      Object.entries(sampleData).forEach(([key, value]) => {
+        subject = subject.replace(new RegExp(`\\{\\{${key}\\}\\}`, "g"), value);
+      });
+
+      const { data, error } = await supabase.functions.invoke("send-email", {
+        body: {
+          to: testEmail,
+          subject: `[TEST] ${subject}`,
+          html: html,
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success(`Test email sent to ${testEmail}`);
+      setTestEmailDialogOpen(false);
+    } catch (error: any) {
+      console.error("Error sending test email:", error);
+      toast.error(error.message || "Failed to send test email");
+    } finally {
+      setSendingTest(false);
+    }
   };
 
   const handleSave = async () => {
@@ -1371,13 +1429,23 @@ export default function AdminEmailTemplates() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handlePreview(template)}
+                            title="Preview"
                           >
                             <Eye className="w-4 h-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
+                            onClick={() => handleTestEmail(template)}
+                            title="Send Test Email"
+                          >
+                            <Send className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => handleEdit(template)}
+                            title="Edit"
                           >
                             <Pencil className="w-4 h-4" />
                           </Button>
@@ -1552,6 +1620,59 @@ export default function AdminEmailTemplates() {
               />
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Test Email Dialog */}
+      <Dialog open={testEmailDialogOpen} onOpenChange={setTestEmailDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Send className="w-5 h-5" />
+              Send Test Email
+            </DialogTitle>
+            <DialogDescription>
+              Send a test email using sample data to verify the template looks correct
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="test-email">Recipient Email</Label>
+              <Input
+                id="test-email"
+                type="email"
+                value={testEmail}
+                onChange={(e) => setTestEmail(e.target.value)}
+                placeholder="your@email.com"
+              />
+            </div>
+            {selectedTemplate && (
+              <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                <p className="text-sm font-medium">Template Details:</p>
+                <p className="text-sm text-muted-foreground">
+                  <strong>Name:</strong> {selectedTemplate.name}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  <strong>Subject:</strong> [TEST] {selectedTemplate.subject}
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Variables will be replaced with sample data
+                </p>
+              </div>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setTestEmailDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={sendTestEmail} 
+                disabled={sendingTest || !testEmail}
+              >
+                {sendingTest && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                Send Test
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </AdminLayout>
