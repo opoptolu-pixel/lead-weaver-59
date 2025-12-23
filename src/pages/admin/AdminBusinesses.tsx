@@ -9,11 +9,19 @@ import {
   Loader2,
   Shield,
   AlertTriangle,
+  Trash2,
+  Mail,
+  Phone,
+  MapPin,
+  Calendar,
+  CreditCard,
+  FileText,
 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +29,23 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -35,10 +60,18 @@ interface Business {
   is_verified: boolean;
   verification_status: string | null;
   leads_purchased: number;
+  credits: number;
   risk_score: number;
   is_suspended: boolean;
   created_at: string;
   last_login: string | null;
+}
+
+interface PurchaseHistory {
+  id: string;
+  job_type: string;
+  postcode: string;
+  unlocked_at: string;
 }
 
 export default function AdminBusinesses() {

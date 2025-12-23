@@ -10,6 +10,7 @@ import Leads from "./pages/Leads";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Settings from "./pages/Settings";
+import Billing from "./pages/Billing";
 import Verification from "./pages/Verification";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import CreditsSuccess from "./pages/CreditsSuccess";
@@ -40,6 +41,7 @@ const App = () => (
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/settings/verification" element={<Verification />} />
+              <Route path="/billing" element={<Billing />} />
               <Route path="/payment-success" element={<PaymentSuccess />} />
               <Route path="/credits-success" element={<CreditsSuccess />} />
               {/* Admin Routes */}
