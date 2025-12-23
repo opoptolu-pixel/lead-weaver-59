@@ -24,6 +24,7 @@ export const Header = () => {
   };
 
   const navLinks = [
+    { label: "Need Cleaning?", id: "/request-cleaning", type: "link" },
     { label: "How It Works", id: "how-it-works", type: "scroll" },
     { label: "Browse Leads", id: "/leads", type: "link" },
     { label: "Pricing", id: "pricing", type: "scroll" },
