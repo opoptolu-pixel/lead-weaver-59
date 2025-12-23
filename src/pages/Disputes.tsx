@@ -53,6 +53,7 @@ interface Dispute {
   description: string | null;
   status: string;
   resolution: string | null;
+  evidence_urls: string[] | null;
   created_at: string;
   resolved_at: string | null;
 }
@@ -85,6 +86,8 @@ export default function Disputes() {
   const [selectedLead, setSelectedLead] = useState<string>("");
   const [reasonCode, setReasonCode] = useState<string>("");
   const [description, setDescription] = useState<string>("");
+  const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
+  const [uploadingEvidence, setUploadingEvidence] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -130,11 +133,38 @@ export default function Disputes() {
 
     setSubmitting(true);
     try {
+      let evidenceUrls: string[] = [];
+
+      // Upload evidence file if provided
+      if (evidenceFile) {
+        setUploadingEvidence(true);
+        const fileExt = evidenceFile.name.split(".").pop();
+        const filePath = `${user!.id}/dispute-${Date.now()}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("verification-documents")
+          .upload(filePath, evidenceFile);
+
+        if (uploadError) {
+          console.error("Upload error:", uploadError);
+          // Continue without the file
+        } else {
+          const { data: urlData } = supabase.storage
+            .from("verification-documents")
+            .getPublicUrl(filePath);
+          if (urlData?.publicUrl) {
+            evidenceUrls = [urlData.publicUrl];
+          }
+        }
+        setUploadingEvidence(false);
+      }
+
       const { error } = await supabase.from("disputes").insert({
         user_id: user!.id,
         lead_id: selectedLead,
         reason_code: reasonCode,
         description: description || null,
+        evidence_urls: evidenceUrls.length > 0 ? evidenceUrls : null,
         status: "open",
       });
 
@@ -145,6 +175,7 @@ export default function Disputes() {
       setSelectedLead("");
       setReasonCode("");
       setDescription("");
+      setEvidenceFile(null);
 
       // Refresh disputes
       const { data } = await supabase
@@ -274,14 +305,34 @@ export default function Disputes() {
                       rows={4}
                     />
                   </div>
+
+                  <div className="space-y-2">
+                    <Label>Upload Evidence (optional)</Label>
+                    <div className="border-2 border-dashed border-border rounded-lg p-4 text-center">
+                      <Upload className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
+                      <input
+                        type="file"
+                        id="evidence-file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        className="hidden"
+                        onChange={(e) => setEvidenceFile(e.target.files?.[0] || null)}
+                      />
+                      <label htmlFor="evidence-file" className="cursor-pointer">
+                        <span className="text-sm text-secondary hover:underline">
+                          {evidenceFile ? evidenceFile.name : "Click to upload screenshot or document"}
+                        </span>
+                      </label>
+                      <p className="text-xs text-muted-foreground mt-1">PDF, JPG or PNG up to 10MB</p>
+                    </div>
+                  </div>
                 </div>
 
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setShowDialog(false)}>
                     Cancel
                   </Button>
-                  <Button onClick={handleSubmitDispute} disabled={submitting}>
-                    {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                  <Button onClick={handleSubmitDispute} disabled={submitting || uploadingEvidence}>
+                    {(submitting || uploadingEvidence) ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                     Submit Dispute
                   </Button>
                 </DialogFooter>

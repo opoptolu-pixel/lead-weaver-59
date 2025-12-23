@@ -11,10 +11,12 @@ import {
   FileText,
   Shield,
   Clock,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -189,6 +191,40 @@ export default function Verification() {
               Verify your business to unlock unlimited lead purchases
             </p>
           </div>
+
+          {/* Restriction Warnings */}
+          {profile?.is_suspended && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Account Suspended</AlertTitle>
+              <AlertDescription>
+                Your account has been suspended. You cannot purchase leads until this is resolved. 
+                Please contact support for assistance.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {!profile?.is_verified && profile?.leads_purchased >= 3 && (
+            <Alert className="mb-6 border-amber-500 bg-amber-500/10">
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
+              <AlertTitle className="text-amber-500">Verification Required</AlertTitle>
+              <AlertDescription>
+                You've purchased {profile.leads_purchased} leads. Complete verification to continue 
+                purchasing unlimited leads. Unverified accounts are limited to 5 leads.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {profile?.verification_status === "required" && (
+            <Alert className="mb-6 border-destructive bg-destructive/10">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Verification Required by Admin</AlertTitle>
+              <AlertDescription>
+                An admin has requested that you complete verification before making further purchases.
+                Please upload all required documents below.
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* Current Status */}
           <div className="bg-card rounded-2xl border border-border p-6 mb-6">
