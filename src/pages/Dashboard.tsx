@@ -26,6 +26,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import VerificationStatus from "@/components/VerificationStatus";
 import {
   Dialog,
   DialogContent,
@@ -400,6 +401,19 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
+        {/* Verification Status */}
+        {profile && !profile.is_verified && (
+          <div className="mb-8">
+            <VerificationStatus
+              isVerified={profile.is_verified}
+              verificationStatus={profile.verification_status || "pending"}
+              leadsPurchased={profile.leads_purchased}
+              phoneVerified={profile.phone_verified}
+              addressVerified={profile.address_verified}
+            />
+          </div>
+        )}
 
         {/* Leads section */}
         <div className="bg-card rounded-2xl border border-border overflow-hidden">

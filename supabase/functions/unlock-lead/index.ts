@@ -25,6 +25,9 @@ serve(async (req) => {
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
     logStep("Stripe key verified");
 
+    // Get authorization header to identify user
+    const authHeader = req.headers.get("Authorization");
+    
     const { leadId } = await req.json();
     if (!leadId) throw new Error("Lead ID is required");
     logStep("Lead ID received", { leadId });
@@ -32,12 +35,45 @@ serve(async (req) => {
     // Initialize Stripe
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
-    // Initialize Supabase client
+    // Initialize Supabase client with service role
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
       { auth: { persistSession: false } }
     );
+
+    // If user is authenticated, check verification status
+    let userId: string | null = null;
+    if (authHeader) {
+      const userClient = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+        { global: { headers: { Authorization: authHeader } } }
+      );
+      
+      const { data: { user } } = await userClient.auth.getUser();
+      if (user) {
+        userId = user.id;
+        logStep("User identified", { userId });
+
+        // Check user's verification status and lead count
+        const { data: profile, error: profileError } = await supabaseClient
+          .from("profiles")
+          .select("is_verified, leads_purchased")
+          .eq("user_id", userId)
+          .maybeSingle();
+
+        if (profileError) {
+          logStep("Profile fetch error", { error: profileError.message });
+        }
+
+        const MAX_UNVERIFIED_LEADS = 3;
+        if (profile && !profile.is_verified && profile.leads_purchased >= MAX_UNVERIFIED_LEADS) {
+          throw new Error("You've reached the maximum of 3 leads for unverified businesses. Please complete verification to continue purchasing leads.");
+        }
+        logStep("Verification check passed", { isVerified: profile?.is_verified, leadsPurchased: profile?.leads_purchased });
+      }
+    }
 
     // Verify the lead exists and is not already unlocked
     const { data: lead, error: leadError } = await supabaseClient

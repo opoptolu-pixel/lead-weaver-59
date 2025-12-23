@@ -11,6 +11,11 @@ interface Profile {
   postcode: string | null;
   credits: number;
   whatsapp_optin: boolean | null;
+  is_verified: boolean;
+  verification_status: string | null;
+  leads_purchased: number;
+  phone_verified: boolean;
+  address_verified: boolean;
 }
 
 interface AuthContextType {
