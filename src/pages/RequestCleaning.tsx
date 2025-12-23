@@ -122,6 +122,8 @@ export default function RequestCleaning() {
 
   const handleJobTypeSelect = (type: typeof cleaningTypes[0]) => {
     setFormData({ ...formData, jobType: type.label, jobValue: type.value });
+    // Auto-advance to step 2 when selecting a cleaning type
+    setCurrentStep(2);
   };
 
   // Get tomorrow's date as minimum date
@@ -345,46 +347,44 @@ export default function RequestCleaning() {
               </div>
             )}
 
-            {/* Navigation Buttons */}
-            <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-100">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={handleBack}
-                disabled={currentStep === 1}
-                className={cn(
-                  "gap-2 text-gray-600",
-                  currentStep === 1 && "invisible"
-                )}
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back
-              </Button>
+            {/* Navigation Buttons - Hidden on Step 1 */}
+            {currentStep > 1 && (
+              <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-100">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={handleBack}
+                  className="gap-2 text-gray-600"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Back
+                </Button>
 
-              <Button
-                type="button"
-                onClick={handleNext}
-                disabled={!canProceed() || isSubmitting}
-                className="gap-2 bg-secondary hover:bg-secondary/90 text-secondary-foreground px-8 h-12 rounded-xl shadow-lg shadow-secondary/30 font-semibold"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Submitting...
-                  </>
-                ) : currentStep === TOTAL_STEPS ? (
-                  <>
-                    Get Free Quotes
-                    <ArrowRight className="w-5 h-5" />
-                  </>
-                ) : (
-                  <>
-                    Continue
-                    <ArrowRight className="w-5 h-5" />
-                  </>
-                )}
-              </Button>
-            </div>
+                <Button
+                  type="button"
+                  onClick={handleNext}
+                  disabled={!canProceed() || isSubmitting}
+                  className="gap-2 bg-secondary hover:bg-secondary/90 text-secondary-foreground px-8 h-12 rounded-xl shadow-lg shadow-secondary/30 font-semibold"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : currentStep === TOTAL_STEPS ? (
+                    <>
+                      Get Free Quotes
+                      <ArrowRight className="w-5 h-5" />
+                    </>
+                  ) : (
+                    <>
+                      Continue
+                      <ArrowRight className="w-5 h-5" />
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Progress Bar */}
