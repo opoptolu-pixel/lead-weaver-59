@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { Sparkles, Menu, X, User } from "lucide-react";
+import { Menu, X, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import logo from "@/assets/logo.svg";
 
 export const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -40,18 +41,13 @@ export const Header = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
-          <div className="flex items-center gap-2">
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
-              isScrolled ? "bg-secondary" : "bg-secondary/20"
-            }`}>
-              <Sparkles className={`w-5 h-5 ${isScrolled ? "text-secondary-foreground" : "text-secondary"}`} />
-            </div>
-            <span className={`font-heading text-xl font-bold transition-colors ${
-              isScrolled ? "text-foreground" : "text-primary-foreground"
-            }`}>
-              Deep Clean UK
-            </span>
-          </div>
+          <Link to="/" className="flex items-center">
+            <img 
+              src={logo} 
+              alt="Deep Clean UK" 
+              className="h-10 w-auto"
+            />
+          </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-8">
