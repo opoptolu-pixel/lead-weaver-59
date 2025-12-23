@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/Logo";
+import TwoFactorVerify from "@/components/TwoFactorVerify";
 
 const authSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -19,7 +20,7 @@ const emailSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
 });
 
-type AuthMode = "login" | "signup" | "forgot" | "magic";
+type AuthMode = "login" | "signup" | "forgot" | "magic" | "2fa";
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
@@ -35,16 +36,16 @@ export default function Auth() {
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
 
-  // Redirect if already logged in
+  // Redirect if already logged in (and not in 2FA mode)
   useEffect(() => {
-    if (user) {
+    if (user && mode !== "2fa") {
       navigate("/dashboard");
     }
-  }, [user, navigate]);
+  }, [user, mode, navigate]);
 
   const validateForm = () => {
     try {
-      if (mode === "forgot") {
+      if (mode === "forgot" || mode === "magic") {
         emailSchema.parse({ email });
       } else {
         authSchema.parse({ email, password });
@@ -108,6 +109,21 @@ export default function Auth() {
     }
   };
 
+  const checkMFARequired = async (): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (error) {
+        console.error("Error checking MFA level:", error);
+        return false;
+      }
+      
+      // If next level requires AAL2 but current is AAL1, 2FA verification is needed
+      return data.nextLevel === 'aal2' && data.currentLevel === 'aal1';
+    } catch {
+      return false;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -135,6 +151,14 @@ export default function Auth() {
           }
           return;
         }
+        
+        // Check if MFA is required
+        const mfaRequired = await checkMFARequired();
+        if (mfaRequired) {
+          setMode("2fa");
+          return;
+        }
+        
         toast.success("Welcome back!");
         navigate("/dashboard");
       } else {
@@ -156,12 +180,24 @@ export default function Auth() {
     }
   };
 
+  const handle2FASuccess = () => {
+    toast.success("Welcome back!");
+    navigate("/dashboard");
+  };
+
+  const handle2FACancel = async () => {
+    // Sign out and go back to login
+    await supabase.auth.signOut();
+    setMode("login");
+  };
+
   const getTitle = () => {
     switch (mode) {
       case "login": return "Welcome Back";
       case "signup": return "Create Account";
       case "forgot": return "Reset Password";
       case "magic": return "Get Login Link";
+      case "2fa": return "Two-Factor Authentication";
     }
   };
 
@@ -171,6 +207,7 @@ export default function Auth() {
       case "signup": return "Join to start getting cleaning leads";
       case "forgot": return "Enter your email to receive a reset link";
       case "magic": return "We'll send you a secure link to sign in";
+      case "2fa": return "Enter your authentication code";
     }
   };
 
@@ -189,137 +226,146 @@ export default function Auth() {
       <main className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md">
           <div className="bg-card rounded-2xl shadow-elevated border border-border p-8">
-            {(mode === "forgot" || mode === "magic") && (
-              <button
-                type="button"
-                onClick={() => {
-                  setMode("login");
-                  setErrors({});
-                }}
-                className="flex items-center gap-1 text-muted-foreground hover:text-foreground mb-4 text-sm"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back to sign in
-              </button>
-            )}
-            
-            <div className="text-center mb-8">
-              <h1 className="font-heading text-2xl font-bold text-foreground mb-2">
-                {getTitle()}
-              </h1>
-              <p className="text-muted-foreground">
-                {getSubtitle()}
-              </p>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className={`pl-10 ${errors.email ? "border-destructive" : ""}`}
-                  />
-                </div>
-                {errors.email && (
-                  <p className="text-destructive text-sm">{errors.email}</p>
+            {mode === "2fa" ? (
+              <TwoFactorVerify 
+                onSuccess={handle2FASuccess} 
+                onCancel={handle2FACancel} 
+              />
+            ) : (
+              <>
+                {(mode === "forgot" || mode === "magic") && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode("login");
+                      setErrors({});
+                    }}
+                    className="flex items-center gap-1 text-muted-foreground hover:text-foreground mb-4 text-sm"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    Back to sign in
+                  </button>
                 )}
-              </div>
+                
+                <div className="text-center mb-8">
+                  <h1 className="font-heading text-2xl font-bold text-foreground mb-2">
+                    {getTitle()}
+                  </h1>
+                  <p className="text-muted-foreground">
+                    {getSubtitle()}
+                  </p>
+                </div>
 
-              {(mode !== "forgot" && mode !== "magic") && (
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className={`pl-10 pr-10 ${errors.password ? "border-destructive" : ""}`}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
+                <form onSubmit={handleSubmit} className="space-y-5">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="you@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className={`pl-10 ${errors.email ? "border-destructive" : ""}`}
+                      />
+                    </div>
+                    {errors.email && (
+                      <p className="text-destructive text-sm">{errors.email}</p>
+                    )}
                   </div>
-                  {errors.password && (
-                    <p className="text-destructive text-sm">{errors.password}</p>
+
+                  {(mode !== "forgot" && mode !== "magic") && (
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Password</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                        <Input
+                          id="password"
+                          type={showPassword ? "text" : "password"}
+                          placeholder="••••••••"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className={`pl-10 pr-10 ${errors.password ? "border-destructive" : ""}`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        </button>
+                      </div>
+                      {errors.password && (
+                        <p className="text-destructive text-sm">{errors.password}</p>
+                      )}
+                    </div>
                   )}
-                </div>
-              )}
 
-              {mode === "login" && (
-                <div className="flex justify-between items-center">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMode("magic");
-                      setErrors({});
-                    }}
-                    className="text-sm text-secondary hover:underline"
-                  >
-                    Send me a login link
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMode("forgot");
-                      setErrors({});
-                    }}
-                    className="text-sm text-secondary hover:underline"
-                  >
-                    Forgot password?
-                  </button>
-                </div>
-              )}
+                  {mode === "login" && (
+                    <div className="flex justify-between items-center">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMode("magic");
+                          setErrors({});
+                        }}
+                        className="text-sm text-secondary hover:underline"
+                      >
+                        Send me a login link
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMode("forgot");
+                          setErrors({});
+                        }}
+                        className="text-sm text-secondary hover:underline"
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
+                  )}
 
-              <Button
-                type="submit"
-                variant="cta"
-                size="lg"
-                className="w-full"
-                disabled={loading}
-              >
-                {loading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : mode === "login" ? (
-                  "Sign In"
-                ) : mode === "signup" ? (
-                  "Create Account"
-                ) : mode === "magic" ? (
-                  "Send Login Link"
-                ) : (
-                  "Send Reset Link"
+                  <Button
+                    type="submit"
+                    variant="cta"
+                    size="lg"
+                    className="w-full"
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : mode === "login" ? (
+                      "Sign In"
+                    ) : mode === "signup" ? (
+                      "Create Account"
+                    ) : mode === "magic" ? (
+                      "Send Login Link"
+                    ) : (
+                      "Send Reset Link"
+                    )}
+                  </Button>
+                </form>
+
+                {(mode !== "forgot" && mode !== "magic") && (
+                  <div className="mt-6 text-center">
+                    <p className="text-muted-foreground">
+                      {mode === "login" ? "Don't have an account?" : "Already have an account?"}{" "}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMode(mode === "login" ? "signup" : "login");
+                          setErrors({});
+                        }}
+                        className="text-secondary font-semibold hover:underline"
+                      >
+                        {mode === "login" ? "Sign up" : "Sign in"}
+                      </button>
+                    </p>
+                  </div>
                 )}
-              </Button>
-            </form>
-
-            {(mode !== "forgot" && mode !== "magic") && (
-              <div className="mt-6 text-center">
-                <p className="text-muted-foreground">
-                  {mode === "login" ? "Don't have an account?" : "Already have an account?"}{" "}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMode(mode === "login" ? "signup" : "login");
-                      setErrors({});
-                    }}
-                    className="text-secondary font-semibold hover:underline"
-                  >
-                    {mode === "login" ? "Sign up" : "Sign in"}
-                  </button>
-                </p>
-              </div>
+              </>
             )}
           </div>
 
