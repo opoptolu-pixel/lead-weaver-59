@@ -20,6 +20,12 @@ interface Lead {
 
 const LEADS_PER_PAGE = 10;
 
+const POPULAR_SEARCHES = [
+  "London", "Manchester", "Birmingham", "Leeds", "Liverpool",
+  "Sheffield", "Bristol", "Glasgow", "Edinburgh", "Cardiff",
+  "SW1", "E1", "NW1", "SE1", "M1", "B1", "LS1", "L1"
+];
+
 export default function Leads() {
   const { user, profile, refreshProfile } = useAuth();
   const navigate = useNavigate();
@@ -35,6 +41,8 @@ export default function Leads() {
   const [usingCreditLeadId, setUsingCreditLeadId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [activeFilter, setActiveFilter] = useState(initialSearch);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
@@ -237,13 +245,13 @@ export default function Leads() {
               ) : (
                 <>
                   <Link to="/auth">
-                    <Button variant="outlineHero" size="sm">
-                      Sign In
+                    <Button variant="hero" size="sm">
+                      Sign Up
                     </Button>
                   </Link>
-                  <Link to="/">
-                    <Button variant="ghost" size="sm" className="text-primary-foreground">
-                      Home
+                  <Link to="/auth">
+                    <Button variant="outlineHero" size="sm">
+                      Sign In
                     </Button>
                   </Link>
                 </>
@@ -273,14 +281,74 @@ export default function Leads() {
           <form onSubmit={handleSearchSubmit} className="max-w-lg mx-auto mb-8">
             <div className="flex gap-2">
               <div className="relative flex-1">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10" />
                 <Input
+                  ref={searchInputRef}
                   type="text"
                   placeholder="Search by postcode or city..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => setShowSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                   className="pl-12 h-12"
                 />
+                {/* Suggestions dropdown */}
+                {showSuggestions && searchQuery.length === 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-elevated z-50 overflow-hidden">
+                    <div className="p-2 text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                      Popular Searches
+                    </div>
+                    <div className="flex flex-wrap gap-2 p-3 pt-0">
+                      {POPULAR_SEARCHES.slice(0, 10).map((suggestion) => (
+                        <button
+                          key={suggestion}
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setSearchQuery(suggestion);
+                            setActiveFilter(suggestion);
+                            setSearchParams({ search: suggestion });
+                            setShowSuggestions(false);
+                          }}
+                          className="px-3 py-1.5 text-sm bg-muted hover:bg-secondary/20 hover:text-secondary rounded-full transition-colors"
+                        >
+                          {suggestion}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Filtered suggestions */}
+                {showSuggestions && searchQuery.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-elevated z-50 overflow-hidden">
+                    {POPULAR_SEARCHES.filter(s => 
+                      s.toLowerCase().includes(searchQuery.toLowerCase())
+                    ).slice(0, 5).map((suggestion) => (
+                      <button
+                        key={suggestion}
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          setSearchQuery(suggestion);
+                          setActiveFilter(suggestion);
+                          setSearchParams({ search: suggestion });
+                          setShowSuggestions(false);
+                        }}
+                        className="w-full px-4 py-3 text-left hover:bg-muted transition-colors flex items-center gap-2"
+                      >
+                        <MapPin className="w-4 h-4 text-muted-foreground" />
+                        <span>{suggestion}</span>
+                      </button>
+                    ))}
+                    {POPULAR_SEARCHES.filter(s => 
+                      s.toLowerCase().includes(searchQuery.toLowerCase())
+                    ).length === 0 && (
+                      <div className="px-4 py-3 text-sm text-muted-foreground">
+                        Press Enter to search for "{searchQuery}"
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               <Button type="submit" variant="default" className="h-12 px-6">
                 Search
@@ -456,16 +524,18 @@ export default function Leads() {
         )}
 
         {/* CTA */}
-        <div className="text-center mt-8">
-          <p className="text-muted-foreground mb-4">
-            Ready to start getting leads?
-          </p>
-          <Link to="/#registration">
-            <Button variant="cta" size="lg">
-              Join Deep Clean UK Today
-            </Button>
-          </Link>
-        </div>
+        {!user && (
+          <div className="text-center mt-8">
+            <p className="text-muted-foreground mb-4">
+              Ready to start getting leads?
+            </p>
+            <Link to="/auth">
+              <Button variant="cta" size="lg">
+                Sign Up & Start Today
+              </Button>
+            </Link>
+          </div>
+        )}
       </main>
     </div>
   );
