@@ -8,16 +8,17 @@ import {
   Home,
   Building2,
   Truck,
-  Paintbrush,
-  Wind,
-  Utensils,
-  Wrench,
-  ClipboardCheck,
-  Calendar,
+  Droplets,
+  Flame,
+  Grid2X2,
+  Hammer,
+  RefreshCw,
+  CalendarCheck,
   MapPin,
   User,
   Mail,
-  Phone
+  Phone,
+  Calendar
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,14 +30,14 @@ import { cn } from "@/lib/utils";
 const cleaningTypes = [
   { id: "end-of-tenancy", label: "End of Tenancy", icon: Home, color: "bg-rose-100 text-rose-600" },
   { id: "deep-clean", label: "Deep Clean", icon: Sparkles, color: "bg-violet-100 text-violet-600" },
-  { id: "regular-clean", label: "Regular Clean", icon: ClipboardCheck, color: "bg-emerald-100 text-emerald-600" },
-  { id: "carpet-cleaning", label: "Carpet Cleaning", icon: Paintbrush, color: "bg-amber-100 text-amber-600" },
-  { id: "oven-cleaning", label: "Oven Cleaning", icon: Utensils, color: "bg-orange-100 text-orange-600" },
-  { id: "window-cleaning", label: "Window Cleaning", icon: Wind, color: "bg-sky-100 text-sky-600" },
+  { id: "regular-clean", label: "Regular Clean", icon: RefreshCw, color: "bg-emerald-100 text-emerald-600" },
+  { id: "carpet-cleaning", label: "Carpet Cleaning", icon: Droplets, color: "bg-amber-100 text-amber-600" },
+  { id: "oven-cleaning", label: "Oven Cleaning", icon: Flame, color: "bg-orange-100 text-orange-600" },
+  { id: "window-cleaning", label: "Window Cleaning", icon: Grid2X2, color: "bg-sky-100 text-sky-600" },
   { id: "office-clean", label: "Office Clean", icon: Building2, color: "bg-indigo-100 text-indigo-600" },
   { id: "move-in-clean", label: "Move-In Clean", icon: Truck, color: "bg-teal-100 text-teal-600" },
-  { id: "post-construction", label: "Post-Construction", icon: Wrench, color: "bg-slate-100 text-slate-600" },
-  { id: "one-off-clean", label: "One-Off Clean", icon: Calendar, color: "bg-pink-100 text-pink-600" },
+  { id: "post-construction", label: "Post-Construction", icon: Hammer, color: "bg-slate-100 text-slate-600" },
+  { id: "one-off-clean", label: "One-Off Clean", icon: CalendarCheck, color: "bg-pink-100 text-pink-600" },
 ];
 
 const TOTAL_STEPS = 4;
@@ -185,10 +186,10 @@ export default function RequestCleaning() {
                         )}
                       >
                         <div className={cn(
-                          "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0",
+                          "w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0",
                           type.color
                         )}>
-                          <Icon className="w-5 h-5" />
+                          <Icon className="w-6 h-6" />
                         </div>
                         <span className={cn(
                           "font-medium text-sm lg:text-base transition-colors",
