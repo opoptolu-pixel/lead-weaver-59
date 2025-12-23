@@ -10,7 +10,6 @@ interface LeadResult {
   postcode: string;
   job_type: string;
   display_value: string;
-  customer_address: string;
 }
 
 interface UKLocation {
@@ -66,11 +65,10 @@ export const HeroSection = () => {
           setMatchedCity(null);
         }
 
-        // Build the leads query - search by postcode prefixes if we have city match
+        // Build the leads query using secure view (excludes sensitive data)
         let leadsQuery = supabase
-          .from("leads")
-          .select("id, postcode, job_type, display_value, customer_address")
-          .eq("is_unlocked", false);
+          .from("available_leads")
+          .select("id, postcode, job_type, display_value");
 
         if (prefixes.length > 0) {
           // For single-letter prefixes, match with digits to avoid false matches
@@ -88,12 +86,12 @@ export const HeroSection = () => {
             }
           }
           
-          const searchConditions = `postcode.ilike.%${searchTerm.toUpperCase()}%,customer_address.ilike.%${searchTerm}%,job_type.ilike.%${searchTerm}%`;
+          const searchConditions = `postcode.ilike.%${searchTerm.toUpperCase()}%,job_type.ilike.%${searchTerm}%`;
           leadsQuery = leadsQuery.or(`${expandedConditions.join(',')},${searchConditions}`);
         } else {
           // Standard search
           leadsQuery = leadsQuery.or(
-            `postcode.ilike.%${searchTerm.toUpperCase()}%,customer_address.ilike.%${searchTerm}%,job_type.ilike.%${searchTerm}%`
+            `postcode.ilike.%${searchTerm.toUpperCase()}%,job_type.ilike.%${searchTerm}%`
           );
         }
 

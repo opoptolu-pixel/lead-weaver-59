@@ -21,10 +21,10 @@ export const JobBoard = () => {
   useEffect(() => {
     const fetchLeads = async () => {
       try {
+        // Use secure view that excludes sensitive customer data
         const { data, error } = await supabase
-          .from("leads")
+          .from("available_leads")
           .select("id, postcode, job_type, display_value, date")
-          .eq("is_unlocked", false)
           .order("created_at", { ascending: false })
           .limit(6);
 

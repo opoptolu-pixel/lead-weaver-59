@@ -23,7 +23,6 @@ interface SearchLead {
   postcode: string;
   job_type: string;
   display_value: string;
-  customer_address: string;
 }
 
 interface UKLocation {
@@ -70,10 +69,10 @@ export default function Leads() {
       const from = pageNum * LEADS_PER_PAGE;
       const to = from + LEADS_PER_PAGE - 1;
 
+      // Use the secure view that excludes sensitive customer data
       let query = supabase
-        .from("leads")
+        .from("available_leads")
         .select("id, postcode, job_type, display_value, date, created_at")
-        .eq("is_unlocked", false)
         .order("created_at", { ascending: false });
 
       // Apply filter based on prefixes (for city search) or direct postcode search
@@ -172,11 +171,10 @@ export default function Leads() {
           setMatchedCity(null);
         }
 
-        // Build leads query for dropdown preview
+        // Build leads query for dropdown preview using secure view
         let leadsQuery = supabase
-          .from("leads")
-          .select("id, postcode, job_type, display_value, customer_address")
-          .eq("is_unlocked", false);
+          .from("available_leads")
+          .select("id, postcode, job_type, display_value");
 
         if (prefixes.length > 0) {
           const expandedConditions: string[] = [];
@@ -189,11 +187,11 @@ export default function Leads() {
               expandedConditions.push(`postcode.ilike.${prefix}%`);
             }
           }
-          const searchConditions = `postcode.ilike.%${searchTerm.toUpperCase()}%,customer_address.ilike.%${searchTerm}%,job_type.ilike.%${searchTerm}%`;
+          const searchConditions = `postcode.ilike.%${searchTerm.toUpperCase()}%,job_type.ilike.%${searchTerm}%`;
           leadsQuery = leadsQuery.or(`${expandedConditions.join(',')},${searchConditions}`);
         } else {
           leadsQuery = leadsQuery.or(
-            `postcode.ilike.%${searchTerm.toUpperCase()}%,customer_address.ilike.%${searchTerm}%,job_type.ilike.%${searchTerm}%`
+            `postcode.ilike.%${searchTerm.toUpperCase()}%,job_type.ilike.%${searchTerm}%`
           );
         }
 
