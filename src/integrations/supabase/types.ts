@@ -542,6 +542,65 @@ export type Database = {
         }
         Relationships: []
       }
+      scheduled_emails: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          error_message: string | null
+          html_body: string
+          id: string
+          is_test: boolean | null
+          recipient_email: string
+          scheduled_for: string
+          sent_at: string | null
+          status: string
+          subject: string
+          template_id: string | null
+          template_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          html_body: string
+          id?: string
+          is_test?: boolean | null
+          recipient_email: string
+          scheduled_for: string
+          sent_at?: string | null
+          status?: string
+          subject: string
+          template_id?: string | null
+          template_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          html_body?: string
+          id?: string
+          is_test?: boolean | null
+          recipient_email?: string
+          scheduled_for?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string
+          template_id?: string | null
+          template_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_emails_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string

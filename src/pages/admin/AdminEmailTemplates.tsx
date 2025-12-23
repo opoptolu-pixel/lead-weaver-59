@@ -40,10 +40,13 @@ import {
   Code,
   Send,
   BarChart3,
+  Calendar,
 } from "lucide-react";
 import { format } from "date-fns";
 import { VariableAutocompleteTextarea } from "@/components/admin/VariableAutocompleteTextarea";
 import { EmailLogsPanel } from "@/components/admin/EmailLogsPanel";
+import { ScheduledEmailsPanel } from "@/components/admin/ScheduledEmailsPanel";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface EmailTemplate {
   id: string;
@@ -1095,7 +1098,11 @@ export default function AdminEmailTemplates() {
   const [testEmailDialogOpen, setTestEmailDialogOpen] = useState(false);
   const [testEmail, setTestEmail] = useState("");
   const [sendingTest, setSendingTest] = useState(false);
+  const [scheduledDate, setScheduledDate] = useState("");
+  const [scheduledTime, setScheduledTime] = useState("");
+  const [isScheduling, setIsScheduling] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null);
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     name: "",
     subject: "",
@@ -1163,7 +1170,63 @@ export default function AdminEmailTemplates() {
   const handleTestEmail = (template: EmailTemplate) => {
     setSelectedTemplate(template);
     setTestEmail("");
+    setScheduledDate("");
+    setScheduledTime("");
+    setIsScheduling(false);
     setTestEmailDialogOpen(true);
+  };
+
+  const scheduleEmail = async () => {
+    if (!selectedTemplate || !testEmail || !scheduledDate || !scheduledTime) return;
+
+    setSendingTest(true);
+    try {
+      const html = getPreviewHtml(selectedTemplate);
+      
+      let subject = selectedTemplate.subject;
+      const sampleData: Record<string, string> = {
+        customer_name: "John Smith",
+        business_name: "Sparkle Clean Ltd",
+        contact_name: "Jane Doe",
+        job_type: "End of Tenancy Clean",
+        postcode: "SW1A 1AA",
+        postcode_area: "SW1A",
+        display_value: "from £150",
+        reference_id: "TEST12345",
+        preferred_date: "Monday, 15 January 2025",
+        lead_date: "15 Jan 2025",
+        current_year: new Date().getFullYear().toString(),
+        dashboard_url: window.location.origin + "/dashboard",
+      };
+      Object.entries(sampleData).forEach(([key, value]) => {
+        subject = subject.replace(new RegExp(`\\{\\{${key}\\}\\}`, "g"), value);
+      });
+
+      const scheduledFor = new Date(`${scheduledDate}T${scheduledTime}`);
+
+      const { error } = await supabase
+        .from("scheduled_emails")
+        .insert({
+          template_id: selectedTemplate.id,
+          template_name: selectedTemplate.name,
+          recipient_email: testEmail,
+          subject: `[TEST] ${subject}`,
+          html_body: html,
+          scheduled_for: scheduledFor.toISOString(),
+          is_test: true,
+          created_by: user?.id,
+        });
+
+      if (error) throw error;
+
+      toast.success(`Email scheduled for ${format(scheduledFor, "d MMM yyyy HH:mm")}`);
+      setTestEmailDialogOpen(false);
+    } catch (error: any) {
+      console.error("Error scheduling email:", error);
+      toast.error(error.message || "Failed to schedule email");
+    } finally {
+      setSendingTest(false);
+    }
   };
 
   const sendTestEmail = async () => {
@@ -1360,6 +1423,10 @@ export default function AdminEmailTemplates() {
               <Mail className="w-4 h-4" />
               Templates
             </TabsTrigger>
+            <TabsTrigger value="scheduled" className="flex items-center gap-2">
+              <Calendar className="w-4 h-4" />
+              Scheduled
+            </TabsTrigger>
             <TabsTrigger value="logs" className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4" />
               Delivery Tracking
@@ -1525,6 +1592,10 @@ export default function AdminEmailTemplates() {
         </Card>
           </TabsContent>
 
+          <TabsContent value="scheduled">
+            <ScheduledEmailsPanel />
+          </TabsContent>
+
           <TabsContent value="logs">
             <EmailLogsPanel />
           </TabsContent>
@@ -1651,11 +1722,14 @@ export default function AdminEmailTemplates() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Send className="w-5 h-5" />
-              Send Test Email
+              {isScheduling ? <Calendar className="w-5 h-5" /> : <Send className="w-5 h-5" />}
+              {isScheduling ? "Schedule Test Email" : "Send Test Email"}
             </DialogTitle>
             <DialogDescription>
-              Send a test email using sample data to verify the template looks correct
+              {isScheduling 
+                ? "Schedule a test email to be sent at a specific time"
+                : "Send a test email using sample data to verify the template looks correct"
+              }
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -1669,6 +1743,40 @@ export default function AdminEmailTemplates() {
                 placeholder="your@email.com"
               />
             </div>
+
+            <div className="flex items-center gap-2">
+              <Switch
+                id="schedule-toggle"
+                checked={isScheduling}
+                onCheckedChange={setIsScheduling}
+              />
+              <Label htmlFor="schedule-toggle">Schedule for later</Label>
+            </div>
+
+            {isScheduling && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="schedule-date">Date</Label>
+                  <Input
+                    id="schedule-date"
+                    type="date"
+                    value={scheduledDate}
+                    onChange={(e) => setScheduledDate(e.target.value)}
+                    min={new Date().toISOString().split("T")[0]}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="schedule-time">Time</Label>
+                  <Input
+                    id="schedule-time"
+                    type="time"
+                    value={scheduledTime}
+                    onChange={(e) => setScheduledTime(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+
             {selectedTemplate && (
               <div className="bg-muted/50 rounded-lg p-3 space-y-2">
                 <p className="text-sm font-medium">Template Details:</p>
@@ -1687,13 +1795,24 @@ export default function AdminEmailTemplates() {
               <Button variant="outline" onClick={() => setTestEmailDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button 
-                onClick={sendTestEmail} 
-                disabled={sendingTest || !testEmail}
-              >
-                {sendingTest && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                Send Test
-              </Button>
+              {isScheduling ? (
+                <Button 
+                  onClick={scheduleEmail} 
+                  disabled={sendingTest || !testEmail || !scheduledDate || !scheduledTime}
+                >
+                  {sendingTest && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Schedule
+                </Button>
+              ) : (
+                <Button 
+                  onClick={sendTestEmail} 
+                  disabled={sendingTest || !testEmail}
+                >
+                  {sendingTest && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                  Send Now
+                </Button>
+              )}
             </div>
           </div>
         </DialogContent>
