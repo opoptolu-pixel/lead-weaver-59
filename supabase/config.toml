@@ -19,7 +19,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.send-verification-code]
-verify_jwt = true
+verify_jwt = false
 
 [functions.verify-phone-code]
-verify_jwt = true
+verify_jwt = false
