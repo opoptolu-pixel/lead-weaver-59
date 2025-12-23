@@ -506,6 +506,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_leads_purchased: {
+        Args: { user_uuid: string }
+        Returns: undefined
+      }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
