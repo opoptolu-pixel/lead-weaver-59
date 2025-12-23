@@ -252,13 +252,13 @@ export default function Settings() {
 
               {/* Phone */}
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
+                <Label htmlFor="phone">Phone Number (with country code)</Label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                   <Input
                     id="phone"
                     type="tel"
-                    placeholder="07700 900000"
+                    placeholder="+447700900000"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     className={`pl-10 ${errors.phone ? "border-destructive" : ""}`}
@@ -267,6 +267,9 @@ export default function Settings() {
                 {errors.phone && (
                   <p className="text-destructive text-sm">{errors.phone}</p>
                 )}
+                <p className="text-muted-foreground text-xs">
+                  Include country code for WhatsApp (e.g., +44 for UK)
+                </p>
               </div>
 
               {/* Postcode */}
