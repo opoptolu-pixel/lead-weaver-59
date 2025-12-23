@@ -110,6 +110,26 @@ serve(async (req) => {
 
     if (leadError) throw new Error(`Failed to fetch lead details: ${leadError.message}`);
 
+    // Send WhatsApp notification with lead details (fire and forget)
+    try {
+      const whatsappUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-whatsapp`;
+      fetch(whatsappUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        },
+        body: JSON.stringify({
+          type: "lead_unlocked",
+          leadId: leadId,
+          userId: userId,
+        }),
+      }).catch(err => logStep("WhatsApp notification failed (non-blocking)", { error: err.message }));
+      logStep("WhatsApp notification triggered");
+    } catch (whatsappError: any) {
+      logStep("WhatsApp notification error (non-blocking)", { error: whatsappError.message });
+    }
+
     return new Response(JSON.stringify({
       success: true,
       isNewUser,
