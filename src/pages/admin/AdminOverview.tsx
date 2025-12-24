@@ -11,12 +11,18 @@ import {
   Layers,
   Target,
   PoundSterling,
+  Download,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import KPICard from "@/components/admin/KPICard";
 import QueueWidget from "@/components/admin/QueueWidget";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdmin } from "@/contexts/AdminContext";
+import { exportToCsv } from "@/lib/exportCsv";
+import { toast } from "sonner";
 import {
   LineChart,
   Line,
@@ -59,6 +65,13 @@ interface JobTypeStats {
   refundRate: number;
 }
 
+interface PeriodComparison {
+  leadsReceived: number;
+  leadsPurchased: number;
+  revenue: number;
+  activeBuyers: number;
+}
+
 const VALUE_BAND_COLORS = {
   "£100–£140": "hsl(var(--muted-foreground))",
   "£150–£200": "hsl(var(--secondary))",
@@ -80,6 +93,7 @@ export default function AdminOverview() {
     conversionRate: 0,
     totalJobRevenue: 0,
   });
+  const [previousStats, setPreviousStats] = useState<PeriodComparison | null>(null);
   const [queues, setQueues] = useState({
     leadsAwaiting: 0,
     verificationPending: 0,
@@ -96,12 +110,51 @@ export default function AdminOverview() {
   useEffect(() => {
     fetchStats();
     fetchChartData();
+    fetchPreviousPeriodStats();
   }, [dateRange]);
+
+  // Calculate percentage change
+  const getPercentageChange = (current: number, previous: number): { value: number; isPositive: boolean } | null => {
+    if (previous === 0) return current > 0 ? { value: 100, isPositive: true } : null;
+    const change = ((current - previous) / previous) * 100;
+    return { value: Math.abs(Math.round(change)), isPositive: change >= 0 };
+  };
+
+  const fetchPreviousPeriodStats = async () => {
+    const { start, end } = getDateFilter();
+    const periodLength = end.getTime() - start.getTime();
+    const prevEnd = new Date(start.getTime() - 1);
+    const prevStart = new Date(prevEnd.getTime() - periodLength);
+
+    const { data: prevLeads } = await supabase
+      .from("leads")
+      .select("id, is_unlocked, unlocked_by")
+      .gte("created_at", prevStart.toISOString())
+      .lte("created_at", prevEnd.toISOString());
+
+    const { data: prevUnlocked } = await supabase
+      .from("leads")
+      .select("id, unlocked_by")
+      .gte("unlocked_at", prevStart.toISOString())
+      .lte("unlocked_at", prevEnd.toISOString())
+      .not("unlocked_by", "is", null);
+
+    const prevLeadsReceived = prevLeads?.length || 0;
+    const prevLeadsPurchased = prevUnlocked?.length || 0;
+    const prevRevenue = prevLeadsPurchased * 20;
+    const prevBuyers = new Set(prevUnlocked?.map(l => l.unlocked_by) || []);
+
+    setPreviousStats({
+      leadsReceived: prevLeadsReceived,
+      leadsPurchased: prevLeadsPurchased,
+      revenue: prevRevenue,
+      activeBuyers: prevBuyers.size,
+    });
+  };
 
   const fetchChartData = async () => {
     const { start, end } = getDateFilter();
     
-    // Fetch leads for chart data
     const { data: leads } = await supabase
       .from("leads")
       .select("created_at, unlocked_at, is_unlocked, value, postcode, job_type, refunded_at")
@@ -109,10 +162,8 @@ export default function AdminOverview() {
       .lte("created_at", end.toISOString());
 
     if (leads) {
-      // Generate daily revenue/leads data for the date range
       const dailyMap = new Map<string, { revenue: number; leads: number }>();
       
-      // Calculate number of days in range
       const daysDiff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
       const daysToShow = Math.min(daysDiff, 7);
       
@@ -140,7 +191,6 @@ export default function AdminOverview() {
 
       setRevenueData(chartData);
 
-      // Generate postcode data
       const postcodeMap = new Map<string, number>();
       leads.filter(l => l.is_unlocked).forEach((lead) => {
         const prefix = lead.postcode.split(/\s/)[0].replace(/\d.*$/, '') + 
@@ -155,7 +205,6 @@ export default function AdminOverview() {
 
       setPostcodeData(sortedPostcodes);
 
-      // Job Value Bands Analytics - values are in pence
       const valueBands = {
         "£100–£149": 0,
         "£150–£199": 0,
@@ -179,7 +228,6 @@ export default function AdminOverview() {
         { name: "£200+", value: valueBands["£200+"], color: "hsl(142, 76%, 36%)" },
       ]);
 
-      // Job Type Analytics (purchase rate, refund rate)
       const jobTypeMap = new Map<string, { total: number; purchased: number; refunded: number }>();
 
       leads.forEach((lead) => {
@@ -213,14 +261,12 @@ export default function AdminOverview() {
     const startISO = start.toISOString();
     const endISO = end.toISOString();
 
-    // Leads created within date range (for leads received, published metrics)
     const { data: leads } = await supabase
       .from("leads")
       .select("id, is_unlocked, lead_status, created_at, refunded_at, value, unlocked_by")
       .gte("created_at", startISO)
       .lte("created_at", endISO);
 
-    // Leads that were UNLOCKED within the date range (for purchase metrics, revenue, active buyers)
     const { data: unlockedLeadsInRange } = await supabase
       .from("leads")
       .select("id, unlocked_by, value, refunded_at")
@@ -228,54 +274,43 @@ export default function AdminOverview() {
       .lte("unlocked_at", endISO)
       .not("unlocked_by", "is", null);
 
-    // Disputes created within date range
     const { data: disputes } = await supabase
       .from("disputes")
       .select("id, status, created_at")
       .gte("created_at", startISO)
       .lte("created_at", endISO);
 
-    // Fraud flags created within date range
     const { data: fraudFlags } = await supabase
       .from("fraud_flags")
       .select("id, status, created_at")
       .gte("created_at", startISO)
       .lte("created_at", endISO);
 
-    // Verifications within date range
     const { data: verifications } = await supabase
       .from("verification_documents")
       .select("id, status, created_at")
       .gte("created_at", startISO)
       .lte("created_at", endISO);
 
-    // Metrics based on leads CREATED in date range
     const leadsReceived = leads?.length || 0;
     const leadsPublished = leads?.filter(l => l.lead_status === "published").length || 0;
     
-    // Metrics based on leads PURCHASED (unlocked) in date range
     const leadsPurchased = unlockedLeadsInRange?.length || 0;
-    const revenue = leadsPurchased * 20; // £20 per lead
+    const revenue = leadsPurchased * 20;
     
-    // Active buyers = unique users who unlocked leads within the date range
     const uniqueBuyers = new Set(unlockedLeadsInRange?.map(l => l.unlocked_by) || []);
     const activeBuyers = uniqueBuyers.size;
     
-    // Refunds from leads unlocked in date range
     const refundsIssued = unlockedLeadsInRange?.filter(l => l.refunded_at !== null).length || 0;
     
     const disputesOpen = disputes?.filter(d => d.status === "open").length || 0;
     const pendingFraud = fraudFlags?.filter(f => f.status === "pending").length || 0;
     
-    // Avg Job Value = average value of leads CREATED in date range (all leads, not just purchased)
-    // Values are stored in pence - convert to pounds for display
     const totalValuePence = leads?.reduce((sum, l) => sum + (l.value || 0), 0) || 0;
     const avgJobValue = leadsReceived > 0 ? Math.round(totalValuePence / leadsReceived / 100) : 0;
     
-    // Conversion rate = leads purchased / leads received (in same date range context)
     const conversionRate = leadsReceived > 0 ? Math.round((leadsPurchased / leadsReceived) * 100) : 0;
     
-    // Total Job Revenue = sum of job values for leads PURCHASED in date range (in pounds)
     const purchasedLeadsValuePence = unlockedLeadsInRange?.reduce((sum, l) => sum + (l.value || 0), 0) || 0;
     const totalJobRevenue = Math.round(purchasedLeadsValuePence / 100);
 
@@ -304,8 +339,63 @@ export default function AdminOverview() {
     });
   };
 
+  const handleExportCSV = () => {
+    const exportData = [{
+      period: `${format(start, "d MMM yyyy")} - ${format(end, "d MMM yyyy")}`,
+      leads_received: stats.leadsReceived,
+      leads_published: stats.leadsPublished,
+      leads_purchased: stats.leadsPurchased,
+      revenue: `£${stats.revenue}`,
+      active_buyers: stats.activeBuyers,
+      refunds_issued: stats.refundsIssued,
+      disputes_open: stats.disputesOpen,
+      fraud_flags: stats.fraudFlags,
+      avg_job_value: `£${stats.avgJobValue}`,
+      conversion_rate: `${stats.conversionRate}%`,
+      total_job_revenue: `£${stats.totalJobRevenue}`,
+    }];
+
+    exportToCsv(exportData, "overview_stats", [
+      { key: "period", label: "Period" },
+      { key: "leads_received", label: "Leads Received" },
+      { key: "leads_published", label: "Leads Published" },
+      { key: "leads_purchased", label: "Leads Purchased" },
+      { key: "revenue", label: "Revenue" },
+      { key: "active_buyers", label: "Active Buyers" },
+      { key: "refunds_issued", label: "Refunds Issued" },
+      { key: "disputes_open", label: "Disputes Open" },
+      { key: "fraud_flags", label: "Fraud Flags" },
+      { key: "avg_job_value", label: "Avg Job Value" },
+      { key: "conversion_rate", label: "Conversion Rate" },
+      { key: "total_job_revenue", label: "Total Job Revenue" },
+    ]);
+    toast.success("Export started");
+  };
+
+  // Render comparison badge
+  const renderComparison = (current: number, previous: number | undefined) => {
+    if (previous === undefined) return null;
+    const change = getPercentageChange(current, previous);
+    if (!change) return null;
+    
+    return (
+      <span className={`flex items-center gap-0.5 text-xs ${change.isPositive ? "text-green-500" : "text-red-500"}`}>
+        {change.isPositive ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+        {change.value}%
+      </span>
+    );
+  };
+
   return (
     <AdminLayout title="Overview">
+      {/* Export Button */}
+      <div className="flex justify-end mb-4">
+        <Button variant="outline" size="sm" onClick={handleExportCSV}>
+          <Download className="w-4 h-4 mr-2" />
+          Export CSV
+        </Button>
+      </div>
+
       {/* KPI Cards - Row 1 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <KPICard
@@ -313,18 +403,21 @@ export default function AdminOverview() {
           value={stats.leadsReceived}
           icon={<FileText className="w-5 h-5 text-secondary" />}
           href="/admin/leads"
+          trend={renderComparison(stats.leadsReceived, previousStats?.leadsReceived)}
         />
         <KPICard
           title="Leads Purchased"
           value={stats.leadsPurchased}
           icon={<ShoppingCart className="w-5 h-5 text-secondary" />}
           href="/admin/leads?status=purchased"
+          trend={renderComparison(stats.leadsPurchased, previousStats?.leadsPurchased)}
         />
         <KPICard
           title="Revenue"
           value={`£${stats.revenue.toLocaleString()}`}
           icon={<CreditCard className="w-5 h-5 text-secondary" />}
           href="/admin/payments"
+          trend={renderComparison(stats.revenue, previousStats?.revenue)}
         />
         <KPICard
           title="Conversion Rate"
@@ -334,7 +427,7 @@ export default function AdminOverview() {
         />
       </div>
 
-      {/* KPI Cards - Row 2 (Phase 2 Metrics) */}
+      {/* KPI Cards - Row 2 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         <KPICard
           title="Avg Job Value"
@@ -353,6 +446,7 @@ export default function AdminOverview() {
           value={stats.activeBuyers}
           icon={<Users className="w-5 h-5 text-secondary" />}
           href="/admin/businesses"
+          trend={renderComparison(stats.activeBuyers, previousStats?.activeBuyers)}
         />
         <KPICard
           title="Refunds Issued"
@@ -370,7 +464,6 @@ export default function AdminOverview() {
 
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Revenue Chart */}
         <div className="bg-card rounded-xl border border-border p-6">
           <h3 className="font-heading font-semibold text-foreground mb-4">
             Revenue & Leads (Last 7 Days)
@@ -407,7 +500,6 @@ export default function AdminOverview() {
           </ResponsiveContainer>
         </div>
 
-        {/* Phase 2: Job Value Bands */}
         <div className="bg-card rounded-xl border border-border p-6">
           <h3 className="font-heading font-semibold text-foreground mb-4">
             Lead Value Bands
@@ -451,7 +543,6 @@ export default function AdminOverview() {
 
       {/* Charts Row 2 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Top Postcodes */}
         <div className="bg-card rounded-xl border border-border p-6">
           <h3 className="font-heading font-semibold text-foreground mb-4">
             Top Postcodes by Purchases
@@ -473,7 +564,6 @@ export default function AdminOverview() {
           </ResponsiveContainer>
         </div>
 
-        {/* Phase 2: Job Type Performance */}
         <div className="bg-card rounded-xl border border-border p-6">
           <h3 className="font-heading font-semibold text-foreground mb-4">
             Job Type Performance
@@ -494,12 +584,12 @@ export default function AdminOverview() {
                     <td className="py-2 text-foreground">{stat.jobType}</td>
                     <td className="py-2 text-right text-foreground">{stat.total}</td>
                     <td className="py-2 text-right">
-                      <span className={stat.purchaseRate >= 50 ? "text-green-600" : "text-amber-600"}>
+                      <span className={stat.purchaseRate >= 50 ? "text-green-500" : "text-amber-500"}>
                         {stat.purchaseRate}%
                       </span>
                     </td>
                     <td className="py-2 text-right">
-                      <span className={stat.refundRate <= 10 ? "text-green-600" : "text-red-600"}>
+                      <span className={stat.refundRate <= 10 ? "text-green-500" : "text-red-500"}>
                         {stat.refundRate}%
                       </span>
                     </td>
@@ -512,35 +602,33 @@ export default function AdminOverview() {
       </div>
 
       {/* Queue Widgets */}
-      <div className="bg-card rounded-xl border border-border p-6">
-        <h3 className="font-heading font-semibold text-foreground mb-4">
-          Action Queues
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <QueueWidget
-            title="Leads Awaiting Review"
-            count={queues.leadsAwaiting}
-            href="/admin/leads?status=new"
-          />
-          <QueueWidget
-            title="Verification Pending"
-            count={queues.verificationPending}
-            href="/admin/verifications"
-            color="warning"
-          />
-          <QueueWidget
-            title="Fraud Queue"
-            count={queues.fraudQueue}
-            href="/admin/payments?tab=fraud"
-            color="danger"
-          />
-          <QueueWidget
-            title="Disputes Awaiting"
-            count={queues.disputesAwaiting}
-            href="/admin/disputes"
-            color="warning"
-          />
-        </div>
+      <h3 className="font-heading font-semibold text-foreground mb-4">
+        Action Queues
+      </h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <QueueWidget
+          title="Leads Awaiting Review"
+          count={queues.leadsAwaiting}
+          href="/admin/leads?status=new"
+        />
+        <QueueWidget
+          title="Verification Queue"
+          count={queues.verificationPending}
+          href="/admin/verifications"
+          color="warning"
+        />
+        <QueueWidget
+          title="Fraud Queue"
+          count={queues.fraudQueue}
+          href="/admin/fraud"
+          color="danger"
+        />
+        <QueueWidget
+          title="Disputes Awaiting"
+          count={queues.disputesAwaiting}
+          href="/admin/disputes"
+          color="warning"
+        />
       </div>
     </AdminLayout>
   );

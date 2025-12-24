@@ -10,11 +10,12 @@ interface KPICardProps {
     value: number;
     positive: boolean;
   };
+  trend?: ReactNode;
   className?: string;
   href?: string;
 }
 
-export default function KPICard({ title, value, icon, change, className, href }: KPICardProps) {
+export default function KPICard({ title, value, icon, change, trend, className, href }: KPICardProps) {
   const navigate = useNavigate();
   
   const handleClick = () => {
@@ -35,7 +36,10 @@ export default function KPICard({ title, value, icon, change, className, href }:
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm text-muted-foreground mb-1">{title}</p>
-          <p className="text-2xl font-bold text-foreground">{value}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-2xl font-bold text-foreground">{value}</p>
+            {trend}
+          </div>
           {change && (
             <p
               className={cn(
