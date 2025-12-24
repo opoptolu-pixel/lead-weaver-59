@@ -317,6 +317,10 @@ export type Database = {
       leads: {
         Row: {
           admin_notes: string | null
+          auto_publish_at: string | null
+          confirmation_method: string | null
+          confirmation_response: string | null
+          confirmation_sent_at: string | null
           created_at: string
           customer_address: string
           customer_email: string
@@ -350,6 +354,10 @@ export type Database = {
         }
         Insert: {
           admin_notes?: string | null
+          auto_publish_at?: string | null
+          confirmation_method?: string | null
+          confirmation_response?: string | null
+          confirmation_sent_at?: string | null
           created_at?: string
           customer_address: string
           customer_email: string
@@ -383,6 +391,10 @@ export type Database = {
         }
         Update: {
           admin_notes?: string | null
+          auto_publish_at?: string | null
+          confirmation_method?: string | null
+          confirmation_response?: string | null
+          confirmation_sent_at?: string | null
           created_at?: string
           customer_address?: string
           customer_email?: string
