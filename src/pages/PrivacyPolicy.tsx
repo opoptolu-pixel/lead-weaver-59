@@ -18,7 +18,8 @@ const PrivacyPolicy = () => {
         <div className="prose prose-lg max-w-none space-y-8 text-foreground">
           <section className="p-4 bg-muted rounded-lg mb-8">
             <p className="text-muted-foreground text-sm">
-              Deep Clean UK is a trading name of <strong>Orbit Shade Ltd</strong>, a company registered in England and Wales.
+              Deep Clean UK is a trading name of <strong>Orbit Shade Ltd</strong> (Company No. 15337705), registered in England and Wales. 
+              Registered address: 128 City Road, London, EC1V 2NX, United Kingdom.
             </p>
           </section>
 
