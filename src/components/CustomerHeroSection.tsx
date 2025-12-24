@@ -124,7 +124,7 @@ export const CustomerHeroSection = () => {
 
           {/* Subheadline */}
           <p className="text-lg md:text-xl text-primary-foreground/80 mb-10 max-w-xl mx-auto animate-slide-up stagger-2">
-            Connect with verified local cleaners. Compare quotes and book with confidence.
+            Get matched with a verified local cleaning partner. Fast, free, and hassle-free.
           </p>
 
           {/* Search form - Type + Postcode */}
@@ -235,11 +235,11 @@ export const CustomerHeroSection = () => {
             </div>
             <div className="flex items-center gap-2">
               <Check className="w-4 h-4 text-secondary" />
-              <span>Verified Cleaners</span>
+              <span>Verified Partners</span>
             </div>
             <div className="flex items-center gap-2">
               <Check className="w-4 h-4 text-secondary" />
-              <span>Compare Quotes</span>
+              <span>Quick Response</span>
             </div>
             <div className="flex items-center gap-2">
               <Check className="w-4 h-4 text-secondary" />

@@ -22,10 +22,10 @@ const Index = () => {
       },
       {
         "@type": "Question", 
-        "name": "How quickly will I receive quotes?",
+        "name": "How quickly will I hear back?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Most customers receive their first quote within a few hours, and typically have multiple quotes to compare within 24 hours."
+          "text": "Most customers are contacted by their cleaning partner within 24 hours of submitting their request."
         }
       },
       {

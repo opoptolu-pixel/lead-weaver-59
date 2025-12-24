@@ -9,20 +9,20 @@ const steps = [
   },
   {
     icon: Users,
-    title: "Get Matched with Cleaners",
-    description: "We connect you with verified local cleaners who specialise in your service.",
+    title: "We Match You",
+    description: "We connect you with a verified local cleaning partner who specialises in your service.",
     color: "bg-primary/20 text-primary",
   },
   {
     icon: Calendar,
-    title: "Compare & Choose",
-    description: "Receive quotes, compare prices and reviews, then book your preferred cleaner.",
+    title: "Get Your Quote",
+    description: "Your cleaning partner will contact you to discuss your needs and provide a quote.",
     color: "bg-accent/20 text-accent-foreground",
   },
   {
     icon: ThumbsUp,
     title: "Enjoy a Sparkling Home",
-    description: "Sit back while professionals handle your cleaning. Rate your experience after.",
+    description: "Book your clean and sit back while professionals handle everything.",
     color: "bg-secondary/20 text-secondary",
   },
 ];
@@ -37,7 +37,7 @@ export const CustomerHowItWorks = () => {
             How It Works
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Finding a trusted cleaner has never been easier. Get free quotes in minutes.
+            Getting connected with a trusted cleaning partner has never been easier.
           </p>
         </div>
 
