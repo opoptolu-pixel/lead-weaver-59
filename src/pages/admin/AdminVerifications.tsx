@@ -46,6 +46,29 @@ export default function AdminVerifications() {
     fetchDocuments();
   }, [dateRange]);
 
+  // Real-time subscription for live updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-verifications-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'verification_documents' },
+        (payload) => {
+          console.log('Verifications updated in realtime:', payload);
+          fetchDocuments();
+          toast.info('Verification queue updated', { 
+            description: `${payload.eventType === 'INSERT' ? 'New document submitted' : payload.eventType === 'UPDATE' ? 'Document status changed' : 'Document removed'}`,
+            duration: 3000 
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [dateRange]);
+
   const fetchDocuments = async () => {
     const { start, end } = getDateFilter();
     
