@@ -153,7 +153,7 @@ export const CustomerHeroSection = () => {
 
                 {/* Dropdown menu */}
                 {isTypeOpen && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-background border border-border rounded-xl shadow-xl z-[100] overflow-hidden max-h-64 overflow-y-auto">
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-background border border-border rounded-xl shadow-2xl z-[9999] overflow-hidden max-h-64 overflow-y-auto">
                     {cleaningTypes.map((type) => (
                       <button
                         key={type.id}
@@ -163,14 +163,11 @@ export const CustomerHeroSection = () => {
                           setIsTypeOpen(false);
                         }}
                         className={cn(
-                          "w-full px-4 py-3 text-left hover:bg-muted transition-colors flex items-center justify-between",
-                          selectedType.id === type.id && "bg-secondary/10"
+                          "w-full px-4 py-3 text-left hover:bg-muted transition-colors",
+                          selectedType.id === type.id && "bg-secondary/10 font-semibold"
                         )}
                       >
-                        <span className="font-medium text-foreground">{type.label}</span>
-                        {selectedType.id === type.id && (
-                          <Check className="w-4 h-4 text-secondary" />
-                        )}
+                        <span className="text-foreground">{type.label}</span>
                       </button>
                     ))}
                   </div>
