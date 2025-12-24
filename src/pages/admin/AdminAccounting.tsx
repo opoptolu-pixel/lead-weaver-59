@@ -6,8 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -18,7 +16,6 @@ import {
   TrendingDown, 
   ArrowUpRight, 
   ArrowDownRight,
-  CalendarIcon,
   Download,
   Search,
   FileText,
@@ -31,8 +28,8 @@ import {
 import { cn } from "@/lib/utils";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, Legend } from "recharts";
 import { exportToCsv } from "@/lib/exportCsv";
-import { DateRange } from "react-day-picker";
 import { useToast } from "@/hooks/use-toast";
+import { useAdmin } from "@/contexts/AdminContext";
 
 const LEAD_PRICE = 20; // £20 per lead
 
@@ -72,13 +69,10 @@ interface BusinessPerformance {
   netContribution: number;
 }
 
-type DateRangePreset = "today" | "3days" | "7days" | "14days" | "30days" | "lastmonth" | "alltime" | "custom";
-
 export default function AdminAccounting() {
   const { toast } = useToast();
+  const { getDateFilter, dateRange: dateRangePreset, customStartDate, customEndDate } = useAdmin();
   const [loading, setLoading] = useState(true);
-  const [datePreset, setDatePreset] = useState<DateRangePreset>("30days");
-  const [customRange, setCustomRange] = useState<DateRange | undefined>();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [previousTransactions, setPreviousTransactions] = useState<Transaction[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -87,31 +81,11 @@ export default function AdminAccounting() {
   const [showPrintView, setShowPrintView] = useState(false);
   const [yoyTransactions, setYoyTransactions] = useState<Transaction[]>([]);
 
-  // Calculate date range based on preset
+  // Get date range from global context
   const dateRange = useMemo(() => {
-    const now = new Date();
-    switch (datePreset) {
-      case "today":
-        return { from: startOfDay(now), to: endOfDay(now) };
-      case "3days":
-        return { from: startOfDay(subDays(now, 3)), to: endOfDay(now) };
-      case "7days":
-        return { from: startOfDay(subDays(now, 7)), to: endOfDay(now) };
-      case "14days":
-        return { from: startOfDay(subDays(now, 14)), to: endOfDay(now) };
-      case "30days":
-        return { from: startOfDay(subDays(now, 30)), to: endOfDay(now) };
-      case "lastmonth":
-        const lastMonth = subMonths(now, 1);
-        return { from: startOfMonth(lastMonth), to: endOfDay(subDays(startOfMonth(now), 1)) };
-      case "alltime":
-        return { from: new Date(2020, 0, 1), to: endOfDay(now) };
-      case "custom":
-        return customRange ? { from: customRange.from, to: customRange.to } : { from: startOfDay(subDays(now, 30)), to: endOfDay(now) };
-      default:
-        return { from: startOfDay(subDays(now, 30)), to: endOfDay(now) };
-    }
-  }, [datePreset, customRange]);
+    const { start, end } = getDateFilter();
+    return { from: start, to: end };
+  }, [getDateFilter]);
 
   // Calculate previous period range for comparison
   const previousDateRange = useMemo(() => {
@@ -122,6 +96,7 @@ export default function AdminAccounting() {
       to: subDays(dateRange.to, periodDays),
     };
   }, [dateRange]);
+
 
   // Fetch transactions data
   useEffect(() => {
@@ -650,56 +625,10 @@ export default function AdminAccounting() {
   return (
     <AdminLayout title="Accounting">
       <div className="space-y-6">
-        {/* Date Range Selector */}
+        {/* Actions Bar */}
         <Card>
           <CardContent className="pt-6">
             <div className="flex flex-wrap items-center gap-4">
-              <Select value={datePreset} onValueChange={(v) => setDatePreset(v as DateRangePreset)}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Select range" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="today">Today</SelectItem>
-                  <SelectItem value="3days">Last 3 Days</SelectItem>
-                  <SelectItem value="7days">Last 7 Days</SelectItem>
-                  <SelectItem value="14days">Last 14 Days</SelectItem>
-                  <SelectItem value="30days">Last 30 Days</SelectItem>
-                  <SelectItem value="lastmonth">Last Month</SelectItem>
-                  <SelectItem value="alltime">All Time</SelectItem>
-                  <SelectItem value="custom">Custom Range</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {datePreset === "custom" && (
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="gap-2">
-                      <CalendarIcon className="h-4 w-4" />
-                      {customRange?.from ? (
-                        customRange.to ? (
-                          <>
-                            {format(customRange.from, "MMM dd")} - {format(customRange.to, "MMM dd")}
-                          </>
-                        ) : (
-                          format(customRange.from, "MMM dd, yyyy")
-                        )
-                      ) : (
-                        "Pick dates"
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="range"
-                      selected={customRange}
-                      onSelect={setCustomRange}
-                      numberOfMonths={2}
-                      className="pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
-              )}
-
               <Button variant="outline" size="icon" onClick={fetchTransactions} disabled={loading}>
                 <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
               </Button>

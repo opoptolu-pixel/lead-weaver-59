@@ -1,4 +1,4 @@
-import { useAdmin } from "@/contexts/AdminContext";
+import { useAdmin, DateRangePreset } from "@/contexts/AdminContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,7 +14,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon, LogOut, User, Wifi, WifiOff } from "lucide-react";
+import { CalendarIcon, LogOut, User, WifiOff } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
@@ -85,16 +85,20 @@ export default function AdminTopBar({ title }: AdminTopBarProps) {
         <div className="flex items-center gap-2">
           <Select
             value={dateRange}
-            onValueChange={(value: "today" | "yesterday" | "7d" | "30d" | "custom") => setDateRange(value)}
+            onValueChange={(value: DateRangePreset) => setDateRange(value)}
           >
-            <SelectTrigger className="w-36">
+            <SelectTrigger className="w-40">
               <SelectValue placeholder="Date range" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="today">Today</SelectItem>
               <SelectItem value="yesterday">Yesterday</SelectItem>
+              <SelectItem value="3d">Last 3 days</SelectItem>
               <SelectItem value="7d">Last 7 days</SelectItem>
+              <SelectItem value="14d">Last 14 days</SelectItem>
               <SelectItem value="30d">Last 30 days</SelectItem>
+              <SelectItem value="lastmonth">Last Month</SelectItem>
+              <SelectItem value="alltime">All time</SelectItem>
               <SelectItem value="custom">Custom</SelectItem>
             </SelectContent>
           </Select>
@@ -134,6 +138,7 @@ export default function AdminTopBar({ title }: AdminTopBarProps) {
                     }
                   }}
                   numberOfMonths={2}
+                  className="pointer-events-auto"
                 />
               </PopoverContent>
             </Popover>
