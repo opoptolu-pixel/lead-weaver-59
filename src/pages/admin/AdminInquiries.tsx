@@ -344,7 +344,7 @@ export default function AdminInquiries() {
 
       {/* Inquiry Detail Dialog */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg z-50 bg-card border border-border shadow-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Building className="w-5 h-5" />

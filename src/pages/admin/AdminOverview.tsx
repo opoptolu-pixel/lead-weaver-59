@@ -213,17 +213,17 @@ export default function AdminOverview() {
     const startISO = start.toISOString();
     const endISO = end.toISOString();
 
-    // Leads within date range
+    // Leads created within date range (for leads received, published metrics)
     const { data: leads } = await supabase
       .from("leads")
       .select("id, is_unlocked, lead_status, created_at, refunded_at, value, unlocked_by")
       .gte("created_at", startISO)
       .lte("created_at", endISO);
 
-    // Get leads that were unlocked within the date range (for active buyers calculation)
+    // Leads that were UNLOCKED within the date range (for purchase metrics, revenue, active buyers)
     const { data: unlockedLeadsInRange } = await supabase
       .from("leads")
-      .select("unlocked_by")
+      .select("id, unlocked_by, value, refunded_at")
       .gte("unlocked_at", startISO)
       .lte("unlocked_at", endISO)
       .not("unlocked_by", "is", null);
@@ -249,27 +249,34 @@ export default function AdminOverview() {
       .gte("created_at", startISO)
       .lte("created_at", endISO);
 
+    // Metrics based on leads CREATED in date range
     const leadsReceived = leads?.length || 0;
     const leadsPublished = leads?.filter(l => l.lead_status === "published").length || 0;
-    const leadsPurchased = leads?.filter(l => l.is_unlocked).length || 0;
-    const revenue = leadsPurchased * 20;
+    
+    // Metrics based on leads PURCHASED (unlocked) in date range
+    const leadsPurchased = unlockedLeadsInRange?.length || 0;
+    const revenue = leadsPurchased * 20; // £20 per lead
     
     // Active buyers = unique users who unlocked leads within the date range
     const uniqueBuyers = new Set(unlockedLeadsInRange?.map(l => l.unlocked_by) || []);
     const activeBuyers = uniqueBuyers.size;
     
-    const refundsIssued = leads?.filter(l => l.refunded_at !== null).length || 0;
+    // Refunds from leads unlocked in date range
+    const refundsIssued = unlockedLeadsInRange?.filter(l => l.refunded_at !== null).length || 0;
+    
     const disputesOpen = disputes?.filter(d => d.status === "open").length || 0;
     const pendingFraud = fraudFlags?.filter(f => f.status === "pending").length || 0;
     
-    // Calculate average job value and conversion rate
-    // All values are stored in pence - convert to pounds for display
+    // Avg Job Value = average value of leads CREATED in date range (all leads, not just purchased)
+    // Values are stored in pence - convert to pounds for display
     const totalValuePence = leads?.reduce((sum, l) => sum + (l.value || 0), 0) || 0;
     const avgJobValue = leadsReceived > 0 ? Math.round(totalValuePence / leadsReceived / 100) : 0;
+    
+    // Conversion rate = leads purchased / leads received (in same date range context)
     const conversionRate = leadsReceived > 0 ? Math.round((leadsPurchased / leadsReceived) * 100) : 0;
     
-    // Total job revenue from purchased leads (in pounds)
-    const purchasedLeadsValuePence = leads?.filter(l => l.is_unlocked).reduce((sum, l) => sum + (l.value || 0), 0) || 0;
+    // Total Job Revenue = sum of job values for leads PURCHASED in date range (in pounds)
+    const purchasedLeadsValuePence = unlockedLeadsInRange?.reduce((sum, l) => sum + (l.value || 0), 0) || 0;
     const totalJobRevenue = Math.round(purchasedLeadsValuePence / 100);
 
     setStats({
