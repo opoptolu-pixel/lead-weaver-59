@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 interface KPICardProps {
@@ -10,11 +11,27 @@ interface KPICardProps {
     positive: boolean;
   };
   className?: string;
+  href?: string;
 }
 
-export default function KPICard({ title, value, icon, change, className }: KPICardProps) {
+export default function KPICard({ title, value, icon, change, className, href }: KPICardProps) {
+  const navigate = useNavigate();
+  
+  const handleClick = () => {
+    if (href) {
+      navigate(href);
+    }
+  };
+
   return (
-    <div className={cn("bg-card rounded-xl border border-border p-6", className)}>
+    <div 
+      className={cn(
+        "bg-card rounded-xl border border-border p-6",
+        href && "cursor-pointer hover:border-secondary/50 transition-colors",
+        className
+      )}
+      onClick={handleClick}
+    >
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm text-muted-foreground mb-1">{title}</p>
