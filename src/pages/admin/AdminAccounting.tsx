@@ -865,7 +865,7 @@ export default function AdminAccounting() {
               </Card>
             </div>
 
-            {/* Pie Charts for Distribution */}
+            {/* Donut Charts for Distribution */}
             <div className="grid gap-6 lg:grid-cols-2">
               <Card>
                 <CardHeader>
@@ -873,7 +873,7 @@ export default function AdminAccounting() {
                   <CardDescription>Revenue share by service type</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-[300px]">
+                  <div className="h-[300px] relative">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
@@ -882,6 +882,7 @@ export default function AdminAccounting() {
                           nameKey="jobType"
                           cx="50%"
                           cy="50%"
+                          innerRadius={60}
                           outerRadius={100}
                           label={({ jobType, percent }) => `${jobType}: ${(percent * 100).toFixed(0)}%`}
                           labelLine={false}
@@ -901,6 +902,13 @@ export default function AdminAccounting() {
                         <Legend />
                       </PieChart>
                     </ResponsiveContainer>
+                    {/* Center Total */}
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="text-center">
+                        <p className="text-xs text-muted-foreground">Total</p>
+                        <p className="text-lg font-bold">£{revenueByJobType.reduce((sum, item) => sum + item.net, 0).toLocaleString()}</p>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -911,7 +919,7 @@ export default function AdminAccounting() {
                   <CardDescription>Revenue share by postcode area (Top 8)</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-[300px]">
+                  <div className="h-[300px] relative">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
@@ -920,6 +928,7 @@ export default function AdminAccounting() {
                           nameKey="location"
                           cx="50%"
                           cy="50%"
+                          innerRadius={60}
                           outerRadius={100}
                           label={({ location, percent }) => `${location}: ${(percent * 100).toFixed(0)}%`}
                           labelLine={false}
@@ -939,6 +948,13 @@ export default function AdminAccounting() {
                         <Legend />
                       </PieChart>
                     </ResponsiveContainer>
+                    {/* Center Total */}
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="text-center">
+                        <p className="text-xs text-muted-foreground">Total</p>
+                        <p className="text-lg font-bold">£{revenueByLocation.slice(0, 8).reduce((sum, item) => sum + item.net, 0).toLocaleString()}</p>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -948,7 +964,26 @@ export default function AdminAccounting() {
             <div className="grid gap-6 lg:grid-cols-2">
               <Card>
                 <CardHeader>
-                  <CardTitle>Service Category Details</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Service Category Details</CardTitle>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        exportToCsv(revenueByJobType.map(item => ({
+                          "Service Type": item.jobType,
+                          "Leads": item.leads,
+                          "Gross (£)": item.gross,
+                          "Refunds (£)": item.refunds,
+                          "Net (£)": item.net,
+                        })), `revenue_by_service_${format(new Date(), "yyyy-MM-dd")}`);
+                        toast({ title: "Exported", description: "Service category data exported to CSV" });
+                      }}
+                    >
+                      <Download className="h-4 w-4 mr-1" />
+                      Export
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="max-h-[400px] overflow-y-auto">
@@ -980,7 +1015,26 @@ export default function AdminAccounting() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Location Details</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Location Details</CardTitle>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        exportToCsv(revenueByLocation.map(item => ({
+                          "Postcode Area": item.location,
+                          "Leads": item.leads,
+                          "Gross (£)": item.gross,
+                          "Refunds (£)": item.refunds,
+                          "Net (£)": item.net,
+                        })), `revenue_by_location_${format(new Date(), "yyyy-MM-dd")}`);
+                        toast({ title: "Exported", description: "Location data exported to CSV" });
+                      }}
+                    >
+                      <Download className="h-4 w-4 mr-1" />
+                      Export
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="max-h-[400px] overflow-y-auto">
