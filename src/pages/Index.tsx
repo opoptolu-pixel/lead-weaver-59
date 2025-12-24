@@ -3,6 +3,7 @@ import { CustomerHeroSection } from "@/components/CustomerHeroSection";
 import { TrustSection } from "@/components/TrustSection";
 import { CustomerHowItWorks } from "@/components/CustomerHowItWorks";
 import { CustomerServicesGrid } from "@/components/CustomerServicesGrid";
+import { TestimonialsSection } from "@/components/TestimonialsSection";
 import { CustomerFAQ } from "@/components/CustomerFAQ";
 import { Footer } from "@/components/Footer";
 import { SEOHead } from "@/components/SEOHead";
@@ -53,6 +54,7 @@ const Index = () => {
         <TrustSection />
         <CustomerHowItWorks />
         <CustomerServicesGrid />
+        <TestimonialsSection />
         <CustomerFAQ />
       </main>
       <Footer />
