@@ -129,8 +129,8 @@ serve(async (req) => {
     // Create confirmation message
     const message = `Hi ${lead.customer_name}! 👋\n\n` +
       `We've received your cleaning request for ${lead.job_type} at ${lead.postcode}.\n\n` +
-      `To confirm this request and get matched with local cleaning professionals, please reply with "YES" or "CONFIRM".\n\n` +
-      `If you did not request this, please ignore this message.\n\n` +
+      `Reply YES to confirm and get matched with local cleaning professionals.\n\n` +
+      `Reply NO to cancel this request.\n\n` +
       `- Deep Clean UK`;
 
     // Calculate auto-publish time
