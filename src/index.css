@@ -262,19 +262,42 @@
 .stagger-6 { animation-delay: 0.6s; transition-delay: 0.6s; }
 
 /* Mopping character animations */
-@keyframes bounce-slow {
-  0%, 100% { transform: translateY(0) translateX(-50%); }
-  50% { transform: translateY(-8px) translateX(-50%); }
+@keyframes mop-walk {
+  0% { 
+    left: 0%; 
+    transform: scaleX(1);
+  }
+  49% { 
+    left: calc(100% - 50px); 
+    transform: scaleX(1);
+  }
+  50% { 
+    left: calc(100% - 50px); 
+    transform: scaleX(-1);
+  }
+  99% { 
+    left: 0%; 
+    transform: scaleX(-1);
+  }
+  100% { 
+    left: 0%; 
+    transform: scaleX(1);
+  }
 }
 
-@keyframes mopping {
-  0%, 100% { transform: rotate(-15deg); }
-  50% { transform: rotate(15deg); }
+@keyframes mop-handle {
+  0%, 100% { transform: rotate(-8deg); }
+  50% { transform: rotate(8deg); }
 }
 
-@keyframes mop-arm {
-  0%, 100% { transform: rotate(-5deg); }
-  50% { transform: rotate(5deg); }
+@keyframes mop-head {
+  0%, 100% { transform: translateX(-2px); }
+  50% { transform: translateX(2px); }
+}
+
+@keyframes mop-strings {
+  0%, 100% { transform: skewX(-5deg); }
+  50% { transform: skewX(5deg); }
 }
 
 @keyframes blink {
@@ -287,21 +310,21 @@
   50% { opacity: 0.3; transform: scale(0.8); }
 }
 
-@keyframes twinkle-delayed {
-  0%, 100% { opacity: 0.3; transform: scale(0.8); }
-  50% { opacity: 1; transform: scale(1); }
+.animate-mop-walk {
+  animation: mop-walk 4s linear infinite;
 }
 
-.animate-bounce-slow {
-  animation: bounce-slow 2s ease-in-out infinite;
+.animate-mop-handle {
+  transform-origin: bottom center;
+  animation: mop-handle 0.4s ease-in-out infinite;
 }
 
-.animate-mopping {
-  animation: mopping 0.8s ease-in-out infinite;
+.animate-mop-head {
+  animation: mop-head 0.4s ease-in-out infinite;
 }
 
-.animate-mop-arm {
-  animation: mop-arm 0.8s ease-in-out infinite;
+.animate-mop-strings {
+  animation: mop-strings 0.4s ease-in-out infinite;
 }
 
 .animate-blink {
@@ -310,8 +333,4 @@
 
 .animate-twinkle {
   animation: twinkle 1.5s ease-in-out infinite;
-}
-
-.animate-twinkle-delayed {
-  animation: twinkle-delayed 1.5s ease-in-out infinite;
 }
