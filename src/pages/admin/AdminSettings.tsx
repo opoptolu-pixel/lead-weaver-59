@@ -171,20 +171,66 @@ export default function AdminSettings() {
     }
   };
 
+  // Load settings from database on mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      const { data: siteData } = await supabase
+        .from("admin_settings")
+        .select("value")
+        .eq("key", "site_config")
+        .maybeSingle();
+      
+      if (siteData?.value) {
+        setSiteSettings(siteData.value as typeof siteSettings);
+      }
+
+      const { data: prefsData } = await supabase
+        .from("admin_settings")
+        .select("value")
+        .eq("key", "system_preferences")
+        .maybeSingle();
+      
+      if (prefsData?.value) {
+        setSystemPrefs(prefsData.value as typeof systemPrefs);
+      }
+    };
+    loadSettings();
+  }, []);
+
   const handleSaveSiteSettings = async () => {
     setLoading(true);
-    // In a real app, you'd save these to a settings table
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    toast.success("Site settings saved");
-    setLoading(false);
+    try {
+      const { error } = await supabase
+        .from("admin_settings")
+        .update({ value: siteSettings })
+        .eq("key", "site_config");
+      
+      if (error) throw error;
+      toast.success("Site settings saved");
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      toast.error("Failed to save settings");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSaveSystemPrefs = async () => {
     setLoading(true);
-    // In a real app, you'd save these to a settings table
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    toast.success("System preferences saved");
-    setLoading(false);
+    try {
+      const { error } = await supabase
+        .from("admin_settings")
+        .update({ value: systemPrefs })
+        .eq("key", "system_preferences");
+      
+      if (error) throw error;
+      toast.success("System preferences saved");
+    } catch (error) {
+      console.error("Error saving preferences:", error);
+      toast.error("Failed to save preferences");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleEditTemplate = (template: EmailTemplate) => {
@@ -197,16 +243,31 @@ export default function AdminSettings() {
     
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from("email_templates")
-        .update({
-          subject: editingTemplate.subject,
-          body: editingTemplate.body,
-          is_active: editingTemplate.is_active,
-        })
-        .eq("id", editingTemplate.id);
-
-      if (error) throw error;
+      if (editingTemplate.id) {
+        // Update existing
+        const { error } = await supabase
+          .from("email_templates")
+          .update({
+            subject: editingTemplate.subject,
+            body: editingTemplate.body,
+            is_active: editingTemplate.is_active,
+          })
+          .eq("id", editingTemplate.id);
+        if (error) throw error;
+      } else {
+        // Create new
+        const { error } = await supabase
+          .from("email_templates")
+          .insert({
+            name: editingTemplate.name || "new_template",
+            subject: editingTemplate.subject,
+            body: editingTemplate.body,
+            description: editingTemplate.description,
+            variables: editingTemplate.variables,
+            is_active: editingTemplate.is_active,
+          });
+        if (error) throw error;
+      }
 
       toast.success("Template saved successfully");
       setIsTemplateDialogOpen(false);
@@ -396,9 +457,28 @@ export default function AdminSettings() {
         {/* Email Templates */}
         <TabsContent value="emails" className="space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle>Email Templates</CardTitle>
-              <CardDescription>Customize the emails sent to users</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Email Templates</CardTitle>
+                <CardDescription>Customize the emails sent to users</CardDescription>
+              </div>
+              <Button size="sm" onClick={() => {
+                setEditingTemplate({
+                  id: "",
+                  name: "",
+                  subject: "",
+                  body: "",
+                  description: "",
+                  variables: [],
+                  is_active: true,
+                  created_at: "",
+                  updated_at: "",
+                });
+                setIsTemplateDialogOpen(true);
+              }}>
+                <Plus className="w-4 h-4 mr-2" />
+                New Template
+              </Button>
             </CardHeader>
             <CardContent>
               {loadingTemplates ? (
@@ -423,21 +503,13 @@ export default function AdminSettings() {
                         </div>
                         <p className="text-sm text-muted-foreground mb-2">{template.description}</p>
                         <p className="text-sm"><span className="text-muted-foreground">Subject:</span> {template.subject}</p>
-                        {template.variables && template.variables.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {template.variables.map((variable) => (
-                              <Badge key={variable} variant="secondary" className="text-xs">
-                                {`{{${variable}}}`}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
                       </div>
                       <div className="flex items-center gap-2">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleToggleTemplateActive(template)}
+                          title={template.is_active ? "Disable" : "Enable"}
                         >
                           {template.is_active ? <X className="w-4 h-4" /> : <Check className="w-4 h-4" />}
                         </Button>
@@ -445,8 +517,42 @@ export default function AdminSettings() {
                           variant="outline"
                           size="sm"
                           onClick={() => handleEditTemplate(template)}
+                          title="Edit"
                         >
                           <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            const { error } = await supabase.from("email_templates").insert({
+                              name: `${template.name}_copy`,
+                              subject: template.subject,
+                              body: template.body,
+                              description: `Copy of ${template.description}`,
+                              variables: template.variables,
+                              is_active: false,
+                            });
+                            if (error) toast.error("Failed to duplicate");
+                            else { toast.success("Template duplicated"); fetchEmailTemplates(); }
+                          }}
+                          title="Duplicate"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-destructive hover:text-destructive"
+                          onClick={async () => {
+                            if (!confirm("Delete this template?")) return;
+                            const { error } = await supabase.from("email_templates").delete().eq("id", template.id);
+                            if (error) toast.error("Failed to delete");
+                            else { toast.success("Template deleted"); fetchEmailTemplates(); }
+                          }}
+                          title="Delete"
+                        >
+                          <X className="w-4 h-4" />
                         </Button>
                       </div>
                     </div>

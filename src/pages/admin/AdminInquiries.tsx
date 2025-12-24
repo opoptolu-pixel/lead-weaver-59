@@ -21,6 +21,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
   Dialog,
@@ -31,7 +32,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Search, MoreHorizontal, Mail, Phone, CheckCircle, XCircle, Clock, MessageCircle, MapPin, Building, Download, Loader2 } from "lucide-react";
+import { Search, MoreHorizontal, Mail, Phone, CheckCircle, XCircle, Clock, MessageCircle, MapPin, Building, Download, Loader2, UserPlus, Send } from "lucide-react";
 import { format } from "date-fns";
 import { useAdmin } from "@/contexts/AdminContext";
 import { usePagination } from "@/hooks/usePagination";
@@ -62,6 +63,17 @@ export default function AdminInquiries() {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [adminNotes, setAdminNotes] = useState("");
   const [updating, setUpdating] = useState(false);
+  
+  // Follow-up email dialog
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailBody, setEmailBody] = useState("");
+  const [sendingEmail, setSendingEmail] = useState(false);
+  
+  // Convert to business dialog
+  const [isConvertDialogOpen, setIsConvertDialogOpen] = useState(false);
+  const [converting, setConverting] = useState(false);
+  const [initialCredits, setInitialCredits] = useState("5");
 
   useEffect(() => {
     fetchInquiries();
@@ -120,6 +132,87 @@ export default function AdminInquiries() {
   const handleSaveNotes = () => {
     if (!selectedInquiry) return;
     updateStatus(selectedInquiry.id, selectedInquiry.status, adminNotes);
+  };
+
+  const handleSendFollowUpEmail = async () => {
+    if (!selectedInquiry || !emailSubject || !emailBody) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+    
+    setSendingEmail(true);
+    try {
+      const { error } = await supabase.functions.invoke("send-email", {
+        body: {
+          to: selectedInquiry.email,
+          subject: emailSubject,
+          html: emailBody.replace(/\n/g, "<br>"),
+        },
+      });
+
+      if (error) throw error;
+
+      // Mark as contacted
+      await updateStatus(selectedInquiry.id, "contacted", adminNotes);
+
+      toast.success("Follow-up email sent successfully");
+      setIsEmailDialogOpen(false);
+      setEmailSubject("");
+      setEmailBody("");
+    } catch (error) {
+      console.error("Error sending email:", error);
+      toast.error("Failed to send email");
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
+  const handleConvertToBusiness = async () => {
+    if (!selectedInquiry) return;
+    
+    setConverting(true);
+    try {
+      // Note: In a real implementation, you would:
+      // 1. Create a Supabase auth user (requires admin API or invite flow)
+      // 2. Create the profile with initial credits
+      // For now, we'll just mark as approved and create a placeholder
+      
+      // Mark the inquiry as approved
+      await supabase
+        .from("business_inquiries")
+        .update({ 
+          status: "approved",
+          reviewed_at: new Date().toISOString(),
+          admin_notes: `${adminNotes}\n\nConverted to business account with ${initialCredits} initial credits.`
+        })
+        .eq("id", selectedInquiry.id);
+
+      // Send welcome email with signup link
+      await supabase.functions.invoke("send-email", {
+        body: {
+          to: selectedInquiry.email,
+          subject: "Welcome to Deep Clean UK - Your Account is Ready!",
+          html: `
+            <h2>Welcome ${selectedInquiry.contact_name}!</h2>
+            <p>Great news! Your business application for <strong>${selectedInquiry.business_name}</strong> has been approved.</p>
+            <p>You can now create your account and start receiving leads in your area (${selectedInquiry.postcode}).</p>
+            <p><a href="${window.location.origin}/auth?signup=true&email=${encodeURIComponent(selectedInquiry.email)}" style="background-color: #0B3D2E; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin: 16px 0;">Create Your Account</a></p>
+            <p>As a welcome bonus, you'll receive <strong>${initialCredits} free credits</strong> to get started!</p>
+            <p>Best regards,<br>The Deep Clean UK Team</p>
+          `,
+        },
+      });
+
+      toast.success("Business converted and welcome email sent!");
+      setIsConvertDialogOpen(false);
+      setIsDetailOpen(false);
+      fetchInquiries();
+    } catch (error) {
+      console.error("Error converting to business:", error);
+      toast.error("Failed to convert to business");
+    } finally {
+      setConverting(false);
+    }
   };
 
   const filteredInquiries = inquiries.filter(
@@ -301,21 +394,37 @@ export default function AdminInquiries() {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuItem
+                                  onClick={() => {
+                                    setSelectedInquiry(inquiry);
+                                    setEmailSubject(`Following up on your inquiry - ${inquiry.business_name}`);
+                                    setEmailBody(`Hi ${inquiry.contact_name},\n\nThank you for your interest in joining Deep Clean UK.\n\nI wanted to follow up on your application for ${inquiry.business_name}.\n\nBest regards,\nThe Deep Clean UK Team`);
+                                    setIsEmailDialogOpen(true);
+                                  }}
+                                >
+                                  <Send className="w-4 h-4 mr-2" />
+                                  Send Follow-up Email
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
                                   onClick={() => updateStatus(inquiry.id, "contacted")}
                                 >
                                   <Mail className="w-4 h-4 mr-2" />
                                   Mark as Contacted
                                 </DropdownMenuItem>
+                                <DropdownMenuSeparator />
                                 <DropdownMenuItem
-                                  onClick={() => updateStatus(inquiry.id, "approved")}
+                                  onClick={() => {
+                                    setSelectedInquiry(inquiry);
+                                    setAdminNotes(inquiry.admin_notes || "");
+                                    setIsConvertDialogOpen(true);
+                                  }}
                                 >
-                                  <CheckCircle className="w-4 h-4 mr-2" />
-                                  Approve
+                                  <UserPlus className="w-4 h-4 mr-2 text-green-500" />
+                                  Convert to Business
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   onClick={() => updateStatus(inquiry.id, "rejected")}
                                 >
-                                  <XCircle className="w-4 h-4 mr-2" />
+                                  <XCircle className="w-4 h-4 mr-2 text-destructive" />
                                   Reject
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
@@ -417,18 +526,22 @@ export default function AdminInquiries() {
                 <div className="flex gap-2 flex-1 sm:justify-end">
                   <Button 
                     variant="outline"
-                    onClick={() => updateStatus(selectedInquiry.id, "contacted")}
+                    onClick={() => {
+                      setEmailSubject(`Following up on your inquiry - ${selectedInquiry.business_name}`);
+                      setEmailBody(`Hi ${selectedInquiry.contact_name},\n\nThank you for your interest in joining Deep Clean UK.\n\nI wanted to follow up on your application for ${selectedInquiry.business_name}.\n\nBest regards,\nThe Deep Clean UK Team`);
+                      setIsEmailDialogOpen(true);
+                    }}
                     disabled={updating}
                   >
-                    <Mail className="w-4 h-4 mr-2" />
-                    Contacted
+                    <Send className="w-4 h-4 mr-2" />
+                    Follow-up
                   </Button>
                   <Button 
-                    onClick={() => updateStatus(selectedInquiry.id, "approved")}
+                    onClick={() => setIsConvertDialogOpen(true)}
                     disabled={updating}
                   >
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Approve
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Convert
                   </Button>
                   <Button 
                     variant="destructive"
@@ -442,6 +555,99 @@ export default function AdminInquiries() {
               </DialogFooter>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Send Follow-up Email Dialog */}
+      <Dialog open={isEmailDialogOpen} onOpenChange={setIsEmailDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Send className="w-5 h-5" />
+              Send Follow-up Email
+            </DialogTitle>
+            <DialogDescription>
+              Send an email to {selectedInquiry?.email}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="email-subject">Subject</Label>
+              <Input
+                id="email-subject"
+                placeholder="Enter subject..."
+                value={emailSubject}
+                onChange={(e) => setEmailSubject(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email-body">Message</Label>
+              <Textarea
+                id="email-body"
+                placeholder="Enter your message..."
+                value={emailBody}
+                onChange={(e) => setEmailBody(e.target.value)}
+                rows={6}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEmailDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSendFollowUpEmail} 
+              disabled={sendingEmail || !emailSubject || !emailBody}
+            >
+              {sendingEmail && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Send Email
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Convert to Business Dialog */}
+      <Dialog open={isConvertDialogOpen} onOpenChange={setIsConvertDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="w-5 h-5" />
+              Convert to Business Account
+            </DialogTitle>
+            <DialogDescription>
+              Approve and convert {selectedInquiry?.business_name} to a business account
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+              <p className="text-sm"><strong>Business:</strong> {selectedInquiry?.business_name}</p>
+              <p className="text-sm"><strong>Contact:</strong> {selectedInquiry?.contact_name}</p>
+              <p className="text-sm"><strong>Email:</strong> {selectedInquiry?.email}</p>
+              <p className="text-sm"><strong>Postcode:</strong> {selectedInquiry?.postcode}</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="initial-credits">Initial Credits (Welcome Bonus)</Label>
+              <Input
+                id="initial-credits"
+                type="number"
+                min="0"
+                value={initialCredits}
+                onChange={(e) => setInitialCredits(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                These credits will be mentioned in the welcome email
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsConvertDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleConvertToBusiness} disabled={converting}>
+              {converting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Approve & Send Welcome Email
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </AdminLayout>

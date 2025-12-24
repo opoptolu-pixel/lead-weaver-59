@@ -38,6 +38,7 @@ interface ActivityLog {
   details: unknown;
   ip_address: string | null;
   created_at: string;
+  user_name?: string | null;
 }
 
 const ACTION_ICONS: Record<string, any> = {
@@ -75,9 +76,32 @@ export default function AdminActivityLogs() {
     if (error) {
       console.error("Error fetching logs:", error);
       toast.error("Failed to load activity logs");
-    } else {
-      setLogs(data || []);
+      setLoading(false);
+      return;
     }
+
+    // Fetch user names for all unique user_ids
+    const userIds = [...new Set((data || []).map(log => log.user_id))];
+    
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("user_id, business_name, contact_name")
+      .in("user_id", userIds);
+
+    const userNameMap = new Map(
+      (profiles || []).map(p => [
+        p.user_id, 
+        p.business_name || p.contact_name || null
+      ])
+    );
+
+    // Add user names to logs
+    const logsWithNames = (data || []).map(log => ({
+      ...log,
+      user_name: userNameMap.get(log.user_id) || null,
+    }));
+
+    setLogs(logsWithNames);
     setLoading(false);
   };
 
@@ -93,6 +117,7 @@ export default function AdminActivityLogs() {
       purchase: "bg-green-500/20 text-green-500",
       refund: "bg-amber-500/20 text-amber-500",
       update: "bg-purple-500/20 text-purple-500",
+      credits_added: "bg-green-500/20 text-green-500",
     };
     return variants[action] || "bg-muted text-muted-foreground";
   };
@@ -100,6 +125,7 @@ export default function AdminActivityLogs() {
   const filteredLogs = logs.filter((log) => {
     const matchesSearch =
       log.user_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (log.user_name?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
       log.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
       log.entity_type.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesEntity = entityFilter === "all" || log.entity_type === entityFilter;
@@ -110,11 +136,14 @@ export default function AdminActivityLogs() {
   const pagination = usePagination(filteredLogs);
 
   const handleExport = () => {
-    exportToCsv(filteredLogs, "activity_logs", [
+    exportToCsv(filteredLogs.map(log => ({
+      ...log,
+      user_display: log.user_name || log.user_id,
+    })), "activity_logs", [
       { key: "created_at", label: "Timestamp" },
       { key: "action", label: "Action" },
       { key: "entity_type", label: "Entity Type" },
-      { key: "user_id", label: "User ID" },
+      { key: "user_display", label: "User" },
       { key: "details", label: "Details" },
     ]);
     toast.success("Export started");
@@ -148,7 +177,7 @@ export default function AdminActivityLogs() {
           <div className="relative flex-1 min-w-[200px] max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Search logs..."
+              placeholder="Search by user name or ID..."
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
@@ -206,7 +235,7 @@ export default function AdminActivityLogs() {
                       <th className="text-left p-4 font-medium text-muted-foreground">Timestamp</th>
                       <th className="text-left p-4 font-medium text-muted-foreground">Action</th>
                       <th className="text-left p-4 font-medium text-muted-foreground">Entity</th>
-                      <th className="text-left p-4 font-medium text-muted-foreground">User ID</th>
+                      <th className="text-left p-4 font-medium text-muted-foreground">User</th>
                       <th className="text-left p-4 font-medium text-muted-foreground">Details</th>
                     </tr>
                   </thead>
@@ -227,8 +256,19 @@ export default function AdminActivityLogs() {
                         <td className="p-4">
                           <Badge variant="outline">{log.entity_type}</Badge>
                         </td>
-                        <td className="p-4 font-mono text-xs text-muted-foreground">
-                          {log.user_id.slice(0, 8)}...
+                        <td className="p-4">
+                          {log.user_name ? (
+                            <div>
+                              <p className="font-medium text-foreground">{log.user_name}</p>
+                              <p className="font-mono text-xs text-muted-foreground">
+                                {log.user_id.slice(0, 8)}...
+                              </p>
+                            </div>
+                          ) : (
+                            <p className="font-mono text-sm text-muted-foreground">
+                              {log.user_id.slice(0, 8)}...
+                            </p>
+                          )}
                         </td>
                         <td className="p-4 text-sm text-muted-foreground max-w-xs truncate">
                           {log.details ? JSON.stringify(log.details) : "-"}

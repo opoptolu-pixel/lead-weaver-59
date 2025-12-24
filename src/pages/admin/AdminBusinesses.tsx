@@ -12,6 +12,9 @@ import {
   Phone,
   MapPin,
   Calendar,
+  Mail,
+  PlusCircle,
+  CreditCard,
 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -31,6 +34,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Table,
@@ -64,6 +68,7 @@ interface Business {
   is_suspended: boolean;
   created_at: string;
   last_login: string | null;
+  email?: string | null;
 }
 
 interface PurchaseHistory {
@@ -82,6 +87,17 @@ export default function AdminBusinesses() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [purchaseHistory, setPurchaseHistory] = useState<PurchaseHistory[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  
+  // Add credits dialog
+  const [isAddCreditsOpen, setIsAddCreditsOpen] = useState(false);
+  const [creditsToAdd, setCreditsToAdd] = useState("");
+  const [addingCredits, setAddingCredits] = useState(false);
+  
+  // Send email dialog
+  const [isSendEmailOpen, setIsSendEmailOpen] = useState(false);
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailBody, setEmailBody] = useState("");
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   useEffect(() => {
     fetchBusinesses();
@@ -101,7 +117,16 @@ export default function AdminBusinesses() {
       console.error("Error fetching businesses:", error);
       toast.error("Failed to load businesses");
     } else {
-      setBusinesses(data || []);
+      // Fetch emails for each user using the RPC function
+      const businessesWithEmails = await Promise.all(
+        (data || []).map(async (profile) => {
+          const { data: email } = await supabase.rpc("get_user_email", { 
+            user_uuid: profile.user_id 
+          });
+          return { ...profile, email: email || null };
+        })
+      );
+      setBusinesses(businessesWithEmails);
     }
     setLoading(false);
   };
@@ -159,11 +184,84 @@ export default function AdminBusinesses() {
     }
   };
 
+  const handleAddCredits = async () => {
+    if (!selectedBusiness || !creditsToAdd) return;
+    
+    const amount = parseInt(creditsToAdd, 10);
+    if (isNaN(amount) || amount <= 0) {
+      toast.error("Please enter a valid number of credits");
+      return;
+    }
+    
+    setAddingCredits(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ credits: selectedBusiness.credits + amount })
+        .eq("id", selectedBusiness.id);
+
+      if (error) throw error;
+
+      // Log the action
+      await supabase.from("activity_logs").insert({
+        user_id: selectedBusiness.user_id,
+        action: "credits_added",
+        entity_type: "profile",
+        entity_id: selectedBusiness.id,
+        details: { amount, added_by: "admin" },
+      });
+
+      toast.success(`Added ${amount} credits successfully`);
+      setIsAddCreditsOpen(false);
+      setCreditsToAdd("");
+      fetchBusinesses();
+      
+      // Update selected business
+      setSelectedBusiness(prev => prev ? { ...prev, credits: prev.credits + amount } : null);
+    } catch (error) {
+      console.error("Error adding credits:", error);
+      toast.error("Failed to add credits");
+    } finally {
+      setAddingCredits(false);
+    }
+  };
+
+  const handleSendEmail = async () => {
+    if (!selectedBusiness?.email || !emailSubject || !emailBody) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+    
+    setSendingEmail(true);
+    try {
+      const { error } = await supabase.functions.invoke("send-email", {
+        body: {
+          to: selectedBusiness.email,
+          subject: emailSubject,
+          html: emailBody.replace(/\n/g, "<br>"),
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success("Email sent successfully");
+      setIsSendEmailOpen(false);
+      setEmailSubject("");
+      setEmailBody("");
+    } catch (error) {
+      console.error("Error sending email:", error);
+      toast.error("Failed to send email");
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
   const filteredBusinesses = businesses.filter(
     (b) =>
       (b.business_name?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
       (b.contact_name?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
-      (b.postcode?.toLowerCase() || "").includes(searchQuery.toLowerCase())
+      (b.postcode?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
+      (b.email?.toLowerCase() || "").includes(searchQuery.toLowerCase())
   );
 
   const pagination = usePagination(filteredBusinesses);
@@ -172,6 +270,7 @@ export default function AdminBusinesses() {
     exportToCsv(filteredBusinesses, "businesses", [
       { key: "business_name", label: "Business Name" },
       { key: "contact_name", label: "Contact Name" },
+      { key: "email", label: "Email" },
       { key: "phone", label: "Phone" },
       { key: "postcode", label: "Postcode" },
       { key: "is_verified", label: "Verified" },
@@ -272,6 +371,7 @@ export default function AdminBusinesses() {
                 <thead className="bg-muted/50">
                   <tr>
                     <th className="text-left p-4 font-medium text-muted-foreground">Business</th>
+                    <th className="text-left p-4 font-medium text-muted-foreground">Email</th>
                     <th className="text-left p-4 font-medium text-muted-foreground">Status</th>
                     <th className="text-left p-4 font-medium text-muted-foreground">Risk</th>
                     <th className="text-left p-4 font-medium text-muted-foreground">Leads</th>
@@ -296,6 +396,11 @@ export default function AdminBusinesses() {
                           </p>
                         </div>
                       </td>
+                      <td className="p-4">
+                        <p className="text-sm text-muted-foreground">
+                          {business.email || "No email"}
+                        </p>
+                      </td>
                       <td className="p-4">{getVerificationBadge(business)}</td>
                       <td className="p-4">{getRiskBadge(business.risk_score || 0)}</td>
                       <td className="p-4">
@@ -317,6 +422,22 @@ export default function AdminBusinesses() {
                               <Eye className="w-4 h-4 mr-2" />
                               View Profile
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => {
+                              setSelectedBusiness(business);
+                              setIsAddCreditsOpen(true);
+                            }}>
+                              <PlusCircle className="w-4 h-4 mr-2 text-green-500" />
+                              Add Credits
+                            </DropdownMenuItem>
+                            {business.email && (
+                              <DropdownMenuItem onClick={() => {
+                                setSelectedBusiness(business);
+                                setIsSendEmailOpen(true);
+                              }}>
+                                <Mail className="w-4 h-4 mr-2 text-blue-500" />
+                                Send Email
+                              </DropdownMenuItem>
+                            )}
                             {!business.is_verified && (
                               <DropdownMenuItem onClick={() => verifyBusiness(business)}>
                                 <Shield className="w-4 h-4 mr-2 text-green-500" />
@@ -394,6 +515,12 @@ export default function AdminBusinesses() {
                   </div>
                   <div className="space-y-1">
                     <Label className="text-muted-foreground text-xs flex items-center gap-1">
+                      <Mail className="w-3 h-3" /> Email
+                    </Label>
+                    <p className="font-medium">{selectedBusiness.email || "Not set"}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-muted-foreground text-xs flex items-center gap-1">
                       <Phone className="w-3 h-3" /> Phone
                     </Label>
                     <p className="font-medium">{selectedBusiness.phone || "Not set"}</p>
@@ -440,78 +567,165 @@ export default function AdminBusinesses() {
                   </div>
                 </div>
 
-                <div className="flex gap-2 pt-4">
-                  {!selectedBusiness.is_verified && (
-                    <Button 
-                      onClick={() => {
-                        verifyBusiness(selectedBusiness);
-                        setIsProfileOpen(false);
-                      }}
-                      className="flex-1"
+                {/* Quick Actions */}
+                <div className="border-t border-border pt-4 mt-4">
+                  <h4 className="font-medium mb-3">Quick Actions</h4>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsAddCreditsOpen(true)}
                     >
-                      <Shield className="w-4 h-4 mr-2" />
-                      Verify Business
+                      <PlusCircle className="w-4 h-4 mr-2" />
+                      Add Credits
                     </Button>
-                  )}
-                  <Button
-                    variant={selectedBusiness.is_suspended ? "default" : "destructive"}
-                    onClick={() => {
-                      toggleSuspension(selectedBusiness);
-                      setIsProfileOpen(false);
-                    }}
-                    className="flex-1"
-                  >
-                    {selectedBusiness.is_suspended ? (
-                      <>
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Unsuspend
-                      </>
-                    ) : (
-                      <>
-                        <Ban className="w-4 h-4 mr-2" />
-                        Suspend
-                      </>
+                    {selectedBusiness.email && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsSendEmailOpen(true)}
+                      >
+                        <Mail className="w-4 h-4 mr-2" />
+                        Send Email
+                      </Button>
                     )}
-                  </Button>
+                    {!selectedBusiness.is_verified && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => verifyBusiness(selectedBusiness)}
+                      >
+                        <Shield className="w-4 h-4 mr-2" />
+                        Verify Business
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </TabsContent>
 
               <TabsContent value="purchases" className="mt-4">
                 {loadingHistory ? (
-                  <div className="py-8 text-center">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground" />
+                  <div className="p-8 text-center">
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto" />
                   </div>
                 ) : purchaseHistory.length === 0 ? (
-                  <div className="py-8 text-center text-muted-foreground">
-                    No purchases yet
+                  <div className="p-8 text-center text-muted-foreground">
+                    No purchase history
                   </div>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Job Type</TableHead>
-                        <TableHead>Postcode</TableHead>
-                        <TableHead>Date</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {purchaseHistory.map((purchase) => (
-                        <TableRow key={purchase.id}>
-                          <TableCell>{purchase.job_type}</TableCell>
-                          <TableCell>{purchase.postcode}</TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {purchase.unlocked_at 
-                              ? format(new Date(purchase.unlocked_at), "d MMM yyyy HH:mm")
-                              : "-"}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                    {purchaseHistory.map((purchase) => (
+                      <div
+                        key={purchase.id}
+                        className="flex items-center justify-between p-3 bg-muted/30 rounded-lg"
+                      >
+                        <div>
+                          <p className="font-medium">{purchase.job_type}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {purchase.postcode}
+                          </p>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {purchase.unlocked_at
+                            ? format(new Date(purchase.unlocked_at), "d MMM yyyy")
+                            : "N/A"}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </TabsContent>
             </Tabs>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Credits Dialog */}
+      <Dialog open={isAddCreditsOpen} onOpenChange={setIsAddCreditsOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CreditCard className="w-5 h-5" />
+              Add Credits
+            </DialogTitle>
+            <DialogDescription>
+              Add credits to {selectedBusiness?.business_name || selectedBusiness?.contact_name}'s account
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Current Balance</Label>
+              <p className="text-2xl font-bold">{selectedBusiness?.credits || 0} credits</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="credits-amount">Credits to Add</Label>
+              <Input
+                id="credits-amount"
+                type="number"
+                min="1"
+                placeholder="Enter amount..."
+                value={creditsToAdd}
+                onChange={(e) => setCreditsToAdd(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddCreditsOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddCredits} disabled={addingCredits || !creditsToAdd}>
+              {addingCredits && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Add Credits
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Send Email Dialog */}
+      <Dialog open={isSendEmailOpen} onOpenChange={setIsSendEmailOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="w-5 h-5" />
+              Send Email
+            </DialogTitle>
+            <DialogDescription>
+              Send an email to {selectedBusiness?.email}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="email-subject">Subject</Label>
+              <Input
+                id="email-subject"
+                placeholder="Enter subject..."
+                value={emailSubject}
+                onChange={(e) => setEmailSubject(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email-body">Message</Label>
+              <textarea
+                id="email-body"
+                className="w-full min-h-[150px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                placeholder="Enter your message..."
+                value={emailBody}
+                onChange={(e) => setEmailBody(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsSendEmailOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSendEmail} 
+              disabled={sendingEmail || !emailSubject || !emailBody}
+            >
+              {sendingEmail && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Send Email
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </AdminLayout>
