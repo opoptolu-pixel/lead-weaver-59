@@ -14,10 +14,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon, LogOut, User } from "lucide-react";
+import { CalendarIcon, LogOut, User, Wifi, WifiOff } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
 
 interface AdminTopBarProps {
   title: string;
@@ -27,10 +29,56 @@ export default function AdminTopBar({ title }: AdminTopBarProps) {
   const { dateRange, setDateRange, customStartDate, customEndDate, setCustomDates } = useAdmin();
   const { user, signOut } = useAuth();
   const [showCalendar, setShowCalendar] = useState(false);
+  const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
+
+  // Track realtime connection status
+  useEffect(() => {
+    const channel = supabase
+      .channel('connection-status')
+      .on('presence', { event: 'sync' }, () => {
+        setIsRealtimeConnected(true);
+      })
+      .subscribe((status) => {
+        console.log('Realtime connection status:', status);
+        setIsRealtimeConnected(status === 'SUBSCRIBED');
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   return (
     <header className="h-16 bg-card border-b border-border px-6 flex items-center justify-between sticky top-0 z-40">
-      <h1 className="font-heading text-xl font-bold text-foreground">{title}</h1>
+      <div className="flex items-center gap-3">
+        <h1 className="font-heading text-xl font-bold text-foreground">{title}</h1>
+        
+        {/* Live Connection Indicator */}
+        <Badge 
+          variant={isRealtimeConnected ? "default" : "secondary"}
+          className={cn(
+            "flex items-center gap-1.5 text-xs font-medium transition-all",
+            isRealtimeConnected 
+              ? "bg-green-500/20 text-green-600 border-green-500/30 hover:bg-green-500/30" 
+              : "bg-muted text-muted-foreground"
+          )}
+        >
+          {isRealtimeConnected ? (
+            <>
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+              </span>
+              Live
+            </>
+          ) : (
+            <>
+              <WifiOff className="w-3 h-3" />
+              Offline
+            </>
+          )}
+        </Badge>
+      </div>
 
       <div className="flex items-center gap-4">
         {/* Date Range Filter */}
