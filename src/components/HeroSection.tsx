@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Search, Sparkles, MapPin, Briefcase, Loader2, AlertCircle } from "lucide-react";
+import { Search, Sparkles, MapPin, Briefcase, Loader2, AlertCircle, Check, Star, Users, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
@@ -168,11 +168,12 @@ export const HeroSection = () => {
   const showDropdown = showSuggestions && (hasResults || isLoading || searchQuery.length >= 2);
 
   return (
-    <section className="relative min-h-[60vh] bg-hero-gradient flex items-center pt-20 pb-24">
+    <section className="relative min-h-[70vh] bg-hero-gradient flex items-center pt-24 pb-32 z-10">
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 right-10 w-72 h-72 bg-secondary/10 rounded-full blur-3xl" />
         <div className="absolute bottom-20 left-10 w-96 h-96 bg-secondary/5 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-secondary/5 rounded-full blur-3xl" />
       </div>
 
       <div className="relative container mx-auto px-4 py-12">
@@ -187,32 +188,32 @@ export const HeroSection = () => {
 
           {/* Main headline */}
           <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground mb-6 leading-tight animate-slide-up stagger-1">
-            Find Cleaning Jobs{" "}
-            <span className="text-secondary">Near You</span>
+            Grow Your Cleaning Business{" "}
+            <span className="text-secondary">Today</span>
           </h1>
 
           {/* Subheadline */}
           <p className="text-lg md:text-xl text-primary-foreground/80 mb-10 max-w-xl mx-auto animate-slide-up stagger-2">
-            Search by postcode or city to find exclusive cleaning leads in your area
+            Get exclusive cleaning leads delivered straight to you. No subscriptions, no commitments — just quality jobs.
           </p>
 
           {/* Search bar */}
-          <form onSubmit={handleSearch} className="animate-slide-up stagger-3">
-            <div className="flex flex-col sm:flex-row gap-4 max-w-2xl mx-auto">
+          <form onSubmit={handleSearch} className="animate-slide-up stagger-3 relative z-20">
+            <div className="flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto bg-background p-2 rounded-2xl shadow-2xl">
               <div className="relative flex-1" ref={searchContainerRef}>
-                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-muted-foreground z-10" />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10" />
                 <Input
                   type="text"
-                  placeholder="Enter postcode or city (e.g. SW1, Manchester)"
+                  placeholder="Enter postcode or city"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onFocus={() => setShowSuggestions(true)}
-                  className="pl-14 h-16 text-lg bg-background border-2 border-border rounded-xl shadow-xl focus:border-secondary"
+                  className="pl-12 h-14 text-base bg-transparent border-2 border-transparent rounded-xl focus:border-secondary"
                 />
                 
                 {/* Search Results Dropdown */}
                 {showDropdown && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-background border border-border rounded-xl shadow-xl z-50 overflow-hidden max-h-96 overflow-y-auto">
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-background border border-border rounded-xl shadow-2xl z-[9999] overflow-hidden max-h-96 overflow-y-auto">
                     {isLoading ? (
                       <div className="p-4 flex items-center justify-center gap-2 text-muted-foreground">
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -322,23 +323,66 @@ export const HeroSection = () => {
               </div>
               <Button 
                 type="submit"
-                variant="hero" 
+                variant="cta" 
                 size="xl"
-                className="h-16 px-10 text-lg font-semibold shadow-xl"
+                className="h-14 px-8 text-base font-semibold shadow-lg"
               >
-                Search Leads
+                <Search className="w-5 h-5 mr-2" />
+                Find Leads
               </Button>
             </div>
           </form>
 
-          {/* Trust indicator */}
-          <p className="mt-4 text-primary-foreground/60 text-sm animate-fade-in stagger-4">
-            ✓ No signup fees &nbsp;&nbsp; ✓ Pay only £20 per lead &nbsp;&nbsp; ✓ Exclusive leads
-          </p>
+          {/* Trust indicators - matching customer hero style */}
+          {!showDropdown && (
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-primary-foreground/70 text-sm animate-fade-in stagger-4">
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-secondary" />
+                <span>£20 Per Lead</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-secondary" />
+                <span>No Subscription</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-secondary" />
+                <span>Exclusive Leads</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-secondary" />
+                <span>Instant Access</span>
+              </div>
+            </div>
+          )}
+
+          {/* Stats section */}
+          <div className="mt-12 grid grid-cols-3 gap-6 max-w-lg mx-auto animate-fade-in stagger-4">
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <Users className="w-5 h-5 text-secondary" />
+              </div>
+              <div className="text-2xl md:text-3xl font-bold text-primary-foreground">500+</div>
+              <div className="text-xs text-primary-foreground/60">Active Cleaners</div>
+            </div>
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <TrendingUp className="w-5 h-5 text-secondary" />
+              </div>
+              <div className="text-2xl md:text-3xl font-bold text-primary-foreground">10K+</div>
+              <div className="text-xs text-primary-foreground/60">Leads Delivered</div>
+            </div>
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <Star className="w-5 h-5 text-secondary" />
+              </div>
+              <div className="text-2xl md:text-3xl font-bold text-primary-foreground">4.9</div>
+              <div className="text-xs text-primary-foreground/60">Average Rating</div>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Bottom wave - moved outside the overflow-hidden container */}
+      {/* Bottom wave */}
       <div className="absolute bottom-0 left-0 right-0 -mb-px pointer-events-none z-0">
         <svg viewBox="0 0 1440 80" fill="none" className="w-full h-auto block">
           <path
