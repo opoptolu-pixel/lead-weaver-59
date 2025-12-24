@@ -698,15 +698,24 @@ export default function AdminLeads() {
               {selectedLeadIds.size} lead(s) selected
             </span>
             <div className="flex gap-2 flex-wrap">
-              <Button 
-                size="sm" 
-                variant="outline" 
-                onClick={() => handleBulkSendConfirmation("whatsapp")}
-                disabled={bulkActionLoading}
-              >
-                {bulkActionLoading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <MessageSquare className="w-4 h-4 mr-1" />}
-                Send Confirmation (WhatsApp)
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline" disabled={bulkActionLoading}>
+                    {bulkActionLoading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <MessageSquare className="w-4 h-4 mr-1" />}
+                    Send Confirmation
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => handleBulkSendConfirmation("whatsapp")}>
+                    <MessageSquare className="w-4 h-4 mr-2" />
+                    Via WhatsApp
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleBulkSendConfirmation("sms")}>
+                    <Mail className="w-4 h-4 mr-2" />
+                    Via SMS
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button 
                 size="sm" 
                 onClick={() => handleBulkAction("published")}
@@ -1154,14 +1163,24 @@ export default function AdminLeads() {
                   </p>
                   <DialogFooter className="flex-wrap gap-2 justify-start">
                     {selectedLead.lead_status === "new" && (
-                      <Button 
-                        variant="outline"
-                        onClick={() => handleSendConfirmation(selectedLead, "whatsapp")}
-                        disabled={actionLoading}
-                      >
-                        <MessageSquare className="w-4 h-4 mr-2" />
-                        Send Confirmation (WhatsApp)
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" disabled={actionLoading}>
+                            {actionLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <MessageSquare className="w-4 h-4 mr-2" />}
+                            Send Confirmation
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <DropdownMenuItem onClick={() => handleSendConfirmation(selectedLead, "whatsapp")}>
+                            <MessageSquare className="w-4 h-4 mr-2" />
+                            Via WhatsApp
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleSendConfirmation(selectedLead, "sms")}>
+                            <Mail className="w-4 h-4 mr-2" />
+                            Via SMS
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     )}
                     {getValidActions(selectedLead).map(action => (
                       <Tooltip key={action.status}>
