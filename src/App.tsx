@@ -41,6 +41,7 @@ import AdminFraud from "./pages/admin/AdminFraud";
 import AdminInquiries from "./pages/admin/AdminInquiries";
 import AdminEmailTemplates from "./pages/admin/AdminEmailTemplates";
 import AdminAccounting from "./pages/admin/AdminAccounting";
+import AdminContactSubmissions from "./pages/admin/AdminContactSubmissions";
 
 const queryClient = new QueryClient();
 
@@ -80,6 +81,7 @@ const App = () => (
                 {/* Admin Routes */}
                 <Route path="/admin" element={<AdminOverview />} />
                 <Route path="/admin/inquiries" element={<AdminInquiries />} />
+                <Route path="/admin/contact" element={<AdminContactSubmissions />} />
                 <Route path="/admin/leads" element={<AdminLeads />} />
                 <Route path="/admin/businesses" element={<AdminBusinesses />} />
                 <Route path="/admin/verifications" element={<AdminVerifications />} />
