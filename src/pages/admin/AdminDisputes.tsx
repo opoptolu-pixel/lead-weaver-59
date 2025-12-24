@@ -33,6 +33,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useSignedUrl } from "@/hooks/useSignedUrl";
 import { useAdmin } from "@/contexts/AdminContext";
+import { usePagination } from "@/hooks/usePagination";
+import { PaginationControls } from "@/components/admin/PaginationControls";
+import { exportToCsv } from "@/lib/exportCsv";
 
 interface Dispute {
   id: string;
@@ -170,6 +173,22 @@ export default function AdminDisputes() {
     return matchesSearch && matchesStatus;
   });
 
+  const pagination = usePagination(filteredDisputes);
+
+  const handleExportCsv = () => {
+    exportToCsv(filteredDisputes, "disputes", [
+      { key: "id", label: "ID" },
+      { key: "business_name", label: "Business" },
+      { key: "lead_id", label: "Lead ID" },
+      { key: "reason_code", label: "Reason" },
+      { key: "status", label: "Status" },
+      { key: "description", label: "Description" },
+      { key: "resolution", label: "Resolution" },
+      { key: "created_at", label: "Opened" },
+      { key: "resolved_at", label: "Resolved" },
+    ]);
+  };
+
   const handleResolve = async () => {
     if (!selectedDispute || !resolution) return;
 
@@ -275,6 +294,10 @@ export default function AdminDisputes() {
               <SelectItem value="rejected">Rejected</SelectItem>
             </SelectContent>
           </Select>
+          <Button variant="outline" size="sm" onClick={handleExportCsv}>
+            <Download className="w-4 h-4 mr-2" />
+            Export CSV
+          </Button>
         </div>
 
         {/* Disputes Table */}
@@ -290,54 +313,66 @@ export default function AdminDisputes() {
             ) : filteredDisputes.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">No disputes found</p>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Business</TableHead>
-                    <TableHead>Lead ID</TableHead>
-                    <TableHead>Reason</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Evidence</TableHead>
-                    <TableHead>Opened</TableHead>
-                    <TableHead className="w-[100px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredDisputes.map((dispute) => (
-                    <TableRow key={dispute.id}>
-                      <TableCell className="font-medium">{dispute.business_name}</TableCell>
-                      <TableCell className="font-mono text-sm">{dispute.lead_id.slice(0, 8)}...</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{reasonCodes[dispute.reason_code] || dispute.reason_code}</Badge>
-                      </TableCell>
-                      <TableCell>{getStatusBadge(dispute.status)}</TableCell>
-                      <TableCell>
-                        {dispute.evidence_urls && dispute.evidence_urls.length > 0 ? (
-                          <Badge variant="secondary" className="flex items-center w-fit">
-                            <FileText className="h-3 w-3 mr-1" />
-                            {dispute.evidence_urls.length} file(s)
-                          </Badge>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">None</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {new Date(dispute.created_at).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setSelectedDispute(dispute)}
-                        >
-                          <MessageSquare className="h-4 w-4 mr-1" />
-                          Review
-                        </Button>
-                      </TableCell>
+              <>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Business</TableHead>
+                      <TableHead>Lead ID</TableHead>
+                      <TableHead>Reason</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Evidence</TableHead>
+                      <TableHead>Opened</TableHead>
+                      <TableHead className="w-[100px]"></TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {pagination.paginatedData.map((dispute) => (
+                      <TableRow key={dispute.id}>
+                        <TableCell className="font-medium">{dispute.business_name}</TableCell>
+                        <TableCell className="font-mono text-sm">{dispute.lead_id.slice(0, 8)}...</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{reasonCodes[dispute.reason_code] || dispute.reason_code}</Badge>
+                        </TableCell>
+                        <TableCell>{getStatusBadge(dispute.status)}</TableCell>
+                        <TableCell>
+                          {dispute.evidence_urls && dispute.evidence_urls.length > 0 ? (
+                            <Badge variant="secondary" className="flex items-center w-fit">
+                              <FileText className="h-3 w-3 mr-1" />
+                              {dispute.evidence_urls.length} file(s)
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">None</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {new Date(dispute.created_at).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedDispute(dispute)}
+                          >
+                            <MessageSquare className="h-4 w-4 mr-1" />
+                            Review
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                <PaginationControls
+                  currentPage={pagination.currentPage}
+                  totalPages={pagination.totalPages}
+                  totalItems={pagination.totalItems}
+                  pageSize={pagination.pageSize}
+                  onPageChange={pagination.goToPage}
+                  onPageSizeChange={pagination.changePageSize}
+                  hasNextPage={pagination.hasNextPage}
+                  hasPrevPage={pagination.hasPrevPage}
+                />
+              </>
             )}
           </CardContent>
         </Card>

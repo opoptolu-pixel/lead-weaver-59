@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Check, X, Eye, FileText, Clock, Loader2 } from "lucide-react";
+import { Check, X, Eye, FileText, Clock, Loader2, Download } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { useAdmin } from "@/contexts/AdminContext";
+import { usePagination } from "@/hooks/usePagination";
+import { PaginationControls } from "@/components/admin/PaginationControls";
+import { exportToCsv } from "@/lib/exportCsv";
 import {
   Dialog,
   DialogContent,
@@ -190,22 +193,40 @@ export default function AdminVerifications() {
     }
   };
 
+  const pagination = usePagination(documents);
+
+  const handleExportCsv = () => {
+    exportToCsv(documents, "verifications", [
+      { key: "id", label: "ID" },
+      { key: "document_type", label: "Document Type" },
+      { key: "status", label: "Status" },
+      { key: "created_at", label: "Submitted" },
+      { key: "admin_notes", label: "Admin Notes" },
+    ]);
+  };
+
   return (
     <AdminLayout title="Verification Documents">
       <div className="bg-card rounded-xl border border-border overflow-hidden">
         <div className="p-4 border-b border-border">
-          <div className="flex items-center gap-4">
-            <Button
-              variant={documents.some(d => d.status === "pending") ? "default" : "outline"}
-              size="sm"
-            >
-              Pending ({documents.filter((d) => d.status === "pending").length})
-            </Button>
-            <Button variant="outline" size="sm">
-              Approved ({documents.filter((d) => d.status === "approved").length})
-            </Button>
-            <Button variant="outline" size="sm">
-              Rejected ({documents.filter((d) => d.status === "rejected").length})
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button
+                variant={documents.some(d => d.status === "pending") ? "default" : "outline"}
+                size="sm"
+              >
+                Pending ({documents.filter((d) => d.status === "pending").length})
+              </Button>
+              <Button variant="outline" size="sm">
+                Approved ({documents.filter((d) => d.status === "approved").length})
+              </Button>
+              <Button variant="outline" size="sm">
+                Rejected ({documents.filter((d) => d.status === "rejected").length})
+              </Button>
+            </div>
+            <Button variant="outline" size="sm" onClick={handleExportCsv}>
+              <Download className="w-4 h-4 mr-2" />
+              Export CSV
             </Button>
           </div>
         </div>
@@ -220,8 +241,9 @@ export default function AdminVerifications() {
             <p>No verification documents yet</p>
           </div>
         ) : (
+          <>
           <div className="divide-y divide-border">
-            {documents.map((doc) => (
+            {pagination.paginatedData.map((doc) => (
               <div
                 key={doc.id}
                 className="p-4 flex items-center justify-between hover:bg-muted/50"
@@ -276,6 +298,17 @@ export default function AdminVerifications() {
               </div>
             ))}
           </div>
+          <PaginationControls
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.totalItems}
+            pageSize={pagination.pageSize}
+            onPageChange={pagination.goToPage}
+            onPageSizeChange={pagination.changePageSize}
+            hasNextPage={pagination.hasNextPage}
+            hasPrevPage={pagination.hasPrevPage}
+          />
+          </>
         )}
       </div>
 
