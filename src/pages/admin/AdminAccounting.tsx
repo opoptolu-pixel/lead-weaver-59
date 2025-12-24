@@ -44,6 +44,8 @@ interface Transaction {
   status: "paid" | "refunded";
   refundReason?: string | null;
   refundedAt?: string | null;
+  postcode?: string;
+  jobType?: string;
 }
 
 interface BusinessPerformance {
@@ -105,7 +107,9 @@ export default function AdminAccounting() {
           value,
           refunded_at,
           refund_reason,
-          lead_status
+          lead_status,
+          postcode,
+          job_type
         `)
         .eq("is_unlocked", true)
         .gte("unlocked_at", dateRange.from.toISOString())
@@ -133,6 +137,8 @@ export default function AdminAccounting() {
         status: lead.refunded_at ? "refunded" : "paid",
         refundReason: lead.refund_reason,
         refundedAt: lead.refunded_at,
+        postcode: lead.postcode,
+        jobType: lead.job_type,
       }));
 
       setTransactions(txns);
@@ -260,13 +266,23 @@ export default function AdminAccounting() {
     });
   }, [transactions, dateRange]);
 
-  // Revenue by postcode prefix
+  // Revenue by postcode prefix (outward code)
   const revenueByLocation = useMemo(() => {
     const locationMap = new Map<string, { gross: number; refunds: number; leads: number }>();
     
     transactions.forEach(t => {
-      // We'd need to join with leads to get postcode - for now use placeholder
-      const prefix = "UK"; // Placeholder - would need lead data
+      // Extract outward code from postcode
+      let prefix = "Unknown";
+      if (t.postcode) {
+        const pc = t.postcode.trim().toUpperCase();
+        if (pc.includes(" ")) {
+          prefix = pc.split(" ")[0];
+        } else if (pc.length > 3) {
+          prefix = pc.slice(0, -3);
+        } else {
+          prefix = pc;
+        }
+      }
       const existing = locationMap.get(prefix) || { gross: 0, refunds: 0, leads: 0 };
       existing.gross += LEAD_PRICE;
       if (t.status === "refunded") existing.refunds += LEAD_PRICE;
@@ -274,11 +290,35 @@ export default function AdminAccounting() {
       locationMap.set(prefix, existing);
     });
     
-    return Array.from(locationMap.entries()).map(([location, data]) => ({
-      location,
-      ...data,
-      net: data.gross - data.refunds,
-    }));
+    return Array.from(locationMap.entries())
+      .map(([location, data]) => ({
+        location,
+        ...data,
+        net: data.gross - data.refunds,
+      }))
+      .sort((a, b) => b.net - a.net);
+  }, [transactions]);
+
+  // Revenue by job type (service category)
+  const revenueByJobType = useMemo(() => {
+    const jobTypeMap = new Map<string, { gross: number; refunds: number; leads: number }>();
+    
+    transactions.forEach(t => {
+      const jobType = t.jobType || "Unknown";
+      const existing = jobTypeMap.get(jobType) || { gross: 0, refunds: 0, leads: 0 };
+      existing.gross += LEAD_PRICE;
+      if (t.status === "refunded") existing.refunds += LEAD_PRICE;
+      existing.leads += 1;
+      jobTypeMap.set(jobType, existing);
+    });
+    
+    return Array.from(jobTypeMap.entries())
+      .map(([jobType, data]) => ({
+        jobType,
+        ...data,
+        net: data.gross - data.refunds,
+      }))
+      .sort((a, b) => b.net - a.net);
   }, [transactions]);
 
   // Business performance data
@@ -753,6 +793,131 @@ export default function AdminAccounting() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Revenue by Service Category (Job Type) */}
+            <div className="grid gap-6 lg:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Revenue by Service Category</CardTitle>
+                  <CardDescription>Breakdown by job type</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={revenueByJobType} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <XAxis type="number" className="text-xs" tickFormatter={(v) => `£${v}`} />
+                        <YAxis type="category" dataKey="jobType" className="text-xs" width={120} />
+                        <Tooltip 
+                          formatter={(value: number) => [`£${value}`, ""]}
+                          contentStyle={{ 
+                            backgroundColor: "hsl(var(--card))", 
+                            borderColor: "hsl(var(--border))",
+                            borderRadius: "8px"
+                          }}
+                        />
+                        <Bar dataKey="net" fill="hsl(var(--primary))" name="Net Revenue" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Revenue by Postcode/Location */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Revenue by Location</CardTitle>
+                  <CardDescription>Breakdown by postcode area</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={revenueByLocation.slice(0, 10)} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <XAxis type="number" className="text-xs" tickFormatter={(v) => `£${v}`} />
+                        <YAxis type="category" dataKey="location" className="text-xs" width={80} />
+                        <Tooltip 
+                          formatter={(value: number) => [`£${value}`, ""]}
+                          contentStyle={{ 
+                            backgroundColor: "hsl(var(--card))", 
+                            borderColor: "hsl(var(--border))",
+                            borderRadius: "8px"
+                          }}
+                        />
+                        <Bar dataKey="net" fill="hsl(var(--chart-2))" name="Net Revenue" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Detailed Tables for Service & Location */}
+            <div className="grid gap-6 lg:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Service Category Details</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="max-h-[400px] overflow-y-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Service Type</TableHead>
+                          <TableHead className="text-right">Leads</TableHead>
+                          <TableHead className="text-right">Gross</TableHead>
+                          <TableHead className="text-right">Refunds</TableHead>
+                          <TableHead className="text-right">Net</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {revenueByJobType.map((item) => (
+                          <TableRow key={item.jobType}>
+                            <TableCell className="font-medium">{item.jobType}</TableCell>
+                            <TableCell className="text-right">{item.leads}</TableCell>
+                            <TableCell className="text-right">£{item.gross}</TableCell>
+                            <TableCell className="text-right text-destructive">£{item.refunds}</TableCell>
+                            <TableCell className="text-right font-medium">£{item.net}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Location Details</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="max-h-[400px] overflow-y-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Postcode Area</TableHead>
+                          <TableHead className="text-right">Leads</TableHead>
+                          <TableHead className="text-right">Gross</TableHead>
+                          <TableHead className="text-right">Refunds</TableHead>
+                          <TableHead className="text-right">Net</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {revenueByLocation.map((item) => (
+                          <TableRow key={item.location}>
+                            <TableCell className="font-medium">{item.location}</TableCell>
+                            <TableCell className="text-right">{item.leads}</TableCell>
+                            <TableCell className="text-right">£{item.gross}</TableCell>
+                            <TableCell className="text-right text-destructive">£{item.refunds}</TableCell>
+                            <TableCell className="text-right font-medium">£{item.net}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           {/* TRANSACTIONS LEDGER TAB */}
