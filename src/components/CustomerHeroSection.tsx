@@ -228,8 +228,8 @@ export const CustomerHeroSection = () => {
             </div>
           </form>
 
-          {/* Trust indicators - completely hidden when dropdown is open */}
-          {!isTypeOpen && (
+          {/* Trust indicators - completely hidden when any dropdown is open */}
+          {!isTypeOpen && !showPostcodeSuggestions && (
             <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-primary-foreground/70 text-sm animate-fade-in stagger-4">
               <div className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-secondary" />
