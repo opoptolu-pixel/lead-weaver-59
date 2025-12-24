@@ -254,7 +254,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20 md:pb-0">
       {/* Header */}
       <header className="bg-primary border-b border-border sticky top-0 z-50">
         <div className="container mx-auto px-4">

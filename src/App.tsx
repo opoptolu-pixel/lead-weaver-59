@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AdminProvider } from "@/contexts/AdminContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
 import Index from "./pages/Index";
 import Leads from "./pages/Leads";
 import Auth from "./pages/Auth";
@@ -88,6 +89,7 @@ const App = () => (
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
+              <MobileBottomNav />
             </AdminProvider>
           </AuthProvider>
         </BrowserRouter>

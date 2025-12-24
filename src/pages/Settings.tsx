@@ -20,6 +20,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
+import {
+  EmailNotificationSettings,
+  EmailPreferences,
+  defaultEmailPreferences,
+} from "@/components/EmailNotificationSettings";
 
 const profileSchema = z.object({
   contact_name: z.string().max(100, "Name must be less than 100 characters").optional(),
@@ -37,6 +42,7 @@ export default function Settings() {
   const [phone, setPhone] = useState("");
   const [postcode, setPostcode] = useState("");
   const [whatsappOptin, setWhatsappOptin] = useState(false);
+  const [emailPreferences, setEmailPreferences] = useState<EmailPreferences>(defaultEmailPreferences);
   const [saving, setSaving] = useState(false);
   const [testingWhatsapp, setTestingWhatsapp] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -163,7 +169,7 @@ export default function Settings() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20 md:pb-0">
       {/* Header */}
       <header className="bg-primary border-b border-border sticky top-0 z-50">
         <div className="container mx-auto px-4">
@@ -323,6 +329,14 @@ export default function Settings() {
                   Send Test WhatsApp Message
                 </Button>
               )}
+
+              {/* Email Notification Settings */}
+              <div className="pt-4 border-t border-border">
+                <EmailNotificationSettings
+                  preferences={emailPreferences}
+                  onChange={setEmailPreferences}
+                />
+              </div>
 
               {/* Save button */}
               <Button
