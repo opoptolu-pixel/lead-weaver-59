@@ -21,43 +21,44 @@ interface CleaningRequest {
   estimatedValue?: string;
 }
 
-// Job Value Bands for Phase 2 Analytics
+// Job Value Bands for Phase 2 Analytics (thresholds in pence)
 type ValueBand = "standard" | "premium" | "high-value";
 
-const getValueBand = (value: number): ValueBand => {
-  if (value >= 200) return "high-value";
-  if (value >= 150) return "premium";
+const getValueBand = (valueInPence: number): ValueBand => {
+  if (valueInPence >= 20000) return "high-value"; // £200+
+  if (valueInPence >= 15000) return "premium";    // £150+
   return "standard";
 };
 
-// Phase 1 + Phase 2 Job Types
+// Phase 1 + Phase 2 Job Types - ALL VALUES IN PENCE (e.g., £125 = 12500)
 const JOB_TYPES: Record<string, { displayValue: string; value: number; phase: number; category: string }> = {
   // Phase 1 - Core Services (£100+)
-  "Carpet Cleaning (2–3 Rooms)": { displayValue: "from £100", value: 125, phase: 1, category: "carpet" },
-  "Sofa + Carpet Cleaning": { displayValue: "from £120", value: 150, phase: 1, category: "upholstery" },
-  "Sofa + Mattress Cleaning": { displayValue: "from £100", value: 120, phase: 1, category: "upholstery" },
-  "Carpet + Mattress Cleaning": { displayValue: "from £110", value: 135, phase: 1, category: "carpet" },
-  "Deep Clean (3+ Rooms)": { displayValue: "from £140", value: 170, phase: 1, category: "deep-clean" },
-  "End of Tenancy Clean": { displayValue: "from £150", value: 185, phase: 1, category: "tenancy" },
-  "Airbnb / Short-Let Refresh": { displayValue: "from £130", value: 155, phase: 1, category: "short-let" },
-  "Move-In / Move-Out Clean": { displayValue: "from £140", value: 170, phase: 1, category: "tenancy" },
-  "Post-Tenancy Carpet & Upholstery": { displayValue: "from £120", value: 140, phase: 1, category: "tenancy" },
-  "One-Off Deep Clean": { displayValue: "from £100", value: 120, phase: 1, category: "deep-clean" },
+  "Carpet Cleaning (2–3 Rooms)": { displayValue: "from £100", value: 12500, phase: 1, category: "carpet" },
+  "Sofa + Carpet Cleaning": { displayValue: "from £120", value: 15000, phase: 1, category: "upholstery" },
+  "Sofa + Mattress Cleaning": { displayValue: "from £100", value: 12000, phase: 1, category: "upholstery" },
+  "Carpet + Mattress Cleaning": { displayValue: "from £110", value: 13500, phase: 1, category: "carpet" },
+  "Deep Clean (3+ Rooms)": { displayValue: "from £140", value: 17000, phase: 1, category: "deep-clean" },
+  "End of Tenancy Clean": { displayValue: "from £150", value: 18500, phase: 1, category: "tenancy" },
+  "Airbnb / Short-Let Refresh": { displayValue: "from £130", value: 15500, phase: 1, category: "short-let" },
+  "Move-In / Move-Out Clean": { displayValue: "from £140", value: 17000, phase: 1, category: "tenancy" },
+  "Post-Tenancy Carpet & Upholstery": { displayValue: "from £120", value: 14000, phase: 1, category: "tenancy" },
+  "One-Off Deep Clean": { displayValue: "from £100", value: 12000, phase: 1, category: "deep-clean" },
   
   // Phase 2 - Commercial & Specialist (£120+)
-  "Office Carpet + Upholstery Clean": { displayValue: "from £150", value: 180, phase: 2, category: "commercial" },
-  "Post-Construction Deep Clean": { displayValue: "from £200", value: 250, phase: 2, category: "construction" },
-  "Large Property Window + Interior": { displayValue: "from £180", value: 220, phase: 2, category: "window" },
-  "Multi-Room + Upholstery Deep Clean": { displayValue: "from £160", value: 190, phase: 2, category: "deep-clean" },
+  "Office Carpet + Upholstery Clean": { displayValue: "from £150", value: 18000, phase: 2, category: "commercial" },
+  "Post-Construction Deep Clean": { displayValue: "from £200", value: 25000, phase: 2, category: "construction" },
+  "Large Property Window + Interior": { displayValue: "from £180", value: 22000, phase: 2, category: "window" },
+  "Multi-Room + Upholstery Deep Clean": { displayValue: "from £160", value: 19000, phase: 2, category: "deep-clean" },
   
   // Legacy mappings for backwards compatibility
-  "End of Tenancy": { displayValue: "from £150", value: 185, phase: 1, category: "tenancy" },
-  "Deep Clean": { displayValue: "from £140", value: 170, phase: 1, category: "deep-clean" },
-  "Move-In Clean": { displayValue: "from £140", value: 170, phase: 1, category: "tenancy" },
-  "One-Off Clean": { displayValue: "from £100", value: 120, phase: 1, category: "deep-clean" },
+  "End of Tenancy": { displayValue: "from £150", value: 18500, phase: 1, category: "tenancy" },
+  "Deep Clean": { displayValue: "from £140", value: 17000, phase: 1, category: "deep-clean" },
+  "Move-In Clean": { displayValue: "from £140", value: 17000, phase: 1, category: "tenancy" },
+  "One-Off Clean": { displayValue: "from £100", value: 12000, phase: 1, category: "deep-clean" },
 };
-const MINIMUM_JOB_VALUE = 100;
-const PHASE2_MINIMUM_VALUE = 120; // Phase 2 jobs require higher minimum
+// Minimum values in PENCE
+const MINIMUM_JOB_VALUE = 10000; // £100
+const PHASE2_MINIMUM_VALUE = 12000; // £120
 
 // UK Postcode validation regex
 const UK_POSTCODE_REGEX = /^([A-Z]{1,2}[0-9][0-9A-Z]?\s?[0-9][A-Z]{2})$/i;
@@ -315,7 +316,7 @@ serve(async (req) => {
     
     // Calculate value - use provided estimate or lookup
     let displayValue = body.estimatedValue || jobTypeInfo?.displayValue || "from £100";
-    let value = jobTypeInfo?.value || 125;
+    let value = jobTypeInfo?.value || 12500; // Default £125 in pence
     const phase = jobTypeInfo?.phase || 1;
     const category = jobTypeInfo?.category || "general";
 
@@ -324,11 +325,12 @@ serve(async (req) => {
 
     // CRITICAL: Enforce minimum job value
     if (value < requiredMinimum) {
-      console.error(`Job value ${value} below minimum ${requiredMinimum} for job type: ${body.jobType} (Phase ${phase})`);
+      const minPounds = requiredMinimum / 100;
+      console.error(`Job value ${value} pence below minimum ${requiredMinimum} pence for job type: ${body.jobType} (Phase ${phase})`);
       return new Response(
         JSON.stringify({ 
           error: "Job value too low", 
-          message: `We only accept ${phase === 2 ? 'commercial/specialist' : ''} jobs with a minimum value of £${requiredMinimum}. Please select a larger service package.` 
+          message: `We only accept ${phase === 2 ? 'commercial/specialist' : ''} jobs with a minimum value of £${minPounds}. Please select a larger service package.` 
         }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -341,9 +343,9 @@ serve(async (req) => {
     let leadStatus = "new";
     let adminNotes = null;
     
-    // SMART ENFORCEMENT: Flag leads that are borderline
-    if (value < 110) {
-      adminNotes = `[AUTO-FLAG] Borderline value (£${value}). Review for quality.`;
+    // SMART ENFORCEMENT: Flag leads that are borderline (under £110)
+    if (value < 11000) {
+      adminNotes = `[AUTO-FLAG] Borderline value (£${value / 100}). Review for quality.`;
     }
     
     // Flag Phase 2 jobs for priority review

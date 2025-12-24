@@ -240,13 +240,9 @@ export default function AdminOverview() {
     const pendingFraud = fraudFlags?.filter(f => f.status === "pending").length || 0;
     
     // Phase 2: Calculate average job value and conversion rate
-    // Normalize values - some are stored in pence (>1000), others in pounds (<1000)
-    const normalizedValues = leads?.map(l => {
-      const val = l.value || 0;
-      return val > 1000 ? val / 100 : val; // Convert pence to pounds if needed
-    }) || [];
-    const totalValue = normalizedValues.reduce((sum, val) => sum + val, 0);
-    const avgJobValue = leadsReceived > 0 ? Math.round(totalValue / leadsReceived) : 0;
+    // All values are now stored in pence - convert to pounds for display
+    const totalValuePence = leads?.reduce((sum, l) => sum + (l.value || 0), 0) || 0;
+    const avgJobValue = leadsReceived > 0 ? Math.round(totalValuePence / leadsReceived / 100) : 0;
     const conversionRate = leadsReceived > 0 ? Math.round((leadsPurchased / leadsReceived) * 100) : 0;
 
     setStats({
