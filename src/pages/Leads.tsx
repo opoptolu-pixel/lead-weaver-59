@@ -1,16 +1,17 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Lock, MapPin, Calendar, PoundSterling, Loader2, Coins, User, Search, X, Briefcase, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { format } from "date-fns";
+import { format, parseISO, isAfter, isBefore, isEqual } from "date-fns";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Logo } from "@/components/Logo";
 import { useAutoScroll } from "@/hooks/useAutoScroll";
 import { LeadsSkeleton } from "@/components/skeletons/LeadsSkeleton";
 import { useRateLimit, RATE_LIMIT_PRESETS } from "@/hooks/useRateLimit";
+import { LeadFilters, LeadFilter } from "@/components/LeadFilters";
 interface Lead {
   id: string;
   postcode: string;
@@ -262,9 +263,21 @@ export default function Leads() {
   const [ukLocations, setUkLocations] = useState<UKLocation[]>([]);
   const [postcodePrefixes, setPostcodePrefixes] = useState<string[]>([]);
   const [matchedCity, setMatchedCity] = useState<string | null>(null);
+  const [advancedFilter, setAdvancedFilter] = useState<LeadFilter>({
+    jobType: "",
+    postcodeArea: "",
+    dateFrom: "",
+    dateTo: "",
+  });
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  // Get unique job types from leads for filter dropdown
+  const jobTypes = useMemo(() => {
+    const types = new Set(leads.map(l => l.job_type));
+    return Array.from(types).sort();
+  }, [leads]);
 
   // Fetch leads with pagination and optional search filter
   const fetchLeads = useCallback(async (pageNum: number, append: boolean = false, filter: string = "", prefixes: string[] = []) => {
@@ -584,13 +597,39 @@ export default function Leads() {
     setSearchParams({});
   };
 
+  // Apply advanced filters to leads
+  const filteredLeads = useMemo(() => {
+    return leads.filter((lead) => {
+      // Job type filter
+      if (advancedFilter.jobType && lead.job_type !== advancedFilter.jobType) {
+        return false;
+      }
+      // Postcode area filter
+      if (advancedFilter.postcodeArea && !lead.postcode.toUpperCase().startsWith(advancedFilter.postcodeArea.toUpperCase())) {
+        return false;
+      }
+      // Date range filter
+      if (advancedFilter.dateFrom) {
+        const leadDate = parseISO(lead.date);
+        const fromDate = parseISO(advancedFilter.dateFrom);
+        if (isBefore(leadDate, fromDate)) return false;
+      }
+      if (advancedFilter.dateTo) {
+        const leadDate = parseISO(lead.date);
+        const toDate = parseISO(advancedFilter.dateTo);
+        if (isAfter(leadDate, toDate)) return false;
+      }
+      return true;
+    });
+  }, [leads, advancedFilter]);
+
   const userCredits = profile?.credits || 0;
   if (loading && leads.length === 0) {
     return <LeadsSkeleton />;
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20 md:pb-0">
       {/* Header */}
       <header className="bg-primary border-b border-border">
         <div className="container mx-auto px-4">
@@ -809,28 +848,33 @@ export default function Leads() {
               )}
             </div>
           </form>
+          
+          {/* Advanced Filters */}
+          <div className="mt-4 flex justify-center">
+            <LeadFilters onFilterChange={setAdvancedFilter} jobTypes={jobTypes} />
+          </div>
         </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin text-secondary" />
           </div>
-        ) : leads.length === 0 ? (
+        ) : filteredLeads.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-muted-foreground text-lg mb-4">
-              {activeFilter 
-                ? `No leads found for "${activeFilter}". Try a different search.`
+              {activeFilter || Object.values(advancedFilter).some(v => v)
+                ? "No leads match your filters. Try adjusting your search."
                 : "No leads available at the moment. Check back soon!"}
             </p>
-            {activeFilter && (
+            {(activeFilter || Object.values(advancedFilter).some(v => v)) && (
               <Button variant="outline" onClick={handleClearFilter}>
-                Clear Search
+                Clear Filters
               </Button>
             )}
           </div>
         ) : (
           <LeadsScrollContainer 
-            leads={leads}
+            leads={filteredLeads}
             userCredits={userCredits}
             unlockingLeadId={unlockingLeadId}
             usingCreditLeadId={usingCreditLeadId}

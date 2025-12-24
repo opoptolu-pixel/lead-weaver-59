@@ -22,6 +22,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Logo } from "@/components/Logo";
 import { cn } from "@/lib/utils";
+import {
+  EmailNotificationSettings,
+  EmailPreferences,
+  defaultEmailPreferences,
+} from "@/components/EmailNotificationSettings";
 
 const TOTAL_STEPS = 4;
 
@@ -31,6 +36,7 @@ interface OnboardingData {
   phone: string;
   postcode: string;
   whatsappOptin: boolean;
+  emailPreferences: EmailPreferences;
 }
 
 export default function Onboarding() {
@@ -44,6 +50,7 @@ export default function Onboarding() {
     phone: "",
     postcode: "",
     whatsappOptin: false,
+    emailPreferences: defaultEmailPreferences,
   });
 
   // Redirect if not logged in
@@ -69,6 +76,7 @@ export default function Onboarding() {
         phone: profile.phone || "",
         postcode: profile.postcode || "",
         whatsappOptin: profile.whatsapp_optin || false,
+        emailPreferences: defaultEmailPreferences,
       });
     }
   }, [profile]);
@@ -300,6 +308,13 @@ export default function Onboarding() {
                       onCheckedChange={(checked) => setData({ ...data, whatsappOptin: checked })}
                     />
                   </div>
+
+                  {/* Email Notification Settings */}
+                  <EmailNotificationSettings
+                    preferences={data.emailPreferences}
+                    onChange={(prefs) => setData({ ...data, emailPreferences: prefs })}
+                    compact
+                  />
 
                   {/* Benefits summary */}
                   <div className="bg-gray-50 rounded-xl p-4 space-y-3">
