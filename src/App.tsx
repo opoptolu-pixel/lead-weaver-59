@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 import Leads from "./pages/Leads";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import Onboarding from "./pages/Onboarding";
 import Settings from "./pages/Settings";
 import Billing from "./pages/Billing";
 import Verification from "./pages/Verification";
@@ -54,6 +55,7 @@ const App = () => (
                 <Route path="/leads" element={<Leads />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/onboarding" element={<Onboarding />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/settings/verification" element={<Verification />} />
                 <Route path="/billing" element={<Billing />} />

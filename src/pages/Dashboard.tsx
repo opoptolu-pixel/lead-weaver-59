@@ -33,6 +33,8 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import VerificationStatus from "@/components/VerificationStatus";
 import { Logo } from "@/components/Logo";
+import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
+import { useRateLimit, RATE_LIMIT_PRESETS } from "@/hooks/useRateLimit";
 import {
   Dialog,
   DialogContent,
@@ -247,12 +249,8 @@ export default function Dashboard() {
     }
   };
 
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-secondary" />
-      </div>
-    );
+  if (authLoading || loading) {
+    return <DashboardSkeleton />;
   }
 
   return (
