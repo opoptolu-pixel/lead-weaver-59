@@ -113,6 +113,58 @@ export default function AdminOverview() {
     fetchPreviousPeriodStats();
   }, [dateRange]);
 
+  // Real-time subscriptions for auto-refresh
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-overview-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'leads' },
+        () => {
+          console.log('Leads updated - refreshing stats');
+          fetchStats();
+          fetchChartData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'disputes' },
+        () => {
+          console.log('Disputes updated - refreshing stats');
+          fetchStats();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'fraud_flags' },
+        () => {
+          console.log('Fraud flags updated - refreshing stats');
+          fetchStats();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'verification_documents' },
+        () => {
+          console.log('Verifications updated - refreshing stats');
+          fetchStats();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles' },
+        () => {
+          console.log('Profiles updated - refreshing stats');
+          fetchStats();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [dateRange]);
+
   // Calculate percentage change
   const getPercentageChange = (current: number, previous: number): { value: number; isPositive: boolean } | null => {
     if (previous === 0) return current > 0 ? { value: 100, isPositive: true } : null;
