@@ -34,33 +34,28 @@ export const Footer = () => {
             </div>
           </div>
 
-          {/* Quick Links */}
+          {/* For Customers */}
           <div>
-            <h4 className="font-heading font-semibold mb-4">Quick Links</h4>
+            <h4 className="font-heading font-semibold mb-4">Get Cleaning</h4>
             <ul className="space-y-2 text-sm text-primary-foreground/70">
+              <li>
+                <Link to="/request-cleaning" className="hover:text-secondary transition-colors">
+                  Get Free Quotes
+                </Link>
+              </li>
+              <li>
+                <a href="#services" className="hover:text-secondary transition-colors">
+                  Our Services
+                </a>
+              </li>
               <li>
                 <a href="#how-it-works" className="hover:text-secondary transition-colors">
                   How It Works
                 </a>
               </li>
               <li>
-                <a href="#job-board" className="hover:text-secondary transition-colors">
-                  Job Board
-                </a>
-              </li>
-              <li>
-                <a href="#pricing" className="hover:text-secondary transition-colors">
-                  Pricing
-                </a>
-              </li>
-              <li>
                 <a href="#faq" className="hover:text-secondary transition-colors">
                   FAQ
-                </a>
-              </li>
-              <li>
-                <a href="#registration" className="hover:text-secondary transition-colors">
-                  Register
                 </a>
               </li>
             </ul>
@@ -71,20 +66,24 @@ export const Footer = () => {
             <h4 className="font-heading font-semibold mb-4">For Cleaners</h4>
             <ul className="space-y-2 text-sm text-primary-foreground/70">
               <li>
-                <a href="#registration" className="hover:text-secondary transition-colors">
-                  Join the Network
-                </a>
+                <Link to="/for-cleaners" className="hover:text-secondary transition-colors">
+                  Join Our Network
+                </Link>
               </li>
               <li>
-                <a href="#pricing" className="hover:text-secondary transition-colors">
-                  Buy Lead Credits
-                </a>
+                <Link to="/leads" className="hover:text-secondary transition-colors">
+                  Browse Leads
+                </Link>
               </li>
               <li>
-                <span className="opacity-50 cursor-not-allowed">Dashboard Login</span>
+                <Link to="/auth" className="hover:text-secondary transition-colors">
+                  Cleaner Login
+                </Link>
               </li>
               <li>
-                <span className="opacity-50 cursor-not-allowed">Support Centre</span>
+                <Link to="/for-cleaners#pricing" className="hover:text-secondary transition-colors">
+                  Pricing
+                </Link>
               </li>
             </ul>
           </div>

@@ -1,11 +1,9 @@
 import { Header } from "@/components/Header";
-import { HeroSection } from "@/components/HeroSection";
-import { HowItWorks } from "@/components/HowItWorks";
-import { ServicesGrid } from "@/components/ServicesGrid";
-import { JobBoard } from "@/components/JobBoard";
-import { Pricing } from "@/components/Pricing";
-import { RegistrationForm } from "@/components/RegistrationForm";
-import { FAQ } from "@/components/FAQ";
+import { CustomerHeroSection } from "@/components/CustomerHeroSection";
+import { TrustSection } from "@/components/TrustSection";
+import { CustomerHowItWorks } from "@/components/CustomerHowItWorks";
+import { CustomerServicesGrid } from "@/components/CustomerServicesGrid";
+import { CustomerFAQ } from "@/components/CustomerFAQ";
 import { Footer } from "@/components/Footer";
 import { SEOHead } from "@/components/SEOHead";
 
@@ -16,26 +14,26 @@ const Index = () => {
     "mainEntity": [
       {
         "@type": "Question",
-        "name": "How do cleaning leads work?",
+        "name": "Is it free to get quotes?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Customers request cleaning services through our platform. We verify each request and publish them as leads. You can unlock leads in your area and contact customers directly."
+          "text": "Yes, completely free! You can request quotes from multiple cleaners without any obligation. There are no hidden fees or charges for using our service."
         }
       },
       {
         "@type": "Question", 
-        "name": "What is the cost per lead?",
+        "name": "How quickly will I receive quotes?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Each lead costs £20 or you can buy credit packs for savings. 5 credits cost £90 (£18/lead) and 10 credits cost £170 (£17/lead)."
+          "text": "Most customers receive their first quote within a few hours, and typically have multiple quotes to compare within 24 hours."
         }
       },
       {
         "@type": "Question",
-        "name": "Are leads exclusive?",
+        "name": "Are the cleaners verified?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, each lead is only sold once. When you unlock a lead, you get exclusive access to that customer's contact information."
+          "text": "Yes, all cleaners on our platform are verified professionals. We check their credentials, insurance, and reviews before they can receive cleaning requests."
         }
       }
     ]
@@ -44,20 +42,18 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <SEOHead
-        title="Exclusive Cleaning Leads for Professional Cleaners"
-        description="Get exclusive deep cleaning job leads in your area. No monthly fees, pay only for the leads you want. Join UK's #1 cleaning lead platform today."
+        title="Find Trusted Cleaners Near You | Deep Clean UK"
+        description="Get free quotes from verified local cleaners. Compare prices, read reviews, and book with confidence. Deep cleaning, end of tenancy, carpet cleaning and more."
         canonical="https://deepcleanuk.com"
         structuredData={faqStructuredData}
       />
       <Header />
       <main>
-        <HeroSection />
-        <HowItWorks />
-        <ServicesGrid />
-        <JobBoard />
-        <Pricing />
-        <RegistrationForm />
-        <FAQ />
+        <CustomerHeroSection />
+        <TrustSection />
+        <CustomerHowItWorks />
+        <CustomerServicesGrid />
+        <CustomerFAQ />
       </main>
       <Footer />
     </div>
