@@ -77,6 +77,41 @@ export default function AdminPayments() {
     fetchData();
   }, [dateRange]);
 
+  // Real-time subscription for live updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-payments-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'leads' },
+        (payload) => {
+          console.log('Leads updated - refreshing payments');
+          fetchData();
+          toast.info('Payment data updated', { 
+            description: payload.eventType === 'INSERT' ? 'New purchase detected' : 'Purchase data changed',
+            duration: 3000 
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'fraud_flags' },
+        (payload) => {
+          console.log('Fraud flags updated - refreshing');
+          fetchData();
+          toast.info('Fraud queue updated', { 
+            description: payload.eventType === 'INSERT' ? 'New fraud flag detected' : 'Fraud flag status changed',
+            duration: 3000 
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [dateRange]);
+
   const fetchData = async () => {
     setLoading(true);
     const { start, end } = getDateFilter();
