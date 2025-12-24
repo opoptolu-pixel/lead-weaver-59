@@ -15,6 +15,7 @@ import {
   Inbox,
   Mail,
   PoundSterling,
+  MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ const navItems = [
   { title: "Overview", url: "/admin", icon: LayoutDashboard },
   { title: "Lead Pipeline", url: "/admin/leads", icon: FileText },
   { title: "Business Inquiries", url: "/admin/inquiries", icon: Inbox },
+  { title: "Contact Messages", url: "/admin/contact", icon: MessageSquare },
   { title: "Businesses", url: "/admin/businesses", icon: Users },
   { title: "Verifications", url: "/admin/verifications", icon: Shield },
   { title: "Accounting", url: "/admin/accounting", icon: PoundSterling },
