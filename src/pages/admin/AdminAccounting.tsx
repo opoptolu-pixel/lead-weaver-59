@@ -28,12 +28,25 @@ import {
   Receipt
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, BarChart, Bar } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, Legend } from "recharts";
 import { exportToCsv } from "@/lib/exportCsv";
 import { DateRange } from "react-day-picker";
 import { useToast } from "@/hooks/use-toast";
 
 const LEAD_PRICE = 20; // £20 per lead
+
+const CHART_COLORS = [
+  "hsl(var(--primary))",
+  "hsl(var(--chart-2))",
+  "hsl(var(--chart-3))",
+  "hsl(var(--chart-4))",
+  "hsl(var(--chart-5))",
+  "hsl(220, 70%, 50%)",
+  "hsl(340, 70%, 50%)",
+  "hsl(160, 70%, 50%)",
+  "hsl(40, 70%, 50%)",
+  "hsl(280, 70%, 50%)",
+];
 
 interface Transaction {
   id: string;
@@ -846,6 +859,85 @@ export default function AdminAccounting() {
                         />
                         <Bar dataKey="net" fill="hsl(var(--chart-2))" name="Net Revenue" />
                       </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Pie Charts for Distribution */}
+            <div className="grid gap-6 lg:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Service Category Distribution</CardTitle>
+                  <CardDescription>Revenue share by service type</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={revenueByJobType}
+                          dataKey="net"
+                          nameKey="jobType"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={100}
+                          label={({ jobType, percent }) => `${jobType}: ${(percent * 100).toFixed(0)}%`}
+                          labelLine={false}
+                        >
+                          {revenueByJobType.map((_, index) => (
+                            <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          formatter={(value: number) => [`£${value}`, "Net Revenue"]}
+                          contentStyle={{ 
+                            backgroundColor: "hsl(var(--card))", 
+                            borderColor: "hsl(var(--border))",
+                            borderRadius: "8px"
+                          }}
+                        />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Location Distribution</CardTitle>
+                  <CardDescription>Revenue share by postcode area (Top 8)</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={revenueByLocation.slice(0, 8)}
+                          dataKey="net"
+                          nameKey="location"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={100}
+                          label={({ location, percent }) => `${location}: ${(percent * 100).toFixed(0)}%`}
+                          labelLine={false}
+                        >
+                          {revenueByLocation.slice(0, 8).map((_, index) => (
+                            <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          formatter={(value: number) => [`£${value}`, "Net Revenue"]}
+                          contentStyle={{ 
+                            backgroundColor: "hsl(var(--card))", 
+                            borderColor: "hsl(var(--border))",
+                            borderRadius: "8px"
+                          }}
+                        />
+                        <Legend />
+                      </PieChart>
                     </ResponsiveContainer>
                   </div>
                 </CardContent>
