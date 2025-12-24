@@ -106,12 +106,12 @@ export default function AdminOverview() {
   const [valueBandData, setValueBandData] = useState<ValueBandData[]>([]);
   const [jobTypeStats, setJobTypeStats] = useState<JobTypeStats[]>([]);
   const [todayAccounting, setTodayAccounting] = useState({
-    purchases: 0,
-    revenue: 0,
-    refunds: 0,
     netRevenue: 0,
-    creditsSold: 0,
-    creditRevenue: 0,
+    refundRate: 0,
+    yesterdayNet: 0,
+    mtdRevenue: 0,
+    pendingDisputeValue: 0,
+    outstandingCredits: 0,
   });
 
   const { start, end } = getDateFilter();
@@ -129,10 +129,19 @@ export default function AdminOverview() {
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
 
-    // Fetch today's purchases (unlocked leads)
+    // Yesterday's dates
+    const yesterdayStart = new Date(todayStart);
+    yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+    const yesterdayEnd = new Date(todayEnd);
+    yesterdayEnd.setDate(yesterdayEnd.getDate() - 1);
+
+    // Month to date
+    const mtdStart = new Date(todayStart.getFullYear(), todayStart.getMonth(), 1);
+
+    // Fetch today's purchases
     const { data: todayPurchases } = await supabase
       .from("leads")
-      .select("id, value, refunded_at")
+      .select("id")
       .gte("unlocked_at", todayStart.toISOString())
       .lte("unlocked_at", todayEnd.toISOString())
       .not("unlocked_by", "is", null);
@@ -144,19 +153,70 @@ export default function AdminOverview() {
       .gte("refunded_at", todayStart.toISOString())
       .lte("refunded_at", todayEnd.toISOString());
 
-    const purchases = todayPurchases?.length || 0;
-    const revenue = purchases * 20;
-    const refunds = todayRefunds?.length || 0;
-    const refundAmount = refunds * 20;
-    const netRevenue = revenue - refundAmount;
+    // Fetch yesterday's data for comparison
+    const { data: yesterdayPurchases } = await supabase
+      .from("leads")
+      .select("id")
+      .gte("unlocked_at", yesterdayStart.toISOString())
+      .lte("unlocked_at", yesterdayEnd.toISOString())
+      .not("unlocked_by", "is", null);
+
+    const { data: yesterdayRefunds } = await supabase
+      .from("leads")
+      .select("id")
+      .gte("refunded_at", yesterdayStart.toISOString())
+      .lte("refunded_at", yesterdayEnd.toISOString());
+
+    // Fetch MTD purchases and refunds
+    const { data: mtdPurchases } = await supabase
+      .from("leads")
+      .select("id")
+      .gte("unlocked_at", mtdStart.toISOString())
+      .lte("unlocked_at", todayEnd.toISOString())
+      .not("unlocked_by", "is", null);
+
+    const { data: mtdRefunds } = await supabase
+      .from("leads")
+      .select("id")
+      .gte("refunded_at", mtdStart.toISOString())
+      .lte("refunded_at", todayEnd.toISOString());
+
+    // Fetch pending disputes value
+    const { data: pendingDisputes } = await supabase
+      .from("disputes")
+      .select("id")
+      .eq("status", "open");
+
+    // Fetch total outstanding credits across all users
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("credits");
+
+    const todayPurchaseCount = todayPurchases?.length || 0;
+    const todayRefundCount = todayRefunds?.length || 0;
+    const todayRevenue = todayPurchaseCount * 20;
+    const todayRefundAmount = todayRefundCount * 20;
+    const netRevenue = todayRevenue - todayRefundAmount;
+    const refundRate = todayPurchaseCount > 0 ? Math.round((todayRefundCount / todayPurchaseCount) * 100) : 0;
+
+    const yesterdayPurchaseCount = yesterdayPurchases?.length || 0;
+    const yesterdayRefundCount = yesterdayRefunds?.length || 0;
+    const yesterdayNet = (yesterdayPurchaseCount * 20) - (yesterdayRefundCount * 20);
+
+    const mtdPurchaseCount = mtdPurchases?.length || 0;
+    const mtdRefundCount = mtdRefunds?.length || 0;
+    const mtdRevenue = (mtdPurchaseCount * 20) - (mtdRefundCount * 20);
+
+    const pendingDisputeValue = (pendingDisputes?.length || 0) * 20;
+    const outstandingCredits = profiles?.reduce((sum, p) => sum + (p.credits || 0), 0) || 0;
 
     setTodayAccounting({
-      purchases,
-      revenue,
-      refunds,
       netRevenue,
-      creditsSold: purchases, // Each purchase uses 1 credit
-      creditRevenue: revenue, // Credits are £20 each
+      refundRate,
+      yesterdayNet,
+      mtdRevenue,
+      pendingDisputeValue,
+      outstandingCredits,
     });
   };
 
@@ -544,30 +604,36 @@ export default function AdminOverview() {
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <div className="text-center p-3 bg-muted/30 rounded-lg">
-            <p className="text-2xl font-bold text-foreground">{todayAccounting.purchases}</p>
-            <p className="text-xs text-muted-foreground">Purchases</p>
-          </div>
-          <div className="text-center p-3 bg-muted/30 rounded-lg">
-            <p className="text-2xl font-bold text-green-500">£{todayAccounting.revenue}</p>
-            <p className="text-xs text-muted-foreground">Gross Revenue</p>
-          </div>
-          <div className="text-center p-3 bg-muted/30 rounded-lg">
-            <p className="text-2xl font-bold text-red-500">{todayAccounting.refunds}</p>
-            <p className="text-xs text-muted-foreground">Refunds</p>
-          </div>
-          <div className="text-center p-3 bg-muted/30 rounded-lg">
             <p className={`text-2xl font-bold ${todayAccounting.netRevenue >= 0 ? "text-green-500" : "text-red-500"}`}>
               £{todayAccounting.netRevenue}
             </p>
             <p className="text-xs text-muted-foreground">Net Revenue</p>
           </div>
           <div className="text-center p-3 bg-muted/30 rounded-lg">
-            <p className="text-2xl font-bold text-secondary">{todayAccounting.creditsSold}</p>
-            <p className="text-xs text-muted-foreground">Credits Used</p>
+            <p className={`text-2xl font-bold ${todayAccounting.refundRate <= 10 ? "text-green-500" : "text-amber-500"}`}>
+              {todayAccounting.refundRate}%
+            </p>
+            <p className="text-xs text-muted-foreground">Refund Rate</p>
           </div>
           <div className="text-center p-3 bg-muted/30 rounded-lg">
-            <p className="text-2xl font-bold text-secondary">£{todayAccounting.creditRevenue}</p>
-            <p className="text-xs text-muted-foreground">Credit Value</p>
+            <p className={`text-2xl font-bold ${todayAccounting.yesterdayNet >= 0 ? "text-foreground" : "text-red-500"}`}>
+              £{todayAccounting.yesterdayNet}
+            </p>
+            <p className="text-xs text-muted-foreground">Yesterday Net</p>
+          </div>
+          <div className="text-center p-3 bg-muted/30 rounded-lg">
+            <p className={`text-2xl font-bold ${todayAccounting.mtdRevenue >= 0 ? "text-green-500" : "text-red-500"}`}>
+              £{todayAccounting.mtdRevenue.toLocaleString()}
+            </p>
+            <p className="text-xs text-muted-foreground">MTD Revenue</p>
+          </div>
+          <div className="text-center p-3 bg-muted/30 rounded-lg">
+            <p className="text-2xl font-bold text-amber-500">£{todayAccounting.pendingDisputeValue}</p>
+            <p className="text-xs text-muted-foreground">At Risk (Disputes)</p>
+          </div>
+          <div className="text-center p-3 bg-muted/30 rounded-lg">
+            <p className="text-2xl font-bold text-secondary">{todayAccounting.outstandingCredits}</p>
+            <p className="text-xs text-muted-foreground">Outstanding Credits</p>
           </div>
         </div>
       </div>
