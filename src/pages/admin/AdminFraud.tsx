@@ -5,11 +5,10 @@ import {
   AlertTriangle,
   Shield,
   Ban,
-  ShoppingCart,
   RefreshCcw,
-  Eye,
   CheckCircle,
   XCircle,
+  Download,
 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -42,6 +41,10 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { useAdmin } from "@/contexts/AdminContext";
+import { usePagination } from "@/hooks/usePagination";
+import { PaginationControls } from "@/components/admin/PaginationControls";
+import { exportToCsv } from "@/lib/exportCsv";
 
 interface FraudFlag {
   id: string;
@@ -68,33 +71,38 @@ interface RiskyBusiness {
 }
 
 export default function AdminFraud() {
+  const { getDateFilter, dateRange } = useAdmin();
   const [flags, setFlags] = useState<FraudFlag[]>([]);
   const [riskyBusinesses, setRiskyBusinesses] = useState<RiskyBusiness[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedBusiness, setSelectedBusiness] = useState<RiskyBusiness | null>(null);
   const [actionDialog, setActionDialog] = useState<{ type: string; business: RiskyBusiness } | null>(null);
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [dateRange]);
 
   const fetchData = async () => {
     setLoading(true);
+    const { start, end } = getDateFilter();
     
-    // Fetch fraud flags
+    // Fetch fraud flags within date range
     const { data: flagsData, error: flagsError } = await supabase
       .from("fraud_flags")
       .select("*")
+      .gte("created_at", start.toISOString())
+      .lte("created_at", end.toISOString())
       .order("created_at", { ascending: false });
 
     if (!flagsError) setFlags(flagsData || []);
 
-    // Fetch businesses with risk scores
+    // Fetch businesses with risk scores (within date range)
     const { data: profilesData, error: profilesError } = await supabase
       .from("profiles")
       .select("id, user_id, business_name, contact_name, risk_score, leads_purchased, is_suspended")
+      .gte("created_at", start.toISOString())
+      .lte("created_at", end.toISOString())
       .order("risk_score", { ascending: false });
 
     if (!profilesError && profilesData) {
@@ -189,6 +197,37 @@ export default function AdminFraud() {
   const pendingFlags = flags.filter((f) => f.status === "pending");
   const highRiskBusinesses = riskyBusinesses.filter((b) => (b.risk_score || 0) >= 70);
 
+  const filteredBusinesses = riskyBusinesses.filter(
+    (b) =>
+      (b.business_name?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
+      (b.contact_name?.toLowerCase() || "").includes(searchQuery.toLowerCase())
+  );
+
+  const pagination = usePagination(filteredBusinesses);
+
+  const handleExportFlags = () => {
+    exportToCsv(flags, "fraud_flags", [
+      { key: "flag_type", label: "Type" },
+      { key: "description", label: "Description" },
+      { key: "status", label: "Status" },
+      { key: "created_at", label: "Date" },
+    ]);
+    toast.success("Export started");
+  };
+
+  const handleExportBusinesses = () => {
+    exportToCsv(filteredBusinesses, "risky_businesses", [
+      { key: "business_name", label: "Business Name" },
+      { key: "contact_name", label: "Contact Name" },
+      { key: "risk_score", label: "Risk Score" },
+      { key: "leads_purchased", label: "Leads Purchased" },
+      { key: "refund_count", label: "Refunds" },
+      { key: "dispute_count", label: "Disputes" },
+      { key: "is_suspended", label: "Suspended" },
+    ]);
+    toast.success("Export started");
+  };
+
   return (
     <AdminLayout title="Fraud & Risk">
       <div className="space-y-6">
@@ -225,7 +264,7 @@ export default function AdminFraud() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Total Flags (All Time)</CardDescription>
+              <CardDescription>Total Flags (Period)</CardDescription>
               <CardTitle className="text-2xl">{flags.length}</CardTitle>
             </CardHeader>
           </Card>
@@ -234,11 +273,19 @@ export default function AdminFraud() {
         {/* Pending Fraud Flags */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-amber-500" />
-              Pending Fraud Flags
-            </CardTitle>
-            <CardDescription>Review and resolve flagged activity</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-amber-500" />
+                  Pending Fraud Flags
+                </CardTitle>
+                <CardDescription>Review and resolve flagged activity</CardDescription>
+              </div>
+              <Button variant="outline" size="sm" onClick={handleExportFlags}>
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -299,11 +346,19 @@ export default function AdminFraud() {
         {/* Risky Businesses */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="w-5 h-5" />
-              Business Risk Overview
-            </CardTitle>
-            <CardDescription>Monitor and take action on high-risk accounts</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="w-5 h-5" />
+                  Business Risk Overview
+                </CardTitle>
+                <CardDescription>Monitor and take action on high-risk accounts</CardDescription>
+              </div>
+              <Button variant="outline" size="sm" onClick={handleExportBusinesses}>
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="relative mb-4">
@@ -311,7 +366,10 @@ export default function AdminFraud() {
               <Input
                 placeholder="Search businesses..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  pagination.resetPage();
+                }}
                 className="pl-9 max-w-md"
               />
             </div>
@@ -321,27 +379,21 @@ export default function AdminFraud() {
                 <Loader2 className="w-6 h-6 animate-spin mx-auto" />
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Business</TableHead>
-                    <TableHead>Risk Score</TableHead>
-                    <TableHead>Leads</TableHead>
-                    <TableHead>Refunds</TableHead>
-                    <TableHead>Disputes</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {riskyBusinesses
-                    .filter(
-                      (b) =>
-                        (b.business_name?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
-                        (b.contact_name?.toLowerCase() || "").includes(searchQuery.toLowerCase())
-                    )
-                    .slice(0, 20)
-                    .map((business) => {
+              <>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Business</TableHead>
+                      <TableHead>Risk Score</TableHead>
+                      <TableHead>Leads</TableHead>
+                      <TableHead>Refunds</TableHead>
+                      <TableHead>Disputes</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pagination.paginatedData.map((business) => {
                       const risk = getRiskLevel(business.risk_score || 0);
                       const refundRate = business.leads_purchased > 0 
                         ? ((business.refund_count / business.leads_purchased) * 100).toFixed(1)
@@ -413,8 +465,19 @@ export default function AdminFraud() {
                         </TableRow>
                       );
                     })}
-                </TableBody>
-              </Table>
+                  </TableBody>
+                </Table>
+                <PaginationControls
+                  currentPage={pagination.currentPage}
+                  totalPages={pagination.totalPages}
+                  totalItems={pagination.totalItems}
+                  pageSize={pagination.pageSize}
+                  onPageChange={pagination.goToPage}
+                  onPageSizeChange={pagination.changePageSize}
+                  hasNextPage={pagination.hasNextPage}
+                  hasPrevPage={pagination.hasPrevPage}
+                />
+              </>
             )}
           </CardContent>
         </Card>
