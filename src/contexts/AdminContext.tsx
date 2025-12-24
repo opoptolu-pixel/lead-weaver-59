@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 import { useAuth } from "./AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
-type DateRange = "today" | "7d" | "30d" | "custom";
+type DateRange = "today" | "yesterday" | "7d" | "30d" | "custom";
 
 interface AdminContextType {
   isAdmin: boolean;
@@ -72,37 +72,58 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   };
 
   const getDateFilter = () => {
+    // Use UTC dates to match Supabase timestamp storage
     const now = new Date();
-    const end = new Date(now);
-    end.setHours(23, 59, 59, 999);
+    
+    // Create UTC start/end dates
+    const createUTCDate = (date: Date, isEnd: boolean = false) => {
+      const d = new Date(Date.UTC(
+        date.getFullYear(),
+        date.getMonth(),
+        date.getDate(),
+        isEnd ? 23 : 0,
+        isEnd ? 59 : 0,
+        isEnd ? 59 : 0,
+        isEnd ? 999 : 0
+      ));
+      return d;
+    };
 
     let start: Date;
+    let end: Date;
 
     switch (dateRange) {
       case "today":
-        start = new Date(now);
-        start.setHours(0, 0, 0, 0);
+        start = createUTCDate(now);
+        end = createUTCDate(now, true);
+        break;
+      case "yesterday":
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        start = createUTCDate(yesterday);
+        end = createUTCDate(yesterday, true);
         break;
       case "7d":
-        start = new Date(now);
-        start.setDate(start.getDate() - 7);
-        start.setHours(0, 0, 0, 0);
+        const sevenDaysAgo = new Date(now);
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        start = createUTCDate(sevenDaysAgo);
+        end = createUTCDate(now, true);
         break;
       case "30d":
-        start = new Date(now);
-        start.setDate(start.getDate() - 30);
-        start.setHours(0, 0, 0, 0);
+        const thirtyDaysAgo = new Date(now);
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        start = createUTCDate(thirtyDaysAgo);
+        end = createUTCDate(now, true);
         break;
       case "custom":
-        start = customStartDate || new Date(now.setDate(now.getDate() - 30));
-        return {
-          start,
-          end: customEndDate || end,
-        };
+        start = customStartDate ? createUTCDate(customStartDate) : createUTCDate(new Date(now.setDate(now.getDate() - 30)));
+        end = customEndDate ? createUTCDate(customEndDate, true) : createUTCDate(new Date(), true);
+        return { start, end };
       default:
-        start = new Date(now);
-        start.setDate(start.getDate() - 7);
-        start.setHours(0, 0, 0, 0);
+        const defaultStart = new Date(now);
+        defaultStart.setDate(defaultStart.getDate() - 7);
+        start = createUTCDate(defaultStart);
+        end = createUTCDate(now, true);
     }
 
     return { start, end };
