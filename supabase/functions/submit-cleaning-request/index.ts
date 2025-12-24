@@ -414,6 +414,36 @@ serve(async (req) => {
       referenceId
     );
 
+    // Trigger SMS/WhatsApp confirmation for customer to confirm the lead
+    try {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+      
+      const confirmationResponse = await fetch(`${supabaseUrl}/functions/v1/customer-confirmation`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${supabaseAnonKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          leadId: data.id,
+          method: "whatsapp", // Default to WhatsApp
+          autoPublishHours: 24,
+        }),
+      });
+
+      const confirmResult = await confirmationResponse.json();
+      
+      if (confirmationResponse.ok) {
+        console.log("[SUBMIT-CLEANING] Confirmation message triggered:", { leadId: data.id, method: "whatsapp" });
+      } else {
+        console.error("[SUBMIT-CLEANING] Confirmation trigger failed:", confirmResult);
+      }
+    } catch (confirmError) {
+      console.error("[SUBMIT-CLEANING] Error triggering confirmation:", confirmError);
+      // Don't fail the request if confirmation trigger fails
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 
