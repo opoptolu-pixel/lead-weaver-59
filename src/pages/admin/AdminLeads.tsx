@@ -88,21 +88,26 @@ interface Lead {
   outcome_status: string | null;
   outcome_notes: string | null;
   lost_reason: string | null;
+  // New confirmation fields
+  confirmation_sent_at: string | null;
+  confirmation_response: string | null;
+  auto_publish_at: string | null;
+  confirmation_method: string | null;
 }
 
-// Kanban columns in FIXED order as specified
+// Kanban columns in FIXED order - NO "Approved" stage (auto-validated via form)
 const KANBAN_COLUMNS = [
   { 
     value: "new", 
     label: "New", 
     color: "bg-blue-500/20 text-blue-500",
-    description: "Incoming leads awaiting admin review"
+    description: "Incoming leads - click to send confirmation"
   },
   { 
-    value: "approved", 
-    label: "Approved", 
+    value: "pending_confirmation", 
+    label: "Pending Confirmation", 
     color: "bg-cyan-500/20 text-cyan-500",
-    description: "Reviewed and approved, ready to publish"
+    description: "Awaiting customer response via WhatsApp/SMS"
   },
   { 
     value: "published", 
@@ -136,13 +141,13 @@ const KANBAN_COLUMNS = [
   },
 ];
 
-// Minimum value required for approval/publishing
+// Minimum value required for publishing (form already validates this)
 const MIN_LEAD_VALUE = 100;
 
-// Valid status transitions
+// Valid status transitions - simplified flow without manual Approved step
 const VALID_TRANSITIONS: Record<string, string[]> = {
-  new: ["approved", "spam"],
-  approved: ["published", "spam"],
+  new: ["pending_confirmation", "published", "spam"], // Can send confirmation or publish directly
+  pending_confirmation: ["published", "spam"], // Awaiting response, can force publish or reject
   published: ["purchased", "expired", "spam"],
   purchased: ["refunded"],
   expired: ["spam"],
@@ -439,6 +444,66 @@ export default function AdminLeads() {
     window.open(`https://wa.me/${formattedPhone}?text=Hi ${lead.customer_name}, regarding your cleaning request...`, "_blank");
   };
 
+  // Send confirmation request to customer via WhatsApp/SMS
+  const handleSendConfirmation = async (lead: Lead, method: "whatsapp" | "sms" = "whatsapp") => {
+    if (lead.lead_status !== "new") {
+      toast.error("Can only send confirmation for new leads");
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("customer-confirmation", {
+        body: { 
+          leadId: lead.id, 
+          method,
+          autoPublishHours: 24, // Auto-publish after 24 hours if no response
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success(`Confirmation ${method} sent to ${lead.customer_phone}`, {
+        description: `Will auto-publish in 24 hours if no response`,
+      });
+      fetchLeads();
+    } catch (error: any) {
+      console.error("Error sending confirmation:", error);
+      toast.error(`Failed to send confirmation: ${error.message}`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Bulk send confirmations
+  const handleBulkSendConfirmation = async (method: "whatsapp" | "sms" = "whatsapp") => {
+    const newLeads = leads.filter(l => selectedLeadIds.has(l.id) && (l.lead_status === "new" || !l.lead_status));
+    
+    if (newLeads.length === 0) {
+      toast.error("No new leads selected for confirmation");
+      return;
+    }
+
+    setBulkActionLoading(true);
+    let successCount = 0;
+
+    for (const lead of newLeads) {
+      try {
+        await supabase.functions.invoke("customer-confirmation", {
+          body: { leadId: lead.id, method, autoPublishHours: 24 },
+        });
+        successCount++;
+      } catch (error) {
+        console.error(`Failed to send confirmation for lead ${lead.id}:`, error);
+      }
+    }
+
+    toast.success(`Sent ${successCount} confirmation messages`);
+    setSelectedLeadIds(new Set());
+    fetchLeads();
+    setBulkActionLoading(false);
+  };
+
   const getStatusBadge = (status: string) => {
     const statusConfig = KANBAN_COLUMNS.find((s) => s.value === status);
     return (
@@ -619,10 +684,10 @@ export default function AdminLeads() {
         </div>
 
         {/* Value Requirement Notice */}
-        <div className="flex items-center gap-2 mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
-          <Info className="w-4 h-4 text-amber-500 flex-shrink-0" />
-          <p className="text-sm text-amber-600">
-            Leads must have a value of <strong>£{MIN_LEAD_VALUE}+</strong> to be approved or published.
+        <div className="flex items-center gap-2 mb-4 p-3 bg-cyan-500/10 border border-cyan-500/30 rounded-lg">
+          <Info className="w-4 h-4 text-cyan-500 flex-shrink-0" />
+          <p className="text-sm text-cyan-600">
+            <strong>New flow:</strong> New leads receive a WhatsApp/SMS confirmation request. They auto-publish after 24h if no response, or immediately on positive confirmation.
           </p>
         </div>
 
@@ -632,15 +697,15 @@ export default function AdminLeads() {
             <span className="text-sm font-medium">
               {selectedLeadIds.size} lead(s) selected
             </span>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Button 
                 size="sm" 
                 variant="outline" 
-                onClick={() => handleBulkAction("approved")}
+                onClick={() => handleBulkSendConfirmation("whatsapp")}
                 disabled={bulkActionLoading}
               >
-                {bulkActionLoading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <CheckCircle className="w-4 h-4 mr-1" />}
-                Approve All
+                {bulkActionLoading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <MessageSquare className="w-4 h-4 mr-1" />}
+                Send Confirmation (WhatsApp)
               </Button>
               <Button 
                 size="sm" 
@@ -648,7 +713,7 @@ export default function AdminLeads() {
                 disabled={bulkActionLoading}
               >
                 {bulkActionLoading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Send className="w-4 h-4 mr-1" />}
-                Publish All
+                Publish Directly
               </Button>
               <Button 
                 size="sm" 
@@ -765,6 +830,13 @@ export default function AdminLeads() {
                             <Badge variant="outline" className="text-amber-500 border-amber-500/30 mt-2 text-xs">
                               <AlertTriangle className="w-3 h-3 mr-1" />
                               Possible Duplicate
+                            </Badge>
+                          )}
+
+                          {column.value === "pending_confirmation" && lead.auto_publish_at && (
+                            <Badge className="bg-cyan-500/20 text-cyan-500 mt-2 text-xs">
+                              <Clock className="w-3 h-3 mr-1" />
+                              Auto-publish: {format(new Date(lead.auto_publish_at), "d MMM HH:mm")}
                             </Badge>
                           )}
 
@@ -893,6 +965,12 @@ export default function AdminLeads() {
                                     Send WhatsApp
                                   </DropdownMenuItem>
                                   <DropdownMenuSeparator />
+                                  {lead.lead_status === "new" && (
+                                    <DropdownMenuItem onClick={() => handleSendConfirmation(lead, "whatsapp")}>
+                                      <MessageSquare className="w-4 h-4 mr-2 text-cyan-500" />
+                                      Send Confirmation (WhatsApp)
+                                    </DropdownMenuItem>
+                                  )}
                                   {getValidActions(lead).map(action => (
                                     <DropdownMenuItem
                                       key={action.status}
@@ -900,7 +978,7 @@ export default function AdminLeads() {
                                       disabled={action.disabled}
                                       className={action.disabled ? "opacity-50" : ""}
                                     >
-                                      {action.status === "approved" && <CheckCircle className="w-4 h-4 mr-2 text-cyan-500" />}
+                                      {action.status === "pending_confirmation" && <Clock className="w-4 h-4 mr-2 text-cyan-500" />}
                                       {action.status === "published" && <Send className="w-4 h-4 mr-2 text-secondary" />}
                                       {action.status === "expired" && <Clock className="w-4 h-4 mr-2 text-muted-foreground" />}
                                       {action.status === "refunded" && <RotateCcw className="w-4 h-4 mr-2 text-amber-500" />}
@@ -1075,6 +1153,16 @@ export default function AdminLeads() {
                     Available actions based on current status: {getStatusBadge(selectedLead.lead_status || "new")}
                   </p>
                   <DialogFooter className="flex-wrap gap-2 justify-start">
+                    {selectedLead.lead_status === "new" && (
+                      <Button 
+                        variant="outline"
+                        onClick={() => handleSendConfirmation(selectedLead, "whatsapp")}
+                        disabled={actionLoading}
+                      >
+                        <MessageSquare className="w-4 h-4 mr-2" />
+                        Send Confirmation (WhatsApp)
+                      </Button>
+                    )}
                     {getValidActions(selectedLead).map(action => (
                       <Tooltip key={action.status}>
                         <TooltipTrigger asChild>
@@ -1085,7 +1173,7 @@ export default function AdminLeads() {
                               disabled={actionLoading || action.disabled}
                               className={action.disabled ? "opacity-50" : ""}
                             >
-                              {action.status === "approved" && <CheckCircle className="w-4 h-4 mr-2" />}
+                              {action.status === "pending_confirmation" && <Clock className="w-4 h-4 mr-2" />}
                               {action.status === "published" && <Send className="w-4 h-4 mr-2" />}
                               {action.status === "expired" && <Clock className="w-4 h-4 mr-2" />}
                               {action.status === "refunded" && <RotateCcw className="w-4 h-4 mr-2" />}
