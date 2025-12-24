@@ -53,11 +53,11 @@ export const Footer = () => {
                 </div>
                 <span>hello@deepcleanuk.com</span>
               </a>
-              <a href="tel:08001234567" className="flex items-center gap-3 text-sm text-primary-foreground/70 hover:text-secondary transition-colors group">
+              <a href="tel:07757188197" className="flex items-center gap-3 text-sm text-primary-foreground/70 hover:text-secondary transition-colors group">
                 <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center transition-colors group-hover:bg-secondary">
                   <Phone className="w-5 h-5" />
                 </div>
-                <span>0800 123 4567</span>
+                <span>07757 188 197</span>
               </a>
               <div className="flex items-center gap-3 text-sm text-primary-foreground/70">
                 <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
