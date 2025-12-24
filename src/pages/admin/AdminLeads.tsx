@@ -446,8 +446,10 @@ export default function AdminLeads() {
 
   // Send confirmation request to customer via WhatsApp/SMS
   const handleSendConfirmation = async (lead: Lead, method: "whatsapp" | "sms" = "whatsapp") => {
-    if (lead.lead_status !== "new") {
-      toast.error("Can only send confirmation for new leads");
+    // Allow resending for pending_confirmation and confirmation_failed leads too
+    const allowedStatuses = ["pending_confirmation", "confirmation_failed"];
+    if (!allowedStatuses.includes(lead.lead_status || "")) {
+      toast.error("Can only send confirmation for pending or failed leads");
       return;
     }
 
@@ -470,6 +472,36 @@ export default function AdminLeads() {
     } catch (error: any) {
       console.error("Error sending confirmation:", error);
       toast.error(`Failed to send confirmation: ${error.message}`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Resend both WhatsApp and SMS confirmation for failed leads
+  const handleResendConfirmation = async (lead: Lead) => {
+    setActionLoading(true);
+    try {
+      // Send both in parallel
+      const [whatsappResult, smsResult] = await Promise.all([
+        supabase.functions.invoke("customer-confirmation", {
+          body: { leadId: lead.id, method: "whatsapp", autoPublishHours: 24 },
+        }),
+        supabase.functions.invoke("customer-confirmation", {
+          body: { leadId: lead.id, method: "sms", autoPublishHours: 24 },
+        }),
+      ]);
+
+      if (whatsappResult.error && smsResult.error) {
+        throw new Error("Both WhatsApp and SMS failed");
+      }
+
+      toast.success(`Confirmation resent to ${lead.customer_phone}`, {
+        description: `WhatsApp: ${whatsappResult.error ? "failed" : "sent"}, SMS: ${smsResult.error ? "failed" : "sent"}`,
+      });
+      fetchLeads();
+    } catch (error: any) {
+      console.error("Error resending confirmation:", error);
+      toast.error(`Failed to resend confirmation: ${error.message}`);
     } finally {
       setActionLoading(false);
     }
@@ -842,11 +874,38 @@ export default function AdminLeads() {
                             </Badge>
                           )}
 
+                          {column.value === "pending_confirmation" && lead.confirmation_sent_at && (
+                            <Badge className="bg-cyan-500/10 text-cyan-400 mt-2 text-xs">
+                              <Clock className="w-3 h-3 mr-1" />
+                              Sent: {format(new Date(lead.confirmation_sent_at), "d MMM HH:mm")}
+                            </Badge>
+                          )}
+
                           {column.value === "pending_confirmation" && lead.auto_publish_at && (
                             <Badge className="bg-cyan-500/20 text-cyan-500 mt-2 text-xs">
                               <Clock className="w-3 h-3 mr-1" />
                               Auto-publish: {format(new Date(lead.auto_publish_at), "d MMM HH:mm")}
                             </Badge>
+                          )}
+
+                          {column.value === "confirmation_failed" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="mt-2 w-full text-xs h-7"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleResendConfirmation(lead);
+                              }}
+                              disabled={actionLoading}
+                            >
+                              {actionLoading ? (
+                                <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                              ) : (
+                                <RotateCcw className="w-3 h-3 mr-1" />
+                              )}
+                              Resend Confirmation
+                            </Button>
                           )}
 
                           {column.value === "purchased" && (
