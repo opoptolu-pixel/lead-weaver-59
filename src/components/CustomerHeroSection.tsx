@@ -103,7 +103,7 @@ export const CustomerHeroSection = () => {
   };
 
   return (
-    <section className="relative min-h-[70vh] bg-hero-gradient flex items-center pt-24 pb-32">
+    <section className="relative min-h-[70vh] bg-hero-gradient flex items-center pt-24 pb-32 z-10">
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 right-10 w-72 h-72 bg-secondary/10 rounded-full blur-3xl" />
