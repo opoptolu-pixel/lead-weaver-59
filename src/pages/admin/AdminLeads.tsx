@@ -95,19 +95,19 @@ interface Lead {
   confirmation_method: string | null;
 }
 
-// Kanban columns in FIXED order - NO "Approved" stage (auto-validated via form)
+// Kanban columns in FIXED order - leads go straight to pending_confirmation
 const KANBAN_COLUMNS = [
-  { 
-    value: "new", 
-    label: "New", 
-    color: "bg-blue-500/20 text-blue-500",
-    description: "Incoming leads - click to send confirmation"
-  },
   { 
     value: "pending_confirmation", 
     label: "Pending Confirmation", 
     color: "bg-cyan-500/20 text-cyan-500",
     description: "Awaiting customer response via WhatsApp/SMS"
+  },
+  { 
+    value: "confirmation_failed", 
+    label: "Confirmation Failed", 
+    color: "bg-amber-500/20 text-amber-500",
+    description: "WhatsApp/SMS failed to send - needs manual review"
   },
   { 
     value: "published", 
@@ -144,10 +144,10 @@ const KANBAN_COLUMNS = [
 // Minimum value required for publishing (form already validates this)
 const MIN_LEAD_VALUE = 100;
 
-// Valid status transitions - simplified flow without manual Approved step
+// Valid status transitions - leads start at pending_confirmation
 const VALID_TRANSITIONS: Record<string, string[]> = {
-  new: ["pending_confirmation", "published", "spam"], // Can send confirmation or publish directly
-  pending_confirmation: ["published", "spam"], // Awaiting response, can force publish or reject
+  pending_confirmation: ["confirmation_failed", "published", "spam"], // Awaiting response, can mark failed or force publish
+  confirmation_failed: ["pending_confirmation", "published", "spam"], // Can retry confirmation or publish directly
   published: ["purchased", "expired", "spam"],
   purchased: ["refunded"],
   expired: ["spam"],
