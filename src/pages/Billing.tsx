@@ -92,7 +92,7 @@ export default function Billing() {
 
   const handleSignOut = async () => {
     await signOut();
-    navigate("/");
+    navigate("/for-cleaners");
     toast.success("Signed out successfully");
   };
 
