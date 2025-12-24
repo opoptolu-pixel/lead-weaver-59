@@ -8,6 +8,7 @@ import { format, parseISO, isAfter, isBefore, isEqual } from "date-fns";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Logo } from "@/components/Logo";
+import { Footer } from "@/components/Footer";
 import { useAutoScroll } from "@/hooks/useAutoScroll";
 import { LeadsSkeleton } from "@/components/skeletons/LeadsSkeleton";
 import { useRateLimit, RATE_LIMIT_PRESETS } from "@/hooks/useRateLimit";
@@ -901,6 +902,7 @@ export default function Leads() {
           </div>
         )}
       </main>
+      <Footer />
     </div>
   );
 }

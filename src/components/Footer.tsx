@@ -84,19 +84,19 @@ export const Footer = () => {
                 </Link>
               </li>
               <li>
-                <a href="#services" className="text-primary-foreground/70 hover:text-secondary transition-colors">
+                <Link to="/#services" className="text-primary-foreground/70 hover:text-secondary transition-colors">
                   Our Services
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#how-it-works" className="text-primary-foreground/70 hover:text-secondary transition-colors">
+                <Link to="/#how-it-works" className="text-primary-foreground/70 hover:text-secondary transition-colors">
                   How It Works
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#faq" className="text-primary-foreground/70 hover:text-secondary transition-colors">
+                <Link to="/#faq" className="text-primary-foreground/70 hover:text-secondary transition-colors">
                   FAQ
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
