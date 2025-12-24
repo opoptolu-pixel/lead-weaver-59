@@ -339,8 +339,8 @@ serve(async (req) => {
     // Determine value band for analytics
     const valueBand = getValueBand(value);
 
-    // Determine initial lead status - auto-flag edge cases for review
-    let leadStatus = "new";
+    // Determine initial lead status - leads go straight to pending_confirmation
+    let leadStatus = "pending_confirmation";
     let adminNotes = null;
     
     // SMART ENFORCEMENT: Flag leads that are borderline (under £110)
@@ -453,14 +453,30 @@ serve(async (req) => {
       const whatsappResult = await whatsappResponse.json();
       const smsResult = await smsResponse.json();
       
+      const whatsappOk = whatsappResponse.ok;
+      const smsOk = smsResponse.ok;
+      
       console.log("[SUBMIT-CLEANING] Confirmation messages triggered:", { 
         leadId: data.id, 
-        whatsapp: whatsappResponse.ok ? "sent" : whatsappResult.error,
-        sms: smsResponse.ok ? "sent" : smsResult.error,
+        whatsapp: whatsappOk ? "sent" : whatsappResult.error,
+        sms: smsOk ? "sent" : smsResult.error,
       });
+      
+      // If BOTH confirmations failed, update lead status to confirmation_failed
+      if (!whatsappOk && !smsOk) {
+        console.error("[SUBMIT-CLEANING] Both confirmations failed, marking lead as confirmation_failed");
+        await supabase
+          .from("leads")
+          .update({ lead_status: "confirmation_failed" })
+          .eq("id", data.id);
+      }
     } catch (confirmError) {
       console.error("[SUBMIT-CLEANING] Error triggering confirmations:", confirmError);
-      // Don't fail the request if confirmation trigger fails
+      // Mark as confirmation_failed if there's an error
+      await supabase
+        .from("leads")
+        .update({ lead_status: "confirmation_failed" })
+        .eq("id", data.id);
     }
 
     return new Response(
