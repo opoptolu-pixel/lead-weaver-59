@@ -4,6 +4,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { HelpCircle } from "lucide-react";
 
 const faqs = [
   {
@@ -34,32 +35,57 @@ const faqs = [
 
 export const CustomerFAQ = () => {
   return (
-    <section id="faq" className="py-20 bg-muted/30">
-      <div className="container mx-auto px-4">
-        {/* Section header */}
-        <div className="text-center mb-12">
-          <h2 className="font-heading text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Frequently Asked Questions
-          </h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Everything you need to know about our service.
-          </p>
-        </div>
+    <section id="faq" className="py-28 bg-background relative overflow-hidden">
+      {/* Background elements */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-1/2 left-0 w-[600px] h-[600px] -translate-y-1/2 -translate-x-1/2 bg-secondary/5 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 right-0 w-[400px] h-[400px] -translate-y-1/2 translate-x-1/2 bg-primary/5 rounded-full blur-3xl" />
+      </div>
 
-        {/* FAQ Accordion */}
-        <div className="max-w-3xl mx-auto">
-          <Accordion type="single" collapsible className="w-full">
-            {faqs.map((faq, index) => (
-              <AccordionItem key={index} value={`item-${index}`} className="border-b border-border">
-                <AccordionTrigger className="text-left font-medium text-foreground hover:text-secondary py-4">
-                  {faq.question}
-                </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground pb-4">
-                  {faq.answer}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
+      <div className="container mx-auto px-4 relative">
+        <div className="max-w-4xl mx-auto">
+          {/* Section header */}
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-secondary/10 mb-6">
+              <HelpCircle className="w-7 h-7 text-secondary" />
+            </div>
+            <h2 className="font-heading text-3xl md:text-5xl font-bold text-foreground mb-4 tracking-tight">
+              Frequently Asked Questions
+            </h2>
+            <p className="text-muted-foreground text-lg max-w-xl mx-auto">
+              Everything you need to know about our service
+            </p>
+          </div>
+
+          {/* FAQ Grid */}
+          <div className="bg-card rounded-3xl border border-border shadow-card overflow-hidden">
+            <Accordion type="single" collapsible className="w-full">
+              {faqs.map((faq, index) => (
+                <AccordionItem 
+                  key={index} 
+                  value={`item-${index}`} 
+                  className="border-b border-border last:border-b-0 px-8"
+                >
+                  <AccordionTrigger className="text-left font-heading font-semibold text-foreground hover:text-secondary py-6 text-base md:text-lg gap-4">
+                    {faq.question}
+                  </AccordionTrigger>
+                  <AccordionContent className="text-muted-foreground pb-6 text-base leading-relaxed">
+                    {faq.answer}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
+
+          {/* Bottom CTA */}
+          <div className="text-center mt-12">
+            <p className="text-muted-foreground">
+              Still have questions?{" "}
+              <a href="mailto:hello@deepcleanuk.com" className="text-secondary font-medium hover:underline">
+                Get in touch
+              </a>
+            </p>
+          </div>
         </div>
       </div>
     </section>
