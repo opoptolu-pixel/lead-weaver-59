@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Menu, X, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Logo } from "@/components/Logo";
 
@@ -9,6 +9,8 @@ export const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user } = useAuth();
+  const location = useLocation();
+  const isForCleanersPage = location.pathname === "/for-cleaners";
 
   useEffect(() => {
     const handleScroll = () => {
@@ -84,7 +86,7 @@ export const Header = () => {
                   Dashboard
                 </Button>
               </Link>
-            ) : (
+            ) : isForCleanersPage ? (
               <>
                 <Link to="/auth">
                   <Button 
@@ -103,7 +105,7 @@ export const Header = () => {
                   </Button>
                 </Link>
               </>
-            )}
+            ) : null}
           </div>
 
           {/* Mobile Menu Button */}
@@ -150,7 +152,7 @@ export const Header = () => {
                     Dashboard
                   </Button>
                 </Link>
-              ) : (
+              ) : isForCleanersPage ? (
                 <div className="flex flex-col gap-3 mt-4">
                   <Link to="/auth" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button variant="outline" size="lg" className="w-full">
@@ -163,7 +165,7 @@ export const Header = () => {
                     </Button>
                   </Link>
                 </div>
-              )}
+              ) : null}
             </nav>
           </div>
         )}
