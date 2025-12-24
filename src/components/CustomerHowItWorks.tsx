@@ -74,9 +74,9 @@ export const CustomerHowItWorks = () => {
                       Step {step.number}
                     </div>
                     
-                    {/* Icon container - Brand colors */}
-                    <div className="w-14 h-14 rounded-xl bg-secondary/10 border border-secondary/20 flex items-center justify-center mt-4 mb-5 transition-all duration-300 group-hover:bg-secondary group-hover:border-secondary">
-                      <Icon className="w-7 h-7 text-secondary transition-colors duration-300 group-hover:text-secondary-foreground" />
+                    {/* Icon container - Navy/Primary color from hero */}
+                    <div className="w-14 h-14 rounded-xl bg-primary flex items-center justify-center mt-4 mb-5 transition-transform duration-300 group-hover:scale-105 shadow-lg">
+                      <Icon className="w-7 h-7 text-primary-foreground" />
                     </div>
                     
                     {/* Content */}
@@ -102,8 +102,8 @@ export const CustomerHowItWorks = () => {
               <div key={index} className="flex gap-5">
                 {/* Left: Icon and line */}
                 <div className="flex flex-col items-center">
-                  <div className="w-14 h-14 rounded-xl bg-secondary/10 border border-secondary/20 flex items-center justify-center flex-shrink-0">
-                    <Icon className="w-7 h-7 text-secondary" />
+                  <div className="w-14 h-14 rounded-xl bg-primary flex items-center justify-center flex-shrink-0 shadow-lg">
+                    <Icon className="w-7 h-7 text-primary-foreground" />
                   </div>
                   {!isLast && (
                     <div className="w-0.5 h-full min-h-[40px] bg-secondary/30 my-2" />

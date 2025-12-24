@@ -123,7 +123,7 @@ export const CustomerServicesGrid = () => {
           </p>
         </div>
 
-        {/* Services grid - Premium card design with brand colors */}
+        {/* Services grid - Premium card design with navy icons */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 max-w-7xl mx-auto">
           {services.map((service, index) => {
             const Icon = service.icon;
@@ -138,9 +138,9 @@ export const CustomerServicesGrid = () => {
                   <div className="absolute inset-0 bg-gradient-to-br from-secondary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   
                   <div className="relative">
-                    {/* Icon - Brand styling */}
-                    <div className="w-12 h-12 rounded-xl bg-secondary/10 border border-secondary/20 flex items-center justify-center mb-5 transition-all duration-300 group-hover:bg-secondary group-hover:border-secondary group-hover:scale-110">
-                      <Icon className="w-6 h-6 text-secondary transition-colors duration-300 group-hover:text-secondary-foreground" />
+                    {/* Icon - Navy/Primary color from hero */}
+                    <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center mb-5 transition-transform duration-300 group-hover:scale-110 shadow-lg">
+                      <Icon className="w-6 h-6 text-primary-foreground" />
                     </div>
                     
                     {/* Content */}
