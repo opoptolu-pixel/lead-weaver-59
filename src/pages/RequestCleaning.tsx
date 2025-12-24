@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { 
   Sparkles, 
   Loader2,
@@ -63,6 +63,7 @@ const validatePostcode = (postcode: string): boolean => {
 
 export default function RequestCleaning() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [postcodeError, setPostcodeError] = useState("");
@@ -76,6 +77,30 @@ export default function RequestCleaning() {
     dateFrom: "",
     dateTo: "",
   });
+
+  // Pre-populate from URL params
+  useEffect(() => {
+    const typeParam = searchParams.get("type");
+    const postcodeParam = searchParams.get("postcode");
+    
+    if (typeParam || postcodeParam) {
+      const matchedType = cleaningTypes.find(t => t.id === typeParam);
+      
+      setFormData(prev => ({
+        ...prev,
+        jobType: matchedType?.label || prev.jobType,
+        jobValue: matchedType?.value || prev.jobValue,
+        postcode: postcodeParam?.toUpperCase() || prev.postcode,
+      }));
+      
+      // Skip to appropriate step
+      if (matchedType && postcodeParam && validatePostcode(postcodeParam)) {
+        setCurrentStep(3); // Go straight to contact details
+      } else if (matchedType) {
+        setCurrentStep(2); // Go to postcode step
+      }
+    }
+  }, [searchParams]);
 
   const progress = (currentStep / TOTAL_STEPS) * 100;
 

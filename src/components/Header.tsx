@@ -24,11 +24,11 @@ export const Header = () => {
   };
 
   const navLinks = [
-    { label: "Need Cleaning?", id: "/request-cleaning", type: "link" },
+    { label: "Get Quotes", id: "/request-cleaning", type: "link" },
+    { label: "Services", id: "services", type: "scroll" },
     { label: "How It Works", id: "how-it-works", type: "scroll" },
-    { label: "Browse Leads", id: "/leads", type: "link" },
-    { label: "Pricing", id: "pricing", type: "scroll" },
     { label: "FAQ", id: "faq", type: "scroll" },
+    { label: "For Cleaners", id: "/for-cleaners", type: "link" },
   ];
 
   return (
