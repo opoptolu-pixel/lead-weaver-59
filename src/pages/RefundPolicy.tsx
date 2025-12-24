@@ -110,8 +110,8 @@ const RefundPolicy = () => {
             </p>
             <div className="mt-4 p-4 bg-muted rounded-lg">
               <p className="text-foreground">Deep Clean UK Support</p>
-              <p className="text-muted-foreground">Email: support@deepcleanuk.com</p>
-              <p className="text-muted-foreground">Phone: 0800 XXX XXXX</p>
+              <p className="text-muted-foreground">Email: hello@deepcleanuk.com</p>
+              <p className="text-muted-foreground">Phone: 07757 188 197</p>
               <p className="text-muted-foreground mt-2">Support hours: Monday - Friday, 9am - 5pm GMT</p>
             </div>
           </section>

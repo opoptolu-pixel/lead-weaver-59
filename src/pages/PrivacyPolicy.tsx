@@ -123,8 +123,8 @@ const PrivacyPolicy = () => {
             </p>
             <div className="mt-4 p-4 bg-muted rounded-lg">
               <p className="text-foreground">Deep Clean UK</p>
-              <p className="text-muted-foreground">Email: privacy@deepcleanuk.com</p>
-              <p className="text-muted-foreground">Phone: 0800 XXX XXXX</p>
+              <p className="text-muted-foreground">Email: hello@deepcleanuk.com</p>
+              <p className="text-muted-foreground">Phone: 07757 188 197</p>
             </div>
           </section>
         </div>
