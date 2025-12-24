@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Table,
   TableBody,
@@ -20,8 +22,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Search, MoreHorizontal, Mail, Phone, CheckCircle, XCircle, Clock, MessageCircle } from "lucide-react";
+import { Search, MoreHorizontal, Mail, Phone, CheckCircle, XCircle, Clock, MessageCircle, MapPin, Building } from "lucide-react";
 import { format } from "date-fns";
 
 interface BusinessInquiry {
@@ -42,6 +52,9 @@ export default function AdminInquiries() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedInquiry, setSelectedInquiry] = useState<BusinessInquiry | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [adminNotes, setAdminNotes] = useState("");
 
   const { data: inquiries, isLoading } = useQuery({
     queryKey: ["business-inquiries"],
@@ -57,10 +70,17 @@ export default function AdminInquiries() {
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+    mutationFn: async ({ id, status, notes }: { id: string; status: string; notes?: string }) => {
+      const updateData: Record<string, any> = { 
+        status, 
+        reviewed_at: new Date().toISOString() 
+      };
+      if (notes !== undefined) {
+        updateData.admin_notes = notes;
+      }
       const { error } = await supabase
         .from("business_inquiries")
-        .update({ status, reviewed_at: new Date().toISOString() })
+        .update(updateData)
         .eq("id", id);
 
       if (error) throw error;
@@ -68,11 +88,27 @@ export default function AdminInquiries() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["business-inquiries"] });
       toast({ title: "Status updated successfully" });
+      setIsDetailOpen(false);
     },
     onError: () => {
       toast({ title: "Failed to update status", variant: "destructive" });
     },
   });
+
+  const handleViewDetails = (inquiry: BusinessInquiry) => {
+    setSelectedInquiry(inquiry);
+    setAdminNotes(inquiry.admin_notes || "");
+    setIsDetailOpen(true);
+  };
+
+  const handleSaveNotes = () => {
+    if (!selectedInquiry) return;
+    updateStatusMutation.mutate({ 
+      id: selectedInquiry.id, 
+      status: selectedInquiry.status,
+      notes: adminNotes 
+    });
+  };
 
   const filteredInquiries = inquiries?.filter(
     (inquiry) =>
@@ -188,7 +224,11 @@ export default function AdminInquiries() {
                   </TableRow>
                 ) : (
                   filteredInquiries?.map((inquiry) => (
-                    <TableRow key={inquiry.id}>
+                    <TableRow 
+                      key={inquiry.id} 
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => handleViewDetails(inquiry)}
+                    >
                       <TableCell>
                         <div className="font-medium">{inquiry.business_name}</div>
                         <div className="text-sm text-muted-foreground">{inquiry.email}</div>
@@ -215,7 +255,7 @@ export default function AdminInquiries() {
                       <TableCell className="text-muted-foreground text-sm">
                         {format(new Date(inquiry.created_at), "dd MMM yyyy")}
                       </TableCell>
-                      <TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon">
@@ -252,6 +292,106 @@ export default function AdminInquiries() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Inquiry Detail Dialog */}
+      <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Building className="w-5 h-5" />
+              {selectedInquiry?.business_name}
+            </DialogTitle>
+            <DialogDescription>
+              Business inquiry details
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedInquiry && (
+            <div className="space-y-4 py-4">
+              {/* Status */}
+              <div className="flex items-center gap-2">
+                {getStatusBadge(selectedInquiry.status)}
+                {selectedInquiry.whatsapp_optin && (
+                  <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/30">
+                    <MessageCircle className="w-3 h-3 mr-1" />
+                    WhatsApp Opt-in
+                  </Badge>
+                )}
+              </div>
+
+              {/* Details Grid */}
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-1">
+                  <Label className="text-muted-foreground text-xs">Contact Name</Label>
+                  <p className="font-medium">{selectedInquiry.contact_name}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-muted-foreground text-xs flex items-center gap-1">
+                    <Phone className="w-3 h-3" /> Phone
+                  </Label>
+                  <p className="font-medium">{selectedInquiry.phone}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-muted-foreground text-xs flex items-center gap-1">
+                    <Mail className="w-3 h-3" /> Email
+                  </Label>
+                  <p className="font-medium">{selectedInquiry.email}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-muted-foreground text-xs flex items-center gap-1">
+                    <MapPin className="w-3 h-3" /> Postcode
+                  </Label>
+                  <p className="font-medium">{selectedInquiry.postcode}</p>
+                </div>
+                <div className="space-y-1 md:col-span-2">
+                  <Label className="text-muted-foreground text-xs">Submitted</Label>
+                  <p className="font-medium">{format(new Date(selectedInquiry.created_at), "dd MMM yyyy 'at' HH:mm")}</p>
+                </div>
+              </div>
+
+              {/* Admin Notes */}
+              <div className="border-t pt-4 space-y-2">
+                <Label className="text-muted-foreground text-xs">Admin Notes</Label>
+                <Textarea
+                  value={adminNotes}
+                  onChange={(e) => setAdminNotes(e.target.value)}
+                  placeholder="Add internal notes about this inquiry..."
+                  rows={3}
+                />
+              </div>
+
+              {/* Actions */}
+              <DialogFooter className="flex-col sm:flex-row gap-2">
+                <Button variant="outline" onClick={handleSaveNotes}>
+                  Save Notes
+                </Button>
+                <div className="flex gap-2 flex-1 sm:justify-end">
+                  <Button 
+                    variant="outline"
+                    onClick={() => updateStatusMutation.mutate({ id: selectedInquiry.id, status: "contacted" })}
+                  >
+                    <Mail className="w-4 h-4 mr-2" />
+                    Contacted
+                  </Button>
+                  <Button 
+                    onClick={() => updateStatusMutation.mutate({ id: selectedInquiry.id, status: "approved" })}
+                  >
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Approve
+                  </Button>
+                  <Button 
+                    variant="destructive"
+                    onClick={() => updateStatusMutation.mutate({ id: selectedInquiry.id, status: "rejected" })}
+                  >
+                    <XCircle className="w-4 h-4 mr-2" />
+                    Reject
+                  </Button>
+                </div>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }

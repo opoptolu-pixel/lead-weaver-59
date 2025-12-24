@@ -251,7 +251,11 @@ export default function AdminBusinesses() {
               </thead>
               <tbody className="divide-y divide-border">
                 {filteredBusinesses.map((business) => (
-                  <tr key={business.id} className="hover:bg-muted/30">
+                  <tr 
+                    key={business.id} 
+                    className="hover:bg-muted/30 cursor-pointer"
+                    onClick={() => viewProfile(business)}
+                  >
                     <td className="p-4">
                       <div>
                         <p className="font-medium text-foreground">
@@ -271,7 +275,7 @@ export default function AdminBusinesses() {
                     <td className="p-4 text-muted-foreground">
                       {format(new Date(business.created_at), "d MMM yyyy")}
                     </td>
-                    <td className="p-4 text-right">
+                    <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon">

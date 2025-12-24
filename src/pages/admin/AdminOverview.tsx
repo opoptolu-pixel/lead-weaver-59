@@ -10,6 +10,7 @@ import {
   ShoppingCart,
   Layers,
   Target,
+  PoundSterling,
 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import KPICard from "@/components/admin/KPICard";
@@ -77,6 +78,7 @@ export default function AdminOverview() {
     fraudFlags: 0,
     avgJobValue: 0,
     conversionRate: 0,
+    totalJobRevenue: 0,
   });
   const [queues, setQueues] = useState({
     leadsAwaiting: 0,
@@ -153,27 +155,28 @@ export default function AdminOverview() {
 
       setPostcodeData(sortedPostcodes);
 
-      // Job Value Bands Analytics
+      // Job Value Bands Analytics - values are in pence
       const valueBands = {
-        "£100–£140": 0,
-        "£150–£200": 0,
+        "£100–£149": 0,
+        "£150–£199": 0,
         "£200+": 0,
       };
 
       leads.forEach((lead) => {
-        if (lead.value >= 200) {
+        const valueInPounds = lead.value / 100;
+        if (valueInPounds >= 200) {
           valueBands["£200+"]++;
-        } else if (lead.value >= 150) {
-          valueBands["£150–£200"]++;
+        } else if (valueInPounds >= 150) {
+          valueBands["£150–£199"]++;
         } else {
-          valueBands["£100–£140"]++;
+          valueBands["£100–£149"]++;
         }
       });
 
       setValueBandData([
-        { name: "£100–£140", value: valueBands["£100–£140"], color: VALUE_BAND_COLORS["£100–£140"] },
-        { name: "£150–£200", value: valueBands["£150–£200"], color: VALUE_BAND_COLORS["£150–£200"] },
-        { name: "£200+", value: valueBands["£200+"], color: VALUE_BAND_COLORS["£200+"] },
+        { name: "£100–£149", value: valueBands["£100–£149"], color: "hsl(var(--muted-foreground))" },
+        { name: "£150–£199", value: valueBands["£150–£199"], color: "hsl(var(--secondary))" },
+        { name: "£200+", value: valueBands["£200+"], color: "hsl(142, 76%, 36%)" },
       ]);
 
       // Job Type Analytics (purchase rate, refund rate)
@@ -244,6 +247,10 @@ export default function AdminOverview() {
     const totalValuePence = leads?.reduce((sum, l) => sum + (l.value || 0), 0) || 0;
     const avgJobValue = leadsReceived > 0 ? Math.round(totalValuePence / leadsReceived / 100) : 0;
     const conversionRate = leadsReceived > 0 ? Math.round((leadsPurchased / leadsReceived) * 100) : 0;
+    
+    // Total job revenue from purchased leads (in pounds)
+    const purchasedLeadsValuePence = leads?.filter(l => l.is_unlocked).reduce((sum, l) => sum + (l.value || 0), 0) || 0;
+    const totalJobRevenue = Math.round(purchasedLeadsValuePence / 100);
 
     setStats({
       leadsReceived,
@@ -256,6 +263,7 @@ export default function AdminOverview() {
       fraudFlags: pendingFraud,
       avgJobValue,
       conversionRate,
+      totalJobRevenue,
     });
 
     const leadsAwaiting = leads?.filter(l => l.lead_status === "new").length || 0;
@@ -277,45 +285,59 @@ export default function AdminOverview() {
           title="Leads Received"
           value={stats.leadsReceived}
           icon={<FileText className="w-5 h-5 text-secondary" />}
+          href="/admin/leads"
         />
         <KPICard
           title="Leads Purchased"
           value={stats.leadsPurchased}
           icon={<ShoppingCart className="w-5 h-5 text-secondary" />}
+          href="/admin/leads?status=purchased"
         />
         <KPICard
           title="Revenue"
           value={`£${stats.revenue.toLocaleString()}`}
           icon={<CreditCard className="w-5 h-5 text-secondary" />}
+          href="/admin/payments"
         />
         <KPICard
           title="Conversion Rate"
           value={`${stats.conversionRate}%`}
           icon={<Target className="w-5 h-5 text-secondary" />}
+          href="/admin/analytics"
         />
       </div>
 
       {/* KPI Cards - Row 2 (Phase 2 Metrics) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         <KPICard
           title="Avg Job Value"
           value={`£${stats.avgJobValue.toLocaleString()}`}
           icon={<Layers className="w-5 h-5 text-secondary" />}
+          href="/admin/leads"
+        />
+        <KPICard
+          title="Total Job Revenue"
+          value={`£${stats.totalJobRevenue.toLocaleString()}`}
+          icon={<PoundSterling className="w-5 h-5 text-secondary" />}
+          href="/admin/leads?status=purchased"
         />
         <KPICard
           title="Active Buyers"
           value={stats.activeBuyers}
           icon={<Users className="w-5 h-5 text-secondary" />}
+          href="/admin/businesses"
         />
         <KPICard
           title="Refunds Issued"
           value={stats.refundsIssued}
           icon={<RotateCcw className="w-5 h-5 text-muted-foreground" />}
+          href="/admin/leads?status=refunded"
         />
         <KPICard
           title="Disputes Open"
           value={stats.disputesOpen}
           icon={<AlertTriangle className="w-5 h-5 text-amber-500" />}
+          href="/admin/disputes"
         />
       </div>
 

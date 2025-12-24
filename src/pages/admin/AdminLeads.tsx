@@ -298,7 +298,11 @@ export default function AdminLeads() {
                 </thead>
                 <tbody className="divide-y divide-border">
                   {filteredLeads.map((lead) => (
-                    <tr key={lead.id} className="hover:bg-muted/30">
+                    <tr 
+                      key={lead.id} 
+                      className="hover:bg-muted/30 cursor-pointer"
+                      onClick={() => handleViewDetails(lead)}
+                    >
                       <td className="p-4">
                         <div>
                           <p className="font-medium text-foreground">{lead.customer_name}</p>
@@ -316,7 +320,7 @@ export default function AdminLeads() {
                       <td className="p-4 text-muted-foreground">
                         {format(new Date(lead.created_at), "d MMM yyyy")}
                       </td>
-                      <td className="p-4 text-right">
+                      <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon">
