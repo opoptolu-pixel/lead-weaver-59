@@ -9,6 +9,8 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Logo } from "@/components/Logo";
 import { useAutoScroll } from "@/hooks/useAutoScroll";
+import { LeadsSkeleton } from "@/components/skeletons/LeadsSkeleton";
+import { useRateLimit, RATE_LIMIT_PRESETS } from "@/hooks/useRateLimit";
 interface Lead {
   id: string;
   postcode: string;
@@ -462,9 +464,14 @@ export default function Leads() {
     };
   }, [loading, hasMore, loadingMore, page, fetchLeads]);
 
+  // Rate limiting for unlock actions
+  const { executeWithRateLimit: executeUnlock } = useRateLimit("unlock_lead", RATE_LIMIT_PRESETS.unlockLead);
+  const { executeWithRateLimit: executeUseCredit } = useRateLimit("use_credit", RATE_LIMIT_PRESETS.unlockLead);
+
   const handleUnlock = async (leadId: string) => {
     setUnlockingLeadId(leadId);
-    try {
+    
+    const result = await executeUnlock(async () => {
       const { data, error } = await supabase.functions.invoke("unlock-lead", {
         body: { leadId },
       });
@@ -472,16 +479,20 @@ export default function Leads() {
       if (error) throw error;
       if (data.error) throw new Error(data.error);
 
-      // Redirect to Stripe Checkout
-      if (data.url) {
-        window.location.href = data.url;
-      }
-    } catch (err) {
-      console.error("Error unlocking lead:", err);
-      toast.error(err instanceof Error ? err.message : "Failed to start checkout");
-    } finally {
-    setUnlockingLeadId(null);
+      return data;
+    });
+
+    if (!result.success) {
+      toast.error(result.error || "Failed to start checkout");
+      setUnlockingLeadId(null);
+      return;
     }
+
+    // Redirect to Stripe Checkout
+    if (result.data?.url) {
+      window.location.href = result.data.url;
+    }
+    setUnlockingLeadId(null);
   };
 
   const handleUseCredit = async (leadId: string) => {
@@ -492,11 +503,11 @@ export default function Leads() {
     }
 
     setUsingCreditLeadId(leadId);
-    try {
+    
+    const result = await executeUseCredit(async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        toast.error("Please sign in to use credits");
-        return;
+        throw new Error("Please sign in to use credits");
       }
 
       const { data, error } = await supabase.functions.invoke("use-credit", {
@@ -506,18 +517,22 @@ export default function Leads() {
       if (error) throw error;
       if (data.error) throw new Error(data.error);
 
-      // Remove the lead from the list
-      setLeads(prev => prev.filter(l => l.id !== leadId));
-      await refreshProfile();
-      
-      toast.success("Lead unlocked! Check your dashboard for details.");
-      navigate("/dashboard");
-    } catch (err) {
-      console.error("Error using credit:", err);
-      toast.error(err instanceof Error ? err.message : "Failed to unlock lead");
-    } finally {
+      return data;
+    });
+
+    if (!result.success) {
+      toast.error(result.error || "Failed to unlock lead");
       setUsingCreditLeadId(null);
+      return;
     }
+
+    // Remove the lead from the list
+    setLeads(prev => prev.filter(l => l.id !== leadId));
+    await refreshProfile();
+    
+    toast.success("Lead unlocked! Check your dashboard for details.");
+    setUsingCreditLeadId(null);
+    navigate("/dashboard");
   };
 
   const formatDate = (dateString: string) => {
@@ -570,6 +585,9 @@ export default function Leads() {
   };
 
   const userCredits = profile?.credits || 0;
+  if (loading && leads.length === 0) {
+    return <LeadsSkeleton />;
+  }
 
   return (
     <div className="min-h-screen bg-background">
