@@ -2,13 +2,13 @@ import { useState, useEffect } from "react";
 import {
   Search,
   Loader2,
-  User,
   FileText,
   CreditCard,
   Eye,
   LogIn,
   RefreshCcw,
   Filter,
+  Download,
 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,10 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { useAdmin } from "@/contexts/AdminContext";
+import { usePagination } from "@/hooks/usePagination";
+import { PaginationControls } from "@/components/admin/PaginationControls";
+import { exportToCsv } from "@/lib/exportCsv";
 
 interface ActivityLog {
   id: string;
@@ -45,6 +49,7 @@ const ACTION_ICONS: Record<string, any> = {
 };
 
 export default function AdminActivityLogs() {
+  const { getDateFilter, dateRange } = useAdmin();
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -53,15 +58,19 @@ export default function AdminActivityLogs() {
 
   useEffect(() => {
     fetchLogs();
-  }, []);
+  }, [dateRange]);
 
   const fetchLogs = async () => {
     setLoading(true);
+    const { start, end } = getDateFilter();
+    
     const { data, error } = await supabase
       .from("activity_logs")
       .select("*")
+      .gte("created_at", start.toISOString())
+      .lte("created_at", end.toISOString())
       .order("created_at", { ascending: false })
-      .limit(500);
+      .limit(1000);
 
     if (error) {
       console.error("Error fetching logs:", error);
@@ -98,6 +107,19 @@ export default function AdminActivityLogs() {
     return matchesSearch && matchesEntity && matchesAction;
   });
 
+  const pagination = usePagination(filteredLogs);
+
+  const handleExport = () => {
+    exportToCsv(filteredLogs, "activity_logs", [
+      { key: "created_at", label: "Timestamp" },
+      { key: "action", label: "Action" },
+      { key: "entity_type", label: "Entity Type" },
+      { key: "user_id", label: "User ID" },
+      { key: "details", label: "Details" },
+    ]);
+    toast.success("Export started");
+  };
+
   const uniqueEntities = [...new Set(logs.map((l) => l.entity_type))];
   const uniqueActions = [...new Set(logs.map((l) => l.action))];
 
@@ -109,10 +131,16 @@ export default function AdminActivityLogs() {
             <h1 className="text-3xl font-bold tracking-tight">Activity Logs</h1>
             <p className="text-muted-foreground">Full audit trail of system activity</p>
           </div>
-          <Button variant="outline" onClick={fetchLogs} disabled={loading}>
-            <RefreshCcw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleExport}>
+              <Download className="w-4 h-4 mr-2" />
+              Export CSV
+            </Button>
+            <Button variant="outline" onClick={fetchLogs} disabled={loading}>
+              <RefreshCcw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+          </div>
         </div>
 
         {/* Filters */}
@@ -122,11 +150,14 @@ export default function AdminActivityLogs() {
             <Input
               placeholder="Search logs..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                pagination.resetPage();
+              }}
               className="pl-9"
             />
           </div>
-          <Select value={entityFilter} onValueChange={setEntityFilter}>
+          <Select value={entityFilter} onValueChange={(v) => { setEntityFilter(v); pagination.resetPage(); }}>
             <SelectTrigger className="w-[150px]">
               <Filter className="w-4 h-4 mr-2" />
               <SelectValue placeholder="Entity" />
@@ -140,7 +171,7 @@ export default function AdminActivityLogs() {
               ))}
             </SelectContent>
           </Select>
-          <Select value={actionFilter} onValueChange={setActionFilter}>
+          <Select value={actionFilter} onValueChange={(v) => { setActionFilter(v); pagination.resetPage(); }}>
             <SelectTrigger className="w-[150px]">
               <Filter className="w-4 h-4 mr-2" />
               <SelectValue placeholder="Action" />
@@ -162,56 +193,64 @@ export default function AdminActivityLogs() {
             <div className="p-8 text-center">
               <Loader2 className="w-6 h-6 animate-spin mx-auto text-secondary" />
             </div>
-          ) : filteredLogs.length === 0 ? (
+          ) : pagination.paginatedData.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">
               No activity logs found
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="text-left p-4 font-medium text-muted-foreground">Timestamp</th>
-                    <th className="text-left p-4 font-medium text-muted-foreground">Action</th>
-                    <th className="text-left p-4 font-medium text-muted-foreground">Entity</th>
-                    <th className="text-left p-4 font-medium text-muted-foreground">User ID</th>
-                    <th className="text-left p-4 font-medium text-muted-foreground">Details</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {filteredLogs.map((log) => (
-                    <tr key={log.id} className="hover:bg-muted/30">
-                      <td className="p-4 text-sm text-muted-foreground whitespace-nowrap">
-                        {format(new Date(log.created_at), "d MMM yyyy HH:mm:ss")}
-                      </td>
-                      <td className="p-4">
-                        <Badge className={getActionBadge(log.action)}>
-                          <span className="flex items-center gap-1">
-                            {getActionIcon(log.action)}
-                            {log.action}
-                          </span>
-                        </Badge>
-                      </td>
-                      <td className="p-4">
-                        <Badge variant="outline">{log.entity_type}</Badge>
-                      </td>
-                      <td className="p-4 font-mono text-xs text-muted-foreground">
-                        {log.user_id.slice(0, 8)}...
-                      </td>
-                      <td className="p-4 text-sm text-muted-foreground max-w-xs truncate">
-                        {log.details ? JSON.stringify(log.details) : "-"}
-                      </td>
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="text-left p-4 font-medium text-muted-foreground">Timestamp</th>
+                      <th className="text-left p-4 font-medium text-muted-foreground">Action</th>
+                      <th className="text-left p-4 font-medium text-muted-foreground">Entity</th>
+                      <th className="text-left p-4 font-medium text-muted-foreground">User ID</th>
+                      <th className="text-left p-4 font-medium text-muted-foreground">Details</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {pagination.paginatedData.map((log) => (
+                      <tr key={log.id} className="hover:bg-muted/30">
+                        <td className="p-4 text-sm text-muted-foreground whitespace-nowrap">
+                          {format(new Date(log.created_at), "d MMM yyyy HH:mm:ss")}
+                        </td>
+                        <td className="p-4">
+                          <Badge className={getActionBadge(log.action)}>
+                            <span className="flex items-center gap-1">
+                              {getActionIcon(log.action)}
+                              {log.action}
+                            </span>
+                          </Badge>
+                        </td>
+                        <td className="p-4">
+                          <Badge variant="outline">{log.entity_type}</Badge>
+                        </td>
+                        <td className="p-4 font-mono text-xs text-muted-foreground">
+                          {log.user_id.slice(0, 8)}...
+                        </td>
+                        <td className="p-4 text-sm text-muted-foreground max-w-xs truncate">
+                          {log.details ? JSON.stringify(log.details) : "-"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <PaginationControls
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                totalItems={pagination.totalItems}
+                pageSize={pagination.pageSize}
+                onPageChange={pagination.goToPage}
+                onPageSizeChange={pagination.changePageSize}
+                hasNextPage={pagination.hasNextPage}
+                hasPrevPage={pagination.hasPrevPage}
+              />
+            </>
           )}
         </div>
-
-        <p className="text-sm text-muted-foreground text-center">
-          Showing {filteredLogs.length} of {logs.length} logs
-        </p>
       </div>
     </AdminLayout>
   );

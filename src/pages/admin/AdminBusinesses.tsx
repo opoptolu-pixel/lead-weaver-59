@@ -8,14 +8,10 @@ import {
   Eye,
   Loader2,
   Shield,
-  AlertTriangle,
-  Trash2,
-  Mail,
+  Download,
   Phone,
   MapPin,
   Calendar,
-  CreditCard,
-  FileText,
 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -35,7 +31,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Table,
@@ -49,6 +44,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { useAdmin } from "@/contexts/AdminContext";
+import { usePagination } from "@/hooks/usePagination";
+import { PaginationControls } from "@/components/admin/PaginationControls";
+import { exportToCsv } from "@/lib/exportCsv";
 
 interface Business {
   id: string;
@@ -75,6 +74,7 @@ interface PurchaseHistory {
 }
 
 export default function AdminBusinesses() {
+  const { getDateFilter, dateRange } = useAdmin();
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -85,12 +85,16 @@ export default function AdminBusinesses() {
 
   useEffect(() => {
     fetchBusinesses();
-  }, []);
+  }, [dateRange]);
 
   const fetchBusinesses = async () => {
+    const { start, end } = getDateFilter();
+    
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
+      .gte("created_at", start.toISOString())
+      .lte("created_at", end.toISOString())
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -162,6 +166,24 @@ export default function AdminBusinesses() {
       (b.postcode?.toLowerCase() || "").includes(searchQuery.toLowerCase())
   );
 
+  const pagination = usePagination(filteredBusinesses);
+
+  const handleExport = () => {
+    exportToCsv(filteredBusinesses, "businesses", [
+      { key: "business_name", label: "Business Name" },
+      { key: "contact_name", label: "Contact Name" },
+      { key: "phone", label: "Phone" },
+      { key: "postcode", label: "Postcode" },
+      { key: "is_verified", label: "Verified" },
+      { key: "leads_purchased", label: "Leads Purchased" },
+      { key: "credits", label: "Credits" },
+      { key: "risk_score", label: "Risk Score" },
+      { key: "is_suspended", label: "Suspended" },
+      { key: "created_at", label: "Created At" },
+    ]);
+    toast.success("Export started");
+  };
+
   const getVerificationBadge = (business: Business) => {
     if (business.is_suspended) {
       return <Badge variant="destructive">Suspended</Badge>;
@@ -187,41 +209,48 @@ export default function AdminBusinesses() {
 
   return (
     <AdminLayout title="Businesses">
-      {/* Search */}
+      {/* Search & Export */}
       <div className="flex gap-4 mb-6">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder="Search businesses..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              pagination.resetPage();
+            }}
             className="pl-9"
           />
         </div>
+        <Button variant="outline" onClick={handleExport}>
+          <Download className="w-4 h-4 mr-2" />
+          Export CSV
+        </Button>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-card rounded-xl border border-border p-4">
           <p className="text-sm text-muted-foreground">Total Businesses</p>
-          <p className="text-2xl font-bold text-foreground">{businesses.length}</p>
+          <p className="text-2xl font-bold text-foreground">{filteredBusinesses.length}</p>
         </div>
         <div className="bg-card rounded-xl border border-border p-4">
           <p className="text-sm text-muted-foreground">Verified</p>
           <p className="text-2xl font-bold text-green-500">
-            {businesses.filter((b) => b.is_verified).length}
+            {filteredBusinesses.filter((b) => b.is_verified).length}
           </p>
         </div>
         <div className="bg-card rounded-xl border border-border p-4">
           <p className="text-sm text-muted-foreground">Pending Verification</p>
           <p className="text-2xl font-bold text-amber-500">
-            {businesses.filter((b) => !b.is_verified && !b.is_suspended).length}
+            {filteredBusinesses.filter((b) => !b.is_verified && !b.is_suspended).length}
           </p>
         </div>
         <div className="bg-card rounded-xl border border-border p-4">
           <p className="text-sm text-muted-foreground">Suspended</p>
           <p className="text-2xl font-bold text-destructive">
-            {businesses.filter((b) => b.is_suspended).length}
+            {filteredBusinesses.filter((b) => b.is_suspended).length}
           </p>
         </div>
       </div>
@@ -232,92 +261,104 @@ export default function AdminBusinesses() {
           <div className="p-8 text-center">
             <Loader2 className="w-6 h-6 animate-spin mx-auto text-secondary" />
           </div>
-        ) : filteredBusinesses.length === 0 ? (
+        ) : pagination.paginatedData.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">
             No businesses found
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-muted/50">
-                <tr>
-                  <th className="text-left p-4 font-medium text-muted-foreground">Business</th>
-                  <th className="text-left p-4 font-medium text-muted-foreground">Status</th>
-                  <th className="text-left p-4 font-medium text-muted-foreground">Risk</th>
-                  <th className="text-left p-4 font-medium text-muted-foreground">Leads</th>
-                  <th className="text-left p-4 font-medium text-muted-foreground">Joined</th>
-                  <th className="text-right p-4 font-medium text-muted-foreground">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {filteredBusinesses.map((business) => (
-                  <tr 
-                    key={business.id} 
-                    className="hover:bg-muted/30 cursor-pointer"
-                    onClick={() => viewProfile(business)}
-                  >
-                    <td className="p-4">
-                      <div>
-                        <p className="font-medium text-foreground">
-                          {business.business_name || business.contact_name || "Unnamed"}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {business.postcode || "No postcode"} • {business.phone || "No phone"}
-                        </p>
-                      </div>
-                    </td>
-                    <td className="p-4">{getVerificationBadge(business)}</td>
-                    <td className="p-4">{getRiskBadge(business.risk_score || 0)}</td>
-                    <td className="p-4">
-                      <p className="text-foreground">{business.leads_purchased}</p>
-                      <p className="text-xs text-muted-foreground">£{business.leads_purchased * 20} spent</p>
-                    </td>
-                    <td className="p-4 text-muted-foreground">
-                      {format(new Date(business.created_at), "d MMM yyyy")}
-                    </td>
-                    <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreVertical className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => viewProfile(business)}>
-                            <Eye className="w-4 h-4 mr-2" />
-                            View Profile
-                          </DropdownMenuItem>
-                          {!business.is_verified && (
-                            <DropdownMenuItem onClick={() => verifyBusiness(business)}>
-                              <Shield className="w-4 h-4 mr-2 text-green-500" />
-                              Verify Business
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() => toggleSuspension(business)}
-                            className={business.is_suspended ? "text-green-500" : "text-destructive"}
-                          >
-                            {business.is_suspended ? (
-                              <>
-                                <CheckCircle className="w-4 h-4 mr-2" />
-                                Unsuspend
-                              </>
-                            ) : (
-                              <>
-                                <Ban className="w-4 h-4 mr-2" />
-                                Suspend
-                              </>
-                            )}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </td>
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-muted/50">
+                  <tr>
+                    <th className="text-left p-4 font-medium text-muted-foreground">Business</th>
+                    <th className="text-left p-4 font-medium text-muted-foreground">Status</th>
+                    <th className="text-left p-4 font-medium text-muted-foreground">Risk</th>
+                    <th className="text-left p-4 font-medium text-muted-foreground">Leads</th>
+                    <th className="text-left p-4 font-medium text-muted-foreground">Joined</th>
+                    <th className="text-right p-4 font-medium text-muted-foreground">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {pagination.paginatedData.map((business) => (
+                    <tr 
+                      key={business.id} 
+                      className="hover:bg-muted/30 cursor-pointer"
+                      onClick={() => viewProfile(business)}
+                    >
+                      <td className="p-4">
+                        <div>
+                          <p className="font-medium text-foreground">
+                            {business.business_name || business.contact_name || "Unnamed"}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {business.postcode || "No postcode"} • {business.phone || "No phone"}
+                          </p>
+                        </div>
+                      </td>
+                      <td className="p-4">{getVerificationBadge(business)}</td>
+                      <td className="p-4">{getRiskBadge(business.risk_score || 0)}</td>
+                      <td className="p-4">
+                        <p className="text-foreground">{business.leads_purchased}</p>
+                        <p className="text-xs text-muted-foreground">£{business.leads_purchased * 20} spent</p>
+                      </td>
+                      <td className="p-4 text-muted-foreground">
+                        {format(new Date(business.created_at), "d MMM yyyy")}
+                      </td>
+                      <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => viewProfile(business)}>
+                              <Eye className="w-4 h-4 mr-2" />
+                              View Profile
+                            </DropdownMenuItem>
+                            {!business.is_verified && (
+                              <DropdownMenuItem onClick={() => verifyBusiness(business)}>
+                                <Shield className="w-4 h-4 mr-2 text-green-500" />
+                                Verify Business
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => toggleSuspension(business)}
+                              className={business.is_suspended ? "text-green-500" : "text-destructive"}
+                            >
+                              {business.is_suspended ? (
+                                <>
+                                  <CheckCircle className="w-4 h-4 mr-2" />
+                                  Unsuspend
+                                </>
+                              ) : (
+                                <>
+                                  <Ban className="w-4 h-4 mr-2" />
+                                  Suspend
+                                </>
+                              )}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <PaginationControls
+              currentPage={pagination.currentPage}
+              totalPages={pagination.totalPages}
+              totalItems={pagination.totalItems}
+              pageSize={pagination.pageSize}
+              onPageChange={pagination.goToPage}
+              onPageSizeChange={pagination.changePageSize}
+              hasNextPage={pagination.hasNextPage}
+              hasPrevPage={pagination.hasPrevPage}
+            />
+          </>
         )}
       </div>
 
@@ -448,23 +489,17 @@ export default function AdminBusinesses() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Lead ID</TableHead>
                         <TableHead>Job Type</TableHead>
                         <TableHead>Postcode</TableHead>
-                        <TableHead>Amount</TableHead>
                         <TableHead>Date</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {purchaseHistory.map((purchase) => (
                         <TableRow key={purchase.id}>
-                          <TableCell className="font-mono text-xs">
-                            {purchase.id.slice(0, 8)}...
-                          </TableCell>
                           <TableCell>{purchase.job_type}</TableCell>
                           <TableCell>{purchase.postcode}</TableCell>
-                          <TableCell>£20</TableCell>
-                          <TableCell>
+                          <TableCell className="text-muted-foreground">
                             {purchase.unlocked_at 
                               ? format(new Date(purchase.unlocked_at), "d MMM yyyy HH:mm")
                               : "-"}
