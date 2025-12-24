@@ -25,7 +25,7 @@ const benefits = [
 
 export const TrustSection = () => {
   return (
-    <section className="py-20 bg-background border-y border-border">
+    <section className="relative py-20 bg-background border-b border-border z-0">
       <div className="container mx-auto px-4">
         {/* Section header */}
         <div className="text-center mb-14">
