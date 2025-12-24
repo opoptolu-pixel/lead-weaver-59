@@ -132,7 +132,7 @@ export const CustomerHeroSection = () => {
           </p>
 
           {/* Search form - Type + Postcode */}
-          <form onSubmit={handleSearch} className="animate-slide-up stagger-3">
+          <form onSubmit={handleSearch} className="animate-slide-up stagger-3 relative z-20">
             <div className="flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto bg-background p-2 rounded-2xl shadow-2xl">
               {/* Cleaning Type Dropdown */}
               <div className="relative flex-1" ref={typeDropdownRef}>
@@ -252,6 +252,15 @@ export const CustomerHeroSection = () => {
         </div>
       </div>
 
+      {/* Bottom wave - z-index lower than form dropdown */}
+      <div className="absolute bottom-0 left-0 right-0 -mb-px pointer-events-none z-0">
+        <svg viewBox="0 0 1440 80" fill="none" className="w-full h-auto block">
+          <path
+            d="M0 80L60 70C120 60 240 40 360 30C480 20 600 20 720 25C840 30 960 40 1080 45C1200 50 1320 50 1380 50L1440 50V80H1380C1320 80 1200 80 1080 80C960 80 840 80 720 80C600 80 480 80 360 80C240 80 120 80 60 80H0Z"
+            fill="hsl(var(--background))"
+          />
+        </svg>
+      </div>
     </section>
   );
 };
