@@ -39,7 +39,7 @@ export const Header = () => {
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled
-          ? "bg-background/95 backdrop-blur-md shadow-card border-b border-border"
+          ? "bg-primary/95 backdrop-blur-md shadow-card border-b border-primary/20"
           : "bg-transparent"
       }`}
     >
@@ -55,9 +55,7 @@ export const Header = () => {
                 <Link
                   key={link.id}
                   to={link.id}
-                  className={`text-sm font-medium transition-colors hover:text-secondary ${
-                    isScrolled ? "text-foreground" : "text-primary-foreground/90"
-                  }`}
+                  className="text-sm font-medium transition-colors hover:text-secondary text-primary-foreground/90"
                 >
                   {link.label}
                 </Link>
@@ -65,9 +63,7 @@ export const Header = () => {
                 <button
                   key={link.id}
                   onClick={() => scrollToSection(link.id)}
-                  className={`text-sm font-medium transition-colors hover:text-secondary ${
-                    isScrolled ? "text-foreground" : "text-primary-foreground/90"
-                  }`}
+                  className="text-sm font-medium transition-colors hover:text-secondary text-primary-foreground/90"
                 >
                   {link.label}
                 </button>
@@ -116,16 +112,16 @@ export const Header = () => {
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
             {isMobileMenuOpen ? (
-              <X className={`w-6 h-6 ${isScrolled ? "text-foreground" : "text-primary-foreground"}`} />
+              <X className="w-6 h-6 text-primary-foreground" />
             ) : (
-              <Menu className={`w-6 h-6 ${isScrolled ? "text-foreground" : "text-primary-foreground"}`} />
+              <Menu className="w-6 h-6 text-primary-foreground" />
             )}
           </button>
         </div>
 
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
-          <div className="md:hidden bg-background border-t border-border py-6 px-4 animate-fade-in">
+          <div className="md:hidden bg-primary border-t border-primary/20 py-6 px-4 animate-fade-in">
             <nav className="flex flex-col gap-4">
               {navLinks.map((link) => (
                 link.type === "link" ? (
@@ -133,7 +129,7 @@ export const Header = () => {
                     key={link.id}
                     to={link.id}
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="text-foreground text-base font-medium py-2 text-left hover:text-secondary transition-colors"
+                    className="text-primary-foreground text-base font-medium py-2 text-left hover:text-secondary transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -141,7 +137,7 @@ export const Header = () => {
                   <button
                     key={link.id}
                     onClick={() => scrollToSection(link.id)}
-                    className="text-foreground text-base font-medium py-2 text-left hover:text-secondary transition-colors"
+                    className="text-primary-foreground text-base font-medium py-2 text-left hover:text-secondary transition-colors"
                   >
                     {link.label}
                   </button>
