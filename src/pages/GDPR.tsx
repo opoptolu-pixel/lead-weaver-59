@@ -31,7 +31,8 @@ const GDPR = () => {
             <div className="mt-4 p-4 bg-muted rounded-lg">
               <p className="text-foreground font-medium">Data Controller Contact:</p>
               <p className="text-muted-foreground">Deep Clean UK</p>
-              <p className="text-muted-foreground">Email: dpo@deepcleanuk.com</p>
+              <p className="text-muted-foreground">Email: hello@deepcleanuk.com</p>
+              <p className="text-muted-foreground">Phone: 07757 188 197</p>
             </div>
           </section>
 
@@ -145,9 +146,9 @@ const GDPR = () => {
               To exercise any of your rights, please contact us using one of the following methods:
             </p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Email our Data Protection Officer: dpo@deepcleanuk.com</li>
+              <li>Email us: hello@deepcleanuk.com</li>
+              <li>Call us: 07757 188 197</li>
               <li>Use the data request form in your account settings</li>
-              <li>Write to us at our registered address</li>
             </ul>
             <p className="text-muted-foreground leading-relaxed mt-4">
               We will respond to your request within <strong>30 days</strong>. In complex cases, we may extend this by a further 60 days, in which case we will inform you of the extension and reasons.
@@ -245,9 +246,10 @@ const GDPR = () => {
               For any GDPR-related queries, please contact our Data Protection Officer:
             </p>
             <div className="mt-4 p-4 bg-muted rounded-lg">
-              <p className="text-foreground font-medium">Data Protection Officer</p>
+              <p className="text-foreground font-medium">Data Protection Contact</p>
               <p className="text-muted-foreground">Deep Clean UK</p>
-              <p className="text-muted-foreground">Email: dpo@deepcleanuk.com</p>
+              <p className="text-muted-foreground">Email: hello@deepcleanuk.com</p>
+              <p className="text-muted-foreground">Phone: 07757 188 197</p>
               <p className="text-muted-foreground">Response time: Within 5 business days</p>
             </div>
           </section>
