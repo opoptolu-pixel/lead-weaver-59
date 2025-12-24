@@ -1,9 +1,15 @@
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { SEOHead } from "@/components/SEOHead";
 
 const GDPR = () => {
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead
+        title="GDPR Compliance"
+        description="Learn about Deep Clean UK's GDPR compliance, your data rights, and how we protect your personal information in accordance with UK data protection law."
+        canonical="https://deepcleanuk.com/gdpr"
+      />
       <Header />
       <main className="container mx-auto px-4 py-16 max-w-4xl">
         <h1 className="text-4xl font-bold text-foreground mb-8">GDPR Compliance</h1>
