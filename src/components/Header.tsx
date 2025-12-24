@@ -71,9 +71,9 @@ export const Header = () => {
             ))}
           </nav>
 
-          {/* CTA Button */}
+          {/* CTA Button - Only show dashboard for logged in users */}
           <div className="hidden md:flex items-center gap-3">
-            {user ? (
+            {user && (
               <Link to="/dashboard">
                 <Button 
                   variant={isScrolled ? "cta" : "hero"} 
@@ -84,25 +84,6 @@ export const Header = () => {
                   Dashboard
                 </Button>
               </Link>
-            ) : (
-              <>
-                <Link to="/auth">
-                  <Button 
-                    variant={isScrolled ? "outline" : "outlineHero"} 
-                    size="default"
-                  >
-                    Sign In
-                  </Button>
-                </Link>
-                <Link to="/auth?mode=signup">
-                  <Button 
-                    variant={isScrolled ? "cta" : "hero"} 
-                    size="default"
-                  >
-                    Join Now
-                  </Button>
-                </Link>
-              </>
             )}
           </div>
 
@@ -143,30 +124,13 @@ export const Header = () => {
                   </button>
                 )
               ))}
-              {user ? (
+              {user && (
                 <Link to="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
                   <Button variant="cta" size="lg" className="w-full mt-4 gap-2">
                     <User className="w-4 h-4" />
                     Dashboard
                   </Button>
                 </Link>
-              ) : (
-                <>
-                  <Link to="/auth" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="outline" size="lg" className="w-full mt-4">
-                      Sign In
-                    </Button>
-                  </Link>
-                  <Link to="/auth?mode=signup" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button 
-                      variant="cta" 
-                      size="lg" 
-                      className="w-full mt-2"
-                    >
-                      Join Now
-                    </Button>
-                  </Link>
-                </>
               )}
             </nav>
           </div>

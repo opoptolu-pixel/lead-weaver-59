@@ -6,18 +6,22 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
-// Cleaning types for customers
+// Cleaning types matching request cleaning page
 const cleaningTypes = [
-  { id: "carpet-cleaning", label: "Carpet Cleaning", shortLabel: "Carpet" },
-  { id: "sofa-cleaning", label: "Sofa & Upholstery Cleaning", shortLabel: "Sofa" },
-  { id: "deep-clean", label: "Deep Clean", shortLabel: "Deep Clean" },
-  { id: "end-of-tenancy", label: "End of Tenancy Clean", shortLabel: "End of Tenancy" },
-  { id: "move-in-out", label: "Move-In / Move-Out Clean", shortLabel: "Move-In/Out" },
-  { id: "mattress-cleaning", label: "Mattress Cleaning", shortLabel: "Mattress" },
-  { id: "one-off-clean", label: "One-Off Deep Clean", shortLabel: "One-Off" },
-  { id: "post-construction", label: "Post-Construction Clean", shortLabel: "Post-Construction" },
-  { id: "airbnb-refresh", label: "Airbnb / Short-Let Refresh", shortLabel: "Airbnb" },
-  { id: "office-cleaning", label: "Office & Commercial Clean", shortLabel: "Office" },
+  { id: "carpet-2-3-rooms", label: "Carpet Cleaning (2-3 Rooms)" },
+  { id: "sofa-carpet", label: "Sofa + Carpet Cleaning" },
+  { id: "sofa-mattress", label: "Sofa + Mattress Cleaning" },
+  { id: "carpet-mattress", label: "Carpet + Mattress Cleaning" },
+  { id: "3-rooms-deep-clean", label: "Deep Clean (3+ Rooms)" },
+  { id: "end-of-tenancy", label: "End of Tenancy Clean" },
+  { id: "airbnb-refresh", label: "Airbnb / Short-Let Refresh" },
+  { id: "move-in-out", label: "Move-In / Move-Out Clean" },
+  { id: "post-tenancy-upholstery", label: "Post-Tenancy Carpet & Upholstery" },
+  { id: "one-off-deep", label: "One-Off Deep Clean" },
+  { id: "office-carpet-upholstery", label: "Office Carpet + Upholstery Clean" },
+  { id: "post-construction", label: "Post-Construction Deep Clean" },
+  { id: "large-window-interior", label: "Large Property Window + Interior" },
+  { id: "multi-room-upholstery", label: "Multi-Room + Upholstery Deep Clean" },
 ];
 
 interface UKLocation {
@@ -178,11 +182,11 @@ export const CustomerHeroSection = () => {
                 <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10" />
                 <Input
                   type="text"
-                  placeholder="e.g. SW1A 1AA"
+                  placeholder="Enter your postcode"
                   value={postcode}
                   onChange={(e) => setPostcode(e.target.value.toUpperCase())}
                   onFocus={() => setShowPostcodeSuggestions(true)}
-                  className="pl-12 h-14 text-base bg-transparent border-2 border-transparent rounded-xl focus:border-secondary uppercase tracking-wide"
+                  className="pl-12 pr-4 h-14 text-base bg-transparent border-2 border-transparent rounded-xl focus:border-secondary uppercase tracking-wide w-full"
                 />
 
                 {/* Postcode suggestions */}
