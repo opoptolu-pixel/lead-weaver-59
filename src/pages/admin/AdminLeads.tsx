@@ -118,6 +118,29 @@ export default function AdminLeads() {
     fetchLeads();
   }, [statusFilter, dateRange]);
 
+  // Real-time subscription for live updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-leads-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'leads' },
+        (payload) => {
+          console.log('Leads updated in realtime:', payload);
+          fetchLeads();
+          toast.info('Lead data updated', { 
+            description: `${payload.eventType === 'INSERT' ? 'New lead received' : payload.eventType === 'UPDATE' ? 'Lead updated' : 'Lead removed'}`,
+            duration: 3000 
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [statusFilter, dateRange]);
+
   const fetchLeads = async () => {
     const { start, end } = getDateFilter();
     
