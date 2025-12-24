@@ -42,11 +42,11 @@ export const Footer = () => {
             <div className="mb-6">
               <Logo size="md" linkTo="/" />
             </div>
-            <p className="text-primary-foreground/70 text-sm mb-8 max-w-sm leading-relaxed">
+            <p className="text-primary-foreground/70 text-sm mb-6 max-w-sm leading-relaxed">
               Connecting professional cleaners with homeowners across the UK. 
               Get free quotes from verified local cleaning partners.
             </p>
-            <div className="space-y-3">
+            <div className="space-y-3 mb-6">
               <a href="mailto:hello@deepcleanuk.com" className="flex items-center gap-3 text-sm text-primary-foreground/70 hover:text-secondary transition-colors group">
                 <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center transition-colors group-hover:bg-secondary">
                   <Mail className="w-5 h-5" />
@@ -63,8 +63,12 @@ export const Footer = () => {
                 <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
                   <MapPin className="w-5 h-5" />
                 </div>
-                <span>Manchester, UK</span>
+                <span>128 City Road, London, EC1V 2NX</span>
               </div>
+            </div>
+            <div className="text-xs text-primary-foreground/50 space-y-1">
+              <p>Orbit Shade Ltd · Company No. 15337705</p>
+              <p>Registered in England and Wales</p>
             </div>
           </div>
 
@@ -129,9 +133,14 @@ export const Footer = () => {
           {/* Legal */}
           <div>
             <h4 className="font-heading font-bold text-sm uppercase tracking-wider mb-6 text-primary-foreground">
-              Legal
+              Legal & Support
             </h4>
             <ul className="space-y-3 text-sm">
+              <li>
+                <Link to="/contact" className="text-primary-foreground/70 hover:text-secondary transition-colors">
+                  Contact Us
+                </Link>
+              </li>
               <li>
                 <Link to="/privacy-policy" className="text-primary-foreground/70 hover:text-secondary transition-colors">
                   Privacy Policy

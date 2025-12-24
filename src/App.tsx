@@ -27,6 +27,7 @@ import TermsOfUse from "./pages/TermsOfUse";
 import RequestCleaning from "./pages/RequestCleaning";
 import RequestCleaningThankYou from "./pages/RequestCleaningThankYou";
 import ForCleaners from "./pages/ForCleaners";
+import Contact from "./pages/Contact";
 import AdminOverview from "./pages/admin/AdminOverview";
 import AdminLeads from "./pages/admin/AdminLeads";
 import AdminBusinesses from "./pages/admin/AdminBusinesses";
@@ -75,6 +76,7 @@ const App = () => (
                 <Route path="/refund-policy" element={<RefundPolicy />} />
                 <Route path="/gdpr" element={<GDPR />} />
                 <Route path="/terms-of-use" element={<TermsOfUse />} />
+                <Route path="/contact" element={<Contact />} />
                 {/* Admin Routes */}
                 <Route path="/admin" element={<AdminOverview />} />
                 <Route path="/admin/inquiries" element={<AdminInquiries />} />
