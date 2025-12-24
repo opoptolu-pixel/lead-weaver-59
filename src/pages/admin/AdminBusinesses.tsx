@@ -103,6 +103,29 @@ export default function AdminBusinesses() {
     fetchBusinesses();
   }, [dateRange]);
 
+  // Real-time subscription for live updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-businesses-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles' },
+        (payload) => {
+          console.log('Profiles updated in realtime:', payload);
+          fetchBusinesses();
+          toast.info('Business data updated', { 
+            description: `${payload.eventType === 'INSERT' ? 'New business registered' : payload.eventType === 'UPDATE' ? 'Business profile updated' : 'Profile removed'}`,
+            duration: 3000 
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [dateRange]);
+
   const fetchBusinesses = async () => {
     const { start, end } = getDateFilter();
     

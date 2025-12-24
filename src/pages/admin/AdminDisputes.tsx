@@ -118,6 +118,29 @@ export default function AdminDisputes() {
     fetchDisputes();
   }, [dateRange]);
 
+  // Real-time subscription for live updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-disputes-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'disputes' },
+        (payload) => {
+          console.log('Disputes updated in realtime:', payload);
+          fetchDisputes();
+          toast.info('Dispute data updated', { 
+            description: `${payload.eventType === 'INSERT' ? 'New dispute opened' : payload.eventType === 'UPDATE' ? 'Dispute status changed' : 'Dispute removed'}`,
+            duration: 3000 
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [dateRange]);
+
   const fetchDisputes = async () => {
     setLoading(true);
     const { start, end } = getDateFilter();

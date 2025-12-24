@@ -120,18 +120,26 @@ export default function AdminOverview() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'leads' },
-        () => {
+        (payload) => {
           console.log('Leads updated - refreshing stats');
           fetchStats();
           fetchChartData();
+          toast.info('Dashboard updated', { 
+            description: payload.eventType === 'INSERT' ? 'New lead received' : 'Lead data changed',
+            duration: 3000 
+          });
         }
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'disputes' },
-        () => {
+        (payload) => {
           console.log('Disputes updated - refreshing stats');
           fetchStats();
+          toast.info('Dashboard updated', { 
+            description: payload.eventType === 'INSERT' ? 'New dispute opened' : 'Dispute status changed',
+            duration: 3000 
+          });
         }
       )
       .on(
@@ -140,6 +148,7 @@ export default function AdminOverview() {
         () => {
           console.log('Fraud flags updated - refreshing stats');
           fetchStats();
+          toast.info('Dashboard updated', { description: 'Fraud detection updated', duration: 3000 });
         }
       )
       .on(
@@ -148,6 +157,7 @@ export default function AdminOverview() {
         () => {
           console.log('Verifications updated - refreshing stats');
           fetchStats();
+          toast.info('Dashboard updated', { description: 'Verification queue updated', duration: 3000 });
         }
       )
       .on(
