@@ -13,7 +13,11 @@ import {
   RotateCcw,
   Trash2,
   Send,
+  Download,
 } from "lucide-react";
+import { usePagination } from "@/hooks/usePagination";
+import { PaginationControls } from "@/components/admin/PaginationControls";
+import { exportToCsv } from "@/lib/exportCsv";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -224,6 +228,22 @@ export default function AdminLeads() {
       lead.customer_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const pagination = usePagination(filteredLeads);
+
+  const handleExportCsv = () => {
+    exportToCsv(filteredLeads, "leads", [
+      { key: "customer_name", label: "Customer Name" },
+      { key: "customer_email", label: "Email" },
+      { key: "customer_phone", label: "Phone" },
+      { key: "postcode", label: "Postcode" },
+      { key: "job_type", label: "Job Type" },
+      { key: "display_value", label: "Value" },
+      { key: "source", label: "Source" },
+      { key: "lead_status", label: "Status" },
+      { key: "created_at", label: "Created" },
+    ]);
+  };
+
   return (
     <AdminLayout title="Lead Pipeline">
       {/* Filters */}
@@ -269,6 +289,11 @@ export default function AdminLeads() {
             Kanban
           </Button>
         </div>
+
+        <Button variant="outline" size="sm" onClick={handleExportCsv}>
+          <Download className="w-4 h-4 mr-2" />
+          Export CSV
+        </Button>
       </div>
 
       {/* Table View */}
@@ -283,85 +308,97 @@ export default function AdminLeads() {
               No leads found
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="text-left p-4 font-medium text-muted-foreground">Lead</th>
-                    <th className="text-left p-4 font-medium text-muted-foreground">Source</th>
-                    <th className="text-left p-4 font-medium text-muted-foreground">Location</th>
-                    <th className="text-left p-4 font-medium text-muted-foreground">Value</th>
-                    <th className="text-left p-4 font-medium text-muted-foreground">Status</th>
-                    <th className="text-left p-4 font-medium text-muted-foreground">Date</th>
-                    <th className="text-right p-4 font-medium text-muted-foreground">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {filteredLeads.map((lead) => (
-                    <tr 
-                      key={lead.id} 
-                      className="hover:bg-muted/30 cursor-pointer"
-                      onClick={() => handleViewDetails(lead)}
-                    >
-                      <td className="p-4">
-                        <div>
-                          <p className="font-medium text-foreground">{lead.customer_name}</p>
-                          <p className="text-sm text-muted-foreground">{lead.job_type}</p>
-                        </div>
-                      </td>
-                      <td className="p-4">{getSourceBadge(lead.source)}</td>
-                      <td className="p-4">
-                        <p className="text-foreground">{lead.postcode}</p>
-                      </td>
-                      <td className="p-4">
-                        <p className="text-foreground">{lead.display_value}</p>
-                      </td>
-                      <td className="p-4">{getStatusBadge(lead.lead_status || "new")}</td>
-                      <td className="p-4 text-muted-foreground">
-                        {format(new Date(lead.created_at), "d MMM yyyy")}
-                      </td>
-                      <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreVertical className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleViewDetails(lead)}>
-                              <Eye className="w-4 h-4 mr-2" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => updateLeadStatus(lead.id, "approved")}>
-                              <CheckCircle className="w-4 h-4 mr-2 text-cyan-500" />
-                              Approve
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => updateLeadStatus(lead.id, "published")}>
-                              <Send className="w-4 h-4 mr-2 text-secondary" />
-                              Publish
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => updateLeadStatus(lead.id, "expired")}>
-                              <Clock className="w-4 h-4 mr-2 text-muted-foreground" />
-                              Expire
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => updateLeadStatus(lead.id, "refunded")}>
-                              <RotateCcw className="w-4 h-4 mr-2 text-amber-500" />
-                              Refund
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => updateLeadStatus(lead.id, "spam")}>
-                              <XCircle className="w-4 h-4 mr-2 text-destructive" />
-                              Mark as Spam
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </td>
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="text-left p-4 font-medium text-muted-foreground">Lead</th>
+                      <th className="text-left p-4 font-medium text-muted-foreground">Source</th>
+                      <th className="text-left p-4 font-medium text-muted-foreground">Location</th>
+                      <th className="text-left p-4 font-medium text-muted-foreground">Value</th>
+                      <th className="text-left p-4 font-medium text-muted-foreground">Status</th>
+                      <th className="text-left p-4 font-medium text-muted-foreground">Date</th>
+                      <th className="text-right p-4 font-medium text-muted-foreground">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {pagination.paginatedData.map((lead) => (
+                      <tr 
+                        key={lead.id} 
+                        className="hover:bg-muted/30 cursor-pointer"
+                        onClick={() => handleViewDetails(lead)}
+                      >
+                        <td className="p-4">
+                          <div>
+                            <p className="font-medium text-foreground">{lead.customer_name}</p>
+                            <p className="text-sm text-muted-foreground">{lead.job_type}</p>
+                          </div>
+                        </td>
+                        <td className="p-4">{getSourceBadge(lead.source)}</td>
+                        <td className="p-4">
+                          <p className="text-foreground">{lead.postcode}</p>
+                        </td>
+                        <td className="p-4">
+                          <p className="text-foreground">{lead.display_value}</p>
+                        </td>
+                        <td className="p-4">{getStatusBadge(lead.lead_status || "new")}</td>
+                        <td className="p-4 text-muted-foreground">
+                          {format(new Date(lead.created_at), "d MMM yyyy")}
+                        </td>
+                        <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreVertical className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleViewDetails(lead)}>
+                                <Eye className="w-4 h-4 mr-2" />
+                                View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => updateLeadStatus(lead.id, "approved")}>
+                                <CheckCircle className="w-4 h-4 mr-2 text-cyan-500" />
+                                Approve
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => updateLeadStatus(lead.id, "published")}>
+                                <Send className="w-4 h-4 mr-2 text-secondary" />
+                                Publish
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => updateLeadStatus(lead.id, "expired")}>
+                                <Clock className="w-4 h-4 mr-2 text-muted-foreground" />
+                                Expire
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => updateLeadStatus(lead.id, "refunded")}>
+                                <RotateCcw className="w-4 h-4 mr-2 text-amber-500" />
+                                Refund
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => updateLeadStatus(lead.id, "spam")}>
+                                <XCircle className="w-4 h-4 mr-2 text-destructive" />
+                                Mark as Spam
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <PaginationControls
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                totalItems={pagination.totalItems}
+                pageSize={pagination.pageSize}
+                onPageChange={pagination.goToPage}
+                onPageSizeChange={pagination.changePageSize}
+                hasNextPage={pagination.hasNextPage}
+                hasPrevPage={pagination.hasPrevPage}
+              />
+            </>
           )}
         </div>
       )}
