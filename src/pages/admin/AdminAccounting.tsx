@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { format, subDays, startOfDay, endOfDay, startOfWeek, startOfMonth, parseISO, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval } from "date-fns";
+import { format, subDays, startOfDay, endOfDay, startOfWeek, startOfMonth, parseISO, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, subMonths, subYears, startOfYear, endOfYear } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -72,7 +72,7 @@ interface BusinessPerformance {
   netContribution: number;
 }
 
-type DateRangePreset = "today" | "7days" | "30days" | "custom";
+type DateRangePreset = "today" | "3days" | "7days" | "14days" | "30days" | "lastmonth" | "alltime" | "custom";
 
 export default function AdminAccounting() {
   const { toast } = useToast();
@@ -85,6 +85,7 @@ export default function AdminAccounting() {
   const [statusFilter, setStatusFilter] = useState<"all" | "paid" | "refunded">("all");
   const [activeTab, setActiveTab] = useState("overview");
   const [showPrintView, setShowPrintView] = useState(false);
+  const [yoyTransactions, setYoyTransactions] = useState<Transaction[]>([]);
 
   // Calculate date range based on preset
   const dateRange = useMemo(() => {
@@ -92,10 +93,19 @@ export default function AdminAccounting() {
     switch (datePreset) {
       case "today":
         return { from: startOfDay(now), to: endOfDay(now) };
+      case "3days":
+        return { from: startOfDay(subDays(now, 3)), to: endOfDay(now) };
       case "7days":
         return { from: startOfDay(subDays(now, 7)), to: endOfDay(now) };
+      case "14days":
+        return { from: startOfDay(subDays(now, 14)), to: endOfDay(now) };
       case "30days":
         return { from: startOfDay(subDays(now, 30)), to: endOfDay(now) };
+      case "lastmonth":
+        const lastMonth = subMonths(now, 1);
+        return { from: startOfMonth(lastMonth), to: endOfDay(subDays(startOfMonth(now), 1)) };
+      case "alltime":
+        return { from: new Date(2020, 0, 1), to: endOfDay(now) };
       case "custom":
         return customRange ? { from: customRange.from, to: customRange.to } : { from: startOfDay(subDays(now, 30)), to: endOfDay(now) };
       default:
@@ -166,15 +176,36 @@ export default function AdminAccounting() {
         prevLeads = prevData || [];
       }
 
-      // Fetch profiles to get business names
-      const allLeads = [...(leads || []), ...prevLeads];
-      const userIds = [...new Set(allLeads.map(l => l.unlocked_by).filter(Boolean))];
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, business_name")
-        .in("user_id", userIds);
+      // Fetch YoY data (same period last year)
+      let yoyLeads: typeof leads = [];
+      const yoyFrom = subYears(dateRange.from, 1);
+      const yoyTo = subYears(dateRange.to, 1);
+      const { data: yoyData } = await supabase
+        .from("leads")
+        .select(`
+          id,
+          unlocked_at,
+          unlocked_by,
+          value,
+          refunded_at,
+          refund_reason,
+          lead_status,
+          postcode,
+          job_type
+        `)
+        .eq("is_unlocked", true)
+        .gte("unlocked_at", yoyFrom.toISOString())
+        .lte("unlocked_at", yoyTo.toISOString());
+      yoyLeads = yoyData || [];
 
-      const profileMap = new Map(profiles?.map(p => [p.user_id, p.business_name]) || []);
+      // Fetch profiles to get business names
+      const allLeads = [...(leads || []), ...prevLeads, ...yoyLeads];
+      const userIds = [...new Set(allLeads.map(l => l.unlocked_by).filter(Boolean))];
+      const { data: profiles } = userIds.length > 0 
+        ? await supabase.from("profiles").select("user_id, business_name").in("user_id", userIds)
+        : { data: [] };
+
+      const profileMap = new Map<string, string | null>((profiles || []).map(p => [p.user_id, p.business_name] as [string, string | null]));
 
       // Transform to transactions
       const txns: Transaction[] = (leads || []).map(lead => ({
@@ -203,8 +234,22 @@ export default function AdminAccounting() {
         jobType: lead.job_type,
       }));
 
+      const yoyTxns: Transaction[] = yoyLeads.map(lead => ({
+        id: lead.id,
+        date: lead.unlocked_at || "",
+        leadId: lead.id,
+        businessName: profileMap.get(lead.unlocked_by!) || "Unknown Business",
+        amount: LEAD_PRICE,
+        status: lead.refunded_at ? "refunded" : "paid",
+        refundReason: lead.refund_reason,
+        refundedAt: lead.refunded_at,
+        postcode: lead.postcode,
+        jobType: lead.job_type,
+      }));
+
       setTransactions(txns);
       setPreviousTransactions(prevTxns);
+      setYoyTransactions(yoyTxns);
     } catch (error: any) {
       toast({
         title: "Error loading transactions",
@@ -265,6 +310,30 @@ export default function AdminAccounting() {
     };
   }, [previousTransactions, previousDateRange]);
 
+  // Calculate YoY KPIs for year-over-year comparison
+  const yoyKpis = useMemo(() => {
+    const grossRevenue = yoyTransactions.length * LEAD_PRICE;
+    const refundedTxns = yoyTransactions.filter(t => t.status === "refunded");
+    const refundsIssued = refundedTxns.length * LEAD_PRICE;
+    const netRevenue = grossRevenue - refundsIssued;
+    const refundRate = yoyTransactions.length > 0 ? (refundedTxns.length / yoyTransactions.length) * 100 : 0;
+    
+    const days = dateRange.from && dateRange.to 
+      ? Math.max(1, Math.ceil((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24)))
+      : 1;
+    const avgRevenuePerDay = netRevenue / days;
+
+    return {
+      grossRevenue,
+      totalLeadsSold: yoyTransactions.length,
+      avgRevenuePerDay,
+      refundsIssued,
+      netRevenue,
+      refundRate,
+      refundCount: refundedTxns.length,
+    };
+  }, [yoyTransactions, dateRange]);
+
   // Calculate trend percentages
   const trends = useMemo(() => {
     const calcTrend = (current: number, previous: number) => {
@@ -281,6 +350,23 @@ export default function AdminAccounting() {
       refundRate: calcTrend(kpis.refundRate, previousKpis.refundRate),
     };
   }, [kpis, previousKpis]);
+
+  // Calculate YoY trends
+  const yoyTrends = useMemo(() => {
+    const calcTrend = (current: number, previous: number) => {
+      if (previous === 0) return current > 0 ? 100 : 0;
+      return ((current - previous) / previous) * 100;
+    };
+
+    return {
+      grossRevenue: calcTrend(kpis.grossRevenue, yoyKpis.grossRevenue),
+      totalLeadsSold: calcTrend(kpis.totalLeadsSold, yoyKpis.totalLeadsSold),
+      avgRevenuePerDay: calcTrend(kpis.avgRevenuePerDay, yoyKpis.avgRevenuePerDay),
+      refundsIssued: calcTrend(kpis.refundsIssued, yoyKpis.refundsIssued),
+      netRevenue: calcTrend(kpis.netRevenue, yoyKpis.netRevenue),
+      refundRate: calcTrend(kpis.refundRate, yoyKpis.refundRate),
+    };
+  }, [kpis, yoyKpis]);
 
   // Trend indicator component
   const TrendIndicator = ({ value, inverted = false }: { value: number; inverted?: boolean }) => {
@@ -574,8 +660,12 @@ export default function AdminAccounting() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="today">Today</SelectItem>
+                  <SelectItem value="3days">Last 3 Days</SelectItem>
                   <SelectItem value="7days">Last 7 Days</SelectItem>
+                  <SelectItem value="14days">Last 14 Days</SelectItem>
                   <SelectItem value="30days">Last 30 Days</SelectItem>
+                  <SelectItem value="lastmonth">Last Month</SelectItem>
+                  <SelectItem value="alltime">All Time</SelectItem>
                   <SelectItem value="custom">Custom Range</SelectItem>
                 </SelectContent>
               </Select>
@@ -630,8 +720,9 @@ export default function AdminAccounting() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="yoy">Year-over-Year</TabsTrigger>
             <TabsTrigger value="revenue">Revenue</TabsTrigger>
             <TabsTrigger value="ledger">Transactions</TabsTrigger>
             <TabsTrigger value="refunds">Refunds</TabsTrigger>
@@ -811,6 +902,282 @@ export default function AdminAccounting() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* YEAR-OVER-YEAR TAB */}
+          <TabsContent value="yoy" className="space-y-6">
+            {/* YoY Comparison Header */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Year-over-Year Comparison</CardTitle>
+                <CardDescription>
+                  Comparing {dateRange.from && dateRange.to && (
+                    <>{format(dateRange.from, "MMM dd, yyyy")} - {format(dateRange.to, "MMM dd, yyyy")}</>
+                  )} vs same period last year
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            {/* YoY KPI Comparison */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {/* Gross Revenue Comparison */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Gross Revenue</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Current Period</span>
+                      <span className="text-lg font-bold">£{kpis.grossRevenue.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Last Year</span>
+                      <span className="text-lg font-medium text-muted-foreground">£{yoyKpis.grossRevenue.toLocaleString()}</span>
+                    </div>
+                    <div className={cn(
+                      "flex items-center gap-2 pt-2 border-t",
+                      yoyTrends.grossRevenue > 0 ? "text-green-500" : yoyTrends.grossRevenue < 0 ? "text-destructive" : "text-muted-foreground"
+                    )}>
+                      {yoyTrends.grossRevenue > 0 ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
+                      <span className="font-medium">{yoyTrends.grossRevenue > 0 ? "+" : ""}{yoyTrends.grossRevenue.toFixed(1)}% YoY</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Net Revenue Comparison */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Net Revenue</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Current Period</span>
+                      <span className="text-lg font-bold text-primary">£{kpis.netRevenue.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Last Year</span>
+                      <span className="text-lg font-medium text-muted-foreground">£{yoyKpis.netRevenue.toLocaleString()}</span>
+                    </div>
+                    <div className={cn(
+                      "flex items-center gap-2 pt-2 border-t",
+                      yoyTrends.netRevenue > 0 ? "text-green-500" : yoyTrends.netRevenue < 0 ? "text-destructive" : "text-muted-foreground"
+                    )}>
+                      {yoyTrends.netRevenue > 0 ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
+                      <span className="font-medium">{yoyTrends.netRevenue > 0 ? "+" : ""}{yoyTrends.netRevenue.toFixed(1)}% YoY</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Leads Sold Comparison */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Leads Sold</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Current Period</span>
+                      <span className="text-lg font-bold">{kpis.totalLeadsSold}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Last Year</span>
+                      <span className="text-lg font-medium text-muted-foreground">{yoyKpis.totalLeadsSold}</span>
+                    </div>
+                    <div className={cn(
+                      "flex items-center gap-2 pt-2 border-t",
+                      yoyTrends.totalLeadsSold > 0 ? "text-green-500" : yoyTrends.totalLeadsSold < 0 ? "text-destructive" : "text-muted-foreground"
+                    )}>
+                      {yoyTrends.totalLeadsSold > 0 ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
+                      <span className="font-medium">{yoyTrends.totalLeadsSold > 0 ? "+" : ""}{yoyTrends.totalLeadsSold.toFixed(1)}% YoY</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Average Revenue Per Day */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Avg Revenue/Day</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Current Period</span>
+                      <span className="text-lg font-bold">£{kpis.avgRevenuePerDay.toFixed(0)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Last Year</span>
+                      <span className="text-lg font-medium text-muted-foreground">£{yoyKpis.avgRevenuePerDay.toFixed(0)}</span>
+                    </div>
+                    <div className={cn(
+                      "flex items-center gap-2 pt-2 border-t",
+                      yoyTrends.avgRevenuePerDay > 0 ? "text-green-500" : yoyTrends.avgRevenuePerDay < 0 ? "text-destructive" : "text-muted-foreground"
+                    )}>
+                      {yoyTrends.avgRevenuePerDay > 0 ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
+                      <span className="font-medium">{yoyTrends.avgRevenuePerDay > 0 ? "+" : ""}{yoyTrends.avgRevenuePerDay.toFixed(1)}% YoY</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Refunds */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Refunds</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Current Period</span>
+                      <span className="text-lg font-bold text-destructive">£{kpis.refundsIssued.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Last Year</span>
+                      <span className="text-lg font-medium text-muted-foreground">£{yoyKpis.refundsIssued.toLocaleString()}</span>
+                    </div>
+                    <div className={cn(
+                      "flex items-center gap-2 pt-2 border-t",
+                      yoyTrends.refundsIssued < 0 ? "text-green-500" : yoyTrends.refundsIssued > 0 ? "text-destructive" : "text-muted-foreground"
+                    )}>
+                      {yoyTrends.refundsIssued > 0 ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
+                      <span className="font-medium">{yoyTrends.refundsIssued > 0 ? "+" : ""}{yoyTrends.refundsIssued.toFixed(1)}% YoY</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Refund Rate */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Refund Rate</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Current Period</span>
+                      <span className={cn(
+                        "text-lg font-bold",
+                        kpis.refundRate > 10 ? "text-destructive" : kpis.refundRate > 5 ? "text-amber-500" : "text-green-500"
+                      )}>{kpis.refundRate.toFixed(1)}%</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Last Year</span>
+                      <span className="text-lg font-medium text-muted-foreground">{yoyKpis.refundRate.toFixed(1)}%</span>
+                    </div>
+                    <div className={cn(
+                      "flex items-center gap-2 pt-2 border-t",
+                      yoyTrends.refundRate < 0 ? "text-green-500" : yoyTrends.refundRate > 0 ? "text-destructive" : "text-muted-foreground"
+                    )}>
+                      {yoyTrends.refundRate > 0 ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
+                      <span className="font-medium">{yoyTrends.refundRate > 0 ? "+" : ""}{yoyTrends.refundRate.toFixed(1)}% YoY</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* YoY Summary Table */}
+            <Card>
+              <CardHeader>
+                <CardTitle>YoY Performance Summary</CardTitle>
+                <CardDescription>Detailed comparison of key metrics</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Metric</TableHead>
+                      <TableHead className="text-right">Current Period</TableHead>
+                      <TableHead className="text-right">Same Period Last Year</TableHead>
+                      <TableHead className="text-right">Change</TableHead>
+                      <TableHead className="text-right">% Change</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell className="font-medium">Gross Revenue</TableCell>
+                      <TableCell className="text-right">£{kpis.grossRevenue.toLocaleString()}</TableCell>
+                      <TableCell className="text-right">£{yoyKpis.grossRevenue.toLocaleString()}</TableCell>
+                      <TableCell className={cn("text-right", kpis.grossRevenue - yoyKpis.grossRevenue >= 0 ? "text-green-500" : "text-destructive")}>
+                        {kpis.grossRevenue - yoyKpis.grossRevenue >= 0 ? "+" : ""}£{(kpis.grossRevenue - yoyKpis.grossRevenue).toLocaleString()}
+                      </TableCell>
+                      <TableCell className={cn("text-right font-medium", yoyTrends.grossRevenue >= 0 ? "text-green-500" : "text-destructive")}>
+                        {yoyTrends.grossRevenue >= 0 ? "+" : ""}{yoyTrends.grossRevenue.toFixed(1)}%
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="font-medium">Net Revenue</TableCell>
+                      <TableCell className="text-right">£{kpis.netRevenue.toLocaleString()}</TableCell>
+                      <TableCell className="text-right">£{yoyKpis.netRevenue.toLocaleString()}</TableCell>
+                      <TableCell className={cn("text-right", kpis.netRevenue - yoyKpis.netRevenue >= 0 ? "text-green-500" : "text-destructive")}>
+                        {kpis.netRevenue - yoyKpis.netRevenue >= 0 ? "+" : ""}£{(kpis.netRevenue - yoyKpis.netRevenue).toLocaleString()}
+                      </TableCell>
+                      <TableCell className={cn("text-right font-medium", yoyTrends.netRevenue >= 0 ? "text-green-500" : "text-destructive")}>
+                        {yoyTrends.netRevenue >= 0 ? "+" : ""}{yoyTrends.netRevenue.toFixed(1)}%
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="font-medium">Leads Sold</TableCell>
+                      <TableCell className="text-right">{kpis.totalLeadsSold}</TableCell>
+                      <TableCell className="text-right">{yoyKpis.totalLeadsSold}</TableCell>
+                      <TableCell className={cn("text-right", kpis.totalLeadsSold - yoyKpis.totalLeadsSold >= 0 ? "text-green-500" : "text-destructive")}>
+                        {kpis.totalLeadsSold - yoyKpis.totalLeadsSold >= 0 ? "+" : ""}{kpis.totalLeadsSold - yoyKpis.totalLeadsSold}
+                      </TableCell>
+                      <TableCell className={cn("text-right font-medium", yoyTrends.totalLeadsSold >= 0 ? "text-green-500" : "text-destructive")}>
+                        {yoyTrends.totalLeadsSold >= 0 ? "+" : ""}{yoyTrends.totalLeadsSold.toFixed(1)}%
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="font-medium">Avg Revenue/Day</TableCell>
+                      <TableCell className="text-right">£{kpis.avgRevenuePerDay.toFixed(0)}</TableCell>
+                      <TableCell className="text-right">£{yoyKpis.avgRevenuePerDay.toFixed(0)}</TableCell>
+                      <TableCell className={cn("text-right", kpis.avgRevenuePerDay - yoyKpis.avgRevenuePerDay >= 0 ? "text-green-500" : "text-destructive")}>
+                        {kpis.avgRevenuePerDay - yoyKpis.avgRevenuePerDay >= 0 ? "+" : ""}£{(kpis.avgRevenuePerDay - yoyKpis.avgRevenuePerDay).toFixed(0)}
+                      </TableCell>
+                      <TableCell className={cn("text-right font-medium", yoyTrends.avgRevenuePerDay >= 0 ? "text-green-500" : "text-destructive")}>
+                        {yoyTrends.avgRevenuePerDay >= 0 ? "+" : ""}{yoyTrends.avgRevenuePerDay.toFixed(1)}%
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="font-medium">Refunds</TableCell>
+                      <TableCell className="text-right">£{kpis.refundsIssued.toLocaleString()}</TableCell>
+                      <TableCell className="text-right">£{yoyKpis.refundsIssued.toLocaleString()}</TableCell>
+                      <TableCell className={cn("text-right", kpis.refundsIssued - yoyKpis.refundsIssued <= 0 ? "text-green-500" : "text-destructive")}>
+                        {kpis.refundsIssued - yoyKpis.refundsIssued >= 0 ? "+" : ""}£{(kpis.refundsIssued - yoyKpis.refundsIssued).toLocaleString()}
+                      </TableCell>
+                      <TableCell className={cn("text-right font-medium", yoyTrends.refundsIssued <= 0 ? "text-green-500" : "text-destructive")}>
+                        {yoyTrends.refundsIssued >= 0 ? "+" : ""}{yoyTrends.refundsIssued.toFixed(1)}%
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="font-medium">Refund Rate</TableCell>
+                      <TableCell className="text-right">{kpis.refundRate.toFixed(1)}%</TableCell>
+                      <TableCell className="text-right">{yoyKpis.refundRate.toFixed(1)}%</TableCell>
+                      <TableCell className={cn("text-right", kpis.refundRate - yoyKpis.refundRate <= 0 ? "text-green-500" : "text-destructive")}>
+                        {kpis.refundRate - yoyKpis.refundRate >= 0 ? "+" : ""}{(kpis.refundRate - yoyKpis.refundRate).toFixed(1)}%
+                      </TableCell>
+                      <TableCell className={cn("text-right font-medium", yoyTrends.refundRate <= 0 ? "text-green-500" : "text-destructive")}>
+                        {yoyTrends.refundRate >= 0 ? "+" : ""}{yoyTrends.refundRate.toFixed(1)}%
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+
+            {/* No Data Message */}
+            {yoyKpis.totalLeadsSold === 0 && (
+              <Card>
+                <CardContent className="py-8 text-center">
+                  <p className="text-muted-foreground">No data available for the same period last year.</p>
+                  <p className="text-sm text-muted-foreground mt-2">Year-over-year comparison requires historical data from the previous year.</p>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           {/* REVENUE TAB */}
