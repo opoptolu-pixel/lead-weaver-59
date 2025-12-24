@@ -100,6 +100,9 @@ export default function RequestCleaning() {
         setCurrentStep(2); // Go to postcode step
       }
     }
+    
+    // Scroll to top on page load
+    window.scrollTo({ top: 0, behavior: 'instant' });
   }, [searchParams]);
 
   const progress = (currentStep / TOTAL_STEPS) * 100;

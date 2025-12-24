@@ -174,11 +174,11 @@ export const CustomerHeroSection = () => {
               </div>
 
               {/* Postcode Input */}
-              <div className="relative flex-1" ref={postcodeRef}>
+              <div className="relative flex-1 min-w-[200px]" ref={postcodeRef}>
                 <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10" />
                 <Input
                   type="text"
-                  placeholder="Enter your postcode"
+                  placeholder="e.g. SW1A 1AA"
                   value={postcode}
                   onChange={(e) => setPostcode(e.target.value.toUpperCase())}
                   onFocus={() => setShowPostcodeSuggestions(true)}
