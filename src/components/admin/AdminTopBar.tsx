@@ -15,6 +15,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { CalendarIcon, LogOut, User, WifiOff } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
@@ -144,6 +145,9 @@ export default function AdminTopBar({ title }: AdminTopBarProps) {
             </Popover>
           )}
         </div>
+
+        {/* Theme Toggle */}
+        <ThemeToggle />
 
         {/* User Menu */}
         <div className="flex items-center gap-2 pl-4 border-l border-border">
