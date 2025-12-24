@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { MoppingCharacter } from "@/components/MoppingCharacter";
 
 // Cleaning types matching request cleaning page
 const cleaningTypes = [
@@ -133,7 +134,10 @@ export const CustomerHeroSection = () => {
 
           {/* Search form - Type + Postcode */}
           <form onSubmit={handleSearch} className="animate-slide-up stagger-3 relative z-20">
-            <div className="flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto bg-background p-2 rounded-2xl shadow-2xl">
+            {/* Animated mopping character */}
+            <div className="relative max-w-2xl mx-auto">
+              <MoppingCharacter />
+              <div className="flex flex-col sm:flex-row gap-3 bg-background p-2 rounded-2xl shadow-2xl">
               {/* Cleaning Type Dropdown */}
               <div className="relative flex-1" ref={typeDropdownRef}>
                 <button
@@ -225,6 +229,7 @@ export const CustomerHeroSection = () => {
                 <Search className="w-5 h-5 mr-2" />
                 Get Quotes
               </Button>
+              </div>
             </div>
           </form>
 
