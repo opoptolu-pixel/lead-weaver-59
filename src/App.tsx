@@ -35,6 +35,7 @@ import AdminActivityLogs from "./pages/admin/AdminActivityLogs";
 import AdminFraud from "./pages/admin/AdminFraud";
 import AdminInquiries from "./pages/admin/AdminInquiries";
 import AdminEmailTemplates from "./pages/admin/AdminEmailTemplates";
+import AdminAccounting from "./pages/admin/AdminAccounting";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -72,6 +73,7 @@ const App = () => (
               <Route path="/admin/businesses" element={<AdminBusinesses />} />
               <Route path="/admin/verifications" element={<AdminVerifications />} />
               <Route path="/admin/payments" element={<AdminPayments />} />
+              <Route path="/admin/accounting" element={<AdminAccounting />} />
               <Route path="/admin/disputes" element={<AdminDisputes />} />
               <Route path="/admin/fraud" element={<AdminFraud />} />
               <Route path="/admin/analytics" element={<AdminAnalytics />} />

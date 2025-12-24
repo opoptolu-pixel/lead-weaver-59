@@ -14,6 +14,7 @@ import {
   ShieldAlert,
   Inbox,
   Mail,
+  PoundSterling,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,7 @@ const navItems = [
   { title: "Business Inquiries", url: "/admin/inquiries", icon: Inbox },
   { title: "Businesses", url: "/admin/businesses", icon: Users },
   { title: "Verifications", url: "/admin/verifications", icon: Shield },
+  { title: "Accounting", url: "/admin/accounting", icon: PoundSterling },
   { title: "Payments", url: "/admin/payments", icon: CreditCard },
   { title: "Disputes", url: "/admin/disputes", icon: AlertTriangle },
   { title: "Fraud & Risk", url: "/admin/fraud", icon: ShieldAlert },
