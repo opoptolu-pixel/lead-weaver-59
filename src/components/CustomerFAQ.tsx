@@ -7,28 +7,28 @@ import {
 
 const faqs = [
   {
-    question: "Is it free to get quotes?",
-    answer: "Yes, completely free! You can request quotes from multiple cleaners without any obligation. There are no hidden fees or charges for using our service.",
+    question: "Is it free to request a quote?",
+    answer: "Yes, completely free! There are no hidden fees or charges for using our service to find a cleaner.",
   },
   {
-    question: "How quickly will I receive quotes?",
-    answer: "Most customers receive their first quote within a few hours, and typically have multiple quotes to compare within 24 hours.",
+    question: "How quickly will I hear back?",
+    answer: "Most customers are contacted by their cleaning partner within 24 hours of submitting their request.",
   },
   {
     question: "Are the cleaners verified?",
-    answer: "Yes, all cleaners on our platform are verified professionals. We check their credentials, insurance, and reviews before they can receive cleaning requests.",
+    answer: "Yes, all cleaning partners on our platform are verified professionals. We check their credentials and insurance before they can join our network.",
   },
   {
-    question: "Can I see reviews before choosing a cleaner?",
-    answer: "Absolutely! When you receive quotes, you'll be able to see ratings and reviews from previous customers to help you make an informed decision.",
+    question: "How does the matching work?",
+    answer: "When you submit your request, we match you with a cleaning partner in your area who specialises in the service you need. They'll contact you directly to discuss your requirements and provide a quote.",
   },
   {
-    question: "What if I'm not happy with the cleaning?",
-    answer: "Customer satisfaction is important to us. If you're not happy with the service, contact us and we'll work with you and the cleaner to resolve the issue.",
+    question: "What if I'm not happy with the service?",
+    answer: "Customer satisfaction is important to us. If you're not happy with the service, contact us and we'll work with you and the cleaning partner to resolve the issue.",
   },
   {
     question: "What areas do you cover?",
-    answer: "We have cleaners across the UK, covering most major cities and surrounding areas. Enter your postcode to see available cleaners in your area.",
+    answer: "We have cleaning partners across the UK, covering most major cities and surrounding areas. Enter your postcode to check availability in your area.",
   },
 ];
 
@@ -42,7 +42,7 @@ export const CustomerFAQ = () => {
             Frequently Asked Questions
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Everything you need to know about finding a cleaner.
+            Everything you need to know about our service.
           </p>
         </div>
 
