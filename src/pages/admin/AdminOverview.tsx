@@ -240,7 +240,12 @@ export default function AdminOverview() {
     const pendingFraud = fraudFlags?.filter(f => f.status === "pending").length || 0;
     
     // Phase 2: Calculate average job value and conversion rate
-    const totalValue = leads?.reduce((sum, l) => sum + (l.value || 0), 0) || 0;
+    // Normalize values - some are stored in pence (>1000), others in pounds (<1000)
+    const normalizedValues = leads?.map(l => {
+      const val = l.value || 0;
+      return val > 1000 ? val / 100 : val; // Convert pence to pounds if needed
+    }) || [];
+    const totalValue = normalizedValues.reduce((sum, val) => sum + val, 0);
     const avgJobValue = leadsReceived > 0 ? Math.round(totalValue / leadsReceived) : 0;
     const conversionRate = leadsReceived > 0 ? Math.round((leadsPurchased / leadsReceived) * 100) : 0;
 
@@ -298,7 +303,7 @@ export default function AdminOverview() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <KPICard
           title="Avg Job Value"
-          value={`£${stats.avgJobValue}`}
+          value={`£${stats.avgJobValue.toLocaleString()}`}
           icon={<Layers className="w-5 h-5 text-secondary" />}
         />
         <KPICard
