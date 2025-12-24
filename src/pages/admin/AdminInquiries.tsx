@@ -542,13 +542,14 @@ export default function AdminInquiries() {
               </div>
 
               {/* Actions */}
-              <DialogFooter className="flex-col sm:flex-row gap-2">
-                <Button variant="outline" onClick={handleSaveNotes} disabled={updating}>
-                  Save Notes
-                </Button>
-                <div className="flex gap-2 flex-1 sm:justify-end">
+              <DialogFooter className="flex-col gap-3 sm:gap-2 pt-4 border-t">
+                <div className="flex flex-wrap gap-2 w-full justify-end">
+                  <Button variant="outline" size="sm" onClick={handleSaveNotes} disabled={updating}>
+                    Save Notes
+                  </Button>
                   <Button 
                     variant="outline"
+                    size="sm"
                     onClick={() => {
                       setEmailSubject(`Following up on your inquiry - ${selectedInquiry.business_name}`);
                       setEmailBody(`Hi ${selectedInquiry.contact_name},\n\nThank you for your interest in joining Deep Clean UK.\n\nI wanted to follow up on your application for ${selectedInquiry.business_name}.\n\nBest regards,\nThe Deep Clean UK Team`);
@@ -556,22 +557,24 @@ export default function AdminInquiries() {
                     }}
                     disabled={updating}
                   >
-                    <Send className="w-4 h-4 mr-2" />
+                    <Send className="w-4 h-4 mr-1" />
                     Follow-up
                   </Button>
                   <Button 
+                    size="sm"
                     onClick={() => setIsConvertDialogOpen(true)}
                     disabled={updating}
                   >
-                    <UserPlus className="w-4 h-4 mr-2" />
+                    <UserPlus className="w-4 h-4 mr-1" />
                     Convert
                   </Button>
                   <Button 
                     variant="destructive"
+                    size="sm"
                     onClick={() => updateStatus(selectedInquiry.id, "rejected")}
                     disabled={updating}
                   >
-                    <XCircle className="w-4 h-4 mr-2" />
+                    <XCircle className="w-4 h-4 mr-1" />
                     Reject
                   </Button>
                 </div>
