@@ -14,6 +14,7 @@ import {
   Download,
   ArrowUp,
   ArrowDown,
+  Calculator,
 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import KPICard from "@/components/admin/KPICard";
@@ -104,6 +105,14 @@ export default function AdminOverview() {
   const [postcodeData, setPostcodeData] = useState<PostcodeData[]>([]);
   const [valueBandData, setValueBandData] = useState<ValueBandData[]>([]);
   const [jobTypeStats, setJobTypeStats] = useState<JobTypeStats[]>([]);
+  const [todayAccounting, setTodayAccounting] = useState({
+    purchases: 0,
+    revenue: 0,
+    refunds: 0,
+    netRevenue: 0,
+    creditsSold: 0,
+    creditRevenue: 0,
+  });
 
   const { start, end } = getDateFilter();
 
@@ -111,7 +120,45 @@ export default function AdminOverview() {
     fetchStats();
     fetchChartData();
     fetchPreviousPeriodStats();
+    fetchTodayAccounting();
   }, [dateRange]);
+
+  const fetchTodayAccounting = async () => {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    // Fetch today's purchases (unlocked leads)
+    const { data: todayPurchases } = await supabase
+      .from("leads")
+      .select("id, value, refunded_at")
+      .gte("unlocked_at", todayStart.toISOString())
+      .lte("unlocked_at", todayEnd.toISOString())
+      .not("unlocked_by", "is", null);
+
+    // Fetch today's refunds
+    const { data: todayRefunds } = await supabase
+      .from("leads")
+      .select("id")
+      .gte("refunded_at", todayStart.toISOString())
+      .lte("refunded_at", todayEnd.toISOString());
+
+    const purchases = todayPurchases?.length || 0;
+    const revenue = purchases * 20;
+    const refunds = todayRefunds?.length || 0;
+    const refundAmount = refunds * 20;
+    const netRevenue = revenue - refundAmount;
+
+    setTodayAccounting({
+      purchases,
+      revenue,
+      refunds,
+      netRevenue,
+      creditsSold: purchases, // Each purchase uses 1 credit
+      creditRevenue: revenue, // Credits are £20 each
+    });
+  };
 
   // Real-time subscriptions for auto-refresh
   useEffect(() => {
@@ -487,6 +534,42 @@ export default function AdminOverview() {
           icon={<Target className="w-5 h-5 text-secondary" />}
           href="/admin/analytics"
         />
+      </div>
+
+      {/* Today's Accounting Summary Widget */}
+      <div className="bg-card rounded-xl border border-border p-6 mb-8">
+        <div className="flex items-center gap-2 mb-4">
+          <Calculator className="w-5 h-5 text-secondary" />
+          <h3 className="font-heading font-semibold text-foreground">Today's Accounting</h3>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="text-center p-3 bg-muted/30 rounded-lg">
+            <p className="text-2xl font-bold text-foreground">{todayAccounting.purchases}</p>
+            <p className="text-xs text-muted-foreground">Purchases</p>
+          </div>
+          <div className="text-center p-3 bg-muted/30 rounded-lg">
+            <p className="text-2xl font-bold text-green-500">£{todayAccounting.revenue}</p>
+            <p className="text-xs text-muted-foreground">Gross Revenue</p>
+          </div>
+          <div className="text-center p-3 bg-muted/30 rounded-lg">
+            <p className="text-2xl font-bold text-red-500">{todayAccounting.refunds}</p>
+            <p className="text-xs text-muted-foreground">Refunds</p>
+          </div>
+          <div className="text-center p-3 bg-muted/30 rounded-lg">
+            <p className={`text-2xl font-bold ${todayAccounting.netRevenue >= 0 ? "text-green-500" : "text-red-500"}`}>
+              £{todayAccounting.netRevenue}
+            </p>
+            <p className="text-xs text-muted-foreground">Net Revenue</p>
+          </div>
+          <div className="text-center p-3 bg-muted/30 rounded-lg">
+            <p className="text-2xl font-bold text-secondary">{todayAccounting.creditsSold}</p>
+            <p className="text-xs text-muted-foreground">Credits Used</p>
+          </div>
+          <div className="text-center p-3 bg-muted/30 rounded-lg">
+            <p className="text-2xl font-bold text-secondary">£{todayAccounting.creditRevenue}</p>
+            <p className="text-xs text-muted-foreground">Credit Value</p>
+          </div>
+        </div>
       </div>
 
       {/* KPI Cards - Row 2 */}
