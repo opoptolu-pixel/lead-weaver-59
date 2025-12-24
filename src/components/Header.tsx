@@ -71,39 +71,41 @@ export const Header = () => {
             ))}
           </nav>
 
-          {/* CTA Buttons */}
+          {/* CTA Buttons - Only show on For Cleaners page */}
           <div className="hidden md:flex items-center gap-3">
-            {user ? (
-              <Link to="/dashboard">
-                <Button 
-                  variant={isScrolled ? "cta" : "hero"} 
-                  size="default"
-                  className="gap-2"
-                >
-                  <User className="w-4 h-4" />
-                  Dashboard
-                </Button>
-              </Link>
-            ) : isForCleanersPage ? (
-              <>
-                <Link to="/auth">
-                  <Button 
-                    variant={isScrolled ? "ghost" : "outlineHero"} 
-                    size="default"
-                  >
-                    Sign In
-                  </Button>
-                </Link>
-                <Link to="/auth?mode=signup">
+            {isForCleanersPage && (
+              user ? (
+                <Link to="/dashboard">
                   <Button 
                     variant={isScrolled ? "cta" : "hero"} 
                     size="default"
+                    className="gap-2"
                   >
-                    Join Now
+                    <User className="w-4 h-4" />
+                    Dashboard
                   </Button>
                 </Link>
-              </>
-            ) : null}
+              ) : (
+                <>
+                  <Link to="/auth">
+                    <Button 
+                      variant={isScrolled ? "ghost" : "outlineHero"} 
+                      size="default"
+                    >
+                      Sign In
+                    </Button>
+                  </Link>
+                  <Link to="/auth?mode=signup">
+                    <Button 
+                      variant={isScrolled ? "cta" : "hero"} 
+                      size="default"
+                    >
+                      Join Now
+                    </Button>
+                  </Link>
+                </>
+              )
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -143,27 +145,29 @@ export const Header = () => {
                   </button>
                 )
               ))}
-              {user ? (
-                <Link to="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button variant="cta" size="lg" className="w-full mt-4 gap-2">
-                    <User className="w-4 h-4" />
-                    Dashboard
-                  </Button>
-                </Link>
-              ) : isForCleanersPage ? (
-                <div className="flex flex-col gap-3 mt-4">
-                  <Link to="/auth" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="outline" size="lg" className="w-full">
-                      Sign In
+              {isForCleanersPage && (
+                user ? (
+                  <Link to="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button variant="cta" size="lg" className="w-full mt-4 gap-2">
+                      <User className="w-4 h-4" />
+                      Dashboard
                     </Button>
                   </Link>
-                  <Link to="/auth?mode=signup" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="cta" size="lg" className="w-full">
-                      Join Now
-                    </Button>
-                  </Link>
-                </div>
-              ) : null}
+                ) : (
+                  <div className="flex flex-col gap-3 mt-4">
+                    <Link to="/auth" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button variant="outline" size="lg" className="w-full">
+                        Sign In
+                      </Button>
+                    </Link>
+                    <Link to="/auth?mode=signup" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button variant="cta" size="lg" className="w-full">
+                        Join Now
+                      </Button>
+                    </Link>
+                  </div>
+                )
+              )}
             </nav>
           </div>
         )}
