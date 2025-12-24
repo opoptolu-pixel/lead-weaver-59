@@ -61,6 +61,29 @@ export default function AdminActivityLogs() {
     fetchLogs();
   }, [dateRange]);
 
+  // Real-time subscription for live updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-activity-logs-realtime')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'activity_logs' },
+        (payload) => {
+          console.log('New activity log:', payload);
+          fetchLogs();
+          toast.info('New activity logged', { 
+            description: 'Activity feed updated',
+            duration: 2000 
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [dateRange]);
+
   const fetchLogs = async () => {
     setLoading(true);
     const { start, end } = getDateFilter();

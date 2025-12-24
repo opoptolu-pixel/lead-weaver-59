@@ -83,6 +83,37 @@ export default function AdminFraud() {
     fetchData();
   }, [dateRange]);
 
+  // Real-time subscription for live updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-fraud-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'fraud_flags' },
+        (payload) => {
+          console.log('Fraud flags updated in realtime:', payload);
+          fetchData();
+          toast.info('Fraud detection updated', { 
+            description: `${payload.eventType === 'INSERT' ? 'New fraud flag detected' : payload.eventType === 'UPDATE' ? 'Flag status changed' : 'Flag removed'}`,
+            duration: 3000 
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles' },
+        (payload) => {
+          console.log('Profiles updated - refreshing risk data');
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [dateRange]);
+
   const fetchData = async () => {
     setLoading(true);
     const { start, end } = getDateFilter();

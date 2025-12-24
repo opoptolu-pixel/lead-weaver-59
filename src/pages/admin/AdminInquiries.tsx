@@ -79,6 +79,29 @@ export default function AdminInquiries() {
     fetchInquiries();
   }, [dateRange]);
 
+  // Real-time subscription for live updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-inquiries-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'business_inquiries' },
+        (payload) => {
+          console.log('Inquiries updated in realtime:', payload);
+          fetchInquiries();
+          toast.info('Inquiry queue updated', { 
+            description: `${payload.eventType === 'INSERT' ? 'New business inquiry received' : payload.eventType === 'UPDATE' ? 'Inquiry status changed' : 'Inquiry removed'}`,
+            duration: 3000 
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [dateRange]);
+
   const fetchInquiries = async () => {
     setLoading(true);
     const { start, end } = getDateFilter();
