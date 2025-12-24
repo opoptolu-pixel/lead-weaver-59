@@ -25,22 +25,19 @@ const benefits = [
 
 export const TrustSection = () => {
   return (
-    <section className="py-20 bg-primary relative overflow-hidden">
-      {/* Background pattern */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-[400px] h-[400px] bg-white/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 w-[300px] h-[300px] bg-secondary/10 rounded-full blur-3xl" />
-      </div>
-
-      <div className="container mx-auto px-4 relative">
+    <section className="py-20 bg-background border-y border-border">
+      <div className="container mx-auto px-4">
         {/* Section header */}
         <div className="text-center mb-14">
-          <h2 className="font-heading text-2xl md:text-3xl font-bold text-primary-foreground">
+          <span className="inline-block text-sm font-semibold text-secondary uppercase tracking-wider mb-3">
             Why Choose Us
+          </span>
+          <h2 className="font-heading text-2xl md:text-3xl font-bold text-foreground">
+            Trusted by Thousands
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 max-w-6xl mx-auto">
           {benefits.map((benefit, index) => {
             const Icon = benefit.icon;
             return (
@@ -49,15 +46,15 @@ export const TrustSection = () => {
                 className="group text-center"
               >
                 {/* Icon */}
-                <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center mx-auto mb-5 transition-all duration-300 group-hover:bg-secondary group-hover:border-secondary group-hover:scale-110">
-                  <Icon className="w-8 h-8 text-secondary transition-colors duration-300 group-hover:text-secondary-foreground" />
+                <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center mx-auto mb-5 transition-transform duration-300 group-hover:scale-110 shadow-lg">
+                  <Icon className="w-8 h-8 text-primary-foreground" />
                 </div>
                 
                 {/* Content */}
-                <h3 className="font-heading font-bold text-lg text-primary-foreground mb-2">
+                <h3 className="font-heading font-bold text-lg text-foreground mb-2">
                   {benefit.title}
                 </h3>
-                <p className="text-primary-foreground/70 text-sm leading-relaxed max-w-[200px] mx-auto">
+                <p className="text-muted-foreground text-sm leading-relaxed max-w-[220px] mx-auto">
                   {benefit.description}
                 </p>
               </div>
