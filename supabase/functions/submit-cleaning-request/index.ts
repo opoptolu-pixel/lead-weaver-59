@@ -414,12 +414,13 @@ serve(async (req) => {
       referenceId
     );
 
-    // Trigger SMS/WhatsApp confirmation for customer to confirm the lead
+    // Trigger both WhatsApp and SMS confirmation for customer to confirm the lead
     try {
       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
       const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
       
-      const confirmationResponse = await fetch(`${supabaseUrl}/functions/v1/customer-confirmation`, {
+      // Send WhatsApp confirmation
+      const whatsappPromise = fetch(`${supabaseUrl}/functions/v1/customer-confirmation`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${supabaseAnonKey}`,
@@ -427,20 +428,38 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           leadId: data.id,
-          method: "whatsapp", // Default to WhatsApp
+          method: "whatsapp",
           autoPublishHours: 24,
         }),
       });
 
-      const confirmResult = await confirmationResponse.json();
+      // Send SMS confirmation
+      const smsPromise = fetch(`${supabaseUrl}/functions/v1/customer-confirmation`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${supabaseAnonKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          leadId: data.id,
+          method: "sms",
+          autoPublishHours: 24,
+        }),
+      });
+
+      // Execute both in parallel
+      const [whatsappResponse, smsResponse] = await Promise.all([whatsappPromise, smsPromise]);
       
-      if (confirmationResponse.ok) {
-        console.log("[SUBMIT-CLEANING] Confirmation message triggered:", { leadId: data.id, method: "whatsapp" });
-      } else {
-        console.error("[SUBMIT-CLEANING] Confirmation trigger failed:", confirmResult);
-      }
+      const whatsappResult = await whatsappResponse.json();
+      const smsResult = await smsResponse.json();
+      
+      console.log("[SUBMIT-CLEANING] Confirmation messages triggered:", { 
+        leadId: data.id, 
+        whatsapp: whatsappResponse.ok ? "sent" : whatsappResult.error,
+        sms: smsResponse.ok ? "sent" : smsResult.error,
+      });
     } catch (confirmError) {
-      console.error("[SUBMIT-CLEANING] Error triggering confirmation:", confirmError);
+      console.error("[SUBMIT-CLEANING] Error triggering confirmations:", confirmError);
       // Don't fail the request if confirmation trigger fails
     }
 
