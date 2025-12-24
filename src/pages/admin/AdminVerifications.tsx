@@ -40,6 +40,7 @@ export default function AdminVerifications() {
   const [selectedDoc, setSelectedDoc] = useState<VerificationDoc | null>(null);
   const [adminNotes, setAdminNotes] = useState("");
   const [processing, setProcessing] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   useEffect(() => {
     fetchDocuments();
@@ -193,10 +194,16 @@ export default function AdminVerifications() {
     }
   };
 
-  const pagination = usePagination(documents);
+  // Filter documents by status
+  const filteredDocuments = documents.filter(doc => {
+    if (statusFilter === "all") return true;
+    return doc.status === statusFilter;
+  });
+
+  const pagination = usePagination(filteredDocuments);
 
   const handleExportCsv = () => {
-    exportToCsv(documents, "verifications", [
+    exportToCsv(filteredDocuments, "verifications", [
       { key: "id", label: "ID" },
       { key: "document_type", label: "Document Type" },
       { key: "status", label: "Status" },
@@ -205,23 +212,55 @@ export default function AdminVerifications() {
     ]);
   };
 
+  const pendingCount = documents.filter((d) => d.status === "pending").length;
+  const approvedCount = documents.filter((d) => d.status === "approved").length;
+  const rejectedCount = documents.filter((d) => d.status === "rejected").length;
+
   return (
     <AdminLayout title="Verification Documents">
       <div className="bg-card rounded-xl border border-border overflow-hidden">
         <div className="p-4 border-b border-border">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
               <Button
-                variant={documents.some(d => d.status === "pending") ? "default" : "outline"}
+                variant={statusFilter === "pending" ? "default" : "outline"}
                 size="sm"
+                onClick={() => {
+                  setStatusFilter("pending");
+                  pagination.resetPage();
+                }}
               >
-                Pending ({documents.filter((d) => d.status === "pending").length})
+                Pending ({pendingCount})
               </Button>
-              <Button variant="outline" size="sm">
-                Approved ({documents.filter((d) => d.status === "approved").length})
+              <Button 
+                variant={statusFilter === "approved" ? "default" : "outline"} 
+                size="sm"
+                onClick={() => {
+                  setStatusFilter("approved");
+                  pagination.resetPage();
+                }}
+              >
+                Approved ({approvedCount})
               </Button>
-              <Button variant="outline" size="sm">
-                Rejected ({documents.filter((d) => d.status === "rejected").length})
+              <Button 
+                variant={statusFilter === "rejected" ? "default" : "outline"} 
+                size="sm"
+                onClick={() => {
+                  setStatusFilter("rejected");
+                  pagination.resetPage();
+                }}
+              >
+                Rejected ({rejectedCount})
+              </Button>
+              <Button 
+                variant={statusFilter === "all" ? "default" : "outline"} 
+                size="sm"
+                onClick={() => {
+                  setStatusFilter("all");
+                  pagination.resetPage();
+                }}
+              >
+                All ({documents.length})
               </Button>
             </div>
             <Button variant="outline" size="sm" onClick={handleExportCsv}>
@@ -235,10 +274,10 @@ export default function AdminVerifications() {
           <div className="p-8 text-center">
             <Loader2 className="w-6 h-6 animate-spin mx-auto text-secondary" />
           </div>
-        ) : documents.length === 0 ? (
+        ) : filteredDocuments.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">
             <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>No verification documents yet</p>
+            <p>No verification documents {statusFilter !== "all" ? `with status "${statusFilter}"` : ""}</p>
           </div>
         ) : (
           <>

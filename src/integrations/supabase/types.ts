@@ -47,6 +47,33 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_settings: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          key: string
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
       business_inquiries: {
         Row: {
           admin_notes: string | null
@@ -692,6 +719,7 @@ export type Database = {
           postcode: string
         }[]
       }
+      get_user_email: { Args: { user_uuid: string }; Returns: string }
       get_user_leads_with_access_control: {
         Args: { p_user_id: string }
         Returns: {

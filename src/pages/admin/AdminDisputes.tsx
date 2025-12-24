@@ -28,7 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, FileText, MessageSquare, CheckCircle, XCircle, Clock, AlertCircle, Download, Loader2, ExternalLink } from "lucide-react";
+import { Search, FileText, MessageSquare, CheckCircle, XCircle, Clock, AlertCircle, Download, Loader2, ExternalLink, Eye, CreditCard } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useSignedUrl } from "@/hooks/useSignedUrl";
@@ -36,6 +36,7 @@ import { useAdmin } from "@/contexts/AdminContext";
 import { usePagination } from "@/hooks/usePagination";
 import { PaginationControls } from "@/components/admin/PaginationControls";
 import { exportToCsv } from "@/lib/exportCsv";
+import { format } from "date-fns";
 
 interface Dispute {
   id: string;
@@ -54,6 +55,18 @@ interface Dispute {
 
 interface DisputeWithProfile extends Dispute {
   business_name: string | null;
+}
+
+interface LeadDetails {
+  id: string;
+  customer_name: string;
+  customer_email: string;
+  customer_phone: string;
+  customer_address: string;
+  job_type: string;
+  postcode: string;
+  date: string;
+  value: number;
 }
 
 const reasonCodes: Record<string, string> = {
@@ -93,6 +106,11 @@ export default function AdminDisputes() {
   const [resolving, setResolving] = useState(false);
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [loadingUrls, setLoadingUrls] = useState(false);
+  
+  // Lead details dialog
+  const [leadDetails, setLeadDetails] = useState<LeadDetails | null>(null);
+  const [isLeadDialogOpen, setIsLeadDialogOpen] = useState(false);
+  const [loadingLead, setLoadingLead] = useState(false);
   
   const { getSignedUrl, extractFilePath } = useSignedUrl();
 
@@ -189,6 +207,107 @@ export default function AdminDisputes() {
     ]);
   };
 
+  const handleViewLead = async (leadId: string) => {
+    setLoadingLead(true);
+    setIsLeadDialogOpen(true);
+    
+    try {
+      const { data, error } = await supabase
+        .from("leads")
+        .select("id, customer_name, customer_email, customer_phone, customer_address, job_type, postcode, date, value")
+        .eq("id", leadId)
+        .single();
+
+      if (error) throw error;
+      setLeadDetails(data);
+    } catch (error) {
+      console.error("Error fetching lead:", error);
+      toast.error("Failed to load lead details");
+      setIsLeadDialogOpen(false);
+    } finally {
+      setLoadingLead(false);
+    }
+  };
+
+  const processRefund = async (dispute: DisputeWithProfile) => {
+    setResolving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // 1. Add credit back to user's account
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("credits")
+        .eq("user_id", dispute.user_id)
+        .single();
+
+      if (profile) {
+        await supabase
+          .from("profiles")
+          .update({ credits: profile.credits + 1 })
+          .eq("user_id", dispute.user_id);
+      }
+
+      // 2. Mark lead as refunded
+      await supabase
+        .from("leads")
+        .update({ 
+          refunded_at: new Date().toISOString(),
+          refund_reason: resolutionNotes || "Dispute resolved - refund issued"
+        })
+        .eq("id", dispute.lead_id);
+
+      // 3. Update dispute status
+      await supabase
+        .from("disputes")
+        .update({
+          status: "resolved",
+          resolution: "Refund issued - 1 credit returned",
+          resolved_at: new Date().toISOString(),
+          resolved_by: user?.id,
+        })
+        .eq("id", dispute.id);
+
+      // 4. Log the refund activity
+      await supabase.from("activity_logs").insert({
+        user_id: dispute.user_id,
+        action: "refund",
+        entity_type: "dispute",
+        entity_id: dispute.id,
+        details: { lead_id: dispute.lead_id, credits_refunded: 1 },
+      });
+
+      // 5. Send email notification (optional - will fail silently if not configured)
+      try {
+        const { data: email } = await supabase.rpc("get_user_email", { 
+          user_uuid: dispute.user_id 
+        });
+        
+        if (email) {
+          await supabase.functions.invoke("send-email", {
+            body: {
+              to: email,
+              subject: "Your dispute has been resolved - Credit refunded",
+              html: `<p>Hi,</p><p>Your dispute for lead ${dispute.lead_id.slice(0, 8)}... has been resolved. 1 credit has been returned to your account.</p><p>Thank you for your patience.</p>`,
+            },
+          });
+        }
+      } catch (emailError) {
+        console.log("Email notification skipped:", emailError);
+      }
+
+      toast.success("Refund processed successfully - 1 credit returned");
+      setSelectedDispute(null);
+      setResolutionNotes("");
+      fetchDisputes();
+    } catch (error) {
+      console.error("Error processing refund:", error);
+      toast.error("Failed to process refund");
+    } finally {
+      setResolving(false);
+    }
+  };
+
   const handleResolve = async () => {
     if (!selectedDispute || !resolution) return;
 
@@ -209,6 +328,25 @@ export default function AdminDisputes() {
         .eq("id", selectedDispute.id);
 
       if (error) throw error;
+
+      // Send email notification
+      try {
+        const { data: email } = await supabase.rpc("get_user_email", { 
+          user_uuid: selectedDispute.user_id 
+        });
+        
+        if (email) {
+          await supabase.functions.invoke("send-email", {
+            body: {
+              to: email,
+              subject: `Your dispute has been ${resolution === "rejected" ? "rejected" : "resolved"}`,
+              html: `<p>Hi,</p><p>Your dispute for lead ${selectedDispute.lead_id.slice(0, 8)}... has been ${resolution === "rejected" ? "rejected" : "resolved"}.</p>${resolutionNotes ? `<p>Notes: ${resolutionNotes}</p>` : ""}<p>Thank you.</p>`,
+            },
+          });
+        }
+      } catch (emailError) {
+        console.log("Email notification skipped:", emailError);
+      }
 
       toast.success(`Dispute ${resolution === "rejected" ? "rejected" : "resolved"} successfully`);
       setSelectedDispute(null);
@@ -323,14 +461,23 @@ export default function AdminDisputes() {
                       <TableHead>Status</TableHead>
                       <TableHead>Evidence</TableHead>
                       <TableHead>Opened</TableHead>
-                      <TableHead className="w-[100px]"></TableHead>
+                      <TableHead className="w-[150px]"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {pagination.paginatedData.map((dispute) => (
                       <TableRow key={dispute.id}>
                         <TableCell className="font-medium">{dispute.business_name}</TableCell>
-                        <TableCell className="font-mono text-sm">{dispute.lead_id.slice(0, 8)}...</TableCell>
+                        <TableCell>
+                          <Button
+                            variant="link"
+                            className="font-mono text-sm p-0 h-auto"
+                            onClick={() => handleViewLead(dispute.lead_id)}
+                          >
+                            {dispute.lead_id.slice(0, 8)}...
+                            <Eye className="w-3 h-3 ml-1" />
+                          </Button>
+                        </TableCell>
                         <TableCell>
                           <Badge variant="outline">{reasonCodes[dispute.reason_code] || dispute.reason_code}</Badge>
                         </TableCell>
@@ -349,14 +496,16 @@ export default function AdminDisputes() {
                           {new Date(dispute.created_at).toLocaleDateString()}
                         </TableCell>
                         <TableCell>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setSelectedDispute(dispute)}
-                          >
-                            <MessageSquare className="h-4 w-4 mr-1" />
-                            Review
-                          </Button>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedDispute(dispute)}
+                            >
+                              <MessageSquare className="h-4 w-4 mr-1" />
+                              Review
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -407,6 +556,18 @@ export default function AdminDisputes() {
                   <p className="text-muted-foreground mt-1">{selectedDispute.description || "No description provided"}</p>
                 </div>
 
+                {/* View Lead Button */}
+                <div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleViewLead(selectedDispute.lead_id)}
+                  >
+                    <Eye className="w-4 h-4 mr-2" />
+                    View Disputed Lead Details
+                  </Button>
+                </div>
+
                 {selectedDispute.evidence_urls && selectedDispute.evidence_urls.length > 0 && (
                   <div>
                     <label className="text-sm font-medium">Evidence Files (Secured with signed URLs)</label>
@@ -448,63 +609,120 @@ export default function AdminDisputes() {
                 {selectedDispute.status !== "resolved" && selectedDispute.status !== "rejected" && (
                   <>
                     <div className="border-t pt-4">
-                      <label className="text-sm font-medium">Resolution</label>
+                      <label className="text-sm font-medium">Resolution Notes</label>
+                      <Textarea
+                        value={resolutionNotes}
+                        onChange={(e) => setResolutionNotes(e.target.value)}
+                        placeholder="Add notes about the resolution..."
+                        className="mt-2"
+                      />
+                    </div>
+
+                    <div className="border-t pt-4">
+                      <label className="text-sm font-medium">Resolution Action</label>
                       <Select value={resolution} onValueChange={setResolution}>
-                        <SelectTrigger className="mt-1">
-                          <SelectValue placeholder="Select resolution..." />
+                        <SelectTrigger className="mt-2">
+                          <SelectValue placeholder="Select resolution" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="refund">Issue Refund</SelectItem>
-                          <SelectItem value="credit">Issue Credit</SelectItem>
-                          <SelectItem value="partial_refund">Partial Refund</SelectItem>
+                          <SelectItem value="approved">Approve (No Refund)</SelectItem>
                           <SelectItem value="rejected">Reject Dispute</SelectItem>
-                          <SelectItem value="need_more_info">Request More Info</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
 
-                    <div>
-                      <label className="text-sm font-medium">Resolution Notes</label>
-                      <Textarea
-                        placeholder="Add notes about this resolution..."
-                        value={resolutionNotes}
-                        onChange={(e) => setResolutionNotes(e.target.value)}
-                        className="mt-1"
-                      />
-                    </div>
+                    <DialogFooter className="flex-col sm:flex-row gap-2">
+                      <Button
+                        variant="default"
+                        className="bg-green-600 hover:bg-green-700"
+                        onClick={() => processRefund(selectedDispute)}
+                        disabled={resolving}
+                      >
+                        {resolving ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        ) : (
+                          <CreditCard className="h-4 w-4 mr-2" />
+                        )}
+                        Process Refund (1 Credit)
+                      </Button>
+                      <Button onClick={handleResolve} disabled={resolving || !resolution}>
+                        {resolving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                        {resolution === "rejected" ? "Reject Dispute" : "Resolve Without Refund"}
+                      </Button>
+                    </DialogFooter>
                   </>
                 )}
 
-                {selectedDispute.resolution && (
+                {(selectedDispute.status === "resolved" || selectedDispute.status === "rejected") && (
                   <div className="border-t pt-4">
-                    <label className="text-sm font-medium">Resolution Notes</label>
-                    <p className="text-muted-foreground mt-1">{selectedDispute.resolution}</p>
+                    <label className="text-sm font-medium">Resolution</label>
+                    <p className="text-muted-foreground mt-1">{selectedDispute.resolution || "No notes"}</p>
+                    {selectedDispute.resolved_at && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Resolved on {format(new Date(selectedDispute.resolved_at), "d MMM yyyy HH:mm")}
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
             )}
+          </DialogContent>
+        </Dialog>
 
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setSelectedDispute(null)}>
-                Cancel
-              </Button>
-              {selectedDispute?.status !== "resolved" && selectedDispute?.status !== "rejected" && (
-                <Button onClick={handleResolve} disabled={!resolution || resolving}>
-                  {resolving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-                  {resolution === "rejected" ? (
-                    <>
-                      <XCircle className="h-4 w-4 mr-1" />
-                      Reject Dispute
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="h-4 w-4 mr-1" />
-                      Resolve Dispute
-                    </>
-                  )}
-                </Button>
-              )}
-            </DialogFooter>
+        {/* Lead Details Dialog */}
+        <Dialog open={isLeadDialogOpen} onOpenChange={setIsLeadDialogOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Lead Details</DialogTitle>
+              <DialogDescription>
+                Disputed lead information
+              </DialogDescription>
+            </DialogHeader>
+            
+            {loadingLead ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : leadDetails ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Customer Name</label>
+                    <p className="font-medium">{leadDetails.customer_name}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Job Type</label>
+                    <p className="font-medium">{leadDetails.job_type}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Email</label>
+                    <p className="font-medium">{leadDetails.customer_email}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Phone</label>
+                    <p className="font-medium">{leadDetails.customer_phone}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-sm font-medium text-muted-foreground">Address</label>
+                    <p className="font-medium">{leadDetails.customer_address}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Postcode</label>
+                    <p className="font-medium">{leadDetails.postcode}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Date</label>
+                    <p className="font-medium">{leadDetails.date}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Value</label>
+                    <p className="font-medium">£{leadDetails.value}</p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-center text-muted-foreground py-4">Lead not found</p>
+            )}
           </DialogContent>
         </Dialog>
       </div>
