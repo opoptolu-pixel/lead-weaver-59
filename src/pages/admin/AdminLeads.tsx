@@ -14,6 +14,10 @@ import {
   Trash2,
   Send,
   Download,
+  Mail,
+  MessageSquare,
+  CheckSquare,
+  Square,
 } from "lucide-react";
 import { usePagination } from "@/hooks/usePagination";
 import { PaginationControls } from "@/components/admin/PaginationControls";
@@ -24,6 +28,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -88,15 +93,6 @@ const LEAD_STATUSES = [
   { value: "spam", label: "Spam/Fraud", color: "bg-red-500/20 text-red-500" },
 ];
 
-// Outcome tracking statuses (for purchased leads)
-const OUTCOME_STATUSES = [
-  { value: "purchased", label: "Purchased", color: "bg-purple-500/20 text-purple-500" },
-  { value: "contacted", label: "Contacted", color: "bg-blue-500/20 text-blue-500" },
-  { value: "booked", label: "Booked", color: "bg-cyan-500/20 text-cyan-500" },
-  { value: "completed", label: "Completed", color: "bg-green-500/20 text-green-500" },
-  { value: "lost", label: "Lost", color: "bg-destructive/20 text-destructive" },
-];
-
 const SOURCES = [
   { value: "facebook", label: "Facebook" },
   { value: "google", label: "Google" },
@@ -115,6 +111,8 @@ export default function AdminLeads() {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [adminNotes, setAdminNotes] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
+  const [selectedLeadIds, setSelectedLeadIds] = useState<Set<string>>(new Set());
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
 
   useEffect(() => {
     fetchLeads();
@@ -174,6 +172,57 @@ export default function AdminLeads() {
     }
   };
 
+  // Bulk actions
+  const handleBulkAction = async (action: string) => {
+    if (selectedLeadIds.size === 0) {
+      toast.error("No leads selected");
+      return;
+    }
+
+    setBulkActionLoading(true);
+    const updateData: Record<string, any> = { lead_status: action };
+
+    if (action === "approved") {
+      updateData.validated_at = new Date().toISOString();
+    } else if (action === "published") {
+      updateData.published_at = new Date().toISOString();
+    } else if (action === "spam") {
+      updateData.expired_at = new Date().toISOString();
+    }
+
+    const { error } = await supabase
+      .from("leads")
+      .update(updateData)
+      .in("id", Array.from(selectedLeadIds));
+
+    setBulkActionLoading(false);
+    if (error) {
+      toast.error("Failed to update leads");
+    } else {
+      toast.success(`${selectedLeadIds.size} leads updated to ${action}`);
+      setSelectedLeadIds(new Set());
+      fetchLeads();
+    }
+  };
+
+  const toggleLeadSelection = (leadId: string) => {
+    const newSelection = new Set(selectedLeadIds);
+    if (newSelection.has(leadId)) {
+      newSelection.delete(leadId);
+    } else {
+      newSelection.add(leadId);
+    }
+    setSelectedLeadIds(newSelection);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedLeadIds.size === filteredLeads.length) {
+      setSelectedLeadIds(new Set());
+    } else {
+      setSelectedLeadIds(new Set(filteredLeads.map(l => l.id)));
+    }
+  };
+
   const handleViewDetails = (lead: Lead) => {
     setSelectedLead(lead);
     setAdminNotes(lead.admin_notes || "");
@@ -195,6 +244,18 @@ export default function AdminLeads() {
       toast.success("Notes saved");
       fetchLeads();
     }
+  };
+
+  const handleSendEmail = async (lead: Lead) => {
+    toast.info(`Opening email for ${lead.customer_email}`);
+    window.open(`mailto:${lead.customer_email}?subject=Regarding your cleaning request`, "_blank");
+  };
+
+  const handleSendWhatsApp = async (lead: Lead) => {
+    const phone = lead.customer_phone.replace(/\D/g, "");
+    const formattedPhone = phone.startsWith("44") ? phone : `44${phone.startsWith("0") ? phone.slice(1) : phone}`;
+    toast.info(`Opening WhatsApp for ${lead.customer_phone}`);
+    window.open(`https://wa.me/${formattedPhone}?text=Hi ${lead.customer_name}, regarding your cleaning request...`, "_blank");
   };
 
   const getStatusBadge = (status: string) => {
@@ -219,6 +280,16 @@ export default function AdminLeads() {
         {source.charAt(0).toUpperCase() + source.slice(1)}
       </Badge>
     );
+  };
+
+  // Check for potential duplicates
+  const checkDuplicate = (lead: Lead) => {
+    const duplicates = leads.filter(
+      l => l.id !== lead.id && 
+      (l.customer_phone === lead.customer_phone || l.customer_email === lead.customer_email) &&
+      l.postcode === lead.postcode
+    );
+    return duplicates.length > 0;
   };
 
   const filteredLeads = leads.filter(
@@ -296,6 +367,50 @@ export default function AdminLeads() {
         </Button>
       </div>
 
+      {/* Bulk Actions Bar */}
+      {selectedLeadIds.size > 0 && (
+        <div className="bg-secondary/10 border border-secondary/30 rounded-lg p-3 mb-4 flex items-center justify-between">
+          <span className="text-sm font-medium">
+            {selectedLeadIds.size} lead(s) selected
+          </span>
+          <div className="flex gap-2">
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={() => handleBulkAction("approved")}
+              disabled={bulkActionLoading}
+            >
+              {bulkActionLoading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <CheckCircle className="w-4 h-4 mr-1" />}
+              Approve All
+            </Button>
+            <Button 
+              size="sm" 
+              onClick={() => handleBulkAction("published")}
+              disabled={bulkActionLoading}
+            >
+              {bulkActionLoading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Send className="w-4 h-4 mr-1" />}
+              Publish All
+            </Button>
+            <Button 
+              size="sm" 
+              variant="destructive" 
+              onClick={() => handleBulkAction("spam")}
+              disabled={bulkActionLoading}
+            >
+              {bulkActionLoading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <XCircle className="w-4 h-4 mr-1" />}
+              Mark Spam
+            </Button>
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              onClick={() => setSelectedLeadIds(new Set())}
+            >
+              Clear
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Table View */}
       {viewMode === "table" && (
         <div className="bg-card rounded-xl border border-border overflow-hidden">
@@ -313,6 +428,12 @@ export default function AdminLeads() {
                 <table className="w-full">
                   <thead className="bg-muted/50">
                     <tr>
+                      <th className="p-4 w-10">
+                        <Checkbox
+                          checked={selectedLeadIds.size === filteredLeads.length && filteredLeads.length > 0}
+                          onCheckedChange={toggleSelectAll}
+                        />
+                      </th>
                       <th className="text-left p-4 font-medium text-muted-foreground">Lead</th>
                       <th className="text-left p-4 font-medium text-muted-foreground">Source</th>
                       <th className="text-left p-4 font-medium text-muted-foreground">Location</th>
@@ -327,12 +448,25 @@ export default function AdminLeads() {
                       <tr 
                         key={lead.id} 
                         className="hover:bg-muted/30 cursor-pointer"
-                        onClick={() => handleViewDetails(lead)}
                       >
-                        <td className="p-4">
-                          <div>
-                            <p className="font-medium text-foreground">{lead.customer_name}</p>
-                            <p className="text-sm text-muted-foreground">{lead.job_type}</p>
+                        <td className="p-4" onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={selectedLeadIds.has(lead.id)}
+                            onCheckedChange={() => toggleLeadSelection(lead.id)}
+                          />
+                        </td>
+                        <td className="p-4" onClick={() => handleViewDetails(lead)}>
+                          <div className="flex items-center gap-2">
+                            <div>
+                              <p className="font-medium text-foreground">{lead.customer_name}</p>
+                              <p className="text-sm text-muted-foreground">{lead.job_type}</p>
+                            </div>
+                            {checkDuplicate(lead) && (
+                              <Badge variant="outline" className="text-amber-500 border-amber-500/30">
+                                <AlertTriangle className="w-3 h-3 mr-1" />
+                                Duplicate?
+                              </Badge>
+                            )}
                           </div>
                         </td>
                         <td className="p-4">{getSourceBadge(lead.source)}</td>
@@ -357,6 +491,14 @@ export default function AdminLeads() {
                               <DropdownMenuItem onClick={() => handleViewDetails(lead)}>
                                 <Eye className="w-4 h-4 mr-2" />
                                 View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleSendEmail(lead)}>
+                                <Mail className="w-4 h-4 mr-2" />
+                                Send Email
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleSendWhatsApp(lead)}>
+                                <MessageSquare className="w-4 h-4 mr-2" />
+                                Send WhatsApp
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => updateLeadStatus(lead.id, "approved")}>
@@ -444,6 +586,12 @@ export default function AdminLeads() {
                           {lead.display_value}
                         </span>
                       </div>
+                      {checkDuplicate(lead) && (
+                        <Badge variant="outline" className="text-amber-500 border-amber-500/30 mt-2 text-xs">
+                          <AlertTriangle className="w-3 h-3 mr-1" />
+                          Possible Duplicate
+                        </Badge>
+                      )}
                     </div>
                   ))}
               </div>
@@ -465,12 +613,30 @@ export default function AdminLeads() {
           {selectedLead && (
             <div className="space-y-6 py-4">
               {/* Status and Source */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
                 {getStatusBadge(selectedLead.lead_status || "new")}
                 {getSourceBadge(selectedLead.source)}
                 {selectedLead.is_unlocked && (
                   <Badge className="bg-purple-500/20 text-purple-500">Purchased</Badge>
                 )}
+                {checkDuplicate(selectedLead) && (
+                  <Badge variant="outline" className="text-amber-500 border-amber-500/30">
+                    <AlertTriangle className="w-3 h-3 mr-1" />
+                    Possible Duplicate
+                  </Badge>
+                )}
+              </div>
+
+              {/* Quick Contact Actions */}
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => handleSendEmail(selectedLead)}>
+                  <Mail className="w-4 h-4 mr-2" />
+                  Email Customer
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => handleSendWhatsApp(selectedLead)}>
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  WhatsApp
+                </Button>
               </div>
 
               {/* Customer Details */}
