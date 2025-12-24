@@ -29,6 +29,7 @@ import { toast } from "sonner";
 import { Logo } from "@/components/Logo";
 import { Footer } from "@/components/Footer";
 import { cn } from "@/lib/utils";
+import { SEOHead } from "@/components/SEOHead";
 
 // Phase 1 + Phase 2 Job Types - Bundled jobs that exceed £100
 const cleaningTypes = [
@@ -152,8 +153,29 @@ export default function RequestCleaning() {
   tomorrow.setDate(tomorrow.getDate() + 1);
   const minDate = tomorrow.toISOString().split("T")[0];
 
+  const serviceStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    "name": "Deep Cleaning Request",
+    "description": "Request professional deep cleaning services in your area. Get quotes from verified local cleaners.",
+    "provider": {
+      "@type": "Organization",
+      "name": "Deep Clean UK"
+    },
+    "areaServed": {
+      "@type": "Country",
+      "name": "United Kingdom"
+    }
+  };
+
   return (
     <div className="min-h-screen bg-primary flex flex-col">
+      <SEOHead
+        title="Request a Cleaning Quote"
+        description="Get free quotes from verified local cleaners. Request deep cleaning, end of tenancy cleaning, carpet cleaning and more. Fast, easy, and free."
+        canonical="https://deepcleanuk.com/request-cleaning"
+        structuredData={serviceStructuredData}
+      />
       {/* Header */}
       <header className="bg-primary/80 backdrop-blur-sm border-b border-white/10 sticky top-0 z-50">
         <div className="container mx-auto px-4">

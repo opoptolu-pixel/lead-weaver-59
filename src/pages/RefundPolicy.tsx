@@ -1,9 +1,15 @@
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { SEOHead } from "@/components/SEOHead";
 
 const RefundPolicy = () => {
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead
+        title="Refund Policy"
+        description="Understand Deep Clean UK's refund policy for lead credits. Learn about eligible refund situations, the dispute process, and how to request a refund."
+        canonical="https://deepcleanuk.com/refund-policy"
+      />
       <Header />
       <main className="container mx-auto px-4 py-16 max-w-4xl">
         <h1 className="text-4xl font-bold text-foreground mb-8">Refund Policy</h1>

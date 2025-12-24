@@ -1,9 +1,15 @@
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { SEOHead } from "@/components/SEOHead";
 
 const PrivacyPolicy = () => {
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead
+        title="Privacy Policy"
+        description="Learn how Deep Clean UK collects, uses, and protects your personal information. Our privacy policy explains your data rights and our commitment to data security."
+        canonical="https://deepcleanuk.com/privacy-policy"
+      />
       <Header />
       <main className="container mx-auto px-4 py-16 max-w-4xl">
         <h1 className="text-4xl font-bold text-foreground mb-8">Privacy Policy</h1>

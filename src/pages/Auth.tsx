@@ -10,6 +10,7 @@ import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/Logo";
 import TwoFactorVerify from "@/components/TwoFactorVerify";
+import { SEOHead } from "@/components/SEOHead";
 
 const authSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -213,6 +214,12 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <SEOHead
+        title={mode === "login" ? "Sign In" : mode === "signup" ? "Create Account" : "Reset Password"}
+        description="Sign in to Deep Clean UK to access exclusive cleaning leads in your area. Manage your leads and grow your cleaning business."
+        canonical="https://deepcleanuk.com/auth"
+        noIndex={true}
+      />
       {/* Header */}
       <header className="bg-primary border-b border-border">
         <div className="container mx-auto px-4">
