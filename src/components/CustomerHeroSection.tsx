@@ -228,28 +228,27 @@ export const CustomerHeroSection = () => {
             </div>
           </form>
 
-          {/* Trust indicators - hidden when dropdown is open */}
-          <div className={cn(
-            "mt-8 flex flex-wrap items-center justify-center gap-6 text-primary-foreground/70 text-sm animate-fade-in stagger-4 transition-opacity duration-200",
-            isTypeOpen && "opacity-0 pointer-events-none"
-          )}>
-            <div className="flex items-center gap-2">
-              <Check className="w-4 h-4 text-secondary" />
-              <span>100% Free</span>
+          {/* Trust indicators - completely hidden when dropdown is open */}
+          {!isTypeOpen && (
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-primary-foreground/70 text-sm animate-fade-in stagger-4">
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-secondary" />
+                <span>100% Free</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-secondary" />
+                <span>Verified Partners</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-secondary" />
+                <span>Quick Response</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-secondary" />
+                <span>No Obligation</span>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Check className="w-4 h-4 text-secondary" />
-              <span>Verified Partners</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Check className="w-4 h-4 text-secondary" />
-              <span>Quick Response</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Check className="w-4 h-4 text-secondary" />
-              <span>No Obligation</span>
-            </div>
-          </div>
+          )}
         </div>
       </div>
 
