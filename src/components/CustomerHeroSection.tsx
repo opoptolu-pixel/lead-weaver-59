@@ -153,7 +153,7 @@ export const CustomerHeroSection = () => {
 
                 {/* Dropdown menu */}
                 {isTypeOpen && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-background border border-border rounded-xl shadow-xl z-50 overflow-hidden max-h-64 overflow-y-auto">
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-background border border-border rounded-xl shadow-xl z-[100] overflow-hidden max-h-64 overflow-y-auto">
                     {cleaningTypes.map((type) => (
                       <button
                         key={type.id}
@@ -182,7 +182,7 @@ export const CustomerHeroSection = () => {
                 <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10" />
                 <Input
                   type="text"
-                  placeholder="Enter your postcode"
+                  placeholder="Postcode"
                   value={postcode}
                   onChange={(e) => setPostcode(e.target.value.toUpperCase())}
                   onFocus={() => setShowPostcodeSuggestions(true)}
