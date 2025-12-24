@@ -25,7 +25,8 @@ import {
   RefreshCw,
   Building2,
   Percent,
-  Receipt
+  Receipt,
+  Printer
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, Legend } from "recharts";
@@ -79,9 +80,11 @@ export default function AdminAccounting() {
   const [datePreset, setDatePreset] = useState<DateRangePreset>("30days");
   const [customRange, setCustomRange] = useState<DateRange | undefined>();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [previousTransactions, setPreviousTransactions] = useState<Transaction[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "paid" | "refunded">("all");
   const [activeTab, setActiveTab] = useState("overview");
+  const [showPrintView, setShowPrintView] = useState(false);
 
   // Calculate date range based on preset
   const dateRange = useMemo(() => {
@@ -100,6 +103,16 @@ export default function AdminAccounting() {
     }
   }, [datePreset, customRange]);
 
+  // Calculate previous period range for comparison
+  const previousDateRange = useMemo(() => {
+    if (!dateRange.from || !dateRange.to) return { from: undefined, to: undefined };
+    const periodDays = Math.ceil((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24));
+    return {
+      from: subDays(dateRange.from, periodDays),
+      to: subDays(dateRange.to, periodDays),
+    };
+  }, [dateRange]);
+
   // Fetch transactions data
   useEffect(() => {
     fetchTransactions();
@@ -110,7 +123,7 @@ export default function AdminAccounting() {
     
     setLoading(true);
     try {
-      // Fetch all purchased leads (unlocked leads are considered sold)
+      // Fetch current period leads
       const { data: leads, error } = await supabase
         .from("leads")
         .select(`
@@ -131,8 +144,31 @@ export default function AdminAccounting() {
 
       if (error) throw error;
 
+      // Fetch previous period leads for comparison
+      let prevLeads: typeof leads = [];
+      if (previousDateRange.from && previousDateRange.to) {
+        const { data: prevData } = await supabase
+          .from("leads")
+          .select(`
+            id,
+            unlocked_at,
+            unlocked_by,
+            value,
+            refunded_at,
+            refund_reason,
+            lead_status,
+            postcode,
+            job_type
+          `)
+          .eq("is_unlocked", true)
+          .gte("unlocked_at", previousDateRange.from.toISOString())
+          .lte("unlocked_at", previousDateRange.to.toISOString());
+        prevLeads = prevData || [];
+      }
+
       // Fetch profiles to get business names
-      const userIds = [...new Set((leads || []).map(l => l.unlocked_by).filter(Boolean))];
+      const allLeads = [...(leads || []), ...prevLeads];
+      const userIds = [...new Set(allLeads.map(l => l.unlocked_by).filter(Boolean))];
       const { data: profiles } = await supabase
         .from("profiles")
         .select("user_id, business_name")
@@ -154,7 +190,21 @@ export default function AdminAccounting() {
         jobType: lead.job_type,
       }));
 
+      const prevTxns: Transaction[] = prevLeads.map(lead => ({
+        id: lead.id,
+        date: lead.unlocked_at || "",
+        leadId: lead.id,
+        businessName: profileMap.get(lead.unlocked_by!) || "Unknown Business",
+        amount: LEAD_PRICE,
+        status: lead.refunded_at ? "refunded" : "paid",
+        refundReason: lead.refund_reason,
+        refundedAt: lead.refunded_at,
+        postcode: lead.postcode,
+        jobType: lead.job_type,
+      }));
+
       setTransactions(txns);
+      setPreviousTransactions(prevTxns);
     } catch (error: any) {
       toast({
         title: "Error loading transactions",
@@ -190,6 +240,69 @@ export default function AdminAccounting() {
       refundCount: refundedTxns.length,
     };
   }, [transactions, dateRange]);
+
+  // Calculate previous period KPIs for comparison
+  const previousKpis = useMemo(() => {
+    const grossRevenue = previousTransactions.length * LEAD_PRICE;
+    const refundedTxns = previousTransactions.filter(t => t.status === "refunded");
+    const refundsIssued = refundedTxns.length * LEAD_PRICE;
+    const netRevenue = grossRevenue - refundsIssued;
+    const refundRate = previousTransactions.length > 0 ? (refundedTxns.length / previousTransactions.length) * 100 : 0;
+    
+    const days = previousDateRange.from && previousDateRange.to 
+      ? Math.max(1, Math.ceil((previousDateRange.to.getTime() - previousDateRange.from.getTime()) / (1000 * 60 * 60 * 24)))
+      : 1;
+    const avgRevenuePerDay = netRevenue / days;
+
+    return {
+      grossRevenue,
+      totalLeadsSold: previousTransactions.length,
+      avgRevenuePerDay,
+      refundsIssued,
+      netRevenue,
+      refundRate,
+      refundCount: refundedTxns.length,
+    };
+  }, [previousTransactions, previousDateRange]);
+
+  // Calculate trend percentages
+  const trends = useMemo(() => {
+    const calcTrend = (current: number, previous: number) => {
+      if (previous === 0) return current > 0 ? 100 : 0;
+      return ((current - previous) / previous) * 100;
+    };
+
+    return {
+      grossRevenue: calcTrend(kpis.grossRevenue, previousKpis.grossRevenue),
+      totalLeadsSold: calcTrend(kpis.totalLeadsSold, previousKpis.totalLeadsSold),
+      avgRevenuePerDay: calcTrend(kpis.avgRevenuePerDay, previousKpis.avgRevenuePerDay),
+      refundsIssued: calcTrend(kpis.refundsIssued, previousKpis.refundsIssued),
+      netRevenue: calcTrend(kpis.netRevenue, previousKpis.netRevenue),
+      refundRate: calcTrend(kpis.refundRate, previousKpis.refundRate),
+    };
+  }, [kpis, previousKpis]);
+
+  // Trend indicator component
+  const TrendIndicator = ({ value, inverted = false }: { value: number; inverted?: boolean }) => {
+    const isPositive = inverted ? value < 0 : value > 0;
+    const isNegative = inverted ? value > 0 : value < 0;
+    
+    if (value === 0) return null;
+    
+    return (
+      <div className={cn(
+        "flex items-center gap-1 text-xs font-medium",
+        isPositive ? "text-green-500" : isNegative ? "text-destructive" : "text-muted-foreground"
+      )}>
+        {value > 0 ? (
+          <ArrowUpRight className="h-3 w-3" />
+        ) : (
+          <ArrowDownRight className="h-3 w-3" />
+        )}
+        <span>{Math.abs(value).toFixed(1)}%</span>
+      </div>
+    );
+  };
 
   // Revenue by day chart data
   const dailyRevenueData = useMemo(() => {
@@ -501,6 +614,11 @@ export default function AdminAccounting() {
                 <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
               </Button>
 
+              <Button variant="outline" onClick={() => setShowPrintView(true)}>
+                <Printer className="h-4 w-4 mr-2" />
+                Print Report
+              </Button>
+
               <div className="ml-auto text-sm text-muted-foreground">
                 {dateRange.from && dateRange.to && (
                   <>Showing: {format(dateRange.from, "MMM dd, yyyy")} - {format(dateRange.to, "MMM dd, yyyy")}</>
@@ -533,7 +651,10 @@ export default function AdminAccounting() {
                   {loading ? (
                     <Skeleton className="h-8 w-24" />
                   ) : (
-                    <div className="text-2xl font-bold">£{kpis.grossRevenue.toLocaleString()}</div>
+                    <>
+                      <div className="text-2xl font-bold">£{kpis.grossRevenue.toLocaleString()}</div>
+                      <TrendIndicator value={trends.grossRevenue} />
+                    </>
                   )}
                 </CardContent>
               </Card>
@@ -547,7 +668,10 @@ export default function AdminAccounting() {
                   {loading ? (
                     <Skeleton className="h-8 w-16" />
                   ) : (
-                    <div className="text-2xl font-bold">{kpis.totalLeadsSold}</div>
+                    <>
+                      <div className="text-2xl font-bold">{kpis.totalLeadsSold}</div>
+                      <TrendIndicator value={trends.totalLeadsSold} />
+                    </>
                   )}
                 </CardContent>
               </Card>
@@ -561,7 +685,10 @@ export default function AdminAccounting() {
                   {loading ? (
                     <Skeleton className="h-8 w-20" />
                   ) : (
-                    <div className="text-2xl font-bold">£{kpis.avgRevenuePerDay.toFixed(0)}</div>
+                    <>
+                      <div className="text-2xl font-bold">£{kpis.avgRevenuePerDay.toFixed(0)}</div>
+                      <TrendIndicator value={trends.avgRevenuePerDay} />
+                    </>
                   )}
                 </CardContent>
               </Card>
@@ -575,7 +702,10 @@ export default function AdminAccounting() {
                   {loading ? (
                     <Skeleton className="h-8 w-20" />
                   ) : (
-                    <div className="text-2xl font-bold text-destructive">£{kpis.refundsIssued.toLocaleString()}</div>
+                    <>
+                      <div className="text-2xl font-bold text-destructive">£{kpis.refundsIssued.toLocaleString()}</div>
+                      <TrendIndicator value={trends.refundsIssued} inverted />
+                    </>
                   )}
                 </CardContent>
               </Card>
@@ -589,7 +719,10 @@ export default function AdminAccounting() {
                   {loading ? (
                     <Skeleton className="h-8 w-24" />
                   ) : (
-                    <div className="text-2xl font-bold text-primary">£{kpis.netRevenue.toLocaleString()}</div>
+                    <>
+                      <div className="text-2xl font-bold text-primary">£{kpis.netRevenue.toLocaleString()}</div>
+                      <TrendIndicator value={trends.netRevenue} />
+                    </>
                   )}
                 </CardContent>
               </Card>
@@ -603,12 +736,15 @@ export default function AdminAccounting() {
                   {loading ? (
                     <Skeleton className="h-8 w-16" />
                   ) : (
-                    <div className={cn(
-                      "text-2xl font-bold",
-                      kpis.refundRate > 10 ? "text-destructive" : kpis.refundRate > 5 ? "text-amber-500" : "text-green-500"
-                    )}>
-                      {kpis.refundRate.toFixed(1)}%
-                    </div>
+                    <>
+                      <div className={cn(
+                        "text-2xl font-bold",
+                        kpis.refundRate > 10 ? "text-destructive" : kpis.refundRate > 5 ? "text-amber-500" : "text-green-500"
+                      )}>
+                        {kpis.refundRate.toFixed(1)}%
+                      </div>
+                      <TrendIndicator value={trends.refundRate} inverted />
+                    </>
                   )}
                 </CardContent>
               </Card>
@@ -1420,6 +1556,212 @@ export default function AdminAccounting() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Printable Report Dialog */}
+        {showPrintView && (
+          <div className="fixed inset-0 z-50 bg-background">
+            <div className="container mx-auto p-8 max-w-4xl">
+              <div className="flex justify-between items-center mb-8 print:hidden">
+                <h2 className="text-2xl font-bold">Financial Report Preview</h2>
+                <div className="flex gap-2">
+                  <Button onClick={() => window.print()}>
+                    <Printer className="h-4 w-4 mr-2" />
+                    Print / Save PDF
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowPrintView(false)}>
+                    Close
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Printable Content */}
+              <div className="space-y-8 print:space-y-6">
+                {/* Header */}
+                <div className="text-center border-b pb-6">
+                  <h1 className="text-3xl font-bold">Deep Clean UK</h1>
+                  <h2 className="text-xl text-muted-foreground mt-2">Financial Report</h2>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    {dateRange.from && dateRange.to && (
+                      <>Period: {format(dateRange.from, "dd MMMM yyyy")} - {format(dateRange.to, "dd MMMM yyyy")}</>
+                    )}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Generated: {format(new Date(), "dd MMMM yyyy 'at' HH:mm")}
+                  </p>
+                </div>
+
+                {/* Executive Summary */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 border-b pb-2">Executive Summary</h3>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="p-4 border rounded-lg">
+                      <p className="text-sm text-muted-foreground">Gross Revenue</p>
+                      <p className="text-2xl font-bold">£{kpis.grossRevenue.toLocaleString()}</p>
+                      {trends.grossRevenue !== 0 && (
+                        <p className={cn("text-sm", trends.grossRevenue > 0 ? "text-green-600" : "text-red-600")}>
+                          {trends.grossRevenue > 0 ? "+" : ""}{trends.grossRevenue.toFixed(1)}% vs prev period
+                        </p>
+                      )}
+                    </div>
+                    <div className="p-4 border rounded-lg">
+                      <p className="text-sm text-muted-foreground">Net Revenue</p>
+                      <p className="text-2xl font-bold text-primary">£{kpis.netRevenue.toLocaleString()}</p>
+                      {trends.netRevenue !== 0 && (
+                        <p className={cn("text-sm", trends.netRevenue > 0 ? "text-green-600" : "text-red-600")}>
+                          {trends.netRevenue > 0 ? "+" : ""}{trends.netRevenue.toFixed(1)}% vs prev period
+                        </p>
+                      )}
+                    </div>
+                    <div className="p-4 border rounded-lg">
+                      <p className="text-sm text-muted-foreground">Total Leads Sold</p>
+                      <p className="text-2xl font-bold">{kpis.totalLeadsSold}</p>
+                      {trends.totalLeadsSold !== 0 && (
+                        <p className={cn("text-sm", trends.totalLeadsSold > 0 ? "text-green-600" : "text-red-600")}>
+                          {trends.totalLeadsSold > 0 ? "+" : ""}{trends.totalLeadsSold.toFixed(1)}% vs prev period
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Financial Breakdown */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 border-b pb-2">Financial Breakdown</h3>
+                  <table className="w-full">
+                    <tbody>
+                      <tr className="border-b">
+                        <td className="py-2 text-muted-foreground">Gross Revenue</td>
+                        <td className="py-2 text-right font-medium">£{kpis.grossRevenue.toLocaleString()}</td>
+                      </tr>
+                      <tr className="border-b">
+                        <td className="py-2 text-muted-foreground">Less: Refunds ({kpis.refundCount})</td>
+                        <td className="py-2 text-right font-medium text-destructive">-£{kpis.refundsIssued.toLocaleString()}</td>
+                      </tr>
+                      <tr className="font-bold text-lg">
+                        <td className="py-3">Net Revenue</td>
+                        <td className="py-3 text-right text-primary">£{kpis.netRevenue.toLocaleString()}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Key Metrics */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 border-b pb-2">Key Metrics</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-muted-foreground">Average Revenue per Day</span>
+                      <span className="font-medium">£{kpis.avgRevenuePerDay.toFixed(0)}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-muted-foreground">Refund Rate</span>
+                      <span className={cn("font-medium", kpis.refundRate > 10 ? "text-destructive" : kpis.refundRate > 5 ? "text-amber-600" : "text-green-600")}>
+                        {kpis.refundRate.toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-muted-foreground">Lead Price</span>
+                      <span className="font-medium">£{LEAD_PRICE}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-muted-foreground">Total Refunds Issued</span>
+                      <span className="font-medium">{kpis.refundCount}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Revenue by Service */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 border-b pb-2">Revenue by Service Category</h3>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="py-2 text-left">Service Type</th>
+                        <th className="py-2 text-right">Leads</th>
+                        <th className="py-2 text-right">Gross</th>
+                        <th className="py-2 text-right">Refunds</th>
+                        <th className="py-2 text-right">Net</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {revenueByJobType.map((item) => (
+                        <tr key={item.jobType} className="border-b">
+                          <td className="py-2">{item.jobType}</td>
+                          <td className="py-2 text-right">{item.leads}</td>
+                          <td className="py-2 text-right">£{item.gross}</td>
+                          <td className="py-2 text-right text-destructive">£{item.refunds}</td>
+                          <td className="py-2 text-right font-medium">£{item.net}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Revenue by Location */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 border-b pb-2">Revenue by Location (Top 10)</h3>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="py-2 text-left">Postcode Area</th>
+                        <th className="py-2 text-right">Leads</th>
+                        <th className="py-2 text-right">Gross</th>
+                        <th className="py-2 text-right">Refunds</th>
+                        <th className="py-2 text-right">Net</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {revenueByLocation.slice(0, 10).map((item) => (
+                        <tr key={item.location} className="border-b">
+                          <td className="py-2">{item.location}</td>
+                          <td className="py-2 text-right">{item.leads}</td>
+                          <td className="py-2 text-right">£{item.gross}</td>
+                          <td className="py-2 text-right text-destructive">£{item.refunds}</td>
+                          <td className="py-2 text-right font-medium">£{item.net}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Top Businesses */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 border-b pb-2">Top Businesses by Net Contribution</h3>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="py-2 text-left">Business</th>
+                        <th className="py-2 text-right">Leads</th>
+                        <th className="py-2 text-right">Revenue</th>
+                        <th className="py-2 text-right">Refunds</th>
+                        <th className="py-2 text-right">Refund Rate</th>
+                        <th className="py-2 text-right">Net</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {businessPerformance.slice(0, 10).map((b) => (
+                        <tr key={b.businessId} className="border-b">
+                          <td className="py-2">{b.businessName}</td>
+                          <td className="py-2 text-right">{b.leadsPurchased}</td>
+                          <td className="py-2 text-right">£{b.revenue}</td>
+                          <td className="py-2 text-right text-destructive">£{b.refunds}</td>
+                          <td className="py-2 text-right">{b.refundRate.toFixed(1)}%</td>
+                          <td className="py-2 text-right font-medium">£{b.netContribution}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Footer */}
+                <div className="text-center text-xs text-muted-foreground border-t pt-4 mt-8">
+                  <p>This report was generated automatically by Deep Clean UK Admin System</p>
+                  <p>Confidential - For internal use only</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </AdminLayout>
   );
