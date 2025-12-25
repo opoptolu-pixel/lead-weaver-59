@@ -115,7 +115,9 @@ serve(async (req) => {
     const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`;
     const formData = new URLSearchParams();
     formData.append("To", `whatsapp:${phone}`);
-    formData.append("From", twilioFrom);
+    // Ensure From has whatsapp: prefix (handle both cases: with or without prefix in env)
+    const fromNumber = twilioFrom.startsWith("whatsapp:") ? twilioFrom : `whatsapp:${twilioFrom}`;
+    formData.append("From", fromNumber);
     formData.append("Body", `Your Deep Clean UK verification code is: ${code}. Valid for 10 minutes. Do not share this code with anyone.`);
 
     const twilioResponse = await fetch(twilioUrl, {
