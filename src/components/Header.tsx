@@ -29,7 +29,7 @@ export const Header = () => {
     { label: "Get Quotes", id: "/request-cleaning", type: "link" },
     { label: "Services", id: "services", type: "scroll" },
     { label: "How It Works", id: "how-it-works", type: "scroll" },
-    { label: "FAQ", id: "faq", type: "scroll" },
+    { label: "Blog", id: "/blog", type: "link" },
     isForCleanersPage 
       ? { label: "Browse Leads", id: "/leads", type: "link" }
       : { label: "For Cleaners", id: "/for-cleaners", type: "link" },

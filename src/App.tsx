@@ -31,6 +31,8 @@ import RequestCleaning from "./pages/RequestCleaning";
 import RequestCleaningThankYou from "./pages/RequestCleaningThankYou";
 import ForCleaners from "./pages/ForCleaners";
 import Contact from "./pages/Contact";
+import Blog from "./pages/Blog";
+import BlogPost from "./pages/BlogPost";
 import AdminOverview from "./pages/admin/AdminOverview";
 import AdminLeads from "./pages/admin/AdminLeads";
 import AdminBusinesses from "./pages/admin/AdminBusinesses";
@@ -78,6 +80,9 @@ const App = () => (
                   <Route path="/request-cleaning/thank-you" element={<RequestCleaningThankYou />} />
                   {/* For Cleaners (Business) */}
                   <Route path="/for-cleaners" element={<ForCleaners />} />
+                  {/* Blog */}
+                  <Route path="/blog" element={<Blog />} />
+                  <Route path="/blog/:slug" element={<BlogPost />} />
                   {/* Legal Pages */}
                   <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                   <Route path="/refund-policy" element={<RefundPolicy />} />
