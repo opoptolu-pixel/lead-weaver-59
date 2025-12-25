@@ -442,6 +442,9 @@ export default function AdminOverview() {
       .gte("unlocked_at", startISO)
       .lte("unlocked_at", endISO)
       .not("unlocked_by", "is", null);
+    
+    console.log("Unlocked leads in range:", unlockedLeadsInRange);
+    console.log("Date range:", startISO, "to", endISO);
 
     const { data: disputes } = await supabase
       .from("disputes")
@@ -502,7 +505,13 @@ export default function AdminOverview() {
     const conversionRate = leadsReceived > 0 ? Math.round((leadsPurchased / leadsReceived) * 100) : 0;
     
     // Calculate total job revenue from purchased leads using the extracted "from" values
-    const totalJobRevenue = unlockedLeadsInRange?.reduce((sum, l) => sum + extractJobValue(l), 0) || 0;
+    const totalJobRevenue = unlockedLeadsInRange?.reduce((sum, l) => {
+      const extracted = extractJobValue(l as { value: number; display_value?: string });
+      console.log("Lead value extraction:", l.display_value, l.value, "->", extracted);
+      return sum + extracted;
+    }, 0) || 0;
+    
+    console.log("Total Job Revenue calculated:", totalJobRevenue);
 
     setStats({
       leadsReceived,
