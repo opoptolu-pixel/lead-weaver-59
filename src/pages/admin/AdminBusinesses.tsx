@@ -98,6 +98,11 @@ export default function AdminBusinesses() {
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
   const [sendingEmail, setSendingEmail] = useState(false);
+  
+  // Suspension reason dialog
+  const [isSuspendDialogOpen, setIsSuspendDialogOpen] = useState(false);
+  const [suspensionReason, setSuspensionReason] = useState("");
+  const [suspendingBusiness, setSuspendingBusiness] = useState<Business | null>(null);
 
   useEffect(() => {
     fetchBusinesses();
@@ -171,27 +176,33 @@ export default function AdminBusinesses() {
     setLoadingHistory(false);
   };
 
-  const toggleSuspension = async (business: Business, reason?: string) => {
-    const suspensionReason = reason || "Suspended by admin";
-    const isSuspending = !business.is_suspended;
+  const openSuspendDialog = (business: Business) => {
+    setSuspendingBusiness(business);
+    setSuspensionReason("");
+    setIsSuspendDialogOpen(true);
+  };
+
+  const handleSuspend = async () => {
+    if (!suspendingBusiness) return;
+    
+    const reason = suspensionReason.trim() || "Suspended by admin";
     
     const { error } = await supabase
       .from("profiles")
       .update({
-        is_suspended: isSuspending,
-        suspension_reason: isSuspending ? suspensionReason : null,
+        is_suspended: true,
+        suspension_reason: reason,
       })
-      .eq("id", business.id);
+      .eq("id", suspendingBusiness.id);
 
     if (error) {
-      toast.error("Failed to update business");
+      toast.error("Failed to suspend business");
       return;
     }
     
-    // Send suspension notification email if suspending
-    if (isSuspending && business.email) {
+    // Send suspension notification email
+    if (suspendingBusiness.email) {
       try {
-        // Fetch the email template
         const { data: template } = await supabase
           .from("email_templates")
           .select("subject, body")
@@ -201,8 +212,68 @@ export default function AdminBusinesses() {
 
         if (template) {
           const variables: Record<string, string> = {
+            business_name: suspendingBusiness.business_name || suspendingBusiness.contact_name || "Partner",
+            suspension_reason: reason,
+            current_year: new Date().getFullYear().toString(),
+          };
+
+          let subject = template.subject;
+          let html = template.body;
+          
+          Object.entries(variables).forEach(([key, value]) => {
+            subject = subject.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
+            html = html.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
+          });
+
+          await supabase.functions.invoke("send-email", {
+            body: {
+              to: suspendingBusiness.email,
+              subject,
+              html,
+              templateName: "account_suspended",
+            },
+          });
+          
+          toast.success("Suspension email sent to business");
+        }
+      } catch (emailError) {
+        console.error("Failed to send suspension email:", emailError);
+      }
+    }
+    
+    toast.success("Business suspended");
+    setIsSuspendDialogOpen(false);
+    setSuspendingBusiness(null);
+    fetchBusinesses();
+  };
+
+  const handleUnsuspend = async (business: Business) => {
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        is_suspended: false,
+        suspension_reason: null,
+      })
+      .eq("id", business.id);
+
+    if (error) {
+      toast.error("Failed to unsuspend business");
+      return;
+    }
+    
+    // Send unsuspension notification email
+    if (business.email) {
+      try {
+        const { data: template } = await supabase
+          .from("email_templates")
+          .select("subject, body")
+          .eq("name", "account_unsuspended")
+          .eq("is_active", true)
+          .maybeSingle();
+
+        if (template) {
+          const variables: Record<string, string> = {
             business_name: business.business_name || business.contact_name || "Partner",
-            suspension_reason: suspensionReason,
             current_year: new Date().getFullYear().toString(),
           };
 
@@ -219,21 +290,18 @@ export default function AdminBusinesses() {
               to: business.email,
               subject,
               html,
-              templateName: "account_suspended",
+              templateName: "account_unsuspended",
             },
           });
           
-          toast.success("Suspension email sent to business");
+          toast.success("Reactivation email sent to business");
         }
       } catch (emailError) {
-        console.error("Failed to send suspension email:", emailError);
-        // Don't block the suspension if email fails
+        console.error("Failed to send unsuspension email:", emailError);
       }
     }
     
-    toast.success(
-      isSuspending ? "Business suspended" : "Business unsuspended"
-    );
+    toast.success("Business unsuspended");
     fetchBusinesses();
   };
 
@@ -515,22 +583,23 @@ export default function AdminBusinesses() {
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => toggleSuspension(business)}
-                              className={business.is_suspended ? "text-green-500" : "text-destructive"}
-                            >
-                              {business.is_suspended ? (
-                                <>
-                                  <CheckCircle className="w-4 h-4 mr-2" />
-                                  Unsuspend
-                                </>
-                              ) : (
-                                <>
-                                  <Ban className="w-4 h-4 mr-2" />
-                                  Suspend
-                                </>
-                              )}
-                            </DropdownMenuItem>
+                            {business.is_suspended ? (
+                              <DropdownMenuItem
+                                onClick={() => handleUnsuspend(business)}
+                                className="text-green-500"
+                              >
+                                <CheckCircle className="w-4 h-4 mr-2" />
+                                Unsuspend
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem
+                                onClick={() => openSuspendDialog(business)}
+                                className="text-destructive"
+                              >
+                                <Ban className="w-4 h-4 mr-2" />
+                                Suspend
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </td>
@@ -794,6 +863,48 @@ export default function AdminBusinesses() {
             >
               {sendingEmail && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Send Email
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Suspend Business Dialog */}
+      <Dialog open={isSuspendDialogOpen} onOpenChange={setIsSuspendDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Ban className="w-5 h-5" />
+              Suspend Business
+            </DialogTitle>
+            <DialogDescription>
+              Suspend {suspendingBusiness?.business_name || suspendingBusiness?.contact_name}'s account. They will be notified via email.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="suspension-reason">Reason for Suspension</Label>
+              <textarea
+                id="suspension-reason"
+                className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                placeholder="Enter the reason for suspension (will be included in the email)..."
+                value={suspensionReason}
+                onChange={(e) => setSuspensionReason(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                If left empty, a default reason will be used.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsSuspendDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={handleSuspend}
+            >
+              <Ban className="w-4 h-4 mr-2" />
+              Suspend Account
             </Button>
           </DialogFooter>
         </DialogContent>
