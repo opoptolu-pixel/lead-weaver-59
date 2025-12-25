@@ -1,10 +1,25 @@
+import { useEffect } from "react";
 import { CheckCircle, Clock, Phone, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { SEOHead } from "@/components/SEOHead";
+import { trackCleaningRequest } from "@/lib/analytics";
 
 const RequestCleaningThankYou = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Fire conversion event on page load
+  useEffect(() => {
+    const state = location.state as { jobType?: string; postcode?: string; estimatedValue?: string } | null;
+    if (state?.jobType) {
+      trackCleaningRequest({
+        jobType: state.jobType,
+        postcode: state.postcode || '',
+        estimatedValue: state.estimatedValue,
+      });
+    }
+  }, [location.state]);
 
   return (
     <>

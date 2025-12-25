@@ -5,6 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { HelpCircle, Mail, Phone, MapPin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { trackEnquiry } from "@/lib/analytics";
 
 export const RegistrationForm = () => {
   const { toast } = useToast();
@@ -31,6 +32,9 @@ export const RegistrationForm = () => {
       });
 
       if (error) throw error;
+
+      // Track as enquiry (not lead)
+      trackEnquiry({ source: 'business_enquiry' });
 
       toast({
         title: "Thanks for your interest!",

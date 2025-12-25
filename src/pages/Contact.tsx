@@ -10,7 +10,7 @@ import { Mail, Phone, MapPin, Building2, Clock, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
-import { trackContactSubmission } from "@/lib/analytics";
+import { trackEnquiry } from "@/lib/analytics";
 
 const contactSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
@@ -73,8 +73,9 @@ const Contact = () => {
         throw error;
       }
 
-      // Track conversion in GA4
-      trackContactSubmission({
+      // Track as enquiry (not lead)
+      trackEnquiry({
+        source: 'contact_form',
         subject: formData.subject,
       });
 
