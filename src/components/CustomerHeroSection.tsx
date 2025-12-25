@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { MoppingCharacter } from "@/components/MoppingCharacter";
+
 
 // Cleaning types matching request cleaning page
 const cleaningTypes = [
@@ -134,9 +134,7 @@ export const CustomerHeroSection = () => {
 
           {/* Search form - Type + Postcode */}
           <form onSubmit={handleSearch} className="animate-slide-up stagger-3 relative z-20">
-            {/* Animated mopping character */}
             <div className="relative max-w-2xl mx-auto">
-              <MoppingCharacter />
               <div className="flex flex-col sm:flex-row gap-3 bg-background p-2 rounded-2xl shadow-2xl">
               {/* Cleaning Type Dropdown */}
               <div className="relative flex-1" ref={typeDropdownRef}>
