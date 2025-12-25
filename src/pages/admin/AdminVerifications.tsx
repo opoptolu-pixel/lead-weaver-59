@@ -202,10 +202,21 @@ export default function AdminVerifications() {
   };
 
   const getDocumentUrl = async (filePath: string) => {
-    const { data } = await supabase.storage
-      .from("verification-documents")
-      .createSignedUrl(filePath, 60);
-    return data?.signedUrl;
+    try {
+      const { data, error } = await supabase.functions.invoke("get-signed-url", {
+        body: { filePath, bucket: "verification-documents", expiresIn: 300 },
+      });
+      
+      if (error) {
+        console.error("Error getting signed URL:", error);
+        return null;
+      }
+      
+      return data?.signedUrl;
+    } catch (err) {
+      console.error("Failed to get signed URL:", err);
+      return null;
+    }
   };
 
   const handleViewDocument = async (doc: VerificationDoc) => {
