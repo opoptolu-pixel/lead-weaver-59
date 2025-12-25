@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useTransition } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Search, Sparkles, ChevronDown, Check, MapPin, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,7 +44,6 @@ export const CustomerHeroSection = () => {
   const typeDropdownRef = useRef<HTMLDivElement>(null);
   const postcodeRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-  const [isPending, startTransition] = useTransition();
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -101,10 +100,8 @@ export const CustomerHeroSection = () => {
       // Track CTA click
       trackCTAClick("Get Quotes", "hero_section");
       
-      // Use startTransition to prevent UI blocking during navigation
-      startTransition(() => {
-        navigate(`/request-cleaning?type=${encodeURIComponent(selectedType.id)}&postcode=${encodeURIComponent(postcode.trim().toUpperCase())}`);
-      });
+      // Navigate directly without transition
+      navigate(`/request-cleaning?type=${encodeURIComponent(selectedType.id)}&postcode=${encodeURIComponent(postcode.trim().toUpperCase())}`);
     }
   };
 
