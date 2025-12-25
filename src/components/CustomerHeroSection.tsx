@@ -132,7 +132,7 @@ export const CustomerHeroSection = () => {
       <div className="relative container mx-auto px-4 py-12">
         <div className="max-w-3xl mx-auto text-center">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 bg-secondary/20 backdrop-blur-sm border border-secondary/30 rounded-full px-4 py-2 mb-8 animate-slide-up">
+          <div className="inline-flex items-center gap-2 bg-secondary/20 backdrop-blur-sm border border-secondary/30 rounded-full px-4 py-2 mb-8">
             <Sparkles className="w-4 h-4 text-secondary" aria-hidden="true" />
             <span className="text-secondary-foreground text-sm font-medium">
               Get Free Quotes in 24 Hours
@@ -140,17 +140,17 @@ export const CustomerHeroSection = () => {
           </div>
 
           {/* Main headline - Customer focused with strong SEO keywords */}
-          <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground mb-6 leading-tight animate-slide-up stagger-1">
+          <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground mb-6 leading-tight">
             Find Trusted <span className="text-secondary">Cleaning Services</span> Near You
           </h1>
 
           {/* Subheadline with SEO-friendly copy */}
-          <p className="text-lg md:text-xl text-primary-foreground/80 mb-10 max-w-xl mx-auto animate-slide-up stagger-2">
+          <p className="text-lg md:text-xl text-primary-foreground/80 mb-10 max-w-xl mx-auto">
             Connect with verified local cleaners for deep cleaning, end of tenancy, carpet cleaning and more. Fast, free, and no obligation.
           </p>
 
           {/* Search form - Type + Postcode */}
-          <form onSubmit={handleSearch} className="animate-slide-up stagger-3 relative z-20">
+          <form onSubmit={handleSearch} className="relative z-20">
             <div className="relative max-w-2xl mx-auto">
               <div className="flex flex-col sm:flex-row gap-3 bg-background p-2 rounded-2xl shadow-2xl">
               {/* Cleaning Type Dropdown */}
@@ -260,9 +260,8 @@ export const CustomerHeroSection = () => {
             </div>
           </form>
 
-          {/* Trust indicators - completely hidden when any dropdown is open */}
           {!isTypeOpen && !showPostcodeSuggestions && (
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-primary-foreground/70 text-sm animate-fade-in stagger-4">
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-primary-foreground/70 text-sm">
               <div className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-secondary" />
                 <span>100% Free</span>
