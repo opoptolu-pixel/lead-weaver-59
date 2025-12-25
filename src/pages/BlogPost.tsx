@@ -5,6 +5,7 @@ import { Footer } from "@/components/Footer";
 import { SEOHead } from "@/components/SEOHead";
 import { Button } from "@/components/ui/button";
 import { ScrollReveal } from "@/components/ScrollReveal";
+import { SocialShareButtons } from "@/components/SocialShareButtons";
 import { cn } from "@/lib/utils";
 import { 
   getPostBySlug, 
@@ -186,8 +187,17 @@ const BlogPost = () => {
             </div>
           </ScrollReveal>
 
-          {/* Tags/Keywords */}
+          {/* Social Sharing */}
           <div className="mt-10 pt-6 border-t border-border">
+            <SocialShareButtons 
+              url={`https://deepcleanuk.com/blog/${post.slug}`}
+              title={post.title}
+              description={post.metaDescription}
+            />
+          </div>
+
+          {/* Tags/Keywords */}
+          <div className="mt-8 pt-6 border-t border-border">
             <div className="flex items-center gap-2 flex-wrap">
               <Tag className="w-4 h-4 text-muted-foreground" />
               {post.keywords.map((keyword, index) => (

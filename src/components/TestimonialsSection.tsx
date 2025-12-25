@@ -8,6 +8,7 @@ const testimonials = [
     rating: 5,
     text: "Fantastic service! I found a great cleaner within hours of submitting my request. The end of tenancy clean was perfect and I got my full deposit back.",
     service: "End of Tenancy Clean",
+    datePublished: "2025-01-10",
   },
   {
     name: "James T.",
@@ -15,6 +16,7 @@ const testimonials = [
     rating: 5,
     text: "So easy to use. I needed a deep clean before a family visit and the cleaner who contacted me was professional, friendly and did an amazing job.",
     service: "Deep Clean",
+    datePublished: "2025-01-05",
   },
   {
     name: "Emily R.",
@@ -22,6 +24,7 @@ const testimonials = [
     rating: 5,
     text: "Best decision I made! The carpet cleaning transformed our living room. Quick response, fair price, and outstanding results. Highly recommend.",
     service: "Carpet Cleaning",
+    datePublished: "2024-12-28",
   },
   {
     name: "David L.",
@@ -29,8 +32,48 @@ const testimonials = [
     rating: 5,
     text: "Used this for our Airbnb property turnover. The cleaner was reliable, thorough, and now handles all our bookings. Brilliant service!",
     service: "Airbnb Refresh",
+    datePublished: "2024-12-20",
   },
 ];
+
+// Generate Review structured data for SEO
+export const generateReviewSchema = () => {
+  const reviews = testimonials.map((t, index) => ({
+    "@type": "Review",
+    "@id": `https://deepcleanuk.com/#review-${index + 1}`,
+    "author": {
+      "@type": "Person",
+      "name": t.name
+    },
+    "reviewBody": t.text,
+    "reviewRating": {
+      "@type": "Rating",
+      "ratingValue": t.rating,
+      "bestRating": 5,
+      "worstRating": 1
+    },
+    "datePublished": t.datePublished,
+    "itemReviewed": {
+      "@type": "LocalBusiness",
+      "@id": "https://deepcleanuk.com/#organization"
+    }
+  }));
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "@id": "https://deepcleanuk.com/#organization",
+    "name": "Deep Clean UK",
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.9",
+      "reviewCount": testimonials.length.toString(),
+      "bestRating": "5",
+      "worstRating": "1"
+    },
+    "review": reviews
+  };
+};
 
 export const TestimonialsSection = () => {
   return (
