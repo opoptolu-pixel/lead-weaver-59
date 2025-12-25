@@ -29,12 +29,69 @@
     <priority>0.9</priority>
   </url>
   
-  <!-- Blog -->
+  <!-- Blog Index -->
   <url>
     <loc>https://deepcleanuk.com/blog</loc>
     <lastmod>2025-06-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+  </url>
+  
+  <!-- Blog Posts -->
+  <url>
+    <loc>https://deepcleanuk.com/blog/ultimate-guide-deep-cleaning-your-home</loc>
+    <lastmod>2025-01-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>https://deepcleanuk.com/blog/how-to-remove-carpet-stains</loc>
+    <lastmod>2025-01-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>https://deepcleanuk.com/blog/end-of-tenancy-cleaning-checklist</loc>
+    <lastmod>2025-01-05</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>https://deepcleanuk.com/blog/how-to-clean-sofa-upholstery</loc>
+    <lastmod>2024-12-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>https://deepcleanuk.com/blog/spring-cleaning-tips-uk</loc>
+    <lastmod>2024-12-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>https://deepcleanuk.com/blog/commercial-cleaning-benefits</loc>
+    <lastmod>2024-12-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>https://deepcleanuk.com/blog/choosing-right-cleaning-service</loc>
+    <lastmod>2024-12-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>https://deepcleanuk.com/blog/mattress-cleaning-guide</loc>
+    <lastmod>2024-12-05</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
   </url>
   
   <!-- Contact Page -->
@@ -45,7 +102,7 @@
     <priority>0.7</priority>
   </url>
   
-  <!-- Thank You Page (indexed for brand consistency) -->
+  <!-- Thank You Page -->
   <url>
     <loc>https://deepcleanuk.com/request-cleaning/thank-you</loc>
     <lastmod>2025-06-25</lastmod>

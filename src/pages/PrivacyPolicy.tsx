@@ -3,12 +3,31 @@ import { Footer } from "@/components/Footer";
 import { SEOHead } from "@/components/SEOHead";
 
 const PrivacyPolicy = () => {
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "@id": "https://deepcleanuk.com/privacy-policy#webpage",
+    "url": "https://deepcleanuk.com/privacy-policy",
+    "name": "Privacy Policy | Deep Clean UK",
+    "description": "Learn how Deep Clean UK collects, uses, and protects your personal information.",
+    "isPartOf": { "@id": "https://deepcleanuk.com/#website" },
+    "about": { "@id": "https://deepcleanuk.com/#organization" },
+    "breadcrumb": {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://deepcleanuk.com" },
+        { "@type": "ListItem", "position": 2, "name": "Privacy Policy", "item": "https://deepcleanuk.com/privacy-policy" }
+      ]
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <SEOHead
-        title="Privacy Policy"
+        title="Privacy Policy | Deep Clean UK"
         description="Learn how Deep Clean UK collects, uses, and protects your personal information. Our privacy policy explains your data rights and our commitment to data security."
         canonical="https://deepcleanuk.com/privacy-policy"
+        structuredData={structuredData}
       />
       <Header />
       <main className="container mx-auto px-4 py-16 max-w-4xl">

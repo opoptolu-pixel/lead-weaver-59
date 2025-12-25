@@ -3,12 +3,31 @@ import { Footer } from "@/components/Footer";
 import { SEOHead } from "@/components/SEOHead";
 
 const TermsOfUse = () => {
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "@id": "https://deepcleanuk.com/terms-of-use#webpage",
+    "url": "https://deepcleanuk.com/terms-of-use",
+    "name": "Terms of Use | Deep Clean UK",
+    "description": "Read the terms and conditions for using Deep Clean UK's lead generation platform.",
+    "isPartOf": { "@id": "https://deepcleanuk.com/#website" },
+    "about": { "@id": "https://deepcleanuk.com/#organization" },
+    "breadcrumb": {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://deepcleanuk.com" },
+        { "@type": "ListItem", "position": 2, "name": "Terms of Use", "item": "https://deepcleanuk.com/terms-of-use" }
+      ]
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <SEOHead
-        title="Terms of Use"
+        title="Terms of Use | Deep Clean UK"
         description="Read the terms and conditions for using Deep Clean UK's lead generation platform. Understand your rights and responsibilities as a registered user."
         canonical="https://deepcleanuk.com/terms-of-use"
+        structuredData={structuredData}
       />
       <Header />
       <main className="container mx-auto px-4 py-16 max-w-4xl">
