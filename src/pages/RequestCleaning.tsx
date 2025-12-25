@@ -67,6 +67,8 @@ export default function RequestCleaning() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [postcodeError, setPostcodeError] = useState("");
+  const [phoneError, setPhoneError] = useState("");
+  const [isValidatingPhone, setIsValidatingPhone] = useState(false);
   const [formData, setFormData] = useState({
     jobType: "",
     jobValue: "",
@@ -107,10 +109,51 @@ export default function RequestCleaning() {
 
   const progress = (currentStep / TOTAL_STEPS) * 100;
 
+  // Validate phone number using Twilio Lookup
+  const validatePhone = async (phone: string): Promise<boolean> => {
+    if (!phone || phone.length < 10) return false;
+    
+    setIsValidatingPhone(true);
+    setPhoneError("");
+    
+    try {
+      const { data, error } = await supabase.functions.invoke("validate-phone", {
+        body: { phone },
+      });
+
+      if (error) {
+        console.error("Phone validation error:", error);
+        // Fail open - allow submission if validation service is down
+        return true;
+      }
+
+      if (!data.valid) {
+        setPhoneError(data.error || "Please enter a valid UK phone number");
+        return false;
+      }
+
+      return true;
+    } catch (err) {
+      console.error("Phone validation exception:", err);
+      // Fail open
+      return true;
+    } finally {
+      setIsValidatingPhone(false);
+    }
+  };
+
   const handleSubmit = async () => {
     setIsSubmitting(true);
 
     try {
+      // Validate phone before submission
+      const isPhoneValid = await validatePhone(formData.customerPhone);
+      if (!isPhoneValid) {
+        setIsSubmitting(false);
+        toast.error("Please provide a valid phone number");
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke("submit-cleaning-request", {
         body: {
           ...formData,
@@ -122,7 +165,7 @@ export default function RequestCleaning() {
       });
 
       if (error) throw error;
-      if (data.error) throw new Error(data.error);
+      if (data.error) throw new Error(data.message || data.error);
 
       toast.success("Your cleaning request has been submitted!");
       navigate("/request-cleaning/thank-you");
@@ -141,7 +184,7 @@ export default function RequestCleaning() {
       case 2:
         return formData.postcode.length >= 5 && validatePostcode(formData.postcode);
       case 3:
-        return formData.customerName && formData.customerEmail && formData.customerPhone;
+        return formData.customerName && formData.customerEmail && formData.customerPhone && !phoneError;
       case 4:
         return formData.dateFrom !== "";
       default:
@@ -368,15 +411,37 @@ export default function RequestCleaning() {
                         className="pl-12 h-12 border-2 border-gray-200 focus:border-primary rounded-xl"
                       />
                     </div>
-                    <div className="relative">
-                      <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                      <Input
-                        type="tel"
-                        value={formData.customerPhone}
-                        onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
-                        placeholder="Phone number"
-                        className="pl-12 h-12 border-2 border-gray-200 focus:border-primary rounded-xl"
-                      />
+                    <div>
+                      <div className="relative">
+                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <Input
+                          type="tel"
+                          value={formData.customerPhone}
+                          onChange={(e) => {
+                            setFormData({ ...formData, customerPhone: e.target.value });
+                            setPhoneError(""); // Clear error on change
+                          }}
+                          onBlur={async () => {
+                            // Validate on blur if phone is long enough
+                            if (formData.customerPhone.length >= 10) {
+                              await validatePhone(formData.customerPhone);
+                            }
+                          }}
+                          placeholder="Phone number (e.g. 07123 456789)"
+                          className={cn(
+                            "pl-12 h-12 border-2 rounded-xl transition-colors",
+                            phoneError 
+                              ? "border-destructive focus:border-destructive" 
+                              : "border-gray-200 focus:border-primary"
+                          )}
+                        />
+                        {isValidatingPhone && (
+                          <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 animate-spin" />
+                        )}
+                      </div>
+                      {phoneError && (
+                        <p className="mt-1 text-sm text-destructive">{phoneError}</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -449,7 +514,7 @@ export default function RequestCleaning() {
                 <Button
                   type="button"
                   onClick={handleNext}
-                  disabled={!canProceed() || isSubmitting}
+                  disabled={!canProceed() || isSubmitting || isValidatingPhone}
                   className="gap-2 bg-secondary hover:bg-secondary/90 text-secondary-foreground px-8 h-12 rounded-xl shadow-lg shadow-secondary/30 font-semibold"
                 >
                   {isSubmitting ? (
