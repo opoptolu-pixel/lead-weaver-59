@@ -70,60 +70,61 @@ const isValidPostcodePrefix = (postcode: string): boolean => {
   return UK_POSTCODE_PREFIX_REGEX.test(cleaned) || UK_POSTCODE_REGEX.test(cleaned);
 };
 
-export default function RequestCleaning() {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const [currentStep, setCurrentStep] = useState(1);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [postcodeError, setPostcodeError] = useState("");
-  const [phoneError, setPhoneError] = useState("");
-  const [isValidatingPhone, setIsValidatingPhone] = useState(false);
-  const [formData, setFormData] = useState({
-    jobType: "",
-    jobValue: "",
-    postcode: "",
+// Get initial values from URL params (computed once, not in useEffect)
+const getInitialFormState = () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const typeParam = urlParams.get("type");
+  const postcodeParam = urlParams.get("postcode");
+  const matchedType = cleaningTypes.find(t => t.id === typeParam);
+  const postcodeValue = postcodeParam?.toUpperCase() || "";
+  
+  return {
+    jobType: matchedType?.label || "",
+    jobValue: matchedType?.value || "",
+    postcode: postcodeValue,
     customerName: "",
     customerEmail: "",
     customerPhone: "",
     dateFrom: "",
     dateTo: "",
-  });
+  };
+};
 
-  // Pre-populate from URL params
-  useEffect(() => {
-    const typeParam = searchParams.get("type");
-    const postcodeParam = searchParams.get("postcode");
-    
-    if (typeParam || postcodeParam) {
-      const matchedType = cleaningTypes.find(t => t.id === typeParam);
-      const postcodeValue = postcodeParam?.toUpperCase() || "";
-      
-      setFormData(prev => ({
-        ...prev,
-        jobType: matchedType?.label || prev.jobType,
-        jobValue: matchedType?.value || prev.jobValue,
-        postcode: postcodeValue,
-      }));
-      
-      // Skip to appropriate step based on what data we have
-      if (matchedType && postcodeValue) {
-        // If we have a full valid postcode, go to step 3 (contact)
-        // If we only have a postcode prefix, go to step 2 (postcode) to complete it
-        if (validatePostcode(postcodeValue)) {
-          setCurrentStep(3); // Full postcode - go to contact details
-        } else if (isValidPostcodePrefix(postcodeValue)) {
-          setCurrentStep(2); // Partial postcode - stay on postcode step to complete it
-        } else {
-          setCurrentStep(2); // Invalid - go to postcode step
-        }
-      } else if (matchedType) {
-        setCurrentStep(2); // Go to postcode step
-      }
+const getInitialStep = () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const typeParam = urlParams.get("type");
+  const postcodeParam = urlParams.get("postcode");
+  const matchedType = cleaningTypes.find(t => t.id === typeParam);
+  const postcodeValue = postcodeParam?.toUpperCase() || "";
+  
+  if (matchedType && postcodeValue) {
+    if (validatePostcode(postcodeValue)) {
+      return 3; // Full postcode - go to contact details
+    } else if (isValidPostcodePrefix(postcodeValue)) {
+      return 2; // Partial postcode - stay on postcode step
+    } else {
+      return 2; // Invalid - go to postcode step
     }
-    
-    // Scroll to top on page load
+  } else if (matchedType) {
+    return 2; // Go to postcode step
+  }
+  return 1;
+};
+
+export default function RequestCleaning() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [currentStep, setCurrentStep] = useState(getInitialStep);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [postcodeError, setPostcodeError] = useState("");
+  const [phoneError, setPhoneError] = useState("");
+  const [isValidatingPhone, setIsValidatingPhone] = useState(false);
+  const [formData, setFormData] = useState(getInitialFormState);
+
+  // Scroll to top on page load only
+  useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
-  }, [searchParams]);
+  }, []);
 
   const progress = (currentStep / TOTAL_STEPS) * 100;
 
