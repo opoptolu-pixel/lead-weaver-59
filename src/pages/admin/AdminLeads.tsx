@@ -20,6 +20,8 @@ import {
   Ban,
   Info,
   GripVertical,
+  Home,
+  BedDouble,
 } from "lucide-react";
 import { usePagination } from "@/hooks/usePagination";
 import { PaginationControls } from "@/components/admin/PaginationControls";
@@ -88,7 +90,10 @@ interface Lead {
   outcome_status: string | null;
   outcome_notes: string | null;
   lost_reason: string | null;
-  // New confirmation fields
+  // Property details
+  property_type: string | null;
+  bedrooms: string | null;
+  // Confirmation fields
   confirmation_sent_at: string | null;
   confirmation_response: string | null;
   auto_publish_at: string | null;
@@ -861,6 +866,24 @@ export default function AdminLeads() {
                             <span>{format(new Date(lead.date), "d MMM")}</span>
                           </div>
 
+                          {/* Property Details */}
+                          {(lead.property_type || lead.bedrooms) && (
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {lead.property_type && (
+                                <Badge variant="outline" className="text-xs bg-blue-500/10 text-blue-600 border-blue-500/30">
+                                  <Home className="w-3 h-3 mr-1" />
+                                  {lead.property_type}
+                                </Badge>
+                              )}
+                              {lead.bedrooms && (
+                                <Badge variant="outline" className="text-xs bg-purple-500/10 text-purple-600 border-purple-500/30">
+                                  <BedDouble className="w-3 h-3 mr-1" />
+                                  {lead.bedrooms}
+                                </Badge>
+                              )}
+                            </div>
+                          )}
+
                           {/* Source */}
                           <div className="mt-2">
                             {getSourceBadge(lead.source)}
@@ -1182,6 +1205,24 @@ export default function AdminLeads() {
                       <Label className="text-muted-foreground text-xs">Lead Received</Label>
                       <p className="font-medium">{format(new Date(selectedLead.created_at), "d MMM yyyy HH:mm")}</p>
                     </div>
+                    {selectedLead.property_type && (
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground text-xs">Property Type</Label>
+                        <p className="font-medium flex items-center gap-1">
+                          <Home className="w-4 h-4 text-blue-500" />
+                          {selectedLead.property_type}
+                        </p>
+                      </div>
+                    )}
+                    {selectedLead.bedrooms && (
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground text-xs">Bedrooms</Label>
+                        <p className="font-medium flex items-center gap-1">
+                          <BedDouble className="w-4 h-4 text-purple-500" />
+                          {selectedLead.bedrooms}
+                        </p>
+                      </div>
+                    )}
                   </div>
                   {selectedLead.job_notes && (
                     <div className="space-y-1 mt-4">
