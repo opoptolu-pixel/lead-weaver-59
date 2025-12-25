@@ -52,7 +52,7 @@ const cleaningTypes = [
   { id: "multi-room-upholstery", label: "Multi-Room + Upholstery Deep Clean", icon: Sofa, color: "bg-purple-100 text-purple-600", value: "from £160", phase: 2 },
 ];
 
-const TOTAL_STEPS = 7;
+const TOTAL_STEPS = 6;
 
 // Property types for step 3
 const propertyTypes = [
@@ -75,15 +75,6 @@ const bedroomOptions = [
   { id: "other", label: "Other" },
 ];
 
-// Frequency options for step 5
-const frequencyOptions = [
-  { id: "one-time", label: "One-time clean" },
-  { id: "weekly", label: "Weekly" },
-  { id: "twice-a-week", label: "Twice a week" },
-  { id: "every-other-week", label: "Every other week" },
-  { id: "monthly", label: "Once a month" },
-  { id: "daily", label: "Daily" },
-];
 
 // UK Postcode validation regex - full postcode
 const UK_POSTCODE_REGEX = /^([A-Z]{1,2}[0-9][0-9A-Z]?\s?[0-9][A-Z]{2})$/i;
@@ -140,7 +131,6 @@ export default function RequestCleaning() {
       propertyTypeOther: "",
       bedrooms: "",
       bedroomsOther: "",
-      frequency: "",
       customerName: "",
       customerEmail: "",
       customerPhone: "",
@@ -215,7 +205,6 @@ export default function RequestCleaning() {
           estimatedValue: formData.jobValue,
           propertyType: formData.propertyType === "other" ? formData.propertyTypeOther : formData.propertyType,
           bedrooms: formData.propertyType === "commercial" ? null : (formData.bedrooms === "other" ? formData.bedroomsOther : formData.bedrooms),
-          frequency: formData.frequency,
         },
       });
 
@@ -261,10 +250,8 @@ export default function RequestCleaning() {
         }
         return formData.bedrooms !== "";
       case 5:
-        return formData.frequency !== "";
-      case 6:
         return formData.customerName && formData.customerEmail && formData.customerPhone && !phoneError;
-      case 7:
+      case 6:
         return formData.dateFrom !== "";
       default:
         return false;
@@ -280,7 +267,7 @@ export default function RequestCleaning() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const stepNames = ['Service Type', 'Location', 'Property Type', 'Bedrooms', 'Frequency', 'Contact Details', 'Preferred Dates'];
+  const stepNames = ['Service Type', 'Location', 'Property Type', 'Bedrooms', 'Contact Details', 'Preferred Dates'];
   
   // Should we skip the bedrooms step?
   const shouldSkipBedrooms = formData.propertyType === "commercial";
@@ -291,7 +278,7 @@ export default function RequestCleaning() {
       
       // Skip bedrooms step (4) if commercial property
       if (nextStep === 4 && shouldSkipBedrooms) {
-        nextStep = 5;
+        nextStep = 5; // Skip to Contact Details
       }
       
       setCurrentStep(nextStep);
@@ -654,58 +641,8 @@ export default function RequestCleaning() {
               </div>
             )}
 
-            {/* Step 5: Frequency */}
+            {/* Step 5: Contact Details */}
             {currentStep === 5 && (
-              <div className="flex-1 flex flex-col">
-                <h2 className="font-heading text-2xl lg:text-3xl font-bold text-gray-900 text-center mb-2">
-                  How often do you need cleaning?
-                </h2>
-                <p className="text-gray-500 text-center mb-8">
-                  Choose what works best for you
-                </p>
-
-                <div className="flex-1">
-                  <div className="bg-gray-50 rounded-2xl border border-gray-200 divide-y divide-gray-200 overflow-hidden">
-                    {frequencyOptions.map((option) => {
-                      const isSelected = formData.frequency === option.id;
-                      return (
-                        <label
-                          key={option.id}
-                          className={cn(
-                            "flex items-center gap-4 p-4 cursor-pointer transition-colors hover:bg-gray-100",
-                            isSelected && "bg-primary/5"
-                          )}
-                        >
-                          <div className={cn(
-                            "w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0",
-                            isSelected ? "border-primary bg-primary" : "border-gray-300"
-                          )}>
-                            {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
-                          </div>
-                          <span className={cn(
-                            "text-base font-medium",
-                            isSelected ? "text-primary" : "text-gray-700"
-                          )}>
-                            {option.label}
-                          </span>
-                          <input
-                            type="radio"
-                            name="frequency"
-                            value={option.id}
-                            checked={isSelected}
-                            onChange={() => setFormData({ ...formData, frequency: option.id })}
-                            className="sr-only"
-                          />
-                        </label>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Step 6: Contact Details */}
-            {currentStep === 6 && (
               <div className="flex-1 flex flex-col">
                 <h2 className="font-heading text-2xl lg:text-3xl font-bold text-gray-900 text-center mb-2">
                   How can cleaners reach you?
@@ -773,8 +710,8 @@ export default function RequestCleaning() {
               </div>
             )}
 
-            {/* Step 7: Date Range */}
-            {currentStep === 7 && (
+            {/* Step 6: Date Range */}
+            {currentStep === 6 && (
               <div className="flex-1 flex flex-col">
                 <h2 className="font-heading text-2xl lg:text-3xl font-bold text-gray-900 text-center mb-2">
                   When would you like the cleaning?
