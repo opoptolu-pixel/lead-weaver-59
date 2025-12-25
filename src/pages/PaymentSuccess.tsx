@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Logo } from "@/components/Logo";
+import { trackLeadUnlock } from "@/lib/analytics";
 
 interface LeadDetails {
   id: string;
@@ -53,6 +54,13 @@ export default function PaymentSuccess() {
         if (data.error) throw new Error(data.error);
 
         setResult(data);
+        
+        // Track lead unlock conversion in GA4
+        trackLeadUnlock({
+          leadValue: parseFloat(data.lead.display_value?.replace(/[^0-9.]/g, '') || '5'),
+          jobType: data.lead.job_type,
+        });
+        
         toast.success("Lead unlocked successfully!");
       } catch (err) {
         console.error("Verification error:", err);

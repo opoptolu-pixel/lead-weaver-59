@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Logo } from "@/components/Logo";
+import { trackCreditPurchase } from "@/lib/analytics";
 
 export default function CreditsSuccess() {
   const [searchParams] = useSearchParams();
@@ -37,6 +38,13 @@ export default function CreditsSuccess() {
 
         setCreditsAdded(data.creditsAdded);
         setTotalCredits(data.totalCredits);
+        
+        // Track credit purchase conversion in GA4
+        trackCreditPurchase({
+          amount: data.amountPaid || data.creditsAdded * 1, // fallback if amount not returned
+          credits: data.creditsAdded,
+        });
+        
         await refreshProfile();
         toast.success(`${data.creditsAdded} credits added to your account!`);
       } catch (err) {

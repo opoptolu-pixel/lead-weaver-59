@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { trackCreditPurchase, trackCTAClick } from "@/lib/analytics";
+import { trackCTAClick } from "@/lib/analytics";
 
 const pricingTiers = [
   {
@@ -86,12 +86,7 @@ export const Pricing = () => {
       if (error) throw error;
 
       if (data?.url) {
-        // Track credit purchase initiation
-        const credits = tier.name === "5 Lead Bundle" ? 5 : tier.name === "10 Lead Bundle" ? 10 : 1;
-        const amount = parseInt(tier.price.replace(/[^0-9]/g, ''));
-        trackCreditPurchase({ amount, credits });
         trackCTAClick(tier.cta, "pricing_section");
-        
         window.location.href = data.url;
       }
     } catch (error: any) {
