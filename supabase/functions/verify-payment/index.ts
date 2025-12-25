@@ -112,9 +112,9 @@ serve(async (req) => {
           const magicLink = magicLinkData.properties?.action_link;
           
           await resend.emails.send({
-            from: "Shine Leads <onboarding@resend.dev>",
+            from: "Deep Clean UK <noreply@deepcleanco.uk>",
             to: [customerEmail],
-            subject: "Welcome to Shine Leads - Access Your Account",
+            subject: "Welcome to Deep Clean UK - Access Your Account",
             html: `
               <!DOCTYPE html>
               <html>
@@ -123,8 +123,9 @@ serve(async (req) => {
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
               </head>
               <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-                <div style="background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
-                  <h1 style="color: #ffffff; margin: 0; font-size: 28px;">Welcome to Shine Leads!</h1>
+                <div style="background: linear-gradient(135deg, #0B3D2E 0%, #145A44 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+                  <h1 style="color: #ffffff; margin: 0; font-size: 28px;">Welcome to Deep Clean UK!</h1>
+                  <p style="color: #7DD3A8; margin: 8px 0 0 0; font-size: 14px;">Partner Network</p>
                 </div>
                 
                 <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e5e5; border-top: none; border-radius: 0 0 12px 12px;">
@@ -137,7 +138,7 @@ serve(async (req) => {
                   </p>
                   
                   <div style="text-align: center; margin: 30px 0;">
-                    <a href="${magicLink}" style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; padding: 14px 40px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; display: inline-block;">
+                    <a href="${magicLink}" style="background: linear-gradient(135deg, #0B3D2E 0%, #145A44 100%); color: white; padding: 14px 40px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; display: inline-block;">
                       Access Your Dashboard
                     </a>
                   </div>
@@ -149,7 +150,7 @@ serve(async (req) => {
                   <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 25px 0;">
                   
                   <p style="font-size: 12px; color: #999; text-align: center;">
-                    Shine Leads - Quality Cleaning Leads for Your Business
+                    © ${new Date().getFullYear()} Deep Clean UK · All rights reserved
                   </p>
                 </div>
               </body>
