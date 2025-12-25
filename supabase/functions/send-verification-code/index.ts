@@ -89,10 +89,15 @@ serve(async (req) => {
       logStep("Rate limit check error", { error: rateError.message });
     } else if (rateCheck && rateCheck.length > 0 && !rateCheck[0].allowed) {
       const resetAt = new Date(rateCheck[0].reset_at);
-      const remainingSeconds = Math.ceil((resetAt.getTime() - Date.now()) / 1000);
-      const remainingMinutes = Math.ceil(remainingSeconds / 60);
       logStep("Rate limit exceeded", { current_count: rateCheck[0].current_count, reset_at: rateCheck[0].reset_at });
-      throw new Error(`Too many requests. Please wait ${remainingMinutes} minute${remainingMinutes > 1 ? 's' : ''} before requesting another code.`);
+      return new Response(JSON.stringify({ 
+        error: "Too many requests. Please wait before requesting another code.",
+        rateLimited: true,
+        retryAfter: resetAt.toISOString()
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 429,
+      });
     }
 
     // Generate secure 8-character alphanumeric code

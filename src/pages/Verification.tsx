@@ -39,6 +39,8 @@ export default function Verification() {
   const [verificationCode, setVerificationCode] = useState("");
   const [codeSent, setCodeSent] = useState(false);
   const [deliveryMethod, setDeliveryMethod] = useState<string | null>(null);
+  const [retryAfter, setRetryAfter] = useState<Date | null>(null);
+  const [countdown, setCountdown] = useState<number>(0);
   const [addressProof, setAddressProof] = useState<File | null>(null);
 
   useEffect(() => {
@@ -52,6 +54,26 @@ export default function Verification() {
       fetchDocuments();
     }
   }, [user]);
+
+  // Countdown timer effect
+  useEffect(() => {
+    if (!retryAfter) {
+      setCountdown(0);
+      return;
+    }
+
+    const updateCountdown = () => {
+      const remaining = Math.max(0, Math.ceil((retryAfter.getTime() - Date.now()) / 1000));
+      setCountdown(remaining);
+      if (remaining === 0) {
+        setRetryAfter(null);
+      }
+    };
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+    return () => clearInterval(interval);
+  }, [retryAfter]);
 
   const fetchDocuments = async () => {
     const { data, error } = await supabase
@@ -75,6 +97,13 @@ export default function Verification() {
       const { data, error } = await supabase.functions.invoke("send-verification-code", {
         body: { phone: profile.phone },
       });
+
+      // Handle rate limit response (429 status returns in data for edge functions)
+      if (data?.rateLimited && data?.retryAfter) {
+        setRetryAfter(new Date(data.retryAfter));
+        toast.error("Too many requests. Please wait before trying again.");
+        return;
+      }
 
       if (error) throw error;
       setCodeSent(true);
@@ -272,16 +301,26 @@ export default function Verification() {
                 )}
 
                 {profile?.phone && !codeSent && (
-                  <Button
-                    variant="cta"
-                    onClick={handleSendVerificationCode}
-                    disabled={sendingCode}
-                  >
-                    {sendingCode ? (
-                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    ) : null}
-                    Send Verification Code
-                  </Button>
+                  <div className="space-y-3">
+                    {countdown > 0 && (
+                      <div className="flex items-center gap-2 text-sm text-amber-500 bg-amber-500/10 p-3 rounded-lg">
+                        <Clock className="w-4 h-4" />
+                        <span>
+                          You can request a new code in {Math.floor(countdown / 60)}:{(countdown % 60).toString().padStart(2, '0')}
+                        </span>
+                      </div>
+                    )}
+                    <Button
+                      variant="cta"
+                      onClick={handleSendVerificationCode}
+                      disabled={sendingCode || countdown > 0}
+                    >
+                      {sendingCode ? (
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      ) : null}
+                      {countdown > 0 ? "Please Wait" : "Send Verification Code"}
+                    </Button>
+                  </div>
                 )}
 
                 {codeSent && (
@@ -301,13 +340,20 @@ export default function Verification() {
                         {verifyingCode ? <Loader2 className="w-4 h-4 animate-spin" /> : "Verify"}
                       </Button>
                     </div>
-                    <button
-                      className="text-sm text-secondary hover:underline"
-                      onClick={handleSendVerificationCode}
-                      disabled={sendingCode}
-                    >
-                      Resend code
-                    </button>
+                    {countdown > 0 ? (
+                      <p className="text-sm text-amber-500 flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        Resend available in {Math.floor(countdown / 60)}:{(countdown % 60).toString().padStart(2, '0')}
+                      </p>
+                    ) : (
+                      <button
+                        className="text-sm text-secondary hover:underline disabled:opacity-50"
+                        onClick={handleSendVerificationCode}
+                        disabled={sendingCode}
+                      >
+                        Resend code
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
