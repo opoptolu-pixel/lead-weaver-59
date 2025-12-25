@@ -363,6 +363,7 @@ export type Database = {
         Row: {
           admin_notes: string | null
           auto_publish_at: string | null
+          bedrooms: string | null
           confirmation_method: string | null
           confirmation_response: string | null
           confirmation_sent_at: string | null
@@ -374,6 +375,7 @@ export type Database = {
           date: string
           display_value: string
           expired_at: string | null
+          frequency: string | null
           id: string
           is_unlocked: boolean
           job_completed_at: string | null
@@ -386,6 +388,7 @@ export type Database = {
           outcome_status: string | null
           outcome_updated_at: string | null
           postcode: string
+          property_type: string | null
           published_at: string | null
           quality_score: number | null
           refund_reason: string | null
@@ -400,6 +403,7 @@ export type Database = {
         Insert: {
           admin_notes?: string | null
           auto_publish_at?: string | null
+          bedrooms?: string | null
           confirmation_method?: string | null
           confirmation_response?: string | null
           confirmation_sent_at?: string | null
@@ -411,6 +415,7 @@ export type Database = {
           date: string
           display_value: string
           expired_at?: string | null
+          frequency?: string | null
           id?: string
           is_unlocked?: boolean
           job_completed_at?: string | null
@@ -423,6 +428,7 @@ export type Database = {
           outcome_status?: string | null
           outcome_updated_at?: string | null
           postcode: string
+          property_type?: string | null
           published_at?: string | null
           quality_score?: number | null
           refund_reason?: string | null
@@ -437,6 +443,7 @@ export type Database = {
         Update: {
           admin_notes?: string | null
           auto_publish_at?: string | null
+          bedrooms?: string | null
           confirmation_method?: string | null
           confirmation_response?: string | null
           confirmation_sent_at?: string | null
@@ -448,6 +455,7 @@ export type Database = {
           date?: string
           display_value?: string
           expired_at?: string | null
+          frequency?: string | null
           id?: string
           is_unlocked?: boolean
           job_completed_at?: string | null
@@ -460,6 +468,7 @@ export type Database = {
           outcome_status?: string | null
           outcome_updated_at?: string | null
           postcode?: string
+          property_type?: string | null
           published_at?: string | null
           quality_score?: number | null
           refund_reason?: string | null
