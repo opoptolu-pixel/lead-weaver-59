@@ -497,7 +497,17 @@ export default function Leads() {
     });
 
     if (!result.success) {
-      toast.error(result.error || "Failed to start checkout");
+      // Show user-friendly error message
+      const errorMessage = result.error || "Failed to start checkout";
+      if (errorMessage.toLowerCase().includes("suspend")) {
+        toast.error("Your account has been suspended. Please contact support for assistance.", {
+          duration: 6000,
+        });
+      } else if (errorMessage.toLowerCase().includes("verification") || errorMessage.toLowerCase().includes("verified")) {
+        toast.error(errorMessage, { duration: 6000 });
+      } else {
+        toast.error(errorMessage);
+      }
       setUnlockingLeadId(null);
       return;
     }
@@ -535,7 +545,19 @@ export default function Leads() {
     });
 
     if (!result.success) {
-      toast.error(result.error || "Failed to unlock lead");
+      // Show user-friendly error message
+      const errorMessage = result.error || "Failed to unlock lead";
+      if (errorMessage.toLowerCase().includes("suspend")) {
+        toast.error("Your account has been suspended. Please contact support for assistance.", {
+          duration: 6000,
+        });
+      } else if (errorMessage.toLowerCase().includes("verification") || errorMessage.toLowerCase().includes("verified")) {
+        toast.error(errorMessage, { duration: 6000 });
+      } else if (errorMessage.toLowerCase().includes("credit")) {
+        toast.error(errorMessage, { duration: 5000 });
+      } else {
+        toast.error(errorMessage);
+      }
       setUsingCreditLeadId(null);
       return;
     }
