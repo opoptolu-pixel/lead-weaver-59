@@ -36,6 +36,7 @@ export const CustomerHeroSection = () => {
   const [selectedType, setSelectedType] = useState(cleaningTypes[0]);
   const [isTypeOpen, setIsTypeOpen] = useState(false);
   const [postcode, setPostcode] = useState("");
+  const [selectedCity, setSelectedCity] = useState<string | null>(null); // Track if a city was selected
   const [showPostcodeSuggestions, setShowPostcodeSuggestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [ukLocations, setUkLocations] = useState<UKLocation[]>([]);
@@ -97,34 +98,40 @@ export const CustomerHeroSection = () => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (postcode.trim()) {
-      // Track CTA click
       trackCTAClick("Get Quotes", "hero_section");
       
-      // Navigate with state instead of URL params to prevent flash
+      // If a city was selected (not a full postcode), navigate to step 2 for postcode entry
+      // Otherwise navigate with the full postcode to step 3
       navigate('/request-cleaning', {
         state: {
           type: selectedType.id,
-          postcode: postcode.trim().toUpperCase()
+          postcode: selectedCity ? "" : postcode.trim().toUpperCase(), // Empty if city, so user enters full postcode
+          cityName: selectedCity || null // Pass city name for display
         }
       });
     }
   };
 
   const handleLocationSelect = (location: UKLocation) => {
-    const postcodeValue = location.type === 'city' 
-      ? location.postcode.split(',')[0].trim() 
-      : location.postcode;
-    
-    setPostcode(postcodeValue);
     setShowPostcodeSuggestions(false);
     
-    // Auto-navigate for full postcodes, stay on page for cities/partial
-    if (location.type === 'postcode') {
+    if (location.type === 'city') {
+      // For cities, show the city name in the input and track it
+      const cityName = matchedCity 
+        ? matchedCity.charAt(0).toUpperCase() + matchedCity.slice(1)
+        : location.area.split('(')[0].trim();
+      setPostcode(cityName);
+      setSelectedCity(cityName);
+      // Don't auto-navigate for cities - user needs to click Get Quotes
+    } else {
+      // For full postcodes, set the postcode and auto-navigate
+      setPostcode(location.postcode);
+      setSelectedCity(null);
       trackCTAClick("Postcode Selected", "hero_section");
       navigate('/request-cleaning', {
         state: {
           type: selectedType.id,
-          postcode: postcodeValue.toUpperCase()
+          postcode: location.postcode.toUpperCase()
         }
       });
     }
@@ -209,7 +216,10 @@ export const CustomerHeroSection = () => {
                   type="text"
                   placeholder="Postcode or city"
                   value={postcode}
-                  onChange={(e) => setPostcode(e.target.value)}
+                  onChange={(e) => {
+                    setPostcode(e.target.value);
+                    setSelectedCity(null); // Clear city selection when user types manually
+                  }}
                   onFocus={() => setShowPostcodeSuggestions(true)}
                   className="pl-12 pr-4 h-14 text-base bg-transparent border-2 border-transparent rounded-xl focus:border-secondary tracking-wide w-full"
                 />
