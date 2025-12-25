@@ -164,8 +164,8 @@ const BlogPost = () => {
       <main className="container mx-auto px-4 py-12">
         <div className="max-w-3xl mx-auto">
           {/* Article Content */}
-          <article className="prose prose-lg max-w-none prose-headings:font-heading prose-headings:font-bold prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4 prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-3 prose-p:text-muted-foreground prose-p:leading-relaxed prose-li:text-muted-foreground prose-strong:text-foreground prose-ul:my-4 prose-ol:my-4">
-            <div dangerouslySetInnerHTML={{ __html: formatContent(post.content) }} />
+          <article className="prose prose-lg max-w-none prose-headings:font-heading prose-headings:font-bold prose-h2:text-2xl prose-h2:mt-12 prose-h2:mb-6 prose-h3:text-xl prose-h3:mt-10 prose-h3:mb-4 prose-p:text-muted-foreground prose-p:leading-loose prose-p:mb-6 prose-li:text-muted-foreground prose-li:leading-relaxed prose-li:mb-2 prose-strong:text-foreground prose-ul:my-6 prose-ul:space-y-2 prose-ol:my-6 prose-ol:space-y-2">
+            <div className="space-y-6" dangerouslySetInnerHTML={{ __html: formatContent(post.content) }} />
           </article>
 
           {/* CTA Box */}
@@ -257,35 +257,96 @@ const BlogPost = () => {
   );
 };
 
-// Helper function to convert markdown-like content to HTML
+// Helper function to convert markdown-like content to HTML with proper spacing
 function formatContent(content: string): string {
-  return content
-    // Headers
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    // Bold
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    // Lists
-    .replace(/^- \[ \] (.+)$/gm, '<li class="flex items-start gap-2"><input type="checkbox" disabled class="mt-1.5" /><span>$1</span></li>')
-    .replace(/^- (.+)$/gm, '<li>$1</li>')
-    .replace(/^(\d+)\. (.+)$/gm, '<li>$2</li>')
-    // Paragraphs
-    .replace(/\n\n/g, '</p><p>')
-    // Wrap in paragraph
-    .replace(/^(.+)$/gm, (match) => {
-      if (match.startsWith('<h') || match.startsWith('<li') || match.startsWith('<ul') || match.startsWith('<ol') || match.startsWith('</')) {
-        return match;
+  // Split content into sections for better paragraph handling
+  const lines = content.split('\n');
+  let html = '';
+  let inList = false;
+  let listType = '';
+
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i].trim();
+    
+    // Skip empty lines but use them as paragraph breaks
+    if (!line) {
+      if (inList) {
+        html += listType === 'ul' ? '</ul>' : '</ol>';
+        inList = false;
       }
-      return `<p>${match}</p>`;
-    })
-    // Fix double paragraphs
-    .replace(/<p><\/p>/g, '')
-    .replace(/<p>(<h[23]>)/g, '$1')
-    .replace(/(<\/h[23]>)<\/p>/g, '$1')
-    .replace(/<p>(<li>)/g, '<ul>$1')
-    .replace(/(<\/li>)<\/p>/g, '$1</ul>')
-    // Clean up
-    .replace(/<p>\s*<\/p>/g, '');
+      continue;
+    }
+
+    // Headers
+    if (line.startsWith('### ')) {
+      if (inList) {
+        html += listType === 'ul' ? '</ul>' : '</ol>';
+        inList = false;
+      }
+      html += `<h3 class="mt-10 mb-4">${line.substring(4)}</h3>`;
+      continue;
+    }
+    if (line.startsWith('## ')) {
+      if (inList) {
+        html += listType === 'ul' ? '</ul>' : '</ol>';
+        inList = false;
+      }
+      html += `<h2 class="mt-12 mb-6">${line.substring(3)}</h2>`;
+      continue;
+    }
+
+    // Bold text
+    line = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
+    // Unordered list items
+    if (line.startsWith('- [ ] ')) {
+      if (!inList || listType !== 'ul') {
+        if (inList) html += listType === 'ul' ? '</ul>' : '</ol>';
+        html += '<ul class="space-y-3 my-6">';
+        inList = true;
+        listType = 'ul';
+      }
+      html += `<li class="flex items-start gap-3 leading-relaxed"><input type="checkbox" disabled class="mt-1.5 flex-shrink-0" /><span>${line.substring(6)}</span></li>`;
+      continue;
+    }
+    if (line.startsWith('- ')) {
+      if (!inList || listType !== 'ul') {
+        if (inList) html += listType === 'ul' ? '</ul>' : '</ol>';
+        html += '<ul class="space-y-3 my-6">';
+        inList = true;
+        listType = 'ul';
+      }
+      html += `<li class="leading-relaxed pl-2">${line.substring(2)}</li>`;
+      continue;
+    }
+
+    // Ordered list items
+    const orderedMatch = line.match(/^(\d+)\. (.+)$/);
+    if (orderedMatch) {
+      if (!inList || listType !== 'ol') {
+        if (inList) html += listType === 'ul' ? '</ul>' : '</ol>';
+        html += '<ol class="space-y-3 my-6 list-decimal list-inside">';
+        inList = true;
+        listType = 'ol';
+      }
+      html += `<li class="leading-relaxed pl-2">${orderedMatch[2]}</li>`;
+      continue;
+    }
+
+    // Regular paragraph
+    if (inList) {
+      html += listType === 'ul' ? '</ul>' : '</ol>';
+      inList = false;
+    }
+    html += `<p class="leading-loose mb-6">${line}</p>`;
+  }
+
+  // Close any remaining list
+  if (inList) {
+    html += listType === 'ul' ? '</ul>' : '</ol>';
+  }
+
+  return html;
 }
 
 export default BlogPost;
