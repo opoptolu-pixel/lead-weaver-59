@@ -1415,7 +1415,7 @@ export default function AdminEmailTemplates() {
       let subject = selectedTemplate.subject;
       const sampleData: Record<string, string> = {
         customer_name: "John Smith",
-        business_name: "Sparkle Clean Ltd",
+        business_name: "Sample Cleaning Co",
         contact_name: "Jane Doe",
         job_type: "End of Tenancy Clean",
         postcode: "SW1A 1AA",
@@ -1426,6 +1426,13 @@ export default function AdminEmailTemplates() {
         lead_date: "15 Jan 2025",
         current_year: new Date().getFullYear().toString(),
         dashboard_url: window.location.origin + "/dashboard",
+        customer_phone: "07700 900123",
+        customer_email: "john.smith@example.com",
+        customer_address: "123 Sample Street, London",
+        document_type: "Business Insurance",
+        rejection_reason: "Document was unclear or expired. Please upload a clearer copy.",
+        admin_notes: "All documents verified successfully.",
+        verification_url: window.location.origin + "/verification",
       };
       Object.entries(sampleData).forEach(([key, value]) => {
         subject = subject.replace(new RegExp(`\\{\\{${key}\\}\\}`, "g"), value);
@@ -1470,7 +1477,7 @@ export default function AdminEmailTemplates() {
       let subject = selectedTemplate.subject;
       const sampleData: Record<string, string> = {
         customer_name: "John Smith",
-        business_name: "Sparkle Clean Ltd",
+        business_name: "Sample Cleaning Co",
         contact_name: "Jane Doe",
         job_type: "End of Tenancy Clean",
         postcode: "SW1A 1AA",
@@ -1481,6 +1488,13 @@ export default function AdminEmailTemplates() {
         lead_date: "15 Jan 2025",
         current_year: new Date().getFullYear().toString(),
         dashboard_url: window.location.origin + "/dashboard",
+        customer_phone: "07700 900123",
+        customer_email: "john.smith@example.com",
+        customer_address: "123 Sample Street, London",
+        document_type: "Business Insurance",
+        rejection_reason: "Document was unclear or expired. Please upload a clearer copy.",
+        admin_notes: "All documents verified successfully.",
+        verification_url: window.location.origin + "/verification",
       };
       Object.entries(sampleData).forEach(([key, value]) => {
         subject = subject.replace(new RegExp(`\\{\\{${key}\\}\\}`, "g"), value);
@@ -1601,7 +1615,7 @@ export default function AdminEmailTemplates() {
   const getPreviewHtml = (template: EmailTemplate) => {
     const sampleData: Record<string, string> = {
       customer_name: "John Smith",
-      business_name: "Sparkle Clean Ltd",
+      business_name: "Sample Cleaning Co",
       contact_name: "Jane Doe",
       job_type: "End of Tenancy Clean",
       postcode: "SW1A 1AA",
@@ -1612,6 +1626,13 @@ export default function AdminEmailTemplates() {
       lead_date: "15 Jan 2025",
       current_year: new Date().getFullYear().toString(),
       dashboard_url: "#",
+      customer_phone: "07700 900123",
+      customer_email: "john.smith@example.com",
+      customer_address: "123 Sample Street, London",
+      document_type: "Business Insurance",
+      rejection_reason: "Document was unclear or expired. Please upload a clearer copy.",
+      admin_notes: "All documents verified successfully.",
+      verification_url: "#",
     };
 
     let html = template.body;
