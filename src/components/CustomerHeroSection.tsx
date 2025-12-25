@@ -115,10 +115,7 @@ export const CustomerHeroSection = () => {
       : location.postcode;
     setPostcode(postcodeValue);
     setShowPostcodeSuggestions(false);
-    // Use startTransition to prevent UI blocking during navigation
-    startTransition(() => {
-      navigate(`/request-cleaning?type=${encodeURIComponent(selectedType.id)}&postcode=${encodeURIComponent(postcodeValue)}`);
-    });
+    // Don't auto-navigate - let user click the CTA button
   };
 
   return (
