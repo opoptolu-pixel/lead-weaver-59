@@ -87,8 +87,8 @@ export default function Verification() {
   };
 
   const handleVerifyCode = async () => {
-    if (!verificationCode || verificationCode.length !== 6) {
-      toast.error("Please enter a valid 6-digit code");
+    if (!verificationCode || verificationCode.length !== 8) {
+      toast.error("Please enter a valid 8-character code");
       return;
     }
 
@@ -257,7 +257,7 @@ export default function Verification() {
             ) : (
               <div className="space-y-4">
                 <p className="text-muted-foreground text-sm">
-                  We'll send a 6-digit code to {profile?.phone || "your phone number"}.
+                  We'll send an 8-character code via WhatsApp to {profile?.phone || "your phone number"}.
                 </p>
 
                 {!profile?.phone && (
@@ -285,11 +285,11 @@ export default function Verification() {
                   <div className="space-y-3">
                     <div className="flex gap-2">
                       <Input
-                        placeholder="Enter 6-digit code"
+                        placeholder="Enter 8-character code"
                         value={verificationCode}
-                        onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                        maxLength={6}
-                        className="max-w-[150px]"
+                        onChange={(e) => setVerificationCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8))}
+                        maxLength={8}
+                        className="max-w-[180px] uppercase"
                       />
                       <Button onClick={handleVerifyCode} disabled={verifyingCode}>
                         {verifyingCode ? <Loader2 className="w-4 h-4 animate-spin" /> : "Verify"}
