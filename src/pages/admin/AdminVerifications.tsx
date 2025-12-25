@@ -148,6 +148,37 @@ export default function AdminVerifications() {
           .eq("user_id", doc.user_id);
       }
 
+      // Send approval email notification
+      try {
+        const { data: userEmail } = await supabase.rpc("get_user_email", { user_uuid: doc.user_id });
+        if (userEmail) {
+          const businessName = doc.profile?.business_name || doc.profile?.contact_name || "Business Owner";
+          const documentType = doc.document_type.replace("_", " ");
+          
+          await supabase.functions.invoke("send-email", {
+            body: {
+              to: userEmail,
+              subject: "Your verification document has been approved",
+              html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                  <h2 style="color: #10b981;">Document Approved ✓</h2>
+                  <p>Dear ${businessName},</p>
+                  <p>Great news! Your <strong>${documentType}</strong> has been reviewed and approved.</p>
+                  ${adminNotes ? `<p><strong>Notes from reviewer:</strong> ${adminNotes}</p>` : ""}
+                  <p>You're one step closer to becoming a fully verified business on Deep Clean UK.</p>
+                  <p>If you have any questions, please don't hesitate to contact us.</p>
+                  <p>Best regards,<br>The Deep Clean UK Team</p>
+                </div>
+              `,
+              templateName: "verification_approved",
+            },
+          });
+        }
+      } catch (emailError) {
+        console.error("Failed to send approval email:", emailError);
+        // Don't fail the approval if email fails
+      }
+
       toast.success("Document approved");
       setSelectedDoc(null);
       setAdminNotes("");
@@ -177,6 +208,38 @@ export default function AdminVerifications() {
         .eq("id", doc.id);
 
       if (error) throw error;
+
+      // Send rejection email notification
+      try {
+        const { data: userEmail } = await supabase.rpc("get_user_email", { user_uuid: doc.user_id });
+        if (userEmail) {
+          const businessName = doc.profile?.business_name || doc.profile?.contact_name || "Business Owner";
+          const documentType = doc.document_type.replace("_", " ");
+          
+          await supabase.functions.invoke("send-email", {
+            body: {
+              to: userEmail,
+              subject: "Your verification document requires attention",
+              html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                  <h2 style="color: #ef4444;">Document Not Approved</h2>
+                  <p>Dear ${businessName},</p>
+                  <p>We've reviewed your <strong>${documentType}</strong> and unfortunately we were unable to approve it at this time.</p>
+                  <p><strong>Reason:</strong> ${adminNotes}</p>
+                  <p>Please log in to your account and upload a new document that addresses the issue mentioned above.</p>
+                  <p><a href="https://deepcleanco.uk/settings/verification" style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 16px;">Upload New Document</a></p>
+                  <p>If you have any questions about why your document was rejected, please contact our support team.</p>
+                  <p>Best regards,<br>The Deep Clean UK Team</p>
+                </div>
+              `,
+              templateName: "verification_rejected",
+            },
+          });
+        }
+      } catch (emailError) {
+        console.error("Failed to send rejection email:", emailError);
+        // Don't fail the rejection if email fails
+      }
 
       toast.success("Document rejected");
       setSelectedDoc(null);
