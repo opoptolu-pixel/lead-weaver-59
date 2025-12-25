@@ -26,6 +26,7 @@ interface VerificationDocument {
   document_type: string;
   status: string;
   created_at: string;
+  admin_notes: string | null;
 }
 
 export default function Verification() {
@@ -400,19 +401,26 @@ export default function Verification() {
               {documents.filter(d => d.document_type === "business_license" || d.document_type === "insurance").length > 0 && (
                 <div className="space-y-2">
                   {documents.filter(d => d.document_type === "business_license" || d.document_type === "insurance").map((doc) => (
-                    <div key={doc.id} className="flex items-center justify-between bg-muted rounded-lg p-3">
-                      <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm">{doc.document_type.replace("_", " ")}</span>
+                    <div key={doc.id} className="bg-muted rounded-lg p-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-sm">{doc.document_type.replace("_", " ")}</span>
+                        </div>
+                        <span className={`text-xs px-2 py-1 rounded ${
+                          doc.status === "approved" ? "bg-secondary/20 text-secondary" :
+                          doc.status === "rejected" ? "bg-destructive/20 text-destructive" :
+                          "bg-amber-500/20 text-amber-500"
+                        }`}>
+                          {doc.status === "pending" ? <Clock className="w-3 h-3 inline mr-1" /> : null}
+                          {doc.status}
+                        </span>
                       </div>
-                      <span className={`text-xs px-2 py-1 rounded ${
-                        doc.status === "approved" ? "bg-secondary/20 text-secondary" :
-                        doc.status === "rejected" ? "bg-destructive/20 text-destructive" :
-                        "bg-amber-500/20 text-amber-500"
-                      }`}>
-                        {doc.status === "pending" ? <Clock className="w-3 h-3 inline mr-1" /> : null}
-                        {doc.status}
-                      </span>
+                      {doc.status === "rejected" && doc.admin_notes && (
+                        <div className="mt-2 p-2 bg-destructive/10 border border-destructive/20 rounded text-sm text-destructive">
+                          <strong>Reason:</strong> {doc.admin_notes}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -464,19 +472,26 @@ export default function Verification() {
                 {documents.filter(d => d.document_type === "address_proof").length > 0 && (
                   <div className="space-y-2">
                     {documents.filter(d => d.document_type === "address_proof").map((doc) => (
-                      <div key={doc.id} className="flex items-center justify-between bg-muted rounded-lg p-3">
-                        <div className="flex items-center gap-2">
-                          <FileText className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-sm">Address proof</span>
+                      <div key={doc.id} className="bg-muted rounded-lg p-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-sm">Address proof</span>
+                          </div>
+                          <span className={`text-xs px-2 py-1 rounded ${
+                            doc.status === "approved" ? "bg-secondary/20 text-secondary" :
+                            doc.status === "rejected" ? "bg-destructive/20 text-destructive" :
+                            "bg-amber-500/20 text-amber-500"
+                          }`}>
+                            {doc.status === "pending" ? <Clock className="w-3 h-3 inline mr-1" /> : null}
+                            {doc.status}
+                          </span>
                         </div>
-                        <span className={`text-xs px-2 py-1 rounded ${
-                          doc.status === "approved" ? "bg-secondary/20 text-secondary" :
-                          doc.status === "rejected" ? "bg-destructive/20 text-destructive" :
-                          "bg-amber-500/20 text-amber-500"
-                        }`}>
-                          {doc.status === "pending" ? <Clock className="w-3 h-3 inline mr-1" /> : null}
-                          {doc.status}
-                        </span>
+                        {doc.status === "rejected" && doc.admin_notes && (
+                          <div className="mt-2 p-2 bg-destructive/10 border border-destructive/20 rounded text-sm text-destructive">
+                            <strong>Reason:</strong> {doc.admin_notes}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
