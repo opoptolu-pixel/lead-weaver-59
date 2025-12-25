@@ -1,12 +1,14 @@
 # Deep Clean UK - Robots.txt
 # https://deepcleanuk.com
+# Updated: 2025-06-25
 
 # Allow all search engines full access
 User-agent: *
 Allow: /
-
-# Crawl delay for politeness
-Crawl-delay: 1
+Allow: /for-cleaners
+Allow: /request-cleaning
+Allow: /blog
+Allow: /contact
 
 # Disallow admin and auth pages
 Disallow: /admin
@@ -20,29 +22,32 @@ Disallow: /performance
 Disallow: /disputes
 Disallow: /payment-success
 Disallow: /credits-success
+Disallow: /leads
+Disallow: /verification
 
-# Allow main pages
-Allow: /request-cleaning
-Allow: /request-cleaning/thank-you
+# Specific bot rules - Googlebot (priority)
+User-agent: Googlebot
+Allow: /
 Allow: /for-cleaners
+Allow: /request-cleaning
+Allow: /blog
 Allow: /contact
 Allow: /privacy-policy
 Allow: /terms-of-use
 Allow: /refund-policy
 Allow: /gdpr
 
-# Specific bot rules
-User-agent: Googlebot
-Allow: /
-Crawl-delay: 0
-
 User-agent: Googlebot-Image
 Allow: /
 
+# Bingbot
 User-agent: Bingbot
 Allow: /
-Crawl-delay: 1
+Allow: /for-cleaners
+Allow: /request-cleaning
+Allow: /blog
 
+# Social media bots
 User-agent: Twitterbot
 Allow: /
 
@@ -52,9 +57,13 @@ Allow: /
 User-agent: LinkedInBot
 Allow: /
 
+# Yahoo
 User-agent: Slurp
 Allow: /
-Crawl-delay: 1
+
+# DuckDuckGo
+User-agent: DuckDuckBot
+Allow: /
 
 # Block AI scrapers that don't respect content
 User-agent: GPTBot
@@ -64,6 +73,9 @@ User-agent: CCBot
 Disallow: /
 
 User-agent: anthropic-ai
+Disallow: /
+
+User-agent: Google-Extended
 Disallow: /
 
 # Sitemap location
