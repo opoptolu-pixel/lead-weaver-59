@@ -38,6 +38,7 @@ export const CustomerHeroSection = () => {
   const [showPostcodeSuggestions, setShowPostcodeSuggestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [ukLocations, setUkLocations] = useState<UKLocation[]>([]);
+  const [matchedCity, setMatchedCity] = useState<string | null>(null);
   
   const typeDropdownRef = useRef<HTMLDivElement>(null);
   const postcodeRef = useRef<HTMLDivElement>(null);
@@ -62,6 +63,7 @@ export const CustomerHeroSection = () => {
     const fetchLocations = async () => {
       if (!postcode.trim() || postcode.length < 2) {
         setUkLocations([]);
+        setMatchedCity(null);
         return;
       }
 
@@ -73,12 +75,15 @@ export const CustomerHeroSection = () => {
 
         if (response.data?.success) {
           setUkLocations(response.data.locations || []);
+          setMatchedCity(response.data.matchedCity || null);
         } else {
           setUkLocations([]);
+          setMatchedCity(null);
         }
       } catch (err) {
         console.error("Location search error:", err);
         setUkLocations([]);
+        setMatchedCity(null);
       } finally {
         setIsLoading(false);
       }
@@ -215,7 +220,9 @@ export const CustomerHeroSection = () => {
                             <MapPin className={`w-4 h-4 flex-shrink-0 ${location.type === 'city' ? 'text-primary' : 'text-secondary'}`} />
                             <div className="flex-1 min-w-0">
                               <span className="font-medium text-foreground">
-                                {location.type === 'city' ? location.area.split(',')[0] : location.postcode}
+                                {location.type === 'city' 
+                                  ? (matchedCity ? matchedCity.charAt(0).toUpperCase() + matchedCity.slice(1) : location.area.split('(')[0].trim())
+                                  : location.postcode}
                               </span>
                               {location.type !== 'city' && (
                                 <span className="text-sm text-muted-foreground ml-2">{location.area}</span>
