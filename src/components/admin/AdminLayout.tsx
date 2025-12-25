@@ -96,11 +96,11 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
 
   return (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-      <div className="min-h-screen bg-background flex w-full overflow-hidden">
+      <div className="h-screen bg-background flex w-full overflow-hidden">
         <AdminSidebar />
-        <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
+        <div className="flex-1 flex flex-col h-screen overflow-hidden">
           <AdminTopBar title={title} />
-          <main className="flex-1 p-6 overflow-y-auto overflow-x-hidden">
+          <main className="flex-1 p-6 overflow-auto">
             {children}
           </main>
         </div>
