@@ -103,9 +103,9 @@ const services = [
 
 export const CustomerServicesGrid = () => {
   return (
-    <section id="services" className="py-28 bg-background relative overflow-hidden">
+    <section id="services" className="py-28 bg-background relative overflow-hidden" aria-labelledby="services-heading">
       {/* Background elements */}
-      <div className="absolute inset-0 pointer-events-none">
+      <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-secondary/5 rounded-full blur-3xl -translate-y-1/2" />
         <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-primary/5 rounded-full blur-3xl translate-y-1/2" />
       </div>
@@ -115,13 +115,13 @@ export const CustomerServicesGrid = () => {
         <ScrollReveal animation="fade-up">
           <div className="text-center mb-16">
             <span className="inline-block text-sm font-semibold text-secondary uppercase tracking-wider mb-3">
-              What We Offer
+              Professional Cleaning Services
             </span>
-            <h2 className="font-heading text-3xl md:text-5xl font-bold text-foreground mb-4 tracking-tight">
-              Our Cleaning Services
+            <h2 id="services-heading" className="font-heading text-3xl md:text-5xl font-bold text-foreground mb-4 tracking-tight">
+              Cleaning Services We Offer
             </h2>
             <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-              Whatever cleaning you need, we have trusted professionals ready to help
+              From deep cleaning to end of tenancy, find verified professionals for every cleaning need in the UK
             </p>
           </div>
         </ScrollReveal>

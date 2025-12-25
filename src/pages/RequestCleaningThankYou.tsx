@@ -1,11 +1,19 @@
 import { CheckCircle, Clock, Phone, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { SEOHead } from "@/components/SEOHead";
 
 const RequestCleaningThankYou = () => {
   const navigate = useNavigate();
 
   return (
+    <>
+      <SEOHead
+        title="Thank You | Your Cleaning Request is Submitted | Deep Clean UK"
+        description="Your cleaning request has been submitted. Verified local cleaners will contact you within 24 hours with quotes."
+        canonical="https://deepcleanuk.com/request-cleaning/thank-you"
+        noIndex={true}
+      />
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 flex items-center justify-center p-4">
       <div className="max-w-lg w-full text-center">
         {/* Success Icon */}
@@ -69,6 +77,7 @@ const RequestCleaningThankYou = () => {
         </Button>
       </div>
     </div>
+    </>
   );
 };
 

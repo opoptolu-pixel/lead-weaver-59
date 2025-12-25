@@ -9,33 +9,110 @@ import { Footer } from "@/components/Footer";
 import { SEOHead } from "@/components/SEOHead";
 
 const ForCleaners = () => {
-  const faqStructuredData = {
+  const structuredData = {
     "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": [
+    "@graph": [
       {
-        "@type": "Question",
-        "name": "How do cleaning leads work?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Customers request cleaning services through our platform. We verify each request and publish them as leads. You can unlock leads in your area and contact customers directly."
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "How do cleaning leads work?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Customers request cleaning services through our platform. We verify each request and publish them as leads. You can unlock leads in your area and contact customers directly."
+            }
+          },
+          {
+            "@type": "Question", 
+            "name": "What is the cost per lead?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Each lead costs £20 or you can buy credit packs for savings. 5 credits cost £90 (£18/lead) and 10 credits cost £170 (£17/lead)."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Are leads exclusive?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes, each lead is only sold once. When you unlock a lead, you get exclusive access to that customer's contact information."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What types of cleaning leads are available?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "We offer leads for deep cleaning, end of tenancy, carpet cleaning, upholstery cleaning, commercial cleaning, post-construction cleaning and more. All leads are valued at £100+ per job."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How do I get started?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Simply sign up for free, verify your business, and start browsing available leads in your area. No monthly fees or contracts - pay only for leads you want."
+            }
+          }
+        ]
+      },
+      {
+        "@type": "WebPage",
+        "@id": "https://deepcleanuk.com/for-cleaners#webpage",
+        "url": "https://deepcleanuk.com/for-cleaners",
+        "name": "Cleaning Leads for Professional Cleaners | Grow Your Business | Deep Clean UK",
+        "description": "Get exclusive cleaning job leads in your area. No monthly fees, pay per lead. Join UK's trusted cleaning lead platform.",
+        "isPartOf": { "@id": "https://deepcleanuk.com/#website" },
+        "breadcrumb": {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "Home",
+              "item": "https://deepcleanuk.com"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "For Cleaners",
+              "item": "https://deepcleanuk.com/for-cleaners"
+            }
+          ]
         }
       },
       {
-        "@type": "Question", 
-        "name": "What is the cost per lead?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Each lead costs £20 or you can buy credit packs for savings. 5 credits cost £90 (£18/lead) and 10 credits cost £170 (£17/lead)."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Are leads exclusive?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Yes, each lead is only sold once. When you unlock a lead, you get exclusive access to that customer's contact information."
-        }
+        "@type": "Product",
+        "name": "Cleaning Lead Credits",
+        "description": "Exclusive cleaning job leads for professional cleaners across the UK",
+        "brand": {
+          "@type": "Brand",
+          "name": "Deep Clean UK"
+        },
+        "offers": [
+          {
+            "@type": "Offer",
+            "name": "Single Lead",
+            "price": "20.00",
+            "priceCurrency": "GBP",
+            "availability": "https://schema.org/InStock"
+          },
+          {
+            "@type": "Offer",
+            "name": "5 Credit Pack",
+            "price": "90.00",
+            "priceCurrency": "GBP",
+            "availability": "https://schema.org/InStock"
+          },
+          {
+            "@type": "Offer",
+            "name": "10 Credit Pack",
+            "price": "170.00",
+            "priceCurrency": "GBP",
+            "availability": "https://schema.org/InStock"
+          }
+        ]
       }
     ]
   };
@@ -43,10 +120,10 @@ const ForCleaners = () => {
   return (
     <div className="min-h-screen bg-background">
       <SEOHead
-        title="Cleaning Leads for Professional Cleaners | Deep Clean UK"
-        description="Get exclusive deep cleaning job leads in your area. No monthly fees, pay only for the leads you want. Join UK's #1 cleaning lead platform today."
+        title="Cleaning Leads for Professional Cleaners | Grow Your Business | Deep Clean UK"
+        description="Get exclusive cleaning job leads in your area. No monthly fees, no contracts - pay only £20 per lead. Leads worth £100+. Join 500+ UK cleaners growing their business."
         canonical="https://deepcleanuk.com/for-cleaners"
-        structuredData={faqStructuredData}
+        structuredData={structuredData}
       />
       <Header />
       <main>

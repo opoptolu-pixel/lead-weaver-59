@@ -224,28 +224,65 @@ export default function RequestCleaning() {
   tomorrow.setDate(tomorrow.getDate() + 1);
   const minDate = tomorrow.toISOString().split("T")[0];
 
-  const serviceStructuredData = {
+  const structuredData = {
     "@context": "https://schema.org",
-    "@type": "Service",
-    "name": "Deep Cleaning Request",
-    "description": "Request professional deep cleaning services in your area. Get quotes from verified local cleaners.",
-    "provider": {
-      "@type": "Organization",
-      "name": "Deep Clean UK"
-    },
-    "areaServed": {
-      "@type": "Country",
-      "name": "United Kingdom"
-    }
+    "@graph": [
+      {
+        "@type": "Service",
+        "name": "Professional Cleaning Service Request",
+        "description": "Request free quotes from verified local cleaners for deep cleaning, end of tenancy, carpet cleaning and more across the UK.",
+        "provider": {
+          "@type": "Organization",
+          "name": "Deep Clean UK",
+          "@id": "https://deepcleanuk.com/#organization"
+        },
+        "areaServed": {
+          "@type": "Country",
+          "name": "United Kingdom"
+        },
+        "serviceType": [
+          "Deep Cleaning",
+          "End of Tenancy Cleaning", 
+          "Carpet Cleaning",
+          "Upholstery Cleaning",
+          "Commercial Cleaning"
+        ]
+      },
+      {
+        "@type": "WebPage",
+        "@id": "https://deepcleanuk.com/request-cleaning#webpage",
+        "url": "https://deepcleanuk.com/request-cleaning",
+        "name": "Request a Free Cleaning Quote | Deep Clean UK",
+        "description": "Get free quotes from verified local cleaners. Request deep cleaning, end of tenancy, carpet cleaning and more.",
+        "isPartOf": { "@id": "https://deepcleanuk.com/#website" },
+        "breadcrumb": {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "Home",
+              "item": "https://deepcleanuk.com"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Request Cleaning",
+              "item": "https://deepcleanuk.com/request-cleaning"
+            }
+          ]
+        }
+      }
+    ]
   };
 
   return (
     <div className="min-h-screen bg-primary flex flex-col">
       <SEOHead
-        title="Request a Cleaning Quote"
-        description="Get free quotes from verified local cleaners. Request deep cleaning, end of tenancy cleaning, carpet cleaning and more. Fast, easy, and free."
+        title="Get Free Cleaning Quotes in Minutes | Request a Cleaner | Deep Clean UK"
+        description="Request free quotes from verified local cleaners. Choose your service, enter your postcode, and get contacted within 24 hours. No obligation, 100% free."
         canonical="https://deepcleanuk.com/request-cleaning"
-        structuredData={serviceStructuredData}
+        structuredData={structuredData}
       />
       {/* Header */}
       <header className="bg-primary/80 backdrop-blur-sm border-b border-white/10 sticky top-0 z-50">

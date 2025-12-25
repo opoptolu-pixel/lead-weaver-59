@@ -96,12 +96,63 @@ const Contact = () => {
     }
   };
 
+  const contactStructuredData = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "ContactPage",
+        "@id": "https://deepcleanuk.com/contact#webpage",
+        "url": "https://deepcleanuk.com/contact",
+        "name": "Contact Deep Clean UK - Get in Touch",
+        "description": "Contact Deep Clean UK for support, questions or partnership inquiries.",
+        "isPartOf": { "@id": "https://deepcleanuk.com/#website" },
+        "about": { "@id": "https://deepcleanuk.com/#organization" },
+        "breadcrumb": {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "Home",
+              "item": "https://deepcleanuk.com"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Contact",
+              "item": "https://deepcleanuk.com/contact"
+            }
+          ]
+        }
+      },
+      {
+        "@type": "Organization",
+        "name": "Deep Clean UK",
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "telephone": "+44-7757-188-197",
+          "email": "hello@deepcleanuk.com",
+          "contactType": "customer service",
+          "areaServed": "GB",
+          "availableLanguage": "English",
+          "hoursAvailable": {
+            "@type": "OpeningHoursSpecification",
+            "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+            "opens": "09:00",
+            "closes": "17:00"
+          }
+        }
+      }
+    ]
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <SEOHead
-        title="Contact Us"
-        description="Get in touch with Deep Clean UK. Contact our team for support, partnership inquiries, or general questions about our cleaning lead generation platform."
+        title="Contact Us | Get Support & Help | Deep Clean UK"
+        description="Contact Deep Clean UK for support, partnership inquiries, or questions about finding cleaners. Email hello@deepcleanuk.com or call 07757 188 197. Response within 1-2 business days."
         canonical="https://deepcleanuk.com/contact"
+        structuredData={contactStructuredData}
       />
       <Header />
       

@@ -1,8 +1,47 @@
+# Deep Clean UK - Robots.txt
+# https://deepcleanuk.com
+
+# Allow all search engines full access
+User-agent: *
+Allow: /
+
+# Crawl delay for politeness
+Crawl-delay: 1
+
+# Disallow admin and auth pages
+Disallow: /admin
+Disallow: /admin/*
+Disallow: /auth
+Disallow: /dashboard
+Disallow: /onboarding
+Disallow: /settings
+Disallow: /billing
+Disallow: /performance
+Disallow: /disputes
+Disallow: /payment-success
+Disallow: /credits-success
+
+# Allow main pages
+Allow: /request-cleaning
+Allow: /request-cleaning/thank-you
+Allow: /for-cleaners
+Allow: /contact
+Allow: /privacy-policy
+Allow: /terms-of-use
+Allow: /refund-policy
+Allow: /gdpr
+
+# Specific bot rules
 User-agent: Googlebot
+Allow: /
+Crawl-delay: 0
+
+User-agent: Googlebot-Image
 Allow: /
 
 User-agent: Bingbot
 Allow: /
+Crawl-delay: 1
 
 User-agent: Twitterbot
 Allow: /
@@ -10,5 +49,22 @@ Allow: /
 User-agent: facebookexternalhit
 Allow: /
 
-User-agent: *
+User-agent: LinkedInBot
 Allow: /
+
+User-agent: Slurp
+Allow: /
+Crawl-delay: 1
+
+# Block AI scrapers that don't respect content
+User-agent: GPTBot
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+# Sitemap location
+Sitemap: https://deepcleanuk.com/sitemap.xml
