@@ -80,13 +80,14 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send notification email to admin
     try {
+      const adminSubject = `New Contact Form Submission: ${subject}`;
       const adminEmailResponse = await resend.emails.send({
-        from: "Deep Clean UK <onboarding@resend.dev>",
+        from: "Deep Clean UK <noreply@deepcleanco.uk>",
         to: ["hello@deepcleanuk.com"],
-        subject: `New Contact Form Submission: ${subject}`,
+        subject: adminSubject,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #1e3a5f;">New Contact Form Submission</h2>
+            <h2 style="color: #0B3D2E;">New Contact Form Submission</h2>
             <p>You have received a new contact form submission from your website.</p>
             
             <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -108,7 +109,19 @@ const handler = async (req: Request): Promise<Response> => {
         `,
       });
 
-      console.log("Admin notification email sent:", adminEmailResponse);
+      // Log admin notification email
+      await supabase
+        .from("email_logs")
+        .insert({
+          template_name: "contact_admin_notification",
+          recipient_email: "hello@deepcleanuk.com",
+          subject: adminSubject,
+          status: "sent",
+          resend_id: adminEmailResponse.data?.id || null,
+          is_test: false,
+        });
+
+      console.log("Admin notification email sent and logged:", adminEmailResponse.data?.id);
     } catch (emailError) {
       console.error("Failed to send admin notification email:", emailError);
       // Don't fail the request if email fails - submission is already saved
@@ -116,40 +129,58 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send confirmation email to user
     try {
+      const userSubject = "We've received your message - Deep Clean UK";
       const userEmailResponse = await resend.emails.send({
-        from: "Deep Clean UK <onboarding@resend.dev>",
+        from: "Deep Clean UK <noreply@deepcleanco.uk>",
         to: [email],
-        subject: "We've received your message - Deep Clean UK",
+        subject: userSubject,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #1e3a5f;">Thank you for contacting us, ${name}!</h2>
-            
-            <p>We have received your message and will get back to you within 1-2 business days.</p>
-            
-            <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <p><strong>Your message summary:</strong></p>
-              <p><strong>Subject:</strong> ${subject}</p>
-              <p style="white-space: pre-wrap;">${message.substring(0, 200)}${message.length > 200 ? "..." : ""}</p>
+            <div style="background: linear-gradient(135deg, #0B3D2E 0%, #145A44 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Thank You, ${name}!</h1>
             </div>
             
-            <p>If your inquiry is urgent, please call us at <strong>07757 188 197</strong>.</p>
-            
-            <p style="margin-top: 30px;">
-              Best regards,<br>
-              <strong>The Deep Clean UK Team</strong>
-            </p>
-            
-            <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;" />
-            
-            <p style="color: #666; font-size: 12px;">
-              Deep Clean UK is a trading name of Orbit Shade Ltd (Company No. 15337705)<br>
-              128 City Road, London, EC1V 2NX
-            </p>
+            <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e5e5; border-top: none; border-radius: 0 0 12px 12px;">
+              <p>We have received your message and will get back to you within 1-2 business days.</p>
+              
+              <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <p><strong>Your message summary:</strong></p>
+                <p><strong>Subject:</strong> ${subject}</p>
+                <p style="white-space: pre-wrap;">${message.substring(0, 200)}${message.length > 200 ? "..." : ""}</p>
+              </div>
+              
+              <p>If your inquiry is urgent, please call us at <strong>07757 188 197</strong>.</p>
+              
+              <p style="margin-top: 30px;">
+                Best regards,<br>
+                <strong>The Deep Clean UK Team</strong>
+              </p>
+              
+              <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;" />
+              
+              <p style="color: #666; font-size: 12px; text-align: center;">
+                © ${new Date().getFullYear()} Deep Clean UK · All rights reserved<br>
+                A trading name of Orbit Shade Ltd (Company No. 15337705)<br>
+                128 City Road, London, EC1V 2NX
+              </p>
+            </div>
           </div>
         `,
       });
 
-      console.log("User confirmation email sent:", userEmailResponse);
+      // Log user confirmation email
+      await supabase
+        .from("email_logs")
+        .insert({
+          template_name: "contact_user_confirmation",
+          recipient_email: email,
+          subject: userSubject,
+          status: "sent",
+          resend_id: userEmailResponse.data?.id || null,
+          is_test: false,
+        });
+
+      console.log("User confirmation email sent and logged:", userEmailResponse.data?.id);
     } catch (emailError) {
       console.error("Failed to send user confirmation email:", emailError);
       // Don't fail the request if email fails
