@@ -273,6 +273,23 @@ const sendConfirmationEmail = async (
       console.error("[SUBMIT-CLEANING] Email send failed:", responseData);
     } else {
       console.log("[SUBMIT-CLEANING] Confirmation email sent:", { id: responseData.id, to: customerEmail });
+      
+      // Log the email to email_logs table
+      try {
+        await supabase
+          .from("email_logs")
+          .insert({
+            template_name: template ? "cleaning_request_confirmation" : "cleaning_request_confirmation_fallback",
+            recipient_email: customerEmail,
+            subject: subject,
+            status: "sent",
+            resend_id: responseData.id || null,
+            is_test: false,
+          });
+        console.log("[SUBMIT-CLEANING] Email logged to email_logs");
+      } catch (logError) {
+        console.error("[SUBMIT-CLEANING] Failed to log email (non-blocking):", logError);
+      }
     }
   } catch (error) {
     console.error("[SUBMIT-CLEANING] Email error:", error);
