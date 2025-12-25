@@ -778,7 +778,7 @@ export default function AdminLeads() {
 
         {/* Kanban View (Default) */}
         {viewMode === "kanban" && (
-          <div className="flex gap-4 overflow-x-auto pb-4">
+          <div className="flex gap-4 overflow-x-auto pb-4 -mx-6 px-6" style={{ scrollbarWidth: 'auto' }}>
             {KANBAN_COLUMNS.map((column) => (
               <div
                 key={column.value}
