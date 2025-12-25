@@ -24,6 +24,7 @@ import {
   BarChart3,
   CreditCard,
   FileWarning,
+  Home,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -75,6 +76,9 @@ interface UnlockedLead {
   job_completed_at: string | null;
   access_expires_at: string | null;
   is_access_expired: boolean;
+  property_type: string | null;
+  bedrooms: string | null;
+  frequency: string | null;
 }
 
 export default function Dashboard() {
@@ -583,9 +587,33 @@ export default function Dashboard() {
                         </div>
                       </div>
 
-                      <p className={`font-medium mb-4 ${lead.is_access_expired ? 'text-muted-foreground' : 'text-foreground'}`}>
+                      <p className={`font-medium mb-2 ${lead.is_access_expired ? 'text-muted-foreground' : 'text-foreground'}`}>
                         {lead.customer_name}
                       </p>
+
+                      {/* Property details */}
+                      {(lead.property_type || lead.bedrooms || lead.frequency) && (
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          {lead.property_type && (
+                            <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 text-xs font-medium px-2 py-1 rounded-full">
+                              <Home className="w-3 h-3" />
+                              {lead.property_type}
+                            </span>
+                          )}
+                          {lead.bedrooms && (
+                            <span className="inline-flex items-center gap-1 bg-purple-100 text-purple-700 text-xs font-medium px-2 py-1 rounded-full">
+                              <User className="w-3 h-3" />
+                              {lead.bedrooms}
+                            </span>
+                          )}
+                          {lead.frequency && (
+                            <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 text-xs font-medium px-2 py-1 rounded-full">
+                              <Clock className="w-3 h-3" />
+                              {lead.frequency}
+                            </span>
+                          )}
+                        </div>
+                      )}
 
                       {/* Contact details */}
                       <div className="grid md:grid-cols-2 gap-3">

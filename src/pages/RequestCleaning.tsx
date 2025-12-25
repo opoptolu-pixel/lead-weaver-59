@@ -56,10 +56,11 @@ const TOTAL_STEPS = 7;
 
 // Property types for step 3
 const propertyTypes = [
-  { id: "house", label: "House" },
-  { id: "flat", label: "Flat or Apartment" },
-  { id: "bungalow", label: "Bungalow" },
-  { id: "commercial", label: "A Commercial property" },
+  { id: "house", label: "House", icon: Home, color: "bg-blue-100 text-blue-600" },
+  { id: "flat", label: "Flat or Apartment", icon: Building2, color: "bg-purple-100 text-purple-600" },
+  { id: "bungalow", label: "Bungalow", icon: Home, color: "bg-green-100 text-green-600" },
+  { id: "commercial", label: "A Commercial property", icon: Building2, color: "bg-slate-100 text-slate-600" },
+  { id: "other", label: "Other", icon: Layers, color: "bg-gray-100 text-gray-600" },
 ];
 
 // Bedroom options for step 4
@@ -71,6 +72,7 @@ const bedroomOptions = [
   { id: "3", label: "3 bedrooms" },
   { id: "4", label: "4 bedrooms" },
   { id: "5+", label: "5+ bedrooms" },
+  { id: "other", label: "Other" },
 ];
 
 // Frequency options for step 5
@@ -135,7 +137,9 @@ export default function RequestCleaning() {
       jobValue: matchedType?.value || "",
       postcode: postcodeParam,
       propertyType: "",
+      propertyTypeOther: "",
       bedrooms: "",
+      bedroomsOther: "",
       frequency: "",
       customerName: "",
       customerEmail: "",
@@ -209,8 +213,8 @@ export default function RequestCleaning() {
           preferredDate: formData.dateFrom,
           jobDescription: formData.dateTo ? `Preferred dates: ${formData.dateFrom} to ${formData.dateTo}` : "",
           estimatedValue: formData.jobValue,
-          propertyType: formData.propertyType,
-          bedrooms: formData.propertyType === "commercial" ? null : formData.bedrooms,
+          propertyType: formData.propertyType === "other" ? formData.propertyTypeOther : formData.propertyType,
+          bedrooms: formData.propertyType === "commercial" ? null : (formData.bedrooms === "other" ? formData.bedroomsOther : formData.bedrooms),
           frequency: formData.frequency,
         },
       });
@@ -243,10 +247,19 @@ export default function RequestCleaning() {
         // Require a full valid postcode to proceed
         return formData.postcode.length >= 5 && validatePostcode(formData.postcode);
       case 3:
+        // If "other" is selected, require text input
+        if (formData.propertyType === "other") {
+          return formData.propertyTypeOther.trim().length > 0;
+        }
         return formData.propertyType !== "";
       case 4:
         // Skip bedrooms validation for commercial properties
-        return formData.propertyType === "commercial" || formData.bedrooms !== "";
+        if (formData.propertyType === "commercial") return true;
+        // If "other" is selected, require text input
+        if (formData.bedrooms === "other") {
+          return formData.bedroomsOther.trim().length > 0;
+        }
+        return formData.bedrooms !== "";
       case 5:
         return formData.frequency !== "";
       case 6:
@@ -522,7 +535,7 @@ export default function RequestCleaning() {
 
             {/* Step 3: Property Type */}
             {currentStep === 3 && (
-              <div className="flex-1 flex flex-col">
+              <div className="flex-1">
                 <h2 className="font-heading text-2xl lg:text-3xl font-bold text-gray-900 text-center mb-2">
                   What kind of property needs cleaning?
                 </h2>
@@ -530,43 +543,51 @@ export default function RequestCleaning() {
                   Get quotes for cleaners today!
                 </p>
 
-                <div className="flex-1">
-                  <div className="bg-gray-50 rounded-2xl border border-gray-200 divide-y divide-gray-200 overflow-hidden">
-                    {propertyTypes.map((type) => {
-                      const isSelected = formData.propertyType === type.id;
-                      return (
-                        <label
-                          key={type.id}
-                          className={cn(
-                            "flex items-center gap-4 p-4 cursor-pointer transition-colors hover:bg-gray-100",
-                            isSelected && "bg-primary/5"
-                          )}
-                        >
-                          <div className={cn(
-                            "w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0",
-                            isSelected ? "border-primary bg-primary" : "border-gray-300"
-                          )}>
-                            {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
-                          </div>
-                          <span className={cn(
-                            "text-base font-medium",
-                            isSelected ? "text-primary" : "text-gray-700"
-                          )}>
-                            {type.label}
-                          </span>
-                          <input
-                            type="radio"
-                            name="propertyType"
-                            value={type.id}
-                            checked={isSelected}
-                            onChange={() => setFormData({ ...formData, propertyType: type.id, bedrooms: type.id === "commercial" ? "" : formData.bedrooms })}
-                            className="sr-only"
-                          />
-                        </label>
-                      );
-                    })}
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
+                  {propertyTypes.map((type) => {
+                    const Icon = type.icon;
+                    const isSelected = formData.propertyType === type.id;
+                    return (
+                      <button
+                        key={type.id}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, propertyType: type.id, bedrooms: type.id === "commercial" ? "" : formData.bedrooms, propertyTypeOther: type.id !== "other" ? "" : formData.propertyTypeOther })}
+                        className={cn(
+                          "flex items-center gap-3 p-4 rounded-xl border-2 transition-all duration-200 text-left group hover:border-primary hover:bg-primary/5",
+                          isSelected 
+                            ? "border-primary bg-primary/10 shadow-md ring-2 ring-primary/20" 
+                            : "border-gray-200 bg-white"
+                        )}
+                      >
+                        <div className={cn(
+                          "w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0",
+                          type.color
+                        )}>
+                          <Icon className="w-6 h-6" />
+                        </div>
+                        <span className={cn(
+                          "font-medium text-sm lg:text-base transition-colors",
+                          isSelected ? "text-primary" : "text-gray-700"
+                        )}>
+                          {type.label}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
+
+                {/* Other text input */}
+                {formData.propertyType === "other" && (
+                  <div className="mt-4">
+                    <Input
+                      value={formData.propertyTypeOther}
+                      onChange={(e) => setFormData({ ...formData, propertyTypeOther: e.target.value })}
+                      placeholder="Please describe your property type"
+                      className="h-12 border-2 border-gray-200 focus:border-primary rounded-xl"
+                      autoFocus
+                    />
+                  </div>
+                )}
               </div>
             )}
 
@@ -609,13 +630,26 @@ export default function RequestCleaning() {
                             name="bedrooms"
                             value={option.id}
                             checked={isSelected}
-                            onChange={() => setFormData({ ...formData, bedrooms: option.id })}
+                            onChange={() => setFormData({ ...formData, bedrooms: option.id, bedroomsOther: option.id !== "other" ? "" : formData.bedroomsOther })}
                             className="sr-only"
                           />
                         </label>
                       );
                     })}
                   </div>
+
+                  {/* Other text input */}
+                  {formData.bedrooms === "other" && (
+                    <div className="mt-4">
+                      <Input
+                        value={formData.bedroomsOther}
+                        onChange={(e) => setFormData({ ...formData, bedroomsOther: e.target.value })}
+                        placeholder="Please describe the number of rooms"
+                        className="h-12 border-2 border-gray-200 focus:border-primary rounded-xl"
+                        autoFocus
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             )}

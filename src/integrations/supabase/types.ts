@@ -790,12 +790,14 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: {
           access_expires_at: string
+          bedrooms: string
           customer_address: string
           customer_email: string
           customer_name: string
           customer_phone: string
           date: string
           display_value: string
+          frequency: string
           id: string
           is_access_expired: boolean
           job_completed_at: string
@@ -803,6 +805,7 @@ export type Database = {
           job_status: string
           job_type: string
           postcode: string
+          property_type: string
           unlocked_at: string
           value: number
         }[]
