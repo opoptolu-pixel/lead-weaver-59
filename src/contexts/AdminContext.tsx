@@ -29,22 +29,26 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Don't check admin status until auth is done loading
     if (authLoading) {
-      setIsLoading(true);
       return;
     }
 
-    const checkAdminStatus = async () => {
-      if (!user) {
-        setIsAdmin(false);
-        setIsLoading(false);
-        return;
-      }
+    // If no user, immediately set not admin and stop loading
+    if (!user) {
+      setIsAdmin(false);
+      setIsLoading(false);
+      return;
+    }
 
+    let isMounted = true;
+    
+    const checkAdminStatus = async () => {
       try {
         const { data, error } = await supabase
           .from("user_roles")
           .select("role")
           .eq("user_id", user.id);
+
+        if (!isMounted) return;
 
         if (error) {
           console.error("Error checking admin status:", error);
@@ -59,13 +63,17 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         }
       } catch (err) {
         console.error("Error checking admin status:", err);
-        setIsAdmin(false);
+        if (isMounted) setIsAdmin(false);
       }
-      setIsLoading(false);
+      if (isMounted) setIsLoading(false);
     };
 
     checkAdminStatus();
-  }, [user, authLoading]);
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.id, authLoading]);
 
   const setCustomDates = (start: Date | null, end: Date | null) => {
     setCustomStartDate(start);
