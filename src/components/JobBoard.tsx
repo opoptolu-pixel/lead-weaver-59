@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { useAutoScroll } from "@/hooks/useAutoScroll";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import { toast } from "sonner";
+import { trackLeadUnlock, trackCTAClick } from "@/lib/analytics";
 
 interface Lead {
   id: string;
@@ -39,6 +40,14 @@ export const JobBoard = () => {
       }
 
       if (data?.url) {
+        // Track lead unlock initiation
+        const lead = leads.find(l => l.id === leadId);
+        if (lead) {
+          trackLeadUnlock({
+            leadValue: 20,
+            jobType: lead.job_type,
+          });
+        }
         window.location.href = data.url;
       } else if (data?.error) {
         toast.error(data.error);
@@ -273,7 +282,10 @@ export const JobBoard = () => {
               variant="hero" 
               size="lg"
               className="shadow-glow"
-              onClick={() => document.getElementById("registration")?.scrollIntoView({ behavior: "smooth" })}
+              onClick={() => {
+                trackCTAClick("Join Deep Clean UK Today", "job_board_section");
+                document.getElementById("registration")?.scrollIntoView({ behavior: "smooth" });
+              }}
             >
               Join Deep Clean UK Today
             </Button>

@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { trackCTAClick } from "@/lib/analytics";
 
 
 // Cleaning types matching request cleaning page
@@ -97,6 +98,9 @@ export const CustomerHeroSection = () => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (postcode.trim()) {
+      // Track CTA click
+      trackCTAClick("Get Quotes", "hero_section");
+      
       // Use startTransition to prevent UI blocking during navigation
       startTransition(() => {
         navigate(`/request-cleaning?type=${encodeURIComponent(selectedType.id)}&postcode=${encodeURIComponent(postcode.trim().toUpperCase())}`);

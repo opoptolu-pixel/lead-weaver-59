@@ -13,6 +13,7 @@ import { useAutoScroll } from "@/hooks/useAutoScroll";
 import { LeadsSkeleton } from "@/components/skeletons/LeadsSkeleton";
 import { useRateLimit, RATE_LIMIT_PRESETS } from "@/hooks/useRateLimit";
 import { LeadFilters, LeadFilter } from "@/components/LeadFilters";
+import { trackLeadUnlock } from "@/lib/analytics";
 interface Lead {
   id: string;
   postcode: string;
@@ -560,6 +561,15 @@ export default function Leads() {
       }
       setUsingCreditLeadId(null);
       return;
+    }
+
+    // Track the conversion
+    const unlockedLead = leads.find(l => l.id === leadId);
+    if (unlockedLead) {
+      trackLeadUnlock({
+        leadValue: 20, // Credit value equivalent
+        jobType: unlockedLead.job_type,
+      });
     }
 
     // Remove the lead from the list
