@@ -28,6 +28,14 @@
     <priority>0.8</priority>
   </url>
   
+  <!-- Blog -->
+  <url>
+    <loc>https://deepcleanuk.com/blog</loc>
+    <lastmod>2025-01-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
   <!-- Contact Page -->
   <url>
     <loc>https://deepcleanuk.com/contact</loc>
