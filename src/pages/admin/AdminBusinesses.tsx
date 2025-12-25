@@ -171,23 +171,70 @@ export default function AdminBusinesses() {
     setLoadingHistory(false);
   };
 
-  const toggleSuspension = async (business: Business) => {
+  const toggleSuspension = async (business: Business, reason?: string) => {
+    const suspensionReason = reason || "Suspended by admin";
+    const isSuspending = !business.is_suspended;
+    
     const { error } = await supabase
       .from("profiles")
       .update({
-        is_suspended: !business.is_suspended,
-        suspension_reason: business.is_suspended ? null : "Suspended by admin",
+        is_suspended: isSuspending,
+        suspension_reason: isSuspending ? suspensionReason : null,
       })
       .eq("id", business.id);
 
     if (error) {
       toast.error("Failed to update business");
-    } else {
-      toast.success(
-        business.is_suspended ? "Business unsuspended" : "Business suspended"
-      );
-      fetchBusinesses();
+      return;
     }
+    
+    // Send suspension notification email if suspending
+    if (isSuspending && business.email) {
+      try {
+        // Fetch the email template
+        const { data: template } = await supabase
+          .from("email_templates")
+          .select("subject, body")
+          .eq("name", "account_suspended")
+          .eq("is_active", true)
+          .maybeSingle();
+
+        if (template) {
+          const variables: Record<string, string> = {
+            business_name: business.business_name || business.contact_name || "Partner",
+            suspension_reason: suspensionReason,
+            current_year: new Date().getFullYear().toString(),
+          };
+
+          let subject = template.subject;
+          let html = template.body;
+          
+          Object.entries(variables).forEach(([key, value]) => {
+            subject = subject.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
+            html = html.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
+          });
+
+          await supabase.functions.invoke("send-email", {
+            body: {
+              to: business.email,
+              subject,
+              html,
+              templateName: "account_suspended",
+            },
+          });
+          
+          toast.success("Suspension email sent to business");
+        }
+      } catch (emailError) {
+        console.error("Failed to send suspension email:", emailError);
+        // Don't block the suspension if email fails
+      }
+    }
+    
+    toast.success(
+      isSuspending ? "Business suspended" : "Business unsuspended"
+    );
+    fetchBusinesses();
   };
 
   const verifyBusiness = async (business: Business) => {
