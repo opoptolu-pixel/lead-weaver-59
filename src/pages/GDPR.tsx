@@ -3,12 +3,31 @@ import { Footer } from "@/components/Footer";
 import { SEOHead } from "@/components/SEOHead";
 
 const GDPR = () => {
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "@id": "https://deepcleanuk.com/gdpr#webpage",
+    "url": "https://deepcleanuk.com/gdpr",
+    "name": "GDPR Compliance | Deep Clean UK",
+    "description": "Learn about Deep Clean UK's GDPR compliance and your data rights.",
+    "isPartOf": { "@id": "https://deepcleanuk.com/#website" },
+    "about": { "@id": "https://deepcleanuk.com/#organization" },
+    "breadcrumb": {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://deepcleanuk.com" },
+        { "@type": "ListItem", "position": 2, "name": "GDPR Compliance", "item": "https://deepcleanuk.com/gdpr" }
+      ]
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <SEOHead
-        title="GDPR Compliance"
+        title="GDPR Compliance | Deep Clean UK"
         description="Learn about Deep Clean UK's GDPR compliance, your data rights, and how we protect your personal information in accordance with UK data protection law."
         canonical="https://deepcleanuk.com/gdpr"
+        structuredData={structuredData}
       />
       <Header />
       <main className="container mx-auto px-4 py-16 max-w-4xl">

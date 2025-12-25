@@ -3,12 +3,31 @@ import { Footer } from "@/components/Footer";
 import { SEOHead } from "@/components/SEOHead";
 
 const RefundPolicy = () => {
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "@id": "https://deepcleanuk.com/refund-policy#webpage",
+    "url": "https://deepcleanuk.com/refund-policy",
+    "name": "Refund Policy | Deep Clean UK",
+    "description": "Understand Deep Clean UK's refund policy for lead credits.",
+    "isPartOf": { "@id": "https://deepcleanuk.com/#website" },
+    "about": { "@id": "https://deepcleanuk.com/#organization" },
+    "breadcrumb": {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://deepcleanuk.com" },
+        { "@type": "ListItem", "position": 2, "name": "Refund Policy", "item": "https://deepcleanuk.com/refund-policy" }
+      ]
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <SEOHead
-        title="Refund Policy"
+        title="Refund Policy | Deep Clean UK"
         description="Understand Deep Clean UK's refund policy for lead credits. Learn about eligible refund situations, the dispute process, and how to request a refund."
         canonical="https://deepcleanuk.com/refund-policy"
+        structuredData={structuredData}
       />
       <Header />
       <main className="container mx-auto px-4 py-16 max-w-4xl">
