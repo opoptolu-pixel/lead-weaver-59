@@ -97,10 +97,14 @@ export const CustomerHeroSection = () => {
   };
 
   const handleLocationSelect = (location: UKLocation) => {
-    setPostcode(location.postcode);
+    // For cities, use the first postcode prefix; for others, use full postcode
+    const postcodeValue = location.type === 'city' 
+      ? location.postcode.split(',')[0].trim() 
+      : location.postcode;
+    setPostcode(postcodeValue);
     setShowPostcodeSuggestions(false);
     // Navigate to request cleaning
-    navigate(`/request-cleaning?type=${encodeURIComponent(selectedType.id)}&postcode=${encodeURIComponent(location.postcode)}`);
+    navigate(`/request-cleaning?type=${encodeURIComponent(selectedType.id)}&postcode=${encodeURIComponent(postcodeValue)}`);
   };
 
   return (
@@ -189,27 +193,37 @@ export const CustomerHeroSection = () => {
 
                 {/* Postcode suggestions */}
                 {showPostcodeSuggestions && (ukLocations.length > 0 || isLoading) && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-background border border-border rounded-xl shadow-xl z-50 overflow-hidden">
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-background border border-border rounded-xl shadow-2xl z-[9999] overflow-hidden">
                     {isLoading ? (
                       <div className="p-4 flex items-center justify-center gap-2 text-muted-foreground">
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        Searching...
+                        Searching UK locations...
                       </div>
                     ) : (
-                      ukLocations.slice(0, 5).map((location, idx) => (
-                        <button
-                          key={`${location.postcode}-${idx}`}
-                          type="button"
-                          onClick={() => handleLocationSelect(location)}
-                          className="w-full px-4 py-3 text-left hover:bg-muted transition-colors flex items-center gap-3"
-                        >
-                          <MapPin className="w-4 h-4 text-secondary flex-shrink-0" />
-                          <div>
-                            <span className="font-medium text-foreground">{location.postcode}</span>
-                            <span className="text-sm text-muted-foreground ml-2">{location.area}</span>
-                          </div>
-                        </button>
-                      ))
+                      <>
+                        <div className="p-2 text-xs text-muted-foreground font-medium border-b border-border bg-muted/50">
+                          <MapPin className="w-3 h-3 inline mr-1" />
+                          UK Locations
+                        </div>
+                        {ukLocations.slice(0, 6).map((location, idx) => (
+                          <button
+                            key={`${location.postcode}-${idx}`}
+                            type="button"
+                            onClick={() => handleLocationSelect(location)}
+                            className="w-full px-4 py-3 text-left hover:bg-muted transition-colors flex items-center gap-3"
+                          >
+                            <MapPin className={`w-4 h-4 flex-shrink-0 ${location.type === 'city' ? 'text-primary' : 'text-secondary'}`} />
+                            <div className="flex-1 min-w-0">
+                              <span className="font-medium text-foreground">
+                                {location.type === 'city' ? location.area.split(',')[0] : location.postcode}
+                              </span>
+                              <span className="text-sm text-muted-foreground ml-2">
+                                {location.type === 'city' ? `(${location.postcode})` : location.area}
+                              </span>
+                            </div>
+                          </button>
+                        ))}
+                      </>
                     )}
                   </div>
                 )}
