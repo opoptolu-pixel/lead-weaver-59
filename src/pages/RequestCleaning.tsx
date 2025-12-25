@@ -185,15 +185,15 @@ export default function RequestCleaning() {
       if (error) throw error;
       if (data.error) throw new Error(data.message || data.error);
 
-      // Track conversion in GA4
-      trackCleaningRequest({
-        jobType: formData.jobType,
-        postcode: formData.postcode,
-        estimatedValue: formData.jobValue,
-      });
-
       toast.success("Your cleaning request has been submitted!");
-      navigate("/request-cleaning/thank-you");
+      // Pass form data via state for tracking on thank you page
+      navigate("/request-cleaning/thank-you", {
+        state: {
+          jobType: formData.jobType,
+          postcode: formData.postcode,
+          estimatedValue: formData.jobValue,
+        }
+      });
     } catch (error: any) {
       console.error("Error submitting request:", error);
       toast.error(error.message || "Failed to submit request. Please try again.");

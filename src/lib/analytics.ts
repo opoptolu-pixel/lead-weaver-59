@@ -49,18 +49,14 @@ export const trackCleaningRequest = (params: {
   });
 };
 
-// Track contact form submissions
-export const trackContactSubmission = (params: {
-  subject: string;
+// Track enquiries (contact form & business enquiries - NOT leads)
+export const trackEnquiry = (params: {
+  source: 'contact_form' | 'business_enquiry';
+  subject?: string;
 }) => {
-  trackEvent('generate_lead', {
-    currency: 'GBP',
-    value: 0,
-    lead_source: 'contact_form',
-  });
-  
-  trackEvent('contact_form_submitted', {
-    subject_category: params.subject.slice(0, 50), // Limit length
+  trackEvent('enquiry', {
+    enquiry_source: params.source,
+    subject_category: params.subject?.slice(0, 50) || 'general',
   });
 };
 
