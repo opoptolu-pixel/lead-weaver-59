@@ -366,7 +366,7 @@ export default function RequestCleaning() {
           <div className="bg-white rounded-3xl shadow-2xl p-8 lg:p-12 min-h-[400px] flex flex-col">
             {/* Step 1: Type of Clean */}
             {currentStep === 1 && (
-              <div className="flex-1 animate-in fade-in slide-in-from-right-4 duration-300">
+              <div className="flex-1">
                 <h2 className="font-heading text-2xl lg:text-3xl font-bold text-gray-900 text-center mb-2">
                   What type of cleaning do you need?
                 </h2>
@@ -414,7 +414,7 @@ export default function RequestCleaning() {
 
             {/* Step 2: Postcode */}
             {currentStep === 2 && (
-              <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-right-4 duration-300">
+              <div className="flex-1 flex flex-col">
                 <h2 className="font-heading text-2xl lg:text-3xl font-bold text-gray-900 text-center mb-2">
                   Where do you need cleaning?
                 </h2>
@@ -463,7 +463,7 @@ export default function RequestCleaning() {
 
             {/* Step 3: Contact Details */}
             {currentStep === 3 && (
-              <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-right-4 duration-300">
+              <div className="flex-1 flex flex-col">
                 <h2 className="font-heading text-2xl lg:text-3xl font-bold text-gray-900 text-center mb-2">
                   How can cleaners reach you?
                 </h2>
@@ -532,7 +532,7 @@ export default function RequestCleaning() {
 
             {/* Step 4: Date Range */}
             {currentStep === 4 && (
-              <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-right-4 duration-300">
+              <div className="flex-1 flex flex-col">
                 <h2 className="font-heading text-2xl lg:text-3xl font-bold text-gray-900 text-center mb-2">
                   When would you like the cleaning?
                 </h2>
