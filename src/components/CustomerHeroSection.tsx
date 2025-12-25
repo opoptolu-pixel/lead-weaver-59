@@ -184,11 +184,11 @@ export const CustomerHeroSection = () => {
                 <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10" />
                 <Input
                   type="text"
-                  placeholder="Postcode"
+                  placeholder="Postcode or city"
                   value={postcode}
-                  onChange={(e) => setPostcode(e.target.value.toUpperCase())}
+                  onChange={(e) => setPostcode(e.target.value)}
                   onFocus={() => setShowPostcodeSuggestions(true)}
-                  className="pl-12 pr-4 h-14 text-base bg-transparent border-2 border-transparent rounded-xl focus:border-secondary uppercase tracking-wide w-full"
+                  className="pl-12 pr-4 h-14 text-base bg-transparent border-2 border-transparent rounded-xl focus:border-secondary tracking-wide w-full"
                 />
 
                 {/* Postcode suggestions */}
@@ -217,9 +217,9 @@ export const CustomerHeroSection = () => {
                               <span className="font-medium text-foreground">
                                 {location.type === 'city' ? location.area.split(',')[0] : location.postcode}
                               </span>
-                              <span className="text-sm text-muted-foreground ml-2">
-                                {location.type === 'city' ? `(${location.postcode})` : location.area}
-                              </span>
+                              {location.type !== 'city' && (
+                                <span className="text-sm text-muted-foreground ml-2">{location.area}</span>
+                              )}
                             </div>
                           </button>
                         ))}
