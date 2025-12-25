@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Home, Search, BarChart3, Settings, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -16,7 +17,7 @@ const navItems: NavItem[] = [
   { label: "Settings", icon: Settings, href: "/settings" },
 ];
 
-export function MobileBottomNav() {
+export const MobileBottomNav = forwardRef<HTMLElement>((_, ref) => {
   const location = useLocation();
 
   // Only show on business dashboard routes
@@ -26,7 +27,7 @@ export function MobileBottomNav() {
   if (!shouldShow) return null;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border md:hidden pb-safe">
+    <nav ref={ref} className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border md:hidden pb-safe">
       <div className="flex items-center justify-around h-16">
         {navItems.map((item) => {
           const isActive = location.pathname === item.href;
@@ -51,4 +52,6 @@ export function MobileBottomNav() {
       </div>
     </nav>
   );
-}
+});
+
+MobileBottomNav.displayName = "MobileBottomNav";
