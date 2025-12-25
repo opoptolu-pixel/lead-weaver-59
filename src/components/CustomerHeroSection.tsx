@@ -111,13 +111,23 @@ export const CustomerHeroSection = () => {
   };
 
   const handleLocationSelect = (location: UKLocation) => {
-    // For cities, use the first postcode prefix; for others, use full postcode
     const postcodeValue = location.type === 'city' 
       ? location.postcode.split(',')[0].trim() 
       : location.postcode;
+    
     setPostcode(postcodeValue);
     setShowPostcodeSuggestions(false);
-    // Don't auto-navigate - let user click the CTA button
+    
+    // Auto-navigate for full postcodes, stay on page for cities/partial
+    if (location.type === 'postcode') {
+      trackCTAClick("Postcode Selected", "hero_section");
+      navigate('/request-cleaning', {
+        state: {
+          type: selectedType.id,
+          postcode: postcodeValue.toUpperCase()
+        }
+      });
+    }
   };
 
   return (
