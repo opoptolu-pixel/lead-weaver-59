@@ -369,7 +369,7 @@ const DEFAULT_TEMPLATES = [
                 <tr>
                   <td align="center">
                     <p style="color: rgba(255,255,255,0.6); font-size: 12px; margin: 0;">
-                      You are receiving this because you are a registered {{business_name}} partner.<br>
+                      You are receiving this because you are a registered Deep Clean UK partner.<br>
                       © {{current_year}} Deep Clean UK
                     </p>
                   </td>
@@ -664,7 +664,7 @@ const DEFAULT_TEMPLATES = [
                 <tr>
                   <td align="center">
                     <p style="color: rgba(255,255,255,0.6); font-size: 12px; margin: 0;">
-                      You are receiving this because you are a registered {{business_name}} partner.<br>
+                      You are receiving this because you are a registered Deep Clean UK partner.<br>
                       © {{current_year}} Deep Clean UK
                     </p>
                   </td>
