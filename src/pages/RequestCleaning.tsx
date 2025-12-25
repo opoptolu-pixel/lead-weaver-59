@@ -30,6 +30,7 @@ import { Logo } from "@/components/Logo";
 import { Footer } from "@/components/Footer";
 import { cn } from "@/lib/utils";
 import { SEOHead } from "@/components/SEOHead";
+import { trackCleaningRequest, trackFormStep } from "@/lib/analytics";
 
 // Phase 1 + Phase 2 Job Types - Bundled jobs that exceed £100
 const cleaningTypes = [
@@ -184,6 +185,13 @@ export default function RequestCleaning() {
       if (error) throw error;
       if (data.error) throw new Error(data.message || data.error);
 
+      // Track conversion in GA4
+      trackCleaningRequest({
+        jobType: formData.jobType,
+        postcode: formData.postcode,
+        estimatedValue: formData.jobValue,
+      });
+
       toast.success("Your cleaning request has been submitted!");
       navigate("/request-cleaning/thank-you");
     } catch (error: any) {
@@ -219,10 +227,19 @@ export default function RequestCleaning() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const stepNames = ['Service Type', 'Location', 'Contact Details', 'Preferred Dates'];
+
   const handleNext = () => {
     if (currentStep < TOTAL_STEPS) {
-      setCurrentStep(currentStep + 1);
+      const nextStep = currentStep + 1;
+      setCurrentStep(nextStep);
       scrollToTop();
+      // Track step progression
+      trackFormStep({
+        formName: 'cleaning_request',
+        stepNumber: nextStep,
+        stepName: stepNames[nextStep - 1],
+      });
     } else {
       handleSubmit();
     }
@@ -240,6 +257,12 @@ export default function RequestCleaning() {
     // Auto-advance to step 2 when selecting a cleaning type
     setCurrentStep(2);
     scrollToTop();
+    // Track step progression
+    trackFormStep({
+      formName: 'cleaning_request',
+      stepNumber: 2,
+      stepName: 'Location',
+    });
   };
 
   // Get tomorrow's date as minimum date
