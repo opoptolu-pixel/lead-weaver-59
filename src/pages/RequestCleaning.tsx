@@ -52,7 +52,36 @@ const cleaningTypes = [
   { id: "multi-room-upholstery", label: "Multi-Room + Upholstery Deep Clean", icon: Sofa, color: "bg-purple-100 text-purple-600", value: "from £160", phase: 2 },
 ];
 
-const TOTAL_STEPS = 4;
+const TOTAL_STEPS = 7;
+
+// Property types for step 3
+const propertyTypes = [
+  { id: "house", label: "House" },
+  { id: "flat", label: "Flat or Apartment" },
+  { id: "bungalow", label: "Bungalow" },
+  { id: "commercial", label: "A Commercial property" },
+];
+
+// Bedroom options for step 4
+const bedroomOptions = [
+  { id: "studio", label: "Studio" },
+  { id: "0", label: "0 bedrooms" },
+  { id: "1", label: "1 bedroom" },
+  { id: "2", label: "2 bedrooms" },
+  { id: "3", label: "3 bedrooms" },
+  { id: "4", label: "4 bedrooms" },
+  { id: "5+", label: "5+ bedrooms" },
+];
+
+// Frequency options for step 5
+const frequencyOptions = [
+  { id: "one-time", label: "One-time clean" },
+  { id: "weekly", label: "Weekly" },
+  { id: "twice-a-week", label: "Twice a week" },
+  { id: "every-other-week", label: "Every other week" },
+  { id: "monthly", label: "Once a month" },
+  { id: "daily", label: "Daily" },
+];
 
 // UK Postcode validation regex - full postcode
 const UK_POSTCODE_REGEX = /^([A-Z]{1,2}[0-9][0-9A-Z]?\s?[0-9][A-Z]{2})$/i;
@@ -105,6 +134,9 @@ export default function RequestCleaning() {
       jobType: matchedType?.label || "",
       jobValue: matchedType?.value || "",
       postcode: postcodeParam,
+      propertyType: "",
+      bedrooms: "",
+      frequency: "",
       customerName: "",
       customerEmail: "",
       customerPhone: "",
@@ -177,6 +209,9 @@ export default function RequestCleaning() {
           preferredDate: formData.dateFrom,
           jobDescription: formData.dateTo ? `Preferred dates: ${formData.dateFrom} to ${formData.dateTo}` : "",
           estimatedValue: formData.jobValue,
+          propertyType: formData.propertyType,
+          bedrooms: formData.propertyType === "commercial" ? null : formData.bedrooms,
+          frequency: formData.frequency,
         },
       });
 
@@ -208,8 +243,15 @@ export default function RequestCleaning() {
         // Require a full valid postcode to proceed
         return formData.postcode.length >= 5 && validatePostcode(formData.postcode);
       case 3:
-        return formData.customerName && formData.customerEmail && formData.customerPhone && !phoneError;
+        return formData.propertyType !== "";
       case 4:
+        // Skip bedrooms validation for commercial properties
+        return formData.propertyType === "commercial" || formData.bedrooms !== "";
+      case 5:
+        return formData.frequency !== "";
+      case 6:
+        return formData.customerName && formData.customerEmail && formData.customerPhone && !phoneError;
+      case 7:
         return formData.dateFrom !== "";
       default:
         return false;
@@ -225,11 +267,20 @@ export default function RequestCleaning() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const stepNames = ['Service Type', 'Location', 'Contact Details', 'Preferred Dates'];
+  const stepNames = ['Service Type', 'Location', 'Property Type', 'Bedrooms', 'Frequency', 'Contact Details', 'Preferred Dates'];
+  
+  // Should we skip the bedrooms step?
+  const shouldSkipBedrooms = formData.propertyType === "commercial";
 
   const handleNext = () => {
     if (currentStep < TOTAL_STEPS) {
-      const nextStep = currentStep + 1;
+      let nextStep = currentStep + 1;
+      
+      // Skip bedrooms step (4) if commercial property
+      if (nextStep === 4 && shouldSkipBedrooms) {
+        nextStep = 5;
+      }
+      
       setCurrentStep(nextStep);
       scrollToTop();
       // Track step progression
@@ -245,7 +296,14 @@ export default function RequestCleaning() {
 
   const handleBack = () => {
     if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
+      let prevStep = currentStep - 1;
+      
+      // Skip bedrooms step (4) if commercial property when going back
+      if (prevStep === 4 && shouldSkipBedrooms) {
+        prevStep = 3;
+      }
+      
+      setCurrentStep(prevStep);
       scrollToTop();
     }
   };
@@ -462,8 +520,158 @@ export default function RequestCleaning() {
               </div>
             )}
 
-            {/* Step 3: Contact Details */}
+            {/* Step 3: Property Type */}
             {currentStep === 3 && (
+              <div className="flex-1 flex flex-col">
+                <h2 className="font-heading text-2xl lg:text-3xl font-bold text-gray-900 text-center mb-2">
+                  What kind of property needs cleaning?
+                </h2>
+                <p className="text-gray-500 text-center mb-8">
+                  Get quotes for cleaners today!
+                </p>
+
+                <div className="flex-1">
+                  <div className="bg-gray-50 rounded-2xl border border-gray-200 divide-y divide-gray-200 overflow-hidden">
+                    {propertyTypes.map((type) => {
+                      const isSelected = formData.propertyType === type.id;
+                      return (
+                        <label
+                          key={type.id}
+                          className={cn(
+                            "flex items-center gap-4 p-4 cursor-pointer transition-colors hover:bg-gray-100",
+                            isSelected && "bg-primary/5"
+                          )}
+                        >
+                          <div className={cn(
+                            "w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0",
+                            isSelected ? "border-primary bg-primary" : "border-gray-300"
+                          )}>
+                            {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
+                          </div>
+                          <span className={cn(
+                            "text-base font-medium",
+                            isSelected ? "text-primary" : "text-gray-700"
+                          )}>
+                            {type.label}
+                          </span>
+                          <input
+                            type="radio"
+                            name="propertyType"
+                            value={type.id}
+                            checked={isSelected}
+                            onChange={() => setFormData({ ...formData, propertyType: type.id, bedrooms: type.id === "commercial" ? "" : formData.bedrooms })}
+                            className="sr-only"
+                          />
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 4: Bedrooms (skipped for commercial) */}
+            {currentStep === 4 && (
+              <div className="flex-1 flex flex-col">
+                <h2 className="font-heading text-2xl lg:text-3xl font-bold text-gray-900 text-center mb-2">
+                  How many bedroom(s) need cleaning?
+                </h2>
+                <p className="text-gray-500 text-center mb-8">
+                  This helps us match you with the right cleaner
+                </p>
+
+                <div className="flex-1">
+                  <div className="bg-gray-50 rounded-2xl border border-gray-200 divide-y divide-gray-200 overflow-hidden max-h-[400px] overflow-y-auto">
+                    {bedroomOptions.map((option) => {
+                      const isSelected = formData.bedrooms === option.id;
+                      return (
+                        <label
+                          key={option.id}
+                          className={cn(
+                            "flex items-center gap-4 p-4 cursor-pointer transition-colors hover:bg-gray-100",
+                            isSelected && "bg-primary/5"
+                          )}
+                        >
+                          <div className={cn(
+                            "w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0",
+                            isSelected ? "border-primary bg-primary" : "border-gray-300"
+                          )}>
+                            {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
+                          </div>
+                          <span className={cn(
+                            "text-base font-medium",
+                            isSelected ? "text-primary" : "text-gray-700"
+                          )}>
+                            {option.label}
+                          </span>
+                          <input
+                            type="radio"
+                            name="bedrooms"
+                            value={option.id}
+                            checked={isSelected}
+                            onChange={() => setFormData({ ...formData, bedrooms: option.id })}
+                            className="sr-only"
+                          />
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 5: Frequency */}
+            {currentStep === 5 && (
+              <div className="flex-1 flex flex-col">
+                <h2 className="font-heading text-2xl lg:text-3xl font-bold text-gray-900 text-center mb-2">
+                  How often do you need cleaning?
+                </h2>
+                <p className="text-gray-500 text-center mb-8">
+                  Choose what works best for you
+                </p>
+
+                <div className="flex-1">
+                  <div className="bg-gray-50 rounded-2xl border border-gray-200 divide-y divide-gray-200 overflow-hidden">
+                    {frequencyOptions.map((option) => {
+                      const isSelected = formData.frequency === option.id;
+                      return (
+                        <label
+                          key={option.id}
+                          className={cn(
+                            "flex items-center gap-4 p-4 cursor-pointer transition-colors hover:bg-gray-100",
+                            isSelected && "bg-primary/5"
+                          )}
+                        >
+                          <div className={cn(
+                            "w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0",
+                            isSelected ? "border-primary bg-primary" : "border-gray-300"
+                          )}>
+                            {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
+                          </div>
+                          <span className={cn(
+                            "text-base font-medium",
+                            isSelected ? "text-primary" : "text-gray-700"
+                          )}>
+                            {option.label}
+                          </span>
+                          <input
+                            type="radio"
+                            name="frequency"
+                            value={option.id}
+                            checked={isSelected}
+                            onChange={() => setFormData({ ...formData, frequency: option.id })}
+                            className="sr-only"
+                          />
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 6: Contact Details */}
+            {currentStep === 6 && (
               <div className="flex-1 flex flex-col">
                 <h2 className="font-heading text-2xl lg:text-3xl font-bold text-gray-900 text-center mb-2">
                   How can cleaners reach you?
@@ -531,8 +739,8 @@ export default function RequestCleaning() {
               </div>
             )}
 
-            {/* Step 4: Date Range */}
-            {currentStep === 4 && (
+            {/* Step 7: Date Range */}
+            {currentStep === 7 && (
               <div className="flex-1 flex flex-col">
                 <h2 className="font-heading text-2xl lg:text-3xl font-bold text-gray-900 text-center mb-2">
                   When would you like the cleaning?

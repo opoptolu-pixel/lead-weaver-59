@@ -19,6 +19,9 @@ interface CleaningRequest {
   preferredDate: string;
   jobDescription?: string;
   estimatedValue?: string;
+  propertyType?: string;
+  bedrooms?: string;
+  frequency?: string;
 }
 
 // Job Value Bands for Phase 2 Analytics (thresholds in pence)
@@ -397,6 +400,9 @@ serve(async (req) => {
       job_notes: body.jobDescription || null,
       admin_notes: adminNotes,
       quality_score: phase === 2 ? 80 : 70, // Phase 2 jobs get higher quality score
+      property_type: body.propertyType || null,
+      bedrooms: body.bedrooms || null,
+      frequency: body.frequency || null,
     }).select().single();
 
     if (error) {
