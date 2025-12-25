@@ -110,11 +110,12 @@ serve(async (req) => {
         // Send welcome email with magic link via Resend
         try {
           const magicLink = magicLinkData.properties?.action_link;
+          const emailSubject = "Welcome to Deep Clean UK - Access Your Account";
           
-          await resend.emails.send({
+          const emailResponse = await resend.emails.send({
             from: "Deep Clean UK <noreply@deepcleanco.uk>",
             to: [customerEmail],
-            subject: "Welcome to Deep Clean UK - Access Your Account",
+            subject: emailSubject,
             html: `
               <!DOCTYPE html>
               <html>
@@ -157,7 +158,20 @@ serve(async (req) => {
               </html>
             `,
           });
-          logStep("Welcome email sent successfully");
+          
+          // Log the email to email_logs table
+          await supabaseClient
+            .from("email_logs")
+            .insert({
+              template_name: "welcome_new_user",
+              recipient_email: customerEmail,
+              subject: emailSubject,
+              status: "sent",
+              resend_id: emailResponse.data?.id || null,
+              is_test: false,
+            });
+          
+          logStep("Welcome email sent and logged successfully", { resendId: emailResponse.data?.id });
         } catch (emailError: any) {
           logStep("Welcome email failed (non-blocking)", { error: emailError.message });
         }
