@@ -432,13 +432,13 @@ export default function AdminOverview() {
 
     const { data: leads } = await supabase
       .from("leads")
-      .select("id, is_unlocked, lead_status, created_at, refunded_at, value, unlocked_by")
+      .select("id, is_unlocked, lead_status, created_at, refunded_at, value, display_value, unlocked_by")
       .gte("created_at", startISO)
       .lte("created_at", endISO);
 
     const { data: unlockedLeadsInRange } = await supabase
       .from("leads")
-      .select("id, unlocked_by, value, refunded_at")
+      .select("id, unlocked_by, value, display_value, refunded_at")
       .gte("unlocked_at", startISO)
       .lte("unlocked_at", endISO)
       .not("unlocked_by", "is", null);
@@ -475,13 +475,34 @@ export default function AdminOverview() {
     const disputesOpen = disputes?.filter(d => d.status === "open").length || 0;
     const pendingFraud = fraudFlags?.filter(f => f.status === "pending").length || 0;
     
-    const totalValuePence = leads?.reduce((sum, l) => sum + (l.value || 0), 0) || 0;
-    const avgJobValue = leadsReceived > 0 ? Math.round(totalValuePence / leadsReceived / 100) : 0;
+    // Helper to extract the "from" value from display_value like "from £150" or "£100-150"
+    const extractJobValue = (lead: { value: number; display_value?: string }): number => {
+      // First try to parse display_value for "from £X" format
+      if (lead.display_value) {
+        const fromMatch = lead.display_value.match(/from\s*£(\d+)/i);
+        if (fromMatch) {
+          return parseInt(fromMatch[1], 10);
+        }
+        // Try to match first number in formats like "£100-150" or "£150-200"
+        const rangeMatch = lead.display_value.match(/£(\d+)/);
+        if (rangeMatch) {
+          return parseInt(rangeMatch[1], 10);
+        }
+      }
+      // Fallback: if value > 1000, assume pence; otherwise assume pounds
+      if (lead.value > 1000) {
+        return Math.round(lead.value / 100);
+      }
+      return lead.value || 0;
+    };
+
+    const totalValuePounds = leads?.reduce((sum, l) => sum + extractJobValue(l), 0) || 0;
+    const avgJobValue = leadsReceived > 0 ? Math.round(totalValuePounds / leadsReceived) : 0;
     
     const conversionRate = leadsReceived > 0 ? Math.round((leadsPurchased / leadsReceived) * 100) : 0;
     
-    const purchasedLeadsValuePence = unlockedLeadsInRange?.reduce((sum, l) => sum + (l.value || 0), 0) || 0;
-    const totalJobRevenue = Math.round(purchasedLeadsValuePence / 100);
+    // Calculate total job revenue from purchased leads using the extracted "from" values
+    const totalJobRevenue = unlockedLeadsInRange?.reduce((sum, l) => sum + extractJobValue(l), 0) || 0;
 
     setStats({
       leadsReceived,
