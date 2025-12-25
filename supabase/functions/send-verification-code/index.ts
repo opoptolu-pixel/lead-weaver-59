@@ -77,6 +77,24 @@ serve(async (req) => {
       throw new Error(`Too many failed attempts. Please try again in ${remainingMinutes} minutes.`);
     }
 
+    // Rate limiting: max 3 code requests per 10 minutes
+    const { data: rateCheck, error: rateError } = await supabaseAdmin.rpc("check_rate_limit", {
+      p_user_id: user.id,
+      p_action: "send_verification_code",
+      p_max_requests: 3,
+      p_window_seconds: 600, // 10 minutes
+    });
+
+    if (rateError) {
+      logStep("Rate limit check error", { error: rateError.message });
+    } else if (rateCheck && rateCheck.length > 0 && !rateCheck[0].allowed) {
+      const resetAt = new Date(rateCheck[0].reset_at);
+      const remainingSeconds = Math.ceil((resetAt.getTime() - Date.now()) / 1000);
+      const remainingMinutes = Math.ceil(remainingSeconds / 60);
+      logStep("Rate limit exceeded", { current_count: rateCheck[0].current_count, reset_at: rateCheck[0].reset_at });
+      throw new Error(`Too many requests. Please wait ${remainingMinutes} minute${remainingMinutes > 1 ? 's' : ''} before requesting another code.`);
+    }
+
     // Generate secure 8-character alphanumeric code
     const code = generateSecureCode();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
@@ -180,7 +198,7 @@ serve(async (req) => {
 
     logStep(`Verification code sent via ${deliveryMethod}`);
 
-    return new Response(JSON.stringify({ success: true }), {
+    return new Response(JSON.stringify({ success: true, deliveryMethod }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });

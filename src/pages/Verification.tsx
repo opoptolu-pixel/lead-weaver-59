@@ -38,6 +38,7 @@ export default function Verification() {
   const [verifyingCode, setVerifyingCode] = useState(false);
   const [verificationCode, setVerificationCode] = useState("");
   const [codeSent, setCodeSent] = useState(false);
+  const [deliveryMethod, setDeliveryMethod] = useState<string | null>(null);
   const [addressProof, setAddressProof] = useState<File | null>(null);
 
   useEffect(() => {
@@ -71,13 +72,14 @@ export default function Verification() {
 
     setSendingCode(true);
     try {
-      const { error } = await supabase.functions.invoke("send-verification-code", {
+      const { data, error } = await supabase.functions.invoke("send-verification-code", {
         body: { phone: profile.phone },
       });
 
       if (error) throw error;
       setCodeSent(true);
-      toast.success("Verification code sent to your phone!");
+      setDeliveryMethod(data?.deliveryMethod || null);
+      toast.success(`Verification code sent via ${data?.deliveryMethod || "message"}!`);
     } catch (error: any) {
       console.error("Error sending code:", error);
       toast.error(error.message || "Failed to send verification code");
@@ -103,6 +105,7 @@ export default function Verification() {
       toast.success("Phone number verified!");
       setCodeSent(false);
       setVerificationCode("");
+      setDeliveryMethod(null);
     } catch (error: any) {
       console.error("Error verifying code:", error);
       toast.error(error.message || "Invalid verification code");
@@ -283,6 +286,9 @@ export default function Verification() {
 
                 {codeSent && (
                   <div className="space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                      Code sent via <span className="font-medium text-secondary">{deliveryMethod || "message"}</span> to {profile?.phone}
+                    </p>
                     <div className="flex gap-2">
                       <Input
                         placeholder="Enter 8-character code"
