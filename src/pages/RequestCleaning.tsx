@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { 
   Sparkles, 
@@ -76,48 +76,47 @@ export default function RequestCleaning() {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Get navigation state passed from CustomerHeroSection
-  const navState = location.state as { type?: string; postcode?: string } | null;
-  
-  // Compute initial state ONCE from navigation state
-  const { initialStep, formData: initialFormData } = useMemo(() => {
+  // Initialize state directly from location.state - runs once before first render
+  const [currentStep, setCurrentStep] = useState(() => {
+    const navState = location.state as { type?: string; postcode?: string } | null;
     const typeParam = navState?.type || "";
     const postcodeParam = (navState?.postcode || "").toUpperCase();
     const matchedType = cleaningTypes.find(t => t.id === typeParam);
     
-    let step = 1;
     if (matchedType && postcodeParam) {
       const cleaned = postcodeParam.replace(/\s+/g, '');
       if (UK_POSTCODE_REGEX.test(cleaned)) {
-        step = 3; // Full postcode - go to contact details
-      } else {
-        step = 2; // Partial or invalid - stay on postcode step
+        return 3; // Full postcode - go to contact details
       }
+      return 2; // Partial - stay on postcode step
     } else if (matchedType) {
-      step = 2; // Go to postcode step
+      return 2; // Go to postcode step
     }
+    return 1;
+  });
+  
+  const [formData, setFormData] = useState(() => {
+    const navState = location.state as { type?: string; postcode?: string } | null;
+    const typeParam = navState?.type || "";
+    const postcodeParam = (navState?.postcode || "").toUpperCase();
+    const matchedType = cleaningTypes.find(t => t.id === typeParam);
     
     return {
-      initialStep: step,
-      formData: {
-        jobType: matchedType?.label || "",
-        jobValue: matchedType?.value || "",
-        postcode: postcodeParam,
-        customerName: "",
-        customerEmail: "",
-        customerPhone: "",
-        dateFrom: "",
-        dateTo: "",
-      }
+      jobType: matchedType?.label || "",
+      jobValue: matchedType?.value || "",
+      postcode: postcodeParam,
+      customerName: "",
+      customerEmail: "",
+      customerPhone: "",
+      dateFrom: "",
+      dateTo: "",
     };
-  }, []); // Empty deps - only computed once
+  });
   
-  const [currentStep, setCurrentStep] = useState(initialStep);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [postcodeError, setPostcodeError] = useState("");
   const [phoneError, setPhoneError] = useState("");
   const [isValidatingPhone, setIsValidatingPhone] = useState(false);
-  const [formData, setFormData] = useState(initialFormData);
 
   // Scroll to top on page load only
   useEffect(() => {
