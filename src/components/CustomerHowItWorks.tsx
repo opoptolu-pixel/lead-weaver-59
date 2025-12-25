@@ -1,5 +1,4 @@
 import { Search, Users, MessageSquare, Sparkles } from "lucide-react";
-import { ScrollReveal } from "@/components/ScrollReveal";
 
 const steps = [
   {
@@ -39,19 +38,17 @@ export const CustomerHowItWorks = () => {
 
       <div className="container mx-auto px-4 relative">
         {/* Section header */}
-        <ScrollReveal animation="fade-up">
-          <div className="text-center mb-20">
-            <span className="inline-block text-sm font-semibold text-secondary uppercase tracking-wider mb-3">
-              Simple 4-Step Process
-            </span>
-            <h2 id="how-it-works-heading" className="font-heading text-3xl md:text-5xl font-bold text-foreground tracking-tight">
-              How to Find a Cleaner
-            </h2>
-            <p className="text-muted-foreground text-lg mt-4 max-w-md mx-auto">
-              Get matched with verified cleaning professionals in minutes
-            </p>
-          </div>
-        </ScrollReveal>
+        <div className="text-center mb-20 animate-fade-in">
+          <span className="inline-block text-sm font-semibold text-secondary uppercase tracking-wider mb-3">
+            Simple 4-Step Process
+          </span>
+          <h2 id="how-it-works-heading" className="font-heading text-3xl md:text-5xl font-bold text-foreground tracking-tight">
+            How to Find a Cleaner
+          </h2>
+          <p className="text-muted-foreground text-lg mt-4 max-w-md mx-auto">
+            Get matched with verified cleaning professionals in minutes
+          </p>
+        </div>
 
         {/* Desktop: Horizontal cards with brand styling */}
         <div className="hidden lg:block max-w-6xl mx-auto">
@@ -60,39 +57,41 @@ export const CustomerHowItWorks = () => {
               const Icon = step.icon;
               const isLast = index === steps.length - 1;
               return (
-                <ScrollReveal key={index} animation="fade-up" delay={index * 100}>
-                  <div className="relative group h-full">
-                    {/* Arrow connector */}
-                    {!isLast && (
-                      <div className="absolute top-14 -right-3 z-10">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-secondary">
-                          <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      </div>
-                    )}
-                    
-                    {/* Card */}
-                    <div className="relative bg-background rounded-2xl p-6 border border-border shadow-card transition-all duration-300 group-hover:shadow-elevated group-hover:border-secondary/30 group-hover:-translate-y-1 h-full">
-                      {/* Step number badge */}
-                      <div className="absolute -top-3 left-6 bg-secondary text-secondary-foreground text-xs font-bold px-3 py-1.5 rounded-full shadow-md">
-                        Step {step.number}
-                      </div>
-                      
-                      {/* Icon container - Navy/Primary color from hero */}
-                      <div className="w-14 h-14 rounded-xl bg-primary flex items-center justify-center mt-4 mb-5 transition-transform duration-300 group-hover:scale-105 shadow-lg">
-                        <Icon className="w-7 h-7 text-primary-foreground" />
-                      </div>
-                      
-                      {/* Content */}
-                      <h3 className="font-heading font-bold text-lg text-foreground mb-2">
-                        {step.title}
-                      </h3>
-                      <p className="text-muted-foreground text-sm leading-relaxed">
-                        {step.description}
-                      </p>
+                <div 
+                  key={index} 
+                  className="relative group h-full animate-fade-in"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  {/* Arrow connector */}
+                  {!isLast && (
+                    <div className="absolute top-14 -right-3 z-10">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-secondary">
+                        <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
                     </div>
+                  )}
+                  
+                  {/* Card */}
+                  <div className="relative bg-background rounded-2xl p-6 border border-border shadow-card transition-all duration-300 group-hover:shadow-elevated group-hover:border-secondary/30 group-hover:-translate-y-1 h-full">
+                    {/* Step number badge */}
+                    <div className="absolute -top-3 left-6 bg-secondary text-secondary-foreground text-xs font-bold px-3 py-1.5 rounded-full shadow-md">
+                      Step {step.number}
+                    </div>
+                    
+                    {/* Icon container - Navy/Primary color from hero */}
+                    <div className="w-14 h-14 rounded-xl bg-primary flex items-center justify-center mt-4 mb-5 transition-transform duration-300 group-hover:scale-105 shadow-lg">
+                      <Icon className="w-7 h-7 text-primary-foreground" />
+                    </div>
+                    
+                    {/* Content */}
+                    <h3 className="font-heading font-bold text-lg text-foreground mb-2">
+                      {step.title}
+                    </h3>
+                    <p className="text-muted-foreground text-sm leading-relaxed">
+                      {step.description}
+                    </p>
                   </div>
-                </ScrollReveal>
+                </div>
               );
             })}
           </div>
@@ -104,32 +103,34 @@ export const CustomerHowItWorks = () => {
             const Icon = step.icon;
             const isLast = index === steps.length - 1;
             return (
-              <ScrollReveal key={index} animation="fade-left" delay={index * 100}>
-                <div className="flex gap-5">
-                  {/* Left: Icon and line */}
-                  <div className="flex flex-col items-center">
-                    <div className="w-14 h-14 rounded-xl bg-primary flex items-center justify-center flex-shrink-0 shadow-lg">
-                      <Icon className="w-7 h-7 text-primary-foreground" />
-                    </div>
-                    {!isLast && (
-                      <div className="w-0.5 h-full min-h-[40px] bg-secondary/30 my-2" />
-                    )}
+              <div 
+                key={index} 
+                className="flex gap-5 animate-fade-in"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                {/* Left: Icon and line */}
+                <div className="flex flex-col items-center">
+                  <div className="w-14 h-14 rounded-xl bg-primary flex items-center justify-center flex-shrink-0 shadow-lg">
+                    <Icon className="w-7 h-7 text-primary-foreground" />
                   </div>
-                  
-                  {/* Right: Content */}
-                  <div className="pb-10">
-                    <span className="inline-block text-xs font-bold text-secondary uppercase tracking-wider mb-1">
-                      Step {step.number}
-                    </span>
-                    <h3 className="font-heading font-bold text-lg text-foreground mb-2">
-                      {step.title}
-                    </h3>
-                    <p className="text-muted-foreground text-sm leading-relaxed">
-                      {step.description}
-                    </p>
-                  </div>
+                  {!isLast && (
+                    <div className="w-0.5 h-full min-h-[40px] bg-secondary/30 my-2" />
+                  )}
                 </div>
-              </ScrollReveal>
+                
+                {/* Right: Content */}
+                <div className="pb-10">
+                  <span className="inline-block text-xs font-bold text-secondary uppercase tracking-wider mb-1">
+                    Step {step.number}
+                  </span>
+                  <h3 className="font-heading font-bold text-lg text-foreground mb-2">
+                    {step.title}
+                  </h3>
+                  <p className="text-muted-foreground text-sm leading-relaxed">
+                    {step.description}
+                  </p>
+                </div>
+              </div>
             );
           })}
         </div>
