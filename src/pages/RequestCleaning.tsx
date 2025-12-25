@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useState, useEffect, useMemo } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { 
   Sparkles, 
   Loader2,
@@ -70,55 +70,52 @@ const isValidPostcodePrefix = (postcode: string): boolean => {
   return UK_POSTCODE_PREFIX_REGEX.test(cleaned) || UK_POSTCODE_REGEX.test(cleaned);
 };
 
-// Helper to compute initial values from URL - called only once
-function computeInitialState(searchParams: URLSearchParams) {
-  const typeParam = searchParams.get("type") || "";
-  const postcodeParam = (searchParams.get("postcode") || "").toUpperCase();
-  const matchedType = cleaningTypes.find(t => t.id === typeParam);
-  
-  let initialStep = 1;
-  if (matchedType && postcodeParam) {
-    const cleaned = postcodeParam.replace(/\s+/g, '');
-    if (UK_POSTCODE_REGEX.test(cleaned)) {
-      initialStep = 3; // Full postcode - go to contact details
-    } else {
-      initialStep = 2; // Partial or invalid - stay on postcode step
-    }
-  } else if (matchedType) {
-    initialStep = 2; // Go to postcode step
-  }
-  
-  return {
-    initialStep,
-    formData: {
-      jobType: matchedType?.label || "",
-      jobValue: matchedType?.value || "",
-      postcode: postcodeParam,
-      customerName: "",
-      customerEmail: "",
-      customerPhone: "",
-      dateFrom: "",
-      dateTo: "",
-    }
-  };
-}
+// UK Postcode regex used for validation in component
 
 export default function RequestCleaning() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   
-  // Use ref to store initial state - computed only once on first render
-  const initialStateRef = useRef<ReturnType<typeof computeInitialState> | null>(null);
-  if (initialStateRef.current === null) {
-    initialStateRef.current = computeInitialState(searchParams);
-  }
+  // Compute initial state from URL params ONCE during initial render
+  // Use useMemo with empty deps - reads URL directly, no hook needed
+  const { initialStep, formData: initialFormData } = useMemo(() => {
+    const params = new URLSearchParams(window.location.search);
+    const typeParam = params.get("type") || "";
+    const postcodeParam = (params.get("postcode") || "").toUpperCase();
+    const matchedType = cleaningTypes.find(t => t.id === typeParam);
+    
+    let step = 1;
+    if (matchedType && postcodeParam) {
+      const cleaned = postcodeParam.replace(/\s+/g, '');
+      if (UK_POSTCODE_REGEX.test(cleaned)) {
+        step = 3; // Full postcode - go to contact details
+      } else {
+        step = 2; // Partial or invalid - stay on postcode step
+      }
+    } else if (matchedType) {
+      step = 2; // Go to postcode step
+    }
+    
+    return {
+      initialStep: step,
+      formData: {
+        jobType: matchedType?.label || "",
+        jobValue: matchedType?.value || "",
+        postcode: postcodeParam,
+        customerName: "",
+        customerEmail: "",
+        customerPhone: "",
+        dateFrom: "",
+        dateTo: "",
+      }
+    };
+  }, []); // Empty deps - only computed once
   
-  const [currentStep, setCurrentStep] = useState(initialStateRef.current.initialStep);
+  const [currentStep, setCurrentStep] = useState(initialStep);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [postcodeError, setPostcodeError] = useState("");
   const [phoneError, setPhoneError] = useState("");
   const [isValidatingPhone, setIsValidatingPhone] = useState(false);
-  const [formData, setFormData] = useState(initialStateRef.current.formData);
+  const [formData, setFormData] = useState(initialFormData);
 
   // Scroll to top on page load only
   useEffect(() => {
