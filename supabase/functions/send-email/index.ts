@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const FROM_EMAIL = "Deep Clean UK <noreply@deepcleanco.uk>";
+const FROM_EMAIL = "Deep Clean UK <hello@deepcleanco.uk>";
 const RESEND_API_URL = "https://api.resend.com/emails";
 
 interface EmailRequest {
