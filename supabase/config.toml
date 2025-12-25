@@ -31,7 +31,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.get-signed-url]
-verify_jwt = true
+verify_jwt = false
 
 [functions.send-email]
 verify_jwt = false
