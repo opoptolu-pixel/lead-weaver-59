@@ -53,7 +53,7 @@ export default function AdminSidebar() {
   return (
     <aside
       className={cn(
-        "bg-card border-r border-border h-screen sticky top-0 flex flex-col transition-all duration-300 flex-shrink-0",
+        "bg-card border-r border-border h-screen flex flex-col transition-all duration-300 flex-shrink-0 overflow-y-auto",
         collapsed ? "w-16" : "w-64"
       )}
     >
