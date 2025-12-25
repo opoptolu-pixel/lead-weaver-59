@@ -62,16 +62,32 @@ interface UnlockedLead {
   id: string;
   job_type: string;
   postcode: string;
+  unlocked_at: string | null;
 }
 
 const DISPUTE_REASONS = [
-  { code: "wrong_info", label: "Incorrect contact information" },
-  { code: "no_response", label: "Customer not responding" },
-  { code: "duplicate", label: "Duplicate lead" },
-  { code: "cancelled", label: "Customer cancelled before contact" },
-  { code: "outside_area", label: "Outside service area" },
-  { code: "other", label: "Other" },
+  { 
+    code: "wrong_contact", 
+    label: "Invalid contact details", 
+    description: "Phone number disconnected, email bounces, or address doesn't exist",
+    requiresEvidence: true 
+  },
+  { 
+    code: "duplicate_lead", 
+    label: "Duplicate lead", 
+    description: "You've already purchased this exact lead before",
+    requiresEvidence: true 
+  },
+  { 
+    code: "fake_spam", 
+    label: "Fake or spam lead", 
+    description: "Lead appears to be fake, spam, or submitted maliciously",
+    requiresEvidence: true 
+  },
 ];
+
+// Time window for submitting disputes (in hours)
+const DISPUTE_WINDOW_HOURS = 72;
 
 export default function Disputes() {
   const { user, loading: authLoading } = useAuth();
@@ -108,12 +124,16 @@ export default function Disputes() {
 
       if (!disputesError) setDisputes(disputesData || []);
 
-      // Fetch unlocked leads (for new dispute form)
+      // Fetch unlocked leads (for new dispute form) - only leads within dispute window
+      const cutoffDate = new Date();
+      cutoffDate.setHours(cutoffDate.getHours() - DISPUTE_WINDOW_HOURS);
+      
       const { data: leadsData, error: leadsError } = await supabase
         .from("leads")
-        .select("id, job_type, postcode")
+        .select("id, job_type, postcode, unlocked_at")
         .eq("unlocked_by", user.id)
-        .is("refunded_at", null);
+        .is("refunded_at", null)
+        .gte("unlocked_at", cutoffDate.toISOString());
 
       if (!leadsError) setLeads(leadsData || []);
 
@@ -128,6 +148,12 @@ export default function Disputes() {
   const handleSubmitDispute = async () => {
     if (!selectedLead || !reasonCode) {
       toast.error("Please select a lead and reason");
+      return;
+    }
+
+    // Evidence is mandatory for all dispute types
+    if (!evidenceFile) {
+      toast.error("Evidence is required. Please upload a screenshot or document.");
       return;
     }
 
@@ -245,11 +271,11 @@ export default function Disputes() {
                   New Dispute
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-lg">
                 <DialogHeader>
                   <DialogTitle>Submit a Dispute</DialogTitle>
                   <DialogDescription>
-                    If you believe a lead was invalid, submit a dispute for review.
+                    Disputes must be submitted within 72 hours of unlocking a lead. Evidence is required for all disputes.
                   </DialogDescription>
                 </DialogHeader>
 
@@ -271,7 +297,7 @@ export default function Disputes() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Reason</Label>
+                    <Label>Reason for Dispute</Label>
                     <Select value={reasonCode} onValueChange={setReasonCode}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a reason" />
@@ -284,6 +310,11 @@ export default function Disputes() {
                         ))}
                       </SelectContent>
                     </Select>
+                    {reasonCode && (
+                      <p className="text-xs text-muted-foreground">
+                        {DISPUTE_REASONS.find(r => r.code === reasonCode)?.description}
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -297,8 +328,11 @@ export default function Disputes() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Upload Evidence (optional)</Label>
-                    <div className="border-2 border-dashed border-border rounded-lg p-4 text-center">
+                    <Label className="flex items-center gap-1">
+                      Upload Evidence
+                      <span className="text-destructive">*</span>
+                    </Label>
+                    <div className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${evidenceFile ? 'border-secondary bg-secondary/5' : 'border-border'}`}>
                       <Upload className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
                       <input
                         type="file"
@@ -312,8 +346,23 @@ export default function Disputes() {
                           {evidenceFile ? evidenceFile.name : "Click to upload screenshot or document"}
                         </span>
                       </label>
-                      <p className="text-xs text-muted-foreground mt-1">PDF, JPG or PNG up to 10MB</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {reasonCode === 'wrong_contact' && "Upload screenshot of failed call, bounced email, or returned mail"}
+                        {reasonCode === 'duplicate_lead' && "Upload screenshot showing the duplicate lead from your account"}
+                        {reasonCode === 'fake_spam' && "Upload any evidence showing the lead is fake or spam"}
+                        {!reasonCode && "PDF, JPG or PNG up to 10MB"}
+                      </p>
                     </div>
+                  </div>
+
+                  {/* Info box about dispute policy */}
+                  <div className="bg-muted/50 border border-border rounded-lg p-3 text-xs text-muted-foreground">
+                    <p className="font-medium text-foreground mb-1">Dispute Policy</p>
+                    <ul className="space-y-1 list-disc list-inside">
+                      <li>Disputes must be filed within 72 hours of purchase</li>
+                      <li>All disputes require supporting evidence</li>
+                      <li>False or fraudulent disputes may result in account suspension</li>
+                    </ul>
                   </div>
                 </div>
 
@@ -321,7 +370,10 @@ export default function Disputes() {
                   <Button variant="outline" onClick={() => setShowDialog(false)}>
                     Cancel
                   </Button>
-                  <Button onClick={handleSubmitDispute} disabled={submitting || uploadingEvidence}>
+                  <Button 
+                    onClick={handleSubmitDispute} 
+                    disabled={submitting || uploadingEvidence || !evidenceFile || !reasonCode || !selectedLead}
+                  >
                     {(submitting || uploadingEvidence) ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                     Submit Dispute
                   </Button>
