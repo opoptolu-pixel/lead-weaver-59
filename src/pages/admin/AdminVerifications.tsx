@@ -99,6 +99,33 @@ export default function AdminVerifications() {
     setLoading(false);
   };
 
+  // Helper function to get template and replace variables
+  const getTemplateWithVariables = async (templateName: string, variables: Record<string, string>) => {
+    const { data: template, error } = await supabase
+      .from("email_templates")
+      .select("subject, body")
+      .eq("name", templateName)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (error || !template) {
+      console.error("Template not found:", templateName, error);
+      return null;
+    }
+
+    let subject = template.subject;
+    let body = template.body;
+
+    // Replace all variables
+    Object.entries(variables).forEach(([key, value]) => {
+      const regex = new RegExp(`{{${key}}}`, "g");
+      subject = subject.replace(regex, value);
+      body = body.replace(regex, value);
+    });
+
+    return { subject, body };
+  };
+
   const handleApprove = async (doc: VerificationDoc) => {
     setProcessing(true);
     try {
@@ -148,31 +175,56 @@ export default function AdminVerifications() {
           .eq("user_id", doc.user_id);
       }
 
-      // Send approval email notification
+      // Send approval email notification using template
       try {
         const { data: userEmail } = await supabase.rpc("get_user_email", { user_uuid: doc.user_id });
         if (userEmail) {
           const businessName = doc.profile?.business_name || doc.profile?.contact_name || "Business Owner";
+          const contactName = doc.profile?.contact_name || businessName;
           const documentType = doc.document_type.replace("_", " ");
+          const currentYear = new Date().getFullYear().toString();
           
-          await supabase.functions.invoke("send-email", {
-            body: {
-              to: userEmail,
-              subject: "Your verification document has been approved",
-              html: `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                  <h2 style="color: #10b981;">Document Approved ✓</h2>
-                  <p>Dear ${businessName},</p>
-                  <p>Great news! Your <strong>${documentType}</strong> has been reviewed and approved.</p>
-                  ${adminNotes ? `<p><strong>Notes from reviewer:</strong> ${adminNotes}</p>` : ""}
-                  <p>You're one step closer to becoming a fully verified business on Deep Clean UK.</p>
-                  <p>If you have any questions, please don't hesitate to contact us.</p>
-                  <p>Best regards,<br>The Deep Clean UK Team</p>
-                </div>
-              `,
-              templateName: "verification_approved",
-            },
+          // Try to get template from database
+          const templateData = await getTemplateWithVariables("document_approved", {
+            business_name: businessName,
+            contact_name: contactName,
+            document_type: documentType,
+            admin_notes: adminNotes || "",
+            dashboard_url: "https://deepcleanco.uk/dashboard",
+            verification_url: "https://deepcleanco.uk/settings/verification",
+            current_year: currentYear,
           });
+
+          if (templateData) {
+            await supabase.functions.invoke("send-email", {
+              body: {
+                to: userEmail,
+                subject: templateData.subject,
+                html: templateData.body,
+                templateName: "document_approved",
+              },
+            });
+          } else {
+            // Fallback to simple email if template not found
+            await supabase.functions.invoke("send-email", {
+              body: {
+                to: userEmail,
+                subject: `Your ${documentType} has been approved`,
+                html: `
+                  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #10b981;">Document Approved ✓</h2>
+                    <p>Dear ${businessName},</p>
+                    <p>Great news! Your <strong>${documentType}</strong> has been reviewed and approved.</p>
+                    ${adminNotes ? `<p><strong>Notes from reviewer:</strong> ${adminNotes}</p>` : ""}
+                    <p>You're one step closer to becoming a fully verified business on Deep Clean UK.</p>
+                    <p>If you have any questions, please don't hesitate to contact us.</p>
+                    <p>Best regards,<br>The Deep Clean UK Team</p>
+                  </div>
+                `,
+                templateName: "document_approved",
+              },
+            });
+          }
         }
       } catch (emailError) {
         console.error("Failed to send approval email:", emailError);
@@ -209,32 +261,57 @@ export default function AdminVerifications() {
 
       if (error) throw error;
 
-      // Send rejection email notification
+      // Send rejection email notification using template
       try {
         const { data: userEmail } = await supabase.rpc("get_user_email", { user_uuid: doc.user_id });
         if (userEmail) {
           const businessName = doc.profile?.business_name || doc.profile?.contact_name || "Business Owner";
+          const contactName = doc.profile?.contact_name || businessName;
           const documentType = doc.document_type.replace("_", " ");
+          const currentYear = new Date().getFullYear().toString();
           
-          await supabase.functions.invoke("send-email", {
-            body: {
-              to: userEmail,
-              subject: "Your verification document requires attention",
-              html: `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                  <h2 style="color: #ef4444;">Document Not Approved</h2>
-                  <p>Dear ${businessName},</p>
-                  <p>We've reviewed your <strong>${documentType}</strong> and unfortunately we were unable to approve it at this time.</p>
-                  <p><strong>Reason:</strong> ${adminNotes}</p>
-                  <p>Please log in to your account and upload a new document that addresses the issue mentioned above.</p>
-                  <p><a href="https://deepcleanco.uk/settings/verification" style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 16px;">Upload New Document</a></p>
-                  <p>If you have any questions about why your document was rejected, please contact our support team.</p>
-                  <p>Best regards,<br>The Deep Clean UK Team</p>
-                </div>
-              `,
-              templateName: "verification_rejected",
-            },
+          // Try to get template from database
+          const templateData = await getTemplateWithVariables("document_rejected", {
+            business_name: businessName,
+            contact_name: contactName,
+            document_type: documentType,
+            rejection_reason: adminNotes,
+            dashboard_url: "https://deepcleanco.uk/dashboard",
+            verification_url: "https://deepcleanco.uk/settings/verification",
+            current_year: currentYear,
           });
+
+          if (templateData) {
+            await supabase.functions.invoke("send-email", {
+              body: {
+                to: userEmail,
+                subject: templateData.subject,
+                html: templateData.body,
+                templateName: "document_rejected",
+              },
+            });
+          } else {
+            // Fallback to simple email if template not found
+            await supabase.functions.invoke("send-email", {
+              body: {
+                to: userEmail,
+                subject: `Your ${documentType} requires attention`,
+                html: `
+                  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #ef4444;">Document Not Approved</h2>
+                    <p>Dear ${businessName},</p>
+                    <p>We've reviewed your <strong>${documentType}</strong> and unfortunately we were unable to approve it at this time.</p>
+                    <p><strong>Reason:</strong> ${adminNotes}</p>
+                    <p>Please log in to your account and upload a new document that addresses the issue mentioned above.</p>
+                    <p><a href="https://deepcleanco.uk/settings/verification" style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 16px;">Upload New Document</a></p>
+                    <p>If you have any questions about why your document was rejected, please contact our support team.</p>
+                    <p>Best regards,<br>The Deep Clean UK Team</p>
+                  </div>
+                `,
+                templateName: "document_rejected",
+              },
+            });
+          }
         }
       } catch (emailError) {
         console.error("Failed to send rejection email:", emailError);

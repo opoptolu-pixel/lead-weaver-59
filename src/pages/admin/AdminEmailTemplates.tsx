@@ -1091,6 +1091,228 @@ const DEFAULT_TEMPLATES = [
 </body>
 </html>`,
   },
+  {
+    name: "document_approved",
+    subject: "✓ Your {{document_type}} has been approved",
+    description: "Sent when a specific verification document is approved",
+    variables: ["business_name", "contact_name", "document_type", "admin_notes", "verification_url", "current_year"],
+    body: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f0f4f3; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f0f4f3; padding: 40px 20px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(11, 61, 46, 0.08);">
+          
+          <!-- Header -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #0B3D2E 0%, #145A44 100%); padding: 35px 40px; text-align: center;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700;">Deep Clean UK</h1>
+              <p style="color: #7DD3A8; margin: 6px 0 0 0; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">Partner Network</p>
+            </td>
+          </tr>
+          
+          <!-- Success Banner -->
+          <tr>
+            <td style="padding: 0;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: linear-gradient(90deg, #4CAF50 0%, #66BB6A 100%);">
+                <tr>
+                  <td style="padding: 16px 40px; text-align: center;">
+                    <span style="color: #ffffff; font-size: 15px; font-weight: 600;">✓ Document Approved</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          
+          <!-- Main Content -->
+          <tr>
+            <td style="padding: 40px;">
+              <p style="color: #333333; font-size: 17px; line-height: 1.6; margin: 0 0 25px 0;">
+                Hi <strong>{{contact_name}}</strong>,
+              </p>
+              <p style="color: #555555; font-size: 16px; line-height: 1.7; margin: 0 0 28px 0;">
+                Great news! Your <strong>{{document_type}}</strong> for <strong>{{business_name}}</strong> has been reviewed and approved.
+              </p>
+              
+              <!-- Success Card -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%); border-radius: 12px; border: 2px solid #4CAF50; margin-bottom: 28px;">
+                <tr>
+                  <td style="padding: 24px;">
+                    <table role="presentation" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td width="36" valign="top">
+                          <div style="width: 32px; height: 32px; background-color: #4CAF50; border-radius: 50%; text-align: center; line-height: 32px; font-size: 16px; color: white;">✓</div>
+                        </td>
+                        <td style="padding-left: 12px;">
+                          <p style="color: #2E7D32; font-size: 14px; font-weight: 700; margin: 0 0 4px 0;">Document Verified</p>
+                          <p style="color: #555555; font-size: 14px; margin: 0; line-height: 1.5;">{{document_type}} has passed our verification checks.</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              
+              <p style="color: #555555; font-size: 16px; line-height: 1.7; margin: 0 0 28px 0;">
+                You're one step closer to becoming a fully verified business on Deep Clean UK. Continue with any remaining verification steps in your dashboard.
+              </p>
+              
+              <!-- CTA Button -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center" style="padding: 10px 0 25px 0;">
+                    <a href="{{verification_url}}" style="display: inline-block; background: linear-gradient(135deg, #0B3D2E 0%, #145A44 100%); color: #ffffff; padding: 16px 40px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 16px; box-shadow: 0 4px 12px rgba(11, 61, 46, 0.3);">View Verification Status →</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #0B3D2E; padding: 25px 40px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center">
+                    <p style="color: #7DD3A8; font-size: 14px; margin: 0 0 8px 0;">Questions? Reply to this email.</p>
+                    <p style="color: rgba(255,255,255,0.5); font-size: 12px; margin: 0;">
+                      © {{current_year}} Deep Clean UK · All rights reserved
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
+  },
+  {
+    name: "document_rejected",
+    subject: "⚠️ Action Required: Your {{document_type}} needs attention",
+    description: "Sent when a specific verification document is rejected",
+    variables: ["business_name", "contact_name", "document_type", "rejection_reason", "verification_url", "current_year"],
+    body: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f0f4f3; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f0f4f3; padding: 40px 20px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(11, 61, 46, 0.08);">
+          
+          <!-- Header -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #0B3D2E 0%, #145A44 100%); padding: 35px 40px; text-align: center;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700;">Deep Clean UK</h1>
+              <p style="color: #7DD3A8; margin: 6px 0 0 0; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">Partner Network</p>
+            </td>
+          </tr>
+          
+          <!-- Alert Banner -->
+          <tr>
+            <td style="padding: 0;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: linear-gradient(90deg, #FF6B35 0%, #F7931E 100%);">
+                <tr>
+                  <td style="padding: 16px 40px; text-align: center;">
+                    <span style="color: #ffffff; font-size: 15px; font-weight: 600;">⚠️ Document Requires Attention</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          
+          <!-- Main Content -->
+          <tr>
+            <td style="padding: 40px;">
+              <p style="color: #333333; font-size: 17px; line-height: 1.6; margin: 0 0 25px 0;">
+                Hi <strong>{{contact_name}}</strong>,
+              </p>
+              <p style="color: #555555; font-size: 16px; line-height: 1.7; margin: 0 0 28px 0;">
+                We've reviewed your <strong>{{document_type}}</strong> for <strong>{{business_name}}</strong>, but unfortunately we weren't able to approve it at this time.
+              </p>
+              
+              <!-- Reason Box -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%); border-radius: 12px; border-left: 4px solid #EF5350; margin-bottom: 28px;">
+                <tr>
+                  <td style="padding: 24px;">
+                    <table role="presentation" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td width="36" valign="top">
+                          <div style="width: 32px; height: 32px; background-color: #EF5350; border-radius: 50%; text-align: center; line-height: 32px; font-size: 16px; color: white;">!</div>
+                        </td>
+                        <td style="padding-left: 12px;">
+                          <p style="color: #C62828; font-size: 14px; font-weight: 700; margin: 0 0 8px 0;">Reason</p>
+                          <p style="color: #555555; font-size: 15px; margin: 0; line-height: 1.6;">{{rejection_reason}}</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              
+              <!-- What to do -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f8faf9; border-radius: 12px; border: 1px solid #e8ebe9; margin-bottom: 28px;">
+                <tr>
+                  <td style="padding: 20px 24px;">
+                    <p style="color: #0B3D2E; font-size: 14px; font-weight: 600; margin: 0 0 10px 0;">📋 What to do next</p>
+                    <p style="color: #666666; font-size: 14px; margin: 0; line-height: 1.6;">
+                      Please log in to your account and upload a new document that addresses the issue mentioned above. Once submitted, our team will review it promptly.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+              
+              <!-- CTA Button -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center" style="padding: 10px 0 25px 0;">
+                    <a href="{{verification_url}}" style="display: inline-block; background: linear-gradient(135deg, #0B3D2E 0%, #145A44 100%); color: #ffffff; padding: 16px 40px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 16px; box-shadow: 0 4px 12px rgba(11, 61, 46, 0.3);">Upload New Document →</a>
+                  </td>
+                </tr>
+              </table>
+              
+              <p style="color: #888888; font-size: 13px; text-align: center; margin: 0; line-height: 1.5;">
+                Need help? Reply to this email and we'll assist you.
+              </p>
+            </td>
+          </tr>
+          
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #0B3D2E; padding: 25px 40px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center">
+                    <p style="color: rgba(255,255,255,0.6); font-size: 12px; margin: 0;">
+                      You are receiving this because you submitted a verification document.<br>
+                      © {{current_year}} Deep Clean UK
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
+  },
 ];
 
 import { useAdmin } from "@/contexts/AdminContext";
