@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { 
   Sparkles, 
   Loader2,
@@ -74,13 +74,15 @@ const isValidPostcodePrefix = (postcode: string): boolean => {
 
 export default function RequestCleaning() {
   const navigate = useNavigate();
+  const location = useLocation();
   
-  // Compute initial state from URL params ONCE during initial render
-  // Use useMemo with empty deps - reads URL directly, no hook needed
+  // Get navigation state passed from CustomerHeroSection
+  const navState = location.state as { type?: string; postcode?: string } | null;
+  
+  // Compute initial state ONCE from navigation state
   const { initialStep, formData: initialFormData } = useMemo(() => {
-    const params = new URLSearchParams(window.location.search);
-    const typeParam = params.get("type") || "";
-    const postcodeParam = (params.get("postcode") || "").toUpperCase();
+    const typeParam = navState?.type || "";
+    const postcodeParam = (navState?.postcode || "").toUpperCase();
     const matchedType = cleaningTypes.find(t => t.id === typeParam);
     
     let step = 1;

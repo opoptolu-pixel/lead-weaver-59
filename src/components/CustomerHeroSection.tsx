@@ -100,8 +100,13 @@ export const CustomerHeroSection = () => {
       // Track CTA click
       trackCTAClick("Get Quotes", "hero_section");
       
-      // Navigate directly without transition
-      navigate(`/request-cleaning?type=${encodeURIComponent(selectedType.id)}&postcode=${encodeURIComponent(postcode.trim().toUpperCase())}`);
+      // Navigate with state instead of URL params to prevent flash
+      navigate('/request-cleaning', {
+        state: {
+          type: selectedType.id,
+          postcode: postcode.trim().toUpperCase()
+        }
+      });
     }
   };
 
