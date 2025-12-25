@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -11,6 +11,7 @@ import {
   Shield,
   Clock,
   AlertTriangle,
+  RefreshCw,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ interface VerificationDocument {
   status: string;
   created_at: string;
   admin_notes: string | null;
+  file_path: string;
 }
 
 export default function Verification() {
@@ -43,6 +45,8 @@ export default function Verification() {
   const [retryAfter, setRetryAfter] = useState<Date | null>(null);
   const [countdown, setCountdown] = useState<number>(0);
   const [addressProof, setAddressProof] = useState<File | null>(null);
+  const [reuploadingDocId, setReuploadingDocId] = useState<string | null>(null);
+  const reuploadInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -175,6 +179,50 @@ export default function Verification() {
     } catch (error: any) {
       console.error("Error uploading document:", error);
       toast.error(error.message || "Failed to upload document");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleReupload = async (docId: string, docType: string, oldFilePath: string, file: File) => {
+    if (!user) return;
+
+    setUploading(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const filePath = `${user.id}/${docType}-${Date.now()}.${fileExt}`;
+
+      // Upload new file
+      const { error: uploadError } = await supabase.storage
+        .from("verification-documents")
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // Update the existing document record
+      const { error: dbError } = await supabase
+        .from("verification_documents")
+        .update({
+          file_path: filePath,
+          status: "pending",
+          admin_notes: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", docId);
+
+      if (dbError) throw dbError;
+
+      // Optionally delete old file (ignore errors if file doesn't exist)
+      await supabase.storage
+        .from("verification-documents")
+        .remove([oldFilePath]);
+
+      await fetchDocuments();
+      toast.success("Document re-uploaded successfully!");
+      setReuploadingDocId(null);
+    } catch (error: any) {
+      console.error("Error re-uploading document:", error);
+      toast.error(error.message || "Failed to re-upload document");
     } finally {
       setUploading(false);
     }
@@ -407,14 +455,38 @@ export default function Verification() {
                           <FileText className="w-4 h-4 text-muted-foreground" />
                           <span className="text-sm">{doc.document_type.replace("_", " ")}</span>
                         </div>
-                        <span className={`text-xs px-2 py-1 rounded ${
-                          doc.status === "approved" ? "bg-secondary/20 text-secondary" :
-                          doc.status === "rejected" ? "bg-destructive/20 text-destructive" :
-                          "bg-amber-500/20 text-amber-500"
-                        }`}>
-                          {doc.status === "pending" ? <Clock className="w-3 h-3 inline mr-1" /> : null}
-                          {doc.status}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          {doc.status === "rejected" && (
+                            <>
+                              <input
+                                type="file"
+                                id={`reupload-${doc.id}`}
+                                accept=".pdf,.jpg,.jpeg,.png"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handleReupload(doc.id, doc.document_type, doc.file_path, file);
+                                }}
+                              />
+                              <label htmlFor={`reupload-${doc.id}`}>
+                                <Button variant="outline" size="sm" asChild disabled={uploading}>
+                                  <span className="cursor-pointer">
+                                    {uploading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <RefreshCw className="w-3 h-3 mr-1" />}
+                                    Re-upload
+                                  </span>
+                                </Button>
+                              </label>
+                            </>
+                          )}
+                          <span className={`text-xs px-2 py-1 rounded ${
+                            doc.status === "approved" ? "bg-secondary/20 text-secondary" :
+                            doc.status === "rejected" ? "bg-destructive/20 text-destructive" :
+                            "bg-amber-500/20 text-amber-500"
+                          }`}>
+                            {doc.status === "pending" ? <Clock className="w-3 h-3 inline mr-1" /> : null}
+                            {doc.status}
+                          </span>
+                        </div>
                       </div>
                       {doc.status === "rejected" && doc.admin_notes && (
                         <div className="mt-2 p-2 bg-destructive/10 border border-destructive/20 rounded text-sm text-destructive">
@@ -478,14 +550,38 @@ export default function Verification() {
                             <FileText className="w-4 h-4 text-muted-foreground" />
                             <span className="text-sm">Address proof</span>
                           </div>
-                          <span className={`text-xs px-2 py-1 rounded ${
-                            doc.status === "approved" ? "bg-secondary/20 text-secondary" :
-                            doc.status === "rejected" ? "bg-destructive/20 text-destructive" :
-                            "bg-amber-500/20 text-amber-500"
-                          }`}>
-                            {doc.status === "pending" ? <Clock className="w-3 h-3 inline mr-1" /> : null}
-                            {doc.status}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            {doc.status === "rejected" && (
+                              <>
+                                <input
+                                  type="file"
+                                  id={`reupload-addr-${doc.id}`}
+                                  accept=".pdf,.jpg,.jpeg,.png"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) handleReupload(doc.id, doc.document_type, doc.file_path, file);
+                                  }}
+                                />
+                                <label htmlFor={`reupload-addr-${doc.id}`}>
+                                  <Button variant="outline" size="sm" asChild disabled={uploading}>
+                                    <span className="cursor-pointer">
+                                      {uploading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <RefreshCw className="w-3 h-3 mr-1" />}
+                                      Re-upload
+                                    </span>
+                                  </Button>
+                                </label>
+                              </>
+                            )}
+                            <span className={`text-xs px-2 py-1 rounded ${
+                              doc.status === "approved" ? "bg-secondary/20 text-secondary" :
+                              doc.status === "rejected" ? "bg-destructive/20 text-destructive" :
+                              "bg-amber-500/20 text-amber-500"
+                            }`}>
+                              {doc.status === "pending" ? <Clock className="w-3 h-3 inline mr-1" /> : null}
+                              {doc.status}
+                            </span>
+                          </div>
                         </div>
                         {doc.status === "rejected" && doc.admin_notes && (
                           <div className="mt-2 p-2 bg-destructive/10 border border-destructive/20 rounded text-sm text-destructive">
