@@ -152,12 +152,20 @@ export const HeroSection = () => {
     }
   };
 
-  const handleLeadUnlock = async (leadId: string) => {
+  const handleLeadUnlock = async (e: React.MouseEvent, leadId: string) => {
+    // Prevent event bubbling and default behavior
+    e.preventDefault();
+    e.stopPropagation();
+    
+    console.log("[HeroSection] handleLeadUnlock called for lead:", leadId);
     setIsUnlocking(leadId);
+    
     try {
       const { data, error } = await supabase.functions.invoke('unlock-lead', {
         body: { leadId }
       });
+
+      console.log("[HeroSection] unlock-lead response:", { data, error });
 
       if (error) {
         console.error("Unlock error:", error);
@@ -166,6 +174,7 @@ export const HeroSection = () => {
       }
 
       if (data?.url) {
+        console.log("[HeroSection] Redirecting to Stripe:", data.url);
         // Redirect to Stripe checkout
         window.location.href = data.url;
       } else if (data?.error) {
@@ -302,7 +311,8 @@ export const HeroSection = () => {
                               <button
                                 key={lead.id}
                                 type="button"
-                                onClick={() => handleLeadUnlock(lead.id)}
+                                onClick={(e) => handleLeadUnlock(e, lead.id)}
+                                onMouseDown={(e) => e.stopPropagation()}
                                 disabled={isUnlocking === lead.id}
                                 className="w-full px-4 py-3 text-left hover:bg-muted transition-colors disabled:opacity-50"
                               >
