@@ -1,9 +1,10 @@
-import { useState, useRef, useEffect } from "react";
-import { Search, Sparkles, MapPin, Briefcase, Loader2, AlertCircle, Check, Star, Users, TrendingUp } from "lucide-react";
+import { useState, useRef, useEffect, useTransition } from "react";
+import { Search, Sparkles, MapPin, Briefcase, Loader2, AlertCircle, Check, Star, Users, TrendingUp, Unlock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface LeadResult {
   id: string;
@@ -22,12 +23,14 @@ export const HeroSection = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isUnlocking, setIsUnlocking] = useState<string | null>(null);
   const [leadResults, setLeadResults] = useState<LeadResult[]>([]);
   const [ukLocations, setUkLocations] = useState<UKLocation[]>([]);
   const [postcodePrefixes, setPostcodePrefixes] = useState<string[]>([]);
   const [matchedCity, setMatchedCity] = useState<string | null>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const [isPending, startTransition] = useTransition();
 
   // Fetch UK locations and leads based on search query
   useEffect(() => {
@@ -149,9 +152,31 @@ export const HeroSection = () => {
     }
   };
 
-  const handleLeadClick = (postcode: string) => {
-    setShowSuggestions(false);
-    navigate(`/leads?search=${encodeURIComponent(postcode)}`);
+  const handleLeadUnlock = async (leadId: string) => {
+    setIsUnlocking(leadId);
+    try {
+      const { data, error } = await supabase.functions.invoke('unlock-lead', {
+        body: { leadId }
+      });
+
+      if (error) {
+        console.error("Unlock error:", error);
+        toast.error("Failed to start checkout. Please try again.");
+        return;
+      }
+
+      if (data?.url) {
+        // Redirect to Stripe checkout
+        window.location.href = data.url;
+      } else if (data?.error) {
+        toast.error(data.error);
+      }
+    } catch (err) {
+      console.error("Unlock error:", err);
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setIsUnlocking(null);
+    }
   };
 
   useEffect(() => {
@@ -277,15 +302,23 @@ export const HeroSection = () => {
                               <button
                                 key={lead.id}
                                 type="button"
-                                onClick={() => handleLeadClick(lead.postcode)}
-                                className="w-full px-4 py-3 text-left hover:bg-muted transition-colors"
+                                onClick={() => handleLeadUnlock(lead.id)}
+                                disabled={isUnlocking === lead.id}
+                                className="w-full px-4 py-3 text-left hover:bg-muted transition-colors disabled:opacity-50"
                               >
                                 <div className="flex items-center justify-between">
                                   <div>
                                     <span className="font-medium text-foreground">{lead.job_type}</span>
                                     <span className="text-sm text-muted-foreground ml-2">in {lead.postcode}</span>
                                   </div>
-                                  <span className="text-secondary font-semibold">{lead.display_value}</span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-secondary font-semibold">{lead.display_value}</span>
+                                    {isUnlocking === lead.id ? (
+                                      <Loader2 className="w-4 h-4 animate-spin text-secondary" />
+                                    ) : (
+                                      <Unlock className="w-4 h-4 text-secondary" />
+                                    )}
+                                  </div>
                                 </div>
                               </button>
                             ))}
