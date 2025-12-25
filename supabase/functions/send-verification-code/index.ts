@@ -103,39 +103,82 @@ serve(async (req) => {
     if (insertError) throw new Error(`Failed to store code: ${insertError.message}`);
     logStep("Code stored in database");
 
-    // Send via WhatsApp (using existing Twilio WhatsApp configuration)
+    // Send via WhatsApp first, fallback to SMS if it fails
     const twilioAccountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
     const twilioAuthToken = Deno.env.get("TWILIO_AUTH_TOKEN");
-    const twilioFrom = Deno.env.get("TWILIO_WHATSAPP_FROM");
+    const twilioWhatsAppFrom = Deno.env.get("TWILIO_WHATSAPP_FROM");
+    const twilioSmsFrom = Deno.env.get("TWILIO_SMS_FROM");
 
-    if (!twilioAccountSid || !twilioAuthToken || !twilioFrom) {
+    if (!twilioAccountSid || !twilioAuthToken) {
       throw new Error("Twilio credentials not configured");
     }
 
-    const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`;
-    const formData = new URLSearchParams();
-    formData.append("To", `whatsapp:${phone}`);
-    // Ensure From has whatsapp: prefix (handle both cases: with or without prefix in env)
-    const fromNumber = twilioFrom.startsWith("whatsapp:") ? twilioFrom : `whatsapp:${twilioFrom}`;
-    formData.append("From", fromNumber);
-    formData.append("Body", `Your Deep Clean UK verification code is: ${code}. Valid for 10 minutes. Do not share this code with anyone.`);
-
-    const twilioResponse = await fetch(twilioUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        Authorization: `Basic ${btoa(`${twilioAccountSid}:${twilioAuthToken}`)}`,
-      },
-      body: formData.toString(),
-    });
-
-    if (!twilioResponse.ok) {
-      const errorText = await twilioResponse.text();
-      logStep("Twilio error", { status: twilioResponse.status, error: errorText });
-      throw new Error("Failed to send WhatsApp message");
+    if (!twilioWhatsAppFrom && !twilioSmsFrom) {
+      throw new Error("No Twilio sender configured (WhatsApp or SMS)");
     }
 
-    logStep("WhatsApp verification message sent successfully");
+    const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`;
+    let messageSent = false;
+    let deliveryMethod = "";
+
+    // Try WhatsApp first if configured
+    if (twilioWhatsAppFrom) {
+      const whatsappFormData = new URLSearchParams();
+      whatsappFormData.append("To", `whatsapp:${phone}`);
+      const fromNumber = twilioWhatsAppFrom.startsWith("whatsapp:") ? twilioWhatsAppFrom : `whatsapp:${twilioWhatsAppFrom}`;
+      whatsappFormData.append("From", fromNumber);
+      whatsappFormData.append("Body", `Your Deep Clean UK verification code is: ${code}. Valid for 10 minutes. Do not share this code with anyone.`);
+
+      const whatsappResponse = await fetch(twilioUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Authorization: `Basic ${btoa(`${twilioAccountSid}:${twilioAuthToken}`)}`,
+        },
+        body: whatsappFormData.toString(),
+      });
+
+      if (whatsappResponse.ok) {
+        messageSent = true;
+        deliveryMethod = "WhatsApp";
+        logStep("WhatsApp verification message sent successfully");
+      } else {
+        const errorText = await whatsappResponse.text();
+        logStep("WhatsApp failed, will try SMS fallback", { status: whatsappResponse.status, error: errorText });
+      }
+    }
+
+    // Fallback to SMS if WhatsApp failed or not configured
+    if (!messageSent && twilioSmsFrom) {
+      const smsFormData = new URLSearchParams();
+      smsFormData.append("To", phone);
+      smsFormData.append("From", twilioSmsFrom);
+      smsFormData.append("Body", `Your Deep Clean UK verification code is: ${code}. Valid for 10 minutes. Do not share this code.`);
+
+      const smsResponse = await fetch(twilioUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Authorization: `Basic ${btoa(`${twilioAccountSid}:${twilioAuthToken}`)}`,
+        },
+        body: smsFormData.toString(),
+      });
+
+      if (smsResponse.ok) {
+        messageSent = true;
+        deliveryMethod = "SMS";
+        logStep("SMS verification message sent successfully");
+      } else {
+        const errorText = await smsResponse.text();
+        logStep("SMS also failed", { status: smsResponse.status, error: errorText });
+      }
+    }
+
+    if (!messageSent) {
+      throw new Error("Failed to send verification code via WhatsApp or SMS");
+    }
+
+    logStep(`Verification code sent via ${deliveryMethod}`);
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
