@@ -244,9 +244,11 @@ export const HeroSection = () => {
                                   <MapPin className={`w-4 h-4 flex-shrink-0 ${location.type === 'city' ? 'text-primary' : 'text-secondary'}`} />
                                   <div className="flex-1 min-w-0">
                                     <span className="font-medium text-foreground">
-                                      {location.type === 'city' ? (matchedCity ? matchedCity.charAt(0).toUpperCase() + matchedCity.slice(1) : location.postcode) : location.postcode}
+                                      {location.type === 'city' ? (matchedCity ? matchedCity.charAt(0).toUpperCase() + matchedCity.slice(1) : location.area.split('(')[0].trim()) : location.postcode}
                                     </span>
-                                    <span className="text-sm text-muted-foreground ml-2">{location.area}</span>
+                                    {location.type !== 'city' && (
+                                      <span className="text-sm text-muted-foreground ml-2">{location.area}</span>
+                                    )}
                                   </div>
                                   {leadCount > 0 ? (
                                     <span className="text-xs bg-secondary/20 text-secondary px-2 py-1 rounded-full font-medium">
