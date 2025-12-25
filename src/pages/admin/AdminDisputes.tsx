@@ -70,12 +70,16 @@ interface LeadDetails {
 }
 
 const reasonCodes: Record<string, string> = {
-  wrong_info: "Wrong Contact Info",
-  no_response: "No Response",
-  duplicate: "Duplicate Lead",
-  cancelled: "Customer Cancelled",
-  outside_area: "Outside Service Area",
-  other: "Other",
+  wrong_contact: "Invalid Contact Details",
+  duplicate_lead: "Duplicate Lead",
+  fake_spam: "Fake/Spam Lead",
+  // Legacy codes for backwards compatibility
+  wrong_info: "Wrong Contact Info (Legacy)",
+  no_response: "No Response (Legacy)",
+  duplicate: "Duplicate Lead (Legacy)",
+  cancelled: "Customer Cancelled (Legacy)",
+  outside_area: "Outside Service Area (Legacy)",
+  other: "Other (Legacy)",
 };
 
 const getStatusBadge = (status: string) => {
