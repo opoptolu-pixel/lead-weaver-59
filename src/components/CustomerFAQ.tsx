@@ -35,9 +35,9 @@ const faqs = [
 
 export const CustomerFAQ = () => {
   return (
-    <section id="faq" className="py-28 bg-background relative overflow-hidden">
+    <section id="faq" className="py-28 bg-background relative overflow-hidden" aria-labelledby="faq-heading">
       {/* Background elements */}
-      <div className="absolute inset-0 pointer-events-none">
+      <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
         <div className="absolute top-1/2 left-0 w-[600px] h-[600px] -translate-y-1/2 -translate-x-1/2 bg-secondary/5 rounded-full blur-3xl" />
         <div className="absolute top-1/2 right-0 w-[400px] h-[400px] -translate-y-1/2 translate-x-1/2 bg-primary/5 rounded-full blur-3xl" />
       </div>
@@ -46,14 +46,14 @@ export const CustomerFAQ = () => {
         <div className="max-w-4xl mx-auto">
           {/* Section header */}
           <div className="text-center mb-16">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-secondary/10 mb-6">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-secondary/10 mb-6" aria-hidden="true">
               <HelpCircle className="w-7 h-7 text-secondary" />
             </div>
-            <h2 className="font-heading text-3xl md:text-5xl font-bold text-foreground mb-4 tracking-tight">
-              Frequently Asked Questions
+            <h2 id="faq-heading" className="font-heading text-3xl md:text-5xl font-bold text-foreground mb-4 tracking-tight">
+              Cleaning Services FAQ
             </h2>
             <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-              Everything you need to know about our service
+              Common questions about finding and booking cleaners in the UK
             </p>
           </div>
 

@@ -1,69 +1,186 @@
 <!doctype html>
-<html lang="en">
+<html lang="en-GB">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Deep Clean UK | Exclusive Cleaning Leads for Professional Cleaners</title>
-    <meta name="description" content="Get exclusive deep cleaning job leads in your area. No monthly fees, pay only for the leads you want. Join UK's #1 cleaning lead platform today." />
-    <meta name="keywords" content="cleaning leads UK, deep cleaning jobs, cleaning business leads, carpet cleaning leads, end of tenancy cleaning jobs" />
+    <title>Find Trusted Cleaners Near You | Free Quotes | Deep Clean UK</title>
+    <meta name="description" content="Get free quotes from verified local cleaners in the UK. Compare prices for deep cleaning, end of tenancy, carpet cleaning & more. Fast response, no obligation." />
+    <meta name="keywords" content="cleaning services UK, find cleaners near me, deep cleaning services, end of tenancy cleaning, carpet cleaning, professional cleaners, house cleaning, domestic cleaning, office cleaning" />
     <meta name="author" content="Deep Clean UK" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow" />
     <link rel="canonical" href="https://deepcleanuk.com" />
+    
+    <!-- Geo Tags for UK targeting -->
+    <meta name="geo.region" content="GB" />
+    <meta name="geo.placename" content="United Kingdom" />
+    <meta name="language" content="English" />
+    <meta name="distribution" content="UK" />
 
-    <meta property="og:title" content="Deep Clean UK | Exclusive Cleaning Leads" />
-    <meta property="og:description" content="Get exclusive deep cleaning job leads in your area. No monthly fees, pay per lead." />
+    <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Deep Clean UK" />
+    <meta property="og:title" content="Find Trusted Cleaners Near You | Free Quotes | Deep Clean UK" />
+    <meta property="og:description" content="Get free quotes from verified local cleaners in the UK. Compare prices for deep cleaning, end of tenancy, carpet cleaning & more. Fast response, no obligation." />
     <meta property="og:url" content="https://deepcleanuk.com" />
     <meta property="og:image" content="https://deepcleanuk.com/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="en_GB" />
 
+    <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Deep Clean UK | Exclusive Cleaning Leads" />
-    <meta name="twitter:description" content="Get exclusive deep cleaning job leads in your area. No monthly fees, pay per lead." />
+    <meta name="twitter:site" content="@deepcleanuk" />
+    <meta name="twitter:title" content="Find Trusted Cleaners Near You | Free Quotes | Deep Clean UK" />
+    <meta name="twitter:description" content="Get free quotes from verified local cleaners in the UK. Compare prices for deep cleaning, end of tenancy, carpet cleaning & more." />
     <meta name="twitter:image" content="https://deepcleanuk.com/og-image.png" />
     
+    <!-- Favicons -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
     <link rel="shortcut icon" type="image/svg+xml" href="/favicon.svg?v=2" />
     <link rel="apple-touch-icon" href="/favicon.svg?v=2" />
 
+    <!-- Organization Schema -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "LocalBusiness",
+      "@type": "Organization",
+      "@id": "https://deepcleanuk.com/#organization",
       "name": "Deep Clean UK",
-      "description": "Get exclusive deep cleaning job leads in your area. No monthly fees, pay only for the leads you want. Join UK's #1 cleaning lead platform today.",
+      "alternateName": "DeepCleanUK",
       "url": "https://deepcleanuk.com",
-      "logo": "https://deepcleanuk.com/favicon.svg",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://deepcleanuk.com/favicon.svg",
+        "width": 512,
+        "height": 512
+      },
       "image": "https://deepcleanuk.com/og-image.png",
-      "telephone": "",
+      "description": "UK's trusted platform connecting customers with verified professional cleaners. Get free quotes for deep cleaning, end of tenancy, carpet cleaning and more.",
       "address": {
         "@type": "PostalAddress",
+        "streetAddress": "128 City Road",
+        "addressLocality": "London",
+        "postalCode": "EC1V 2NX",
         "addressCountry": "GB"
+      },
+      "email": "hello@deepcleanuk.com",
+      "telephone": "+44-7757-188-197",
+      "areaServed": {
+        "@type": "Country",
+        "name": "United Kingdom"
+      },
+      "sameAs": [
+        "https://www.facebook.com/deepcleanuk",
+        "https://twitter.com/deepcleanuk",
+        "https://www.instagram.com/deepcleanuk"
+      ],
+      "foundingDate": "2024",
+      "legalName": "Orbit Shade Ltd"
+    }
+    </script>
+
+    <!-- WebSite Schema with SearchAction -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "@id": "https://deepcleanuk.com/#website",
+      "name": "Deep Clean UK",
+      "url": "https://deepcleanuk.com",
+      "description": "Find trusted cleaners near you. Get free quotes from verified professionals.",
+      "publisher": {
+        "@id": "https://deepcleanuk.com/#organization"
+      },
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://deepcleanuk.com/request-cleaning?postcode={search_term_string}"
+        },
+        "query-input": "required name=search_term_string"
+      },
+      "inLanguage": "en-GB"
+    }
+    </script>
+
+    <!-- Service Schema for main cleaning services -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Service",
+      "@id": "https://deepcleanuk.com/#service",
+      "serviceType": "Cleaning Service Marketplace",
+      "name": "Professional Cleaning Services",
+      "description": "Connect with verified professional cleaners for deep cleaning, end of tenancy cleaning, carpet cleaning, and more across the UK.",
+      "provider": {
+        "@id": "https://deepcleanuk.com/#organization"
       },
       "areaServed": {
         "@type": "Country",
         "name": "United Kingdom"
       },
-      "priceRange": "££",
-      "sameAs": [],
-      "serviceType": ["Cleaning Lead Generation", "Deep Cleaning Leads", "Carpet Cleaning Leads", "End of Tenancy Cleaning Leads"],
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": "Cleaning Services",
+        "itemListElement": [
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "End of Tenancy Cleaning",
+              "description": "Professional end of tenancy cleaning to help you get your deposit back"
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Deep Cleaning",
+              "description": "Thorough deep cleaning for your entire home"
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Carpet Cleaning",
+              "description": "Professional carpet cleaning for homes and offices"
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Upholstery Cleaning",
+              "description": "Sofa, mattress and upholstery cleaning services"
+            }
+          }
+        ]
+      },
       "aggregateRating": {
         "@type": "AggregateRating",
         "ratingValue": "4.8",
-        "reviewCount": "150"
+        "reviewCount": "2500",
+        "bestRating": "5",
+        "worstRating": "1"
       }
     }
     </script>
 
+    <!-- BreadcrumbList Schema -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "Deep Clean UK",
-      "url": "https://deepcleanuk.com",
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": "https://deepcleanuk.com/?q={search_term_string}",
-        "query-input": "required name=search_term_string"
-      }
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://deepcleanuk.com"
+        }
+      ]
     }
     </script>
   </head>

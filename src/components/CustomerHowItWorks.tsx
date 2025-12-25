@@ -30,9 +30,9 @@ const steps = [
 
 export const CustomerHowItWorks = () => {
   return (
-    <section id="how-it-works" className="py-28 bg-muted/30 relative overflow-hidden">
+    <section id="how-it-works" className="py-28 bg-muted/30 relative overflow-hidden" aria-labelledby="how-it-works-heading">
       {/* Subtle background elements */}
-      <div className="absolute inset-0 pointer-events-none">
+      <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
         <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-secondary/5 rounded-full blur-3xl" />
         <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-primary/5 rounded-full blur-3xl" />
       </div>
@@ -42,13 +42,13 @@ export const CustomerHowItWorks = () => {
         <ScrollReveal animation="fade-up">
           <div className="text-center mb-20">
             <span className="inline-block text-sm font-semibold text-secondary uppercase tracking-wider mb-3">
-              Simple Process
+              Simple 4-Step Process
             </span>
-            <h2 className="font-heading text-3xl md:text-5xl font-bold text-foreground tracking-tight">
-              How It Works
+            <h2 id="how-it-works-heading" className="font-heading text-3xl md:text-5xl font-bold text-foreground tracking-tight">
+              How to Find a Cleaner
             </h2>
             <p className="text-muted-foreground text-lg mt-4 max-w-md mx-auto">
-              Four simple steps to a cleaner home
+              Get matched with verified cleaning professionals in minutes
             </p>
           </div>
         </ScrollReveal>
