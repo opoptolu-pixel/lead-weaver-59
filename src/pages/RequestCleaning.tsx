@@ -53,12 +53,20 @@ const cleaningTypes = [
 
 const TOTAL_STEPS = 4;
 
-// UK Postcode validation regex
+// UK Postcode validation regex - full postcode
 const UK_POSTCODE_REGEX = /^([A-Z]{1,2}[0-9][0-9A-Z]?\s?[0-9][A-Z]{2})$/i;
+
+// Check if it's at least a valid postcode prefix (outward code like M5, SW1A, etc.)
+const UK_POSTCODE_PREFIX_REGEX = /^[A-Z]{1,2}[0-9][0-9A-Z]?$/i;
 
 const validatePostcode = (postcode: string): boolean => {
   const cleaned = postcode.replace(/\s+/g, '').toUpperCase();
   return UK_POSTCODE_REGEX.test(cleaned);
+};
+
+const isValidPostcodePrefix = (postcode: string): boolean => {
+  const cleaned = postcode.replace(/\s+/g, '').toUpperCase();
+  return UK_POSTCODE_PREFIX_REGEX.test(cleaned) || UK_POSTCODE_REGEX.test(cleaned);
 };
 
 export default function RequestCleaning() {
@@ -87,17 +95,26 @@ export default function RequestCleaning() {
     
     if (typeParam || postcodeParam) {
       const matchedType = cleaningTypes.find(t => t.id === typeParam);
+      const postcodeValue = postcodeParam?.toUpperCase() || "";
       
       setFormData(prev => ({
         ...prev,
         jobType: matchedType?.label || prev.jobType,
         jobValue: matchedType?.value || prev.jobValue,
-        postcode: postcodeParam?.toUpperCase() || prev.postcode,
+        postcode: postcodeValue,
       }));
       
-      // Skip to appropriate step
-      if (matchedType && postcodeParam && validatePostcode(postcodeParam)) {
-        setCurrentStep(3); // Go straight to contact details
+      // Skip to appropriate step based on what data we have
+      if (matchedType && postcodeValue) {
+        // If we have a full valid postcode, go to step 3 (contact)
+        // If we only have a postcode prefix, go to step 2 (postcode) to complete it
+        if (validatePostcode(postcodeValue)) {
+          setCurrentStep(3); // Full postcode - go to contact details
+        } else if (isValidPostcodePrefix(postcodeValue)) {
+          setCurrentStep(2); // Partial postcode - stay on postcode step to complete it
+        } else {
+          setCurrentStep(2); // Invalid - go to postcode step
+        }
       } else if (matchedType) {
         setCurrentStep(2); // Go to postcode step
       }
@@ -182,6 +199,7 @@ export default function RequestCleaning() {
       case 1:
         return formData.jobType !== "";
       case 2:
+        // Require a full valid postcode to proceed
         return formData.postcode.length >= 5 && validatePostcode(formData.postcode);
       case 3:
         return formData.customerName && formData.customerEmail && formData.customerPhone && !phoneError;
@@ -191,6 +209,11 @@ export default function RequestCleaning() {
         return false;
     }
   };
+
+  // Check if user has a valid prefix but not a complete postcode
+  const hasPartialPostcode = formData.postcode.length >= 2 && 
+    isValidPostcodePrefix(formData.postcode) && 
+    !validatePostcode(formData.postcode);
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -406,6 +429,10 @@ export default function RequestCleaning() {
                     </div>
                     {postcodeError ? (
                       <p className="text-center text-sm text-red-500 mt-3">{postcodeError}</p>
+                    ) : hasPartialPostcode ? (
+                      <p className="text-center text-sm text-amber-600 mt-3">
+                        Please complete your full postcode (e.g. {formData.postcode}1 1AA)
+                      </p>
                     ) : (
                       <p className="text-center text-sm text-gray-400 mt-3">
                         You'll provide your full address when contacted
