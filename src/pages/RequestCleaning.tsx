@@ -334,9 +334,7 @@ export default function RequestCleaning() {
       <header className="bg-primary/80 backdrop-blur-sm border-b border-white/10 sticky top-0 z-50">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
-            <Link to="/">
-              <Logo size="sm" />
-            </Link>
+            <Logo size="sm" linkTo="/" />
             <Link to="/" className="text-primary-foreground/80 hover:text-primary-foreground text-sm">
               Back to Home
             </Link>
