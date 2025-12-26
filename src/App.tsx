@@ -47,7 +47,7 @@ import AdminInquiries from "./pages/admin/AdminInquiries";
 import AdminEmailTemplates from "./pages/admin/AdminEmailTemplates";
 import AdminAccounting from "./pages/admin/AdminAccounting";
 import AdminContactSubmissions from "./pages/admin/AdminContactSubmissions";
-
+import AdminEmailSubscribers from "./pages/admin/AdminEmailSubscribers";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -103,6 +103,7 @@ const App = () => (
                 <Route path="/admin/activity-logs" element={<AdminActivityLogs />} />
                 <Route path="/admin/settings" element={<AdminSettings />} />
                 <Route path="/admin/email-templates" element={<AdminEmailTemplates />} />
+                <Route path="/admin/subscribers" element={<AdminEmailSubscribers />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
