@@ -34,16 +34,12 @@ export function VisitorMapCard() {
   const [regionBreakdown, setRegionBreakdown] = useState<{ region: string; count: number; percentage: number }[]>([]);
 
   useEffect(() => {
-    const channel = supabase.channel("visitor-map", {
-      config: {
-        presence: {
-          key: "map",
-        },
-      },
-    });
+    // Use same channel as VisitorPresenceTracker to receive real data
+    const channel = supabase.channel("site-visitors");
 
     channel
       .on("presence", { event: "sync" }, () => {
+        console.log("Map: Presence sync received");
         const state = channel.presenceState() as PresenceState;
         const allVisitors: Visitor[] = [];
         
