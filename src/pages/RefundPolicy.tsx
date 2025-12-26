@@ -6,17 +6,17 @@ const RefundPolicy = () => {
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    "@id": "https://deepcleanuk.com/refund-policy#webpage",
-    "url": "https://deepcleanuk.com/refund-policy",
+    "@id": "https://deepcleanco.uk/refund-policy#webpage",
+    "url": "https://deepcleanco.uk/refund-policy",
     "name": "Refund Policy | Deep Clean UK",
     "description": "Understand Deep Clean UK's refund policy for lead credits.",
-    "isPartOf": { "@id": "https://deepcleanuk.com/#website" },
-    "about": { "@id": "https://deepcleanuk.com/#organization" },
+    "isPartOf": { "@id": "https://deepcleanco.uk/#website" },
+    "about": { "@id": "https://deepcleanco.uk/#organization" },
     "breadcrumb": {
       "@type": "BreadcrumbList",
       "itemListElement": [
-        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://deepcleanuk.com" },
-        { "@type": "ListItem", "position": 2, "name": "Refund Policy", "item": "https://deepcleanuk.com/refund-policy" }
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://deepcleanco.uk" },
+        { "@type": "ListItem", "position": 2, "name": "Refund Policy", "item": "https://deepcleanco.uk/refund-policy" }
       ]
     }
   };
@@ -26,7 +26,7 @@ const RefundPolicy = () => {
       <SEOHead
         title="Refund Policy | Deep Clean UK"
         description="Understand Deep Clean UK's refund policy for lead credits. Learn about eligible refund situations, the dispute process, and how to request a refund."
-        canonical="https://deepcleanuk.com/refund-policy"
+        canonical="https://deepcleanco.uk/refund-policy"
         structuredData={structuredData}
       />
       <Header />
@@ -136,7 +136,7 @@ const RefundPolicy = () => {
             </p>
             <div className="mt-4 p-4 bg-muted rounded-lg">
               <p className="text-foreground">Deep Clean UK Support</p>
-              <p className="text-muted-foreground">Email: hello@deepcleanuk.com</p>
+              <p className="text-muted-foreground">Email: hello@deepcleanco.uk</p>
               <p className="text-muted-foreground">Phone: 07757 188 197</p>
               <p className="text-muted-foreground mt-2">Support hours: Monday - Friday, 9am - 5pm GMT</p>
             </div>

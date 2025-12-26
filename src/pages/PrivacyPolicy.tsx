@@ -6,17 +6,17 @@ const PrivacyPolicy = () => {
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    "@id": "https://deepcleanuk.com/privacy-policy#webpage",
-    "url": "https://deepcleanuk.com/privacy-policy",
+    "@id": "https://deepcleanco.uk/privacy-policy#webpage",
+    "url": "https://deepcleanco.uk/privacy-policy",
     "name": "Privacy Policy | Deep Clean UK",
     "description": "Learn how Deep Clean UK collects, uses, and protects your personal information.",
-    "isPartOf": { "@id": "https://deepcleanuk.com/#website" },
-    "about": { "@id": "https://deepcleanuk.com/#organization" },
+    "isPartOf": { "@id": "https://deepcleanco.uk/#website" },
+    "about": { "@id": "https://deepcleanco.uk/#organization" },
     "breadcrumb": {
       "@type": "BreadcrumbList",
       "itemListElement": [
-        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://deepcleanuk.com" },
-        { "@type": "ListItem", "position": 2, "name": "Privacy Policy", "item": "https://deepcleanuk.com/privacy-policy" }
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://deepcleanco.uk" },
+        { "@type": "ListItem", "position": 2, "name": "Privacy Policy", "item": "https://deepcleanco.uk/privacy-policy" }
       ]
     }
   };
@@ -26,7 +26,7 @@ const PrivacyPolicy = () => {
       <SEOHead
         title="Privacy Policy | Deep Clean UK"
         description="Learn how Deep Clean UK collects, uses, and protects your personal information. Our privacy policy explains your data rights and our commitment to data security."
-        canonical="https://deepcleanuk.com/privacy-policy"
+        canonical="https://deepcleanco.uk/privacy-policy"
         structuredData={structuredData}
       />
       <Header />
@@ -149,7 +149,7 @@ const PrivacyPolicy = () => {
             </p>
             <div className="mt-4 p-4 bg-muted rounded-lg">
               <p className="text-foreground">Deep Clean UK</p>
-              <p className="text-muted-foreground">Email: hello@deepcleanuk.com</p>
+              <p className="text-muted-foreground">Email: hello@deepcleanco.uk</p>
               <p className="text-muted-foreground">Phone: 07757 188 197</p>
             </div>
           </section>
