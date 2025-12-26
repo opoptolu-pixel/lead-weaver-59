@@ -68,16 +68,12 @@ export function VisitorAnalyticsCard() {
   const [pageStats, setPageStats] = useState<PageStats[]>([]);
 
   useEffect(() => {
-    const channel = supabase.channel("visitor-analytics", {
-      config: {
-        presence: {
-          key: "analytics",
-        },
-      },
-    });
+    // Use same channel as VisitorPresenceTracker to receive real data
+    const channel = supabase.channel("site-visitors");
 
     channel
       .on("presence", { event: "sync" }, () => {
+        console.log("Analytics: Presence sync received");
         const state = channel.presenceState() as PresenceState;
         const allVisitors: Visitor[] = [];
         
