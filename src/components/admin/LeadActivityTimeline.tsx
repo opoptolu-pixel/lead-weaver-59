@@ -225,7 +225,20 @@ export default function LeadActivityTimeline({ leadId, open, onOpenChange }: Lea
       case "status_change":
         return `Status changed: ${details?.previous_status} → ${details?.new_status}`;
       case "purchase":
-        return `Lead purchased by ${purchaserName || "a cleaner"}`;
+        const businessName = details?.business_name || purchaserName || "a cleaner";
+        const paymentMethod = details?.payment_method === "credit" ? "using credit" : details?.payment_method === "stripe" ? "via Stripe" : "";
+        return `Lead purchased by ${businessName}${paymentMethod ? ` ${paymentMethod}` : ""}`;
+      case "job_status_change":
+        const prevStatus = details?.previous_status || "pending";
+        const newStatus = details?.new_status || "unknown";
+        const business = details?.business_name || "Business";
+        const statusLabels: Record<string, string> = {
+          pending: "Pending",
+          completed: "Completed",
+          lost: "Lost",
+          no_response: "No Response",
+        };
+        return `${business} updated job: ${statusLabels[prevStatus as string] || prevStatus} → ${statusLabels[newStatus as string] || newStatus}`;
       case "refund":
         return `Lead refunded: ${details?.reason || "No reason provided"}`;
       default:
