@@ -61,15 +61,15 @@ const Index = () => {
       },
       {
         "@type": "WebPage",
-        "@id": "https://deepcleanuk.com/#webpage",
-        "url": "https://deepcleanuk.com",
+        "@id": "https://deepcleanco.uk/#webpage",
+        "url": "https://deepcleanco.uk",
         "name": "Find Trusted Cleaners Near You | Free Quotes | Deep Clean UK",
         "description": "Get free quotes from verified local cleaners in the UK. Compare prices for deep cleaning, end of tenancy, carpet cleaning & more.",
-        "isPartOf": { "@id": "https://deepcleanuk.com/#website" },
-        "about": { "@id": "https://deepcleanuk.com/#organization" },
+        "isPartOf": { "@id": "https://deepcleanco.uk/#website" },
+        "about": { "@id": "https://deepcleanco.uk/#organization" },
         "primaryImageOfPage": {
           "@type": "ImageObject",
-          "url": "https://deepcleanuk.com/og-image.png"
+          "url": "https://deepcleanco.uk/og-image.png"
         },
         "breadcrumb": {
           "@type": "BreadcrumbList",
@@ -78,7 +78,7 @@ const Index = () => {
               "@type": "ListItem",
               "position": 1,
               "name": "Home",
-              "item": "https://deepcleanuk.com"
+              "item": "https://deepcleanco.uk"
             }
           ]
         }
@@ -92,7 +92,7 @@ const Index = () => {
       <SEOHead
         title="Find Trusted Cleaners Near You | Free Quotes | Deep Clean UK"
         description="Get free quotes from verified local cleaners in the UK. Compare prices for deep cleaning, end of tenancy, carpet cleaning & more. Fast response within 24 hours."
-        canonical="https://deepcleanuk.com"
+        canonical="https://deepcleanco.uk"
         structuredData={structuredData}
       />
       <Header />

@@ -33,18 +33,18 @@ const Blog = () => {
   const blogStructuredData = {
     "@context": "https://schema.org",
     "@type": "Blog",
-    "@id": "https://deepcleanuk.com/blog#blog",
+    "@id": "https://deepcleanco.uk/blog#blog",
     "name": "Deep Clean UK Blog - Cleaning Tips & Guides",
     "description": "Expert cleaning tips, guides, and advice for homes and businesses across the UK.",
-    "url": "https://deepcleanuk.com/blog",
+    "url": "https://deepcleanco.uk/blog",
     "publisher": {
-      "@id": "https://deepcleanuk.com/#organization"
+      "@id": "https://deepcleanco.uk/#organization"
     },
     "blogPost": blogPosts.slice(0, 10).map(post => ({
       "@type": "BlogPosting",
       "headline": post.title,
       "description": post.excerpt,
-      "url": `https://deepcleanuk.com/blog/${post.slug}`,
+      "url": `https://deepcleanco.uk/blog/${post.slug}`,
       "datePublished": post.publishedAt,
       "author": {
         "@type": "Organization",
@@ -58,7 +58,7 @@ const Blog = () => {
       <SEOHead
         title="Cleaning Tips & Guides | Expert Advice | Deep Clean UK Blog"
         description="Expert cleaning tips, guides, and advice for UK homes and businesses. Learn professional techniques for deep cleaning, carpet care, end of tenancy cleaning and more."
-        canonical="https://deepcleanuk.com/blog"
+        canonical="https://deepcleanco.uk/blog"
         structuredData={blogStructuredData}
       />
       <Header />

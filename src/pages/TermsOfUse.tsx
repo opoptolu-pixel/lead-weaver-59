@@ -6,17 +6,17 @@ const TermsOfUse = () => {
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    "@id": "https://deepcleanuk.com/terms-of-use#webpage",
-    "url": "https://deepcleanuk.com/terms-of-use",
+    "@id": "https://deepcleanco.uk/terms-of-use#webpage",
+    "url": "https://deepcleanco.uk/terms-of-use",
     "name": "Terms of Use | Deep Clean UK",
     "description": "Read the terms and conditions for using Deep Clean UK's lead generation platform.",
-    "isPartOf": { "@id": "https://deepcleanuk.com/#website" },
-    "about": { "@id": "https://deepcleanuk.com/#organization" },
+    "isPartOf": { "@id": "https://deepcleanco.uk/#website" },
+    "about": { "@id": "https://deepcleanco.uk/#organization" },
     "breadcrumb": {
       "@type": "BreadcrumbList",
       "itemListElement": [
-        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://deepcleanuk.com" },
-        { "@type": "ListItem", "position": 2, "name": "Terms of Use", "item": "https://deepcleanuk.com/terms-of-use" }
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://deepcleanco.uk" },
+        { "@type": "ListItem", "position": 2, "name": "Terms of Use", "item": "https://deepcleanco.uk/terms-of-use" }
       ]
     }
   };
@@ -26,7 +26,7 @@ const TermsOfUse = () => {
       <SEOHead
         title="Terms of Use | Deep Clean UK"
         description="Read the terms and conditions for using Deep Clean UK's lead generation platform. Understand your rights and responsibilities as a registered user."
-        canonical="https://deepcleanuk.com/terms-of-use"
+        canonical="https://deepcleanco.uk/terms-of-use"
         structuredData={structuredData}
       />
       <Header />
@@ -158,7 +158,7 @@ const TermsOfUse = () => {
             <p className="text-muted-foreground leading-relaxed">For questions about these terms:</p>
             <div className="mt-4 p-4 bg-muted rounded-lg">
               <p className="text-foreground">Deep Clean UK</p>
-              <p className="text-muted-foreground">Email: hello@deepcleanuk.com</p>
+              <p className="text-muted-foreground">Email: hello@deepcleanco.uk</p>
               <p className="text-muted-foreground">Phone: 07757 188 197</p>
             </div>
           </section>

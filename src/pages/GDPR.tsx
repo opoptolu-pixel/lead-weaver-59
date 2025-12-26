@@ -6,17 +6,17 @@ const GDPR = () => {
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    "@id": "https://deepcleanuk.com/gdpr#webpage",
-    "url": "https://deepcleanuk.com/gdpr",
+    "@id": "https://deepcleanco.uk/gdpr#webpage",
+    "url": "https://deepcleanco.uk/gdpr",
     "name": "GDPR Compliance | Deep Clean UK",
     "description": "Learn about Deep Clean UK's GDPR compliance and your data rights.",
-    "isPartOf": { "@id": "https://deepcleanuk.com/#website" },
-    "about": { "@id": "https://deepcleanuk.com/#organization" },
+    "isPartOf": { "@id": "https://deepcleanco.uk/#website" },
+    "about": { "@id": "https://deepcleanco.uk/#organization" },
     "breadcrumb": {
       "@type": "BreadcrumbList",
       "itemListElement": [
-        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://deepcleanuk.com" },
-        { "@type": "ListItem", "position": 2, "name": "GDPR Compliance", "item": "https://deepcleanuk.com/gdpr" }
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://deepcleanco.uk" },
+        { "@type": "ListItem", "position": 2, "name": "GDPR Compliance", "item": "https://deepcleanco.uk/gdpr" }
       ]
     }
   };
@@ -26,7 +26,7 @@ const GDPR = () => {
       <SEOHead
         title="GDPR Compliance | Deep Clean UK"
         description="Learn about Deep Clean UK's GDPR compliance, your data rights, and how we protect your personal information in accordance with UK data protection law."
-        canonical="https://deepcleanuk.com/gdpr"
+        canonical="https://deepcleanco.uk/gdpr"
         structuredData={structuredData}
       />
       <Header />
@@ -57,7 +57,7 @@ const GDPR = () => {
             <div className="mt-4 p-4 bg-muted rounded-lg">
               <p className="text-foreground font-medium">Data Controller Contact:</p>
               <p className="text-muted-foreground">Deep Clean UK</p>
-              <p className="text-muted-foreground">Email: hello@deepcleanuk.com</p>
+              <p className="text-muted-foreground">Email: hello@deepcleanco.uk</p>
               <p className="text-muted-foreground">Phone: 07757 188 197</p>
             </div>
           </section>
@@ -172,7 +172,7 @@ const GDPR = () => {
               To exercise any of your rights, please contact us using one of the following methods:
             </p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Email us: hello@deepcleanuk.com</li>
+              <li>Email us: hello@deepcleanco.uk</li>
               <li>Call us: 07757 188 197</li>
               <li>Use the data request form in your account settings</li>
             </ul>
@@ -274,7 +274,7 @@ const GDPR = () => {
             <div className="mt-4 p-4 bg-muted rounded-lg">
               <p className="text-foreground font-medium">Data Protection Contact</p>
               <p className="text-muted-foreground">Deep Clean UK</p>
-              <p className="text-muted-foreground">Email: hello@deepcleanuk.com</p>
+              <p className="text-muted-foreground">Email: hello@deepcleanco.uk</p>
               <p className="text-muted-foreground">Phone: 07757 188 197</p>
               <p className="text-muted-foreground">Response time: Within 5 business days</p>
             </div>

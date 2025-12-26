@@ -26,7 +26,7 @@ const RequestCleaningThankYou = () => {
       <SEOHead
         title="Thank You | Your Cleaning Request is Submitted | Deep Clean UK"
         description="Your cleaning request has been submitted. Verified local cleaners will contact you within 24 hours with quotes."
-        canonical="https://deepcleanuk.com/request-cleaning/thank-you"
+        canonical="https://deepcleanco.uk/request-cleaning/thank-you"
         noIndex={true}
       />
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50 flex items-center justify-center p-4">

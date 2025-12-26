@@ -59,11 +59,11 @@ const ForCleaners = () => {
       },
       {
         "@type": "WebPage",
-        "@id": "https://deepcleanuk.com/for-cleaners#webpage",
-        "url": "https://deepcleanuk.com/for-cleaners",
+        "@id": "https://deepcleanco.uk/for-cleaners#webpage",
+        "url": "https://deepcleanco.uk/for-cleaners",
         "name": "Cleaning Leads for Professional Cleaners | Grow Your Business | Deep Clean UK",
         "description": "Get exclusive cleaning job leads in your area. No monthly fees, pay per lead. Join UK's trusted cleaning lead platform.",
-        "isPartOf": { "@id": "https://deepcleanuk.com/#website" },
+        "isPartOf": { "@id": "https://deepcleanco.uk/#website" },
         "breadcrumb": {
           "@type": "BreadcrumbList",
           "itemListElement": [
@@ -71,13 +71,13 @@ const ForCleaners = () => {
               "@type": "ListItem",
               "position": 1,
               "name": "Home",
-              "item": "https://deepcleanuk.com"
+              "item": "https://deepcleanco.uk"
             },
             {
               "@type": "ListItem",
               "position": 2,
               "name": "For Cleaners",
-              "item": "https://deepcleanuk.com/for-cleaners"
+              "item": "https://deepcleanco.uk/for-cleaners"
             }
           ]
         }
@@ -122,7 +122,7 @@ const ForCleaners = () => {
       <SEOHead
         title="Cleaning Leads for Professional Cleaners | Grow Your Business | Deep Clean UK"
         description="Get exclusive cleaning job leads in your area. No monthly fees, no contracts - pay only £20 per lead. Leads worth £100+. Join 500+ UK cleaners growing their business."
-        canonical="https://deepcleanuk.com/for-cleaners"
+        canonical="https://deepcleanco.uk/for-cleaners"
         structuredData={structuredData}
       />
       <Header />
