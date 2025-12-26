@@ -8,6 +8,15 @@ interface PageVisit {
   timeSpent?: number;
 }
 
+export interface GeoLocation {
+  city: string;
+  region: string;
+  country: string;
+  countryCode: string;
+  lat: number;
+  lon: number;
+}
+
 export interface Visitor {
   visitorId: string;
   currentPage: string;
@@ -17,6 +26,7 @@ export interface Visitor {
   userId?: string | null;
   pageHistory?: PageVisit[];
   sessionDuration?: number;
+  geolocation?: GeoLocation;
 }
 
 interface PresenceState {
