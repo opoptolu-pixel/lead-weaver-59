@@ -56,15 +56,12 @@ serve(async (req) => {
       to: [to],
       subject: subject,
       html: html,
+      reply_to: replyTo || "hello@deepcleanco.uk", // Always set reply-to
       headers: {
         "List-Unsubscribe": `<mailto:${UNSUBSCRIBE_EMAIL}?subject=Unsubscribe%20${encodeURIComponent(to)}>`,
         "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
       },
     };
-
-    if (replyTo) {
-      emailPayload.reply_to = replyTo;
-    }
 
     const response = await fetch(RESEND_API_URL, {
       method: "POST",
