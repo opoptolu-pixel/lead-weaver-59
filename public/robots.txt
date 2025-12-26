@@ -1,5 +1,5 @@
 # Deep Clean UK - Robots.txt
-# https://deepcleanuk.com
+# https://deepcleanco.uk
 # Updated: 2025-06-25
 
 # Allow all search engines full access
@@ -79,4 +79,4 @@ User-agent: Google-Extended
 Disallow: /
 
 # Sitemap location
-Sitemap: https://deepcleanuk.com/sitemap.xml
+Sitemap: https://deepcleanco.uk/sitemap.xml

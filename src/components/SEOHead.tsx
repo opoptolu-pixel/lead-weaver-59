@@ -15,7 +15,7 @@ export const SEOHead = ({
   description,
   canonical,
   ogType = "website",
-  ogImage = "https://deepcleanuk.com/og-image.png",
+  ogImage = "https://deepcleanco.uk/og-image.png",
   noIndex = false,
   structuredData,
 }: SEOHeadProps) => {
