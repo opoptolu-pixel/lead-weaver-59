@@ -442,6 +442,29 @@ serve(async (req) => {
       postcode: body.postcode.toUpperCase(),
     });
 
+    // Log lead creation to activity_logs
+    try {
+      await supabase.from("activity_logs").insert({
+        user_id: "00000000-0000-0000-0000-000000000000", // System user for customer-initiated actions
+        entity_type: "lead",
+        entity_id: data.id,
+        action: "lead_created",
+        details: {
+          customer_name: body.customerName,
+          job_type: body.jobType,
+          postcode: formatPostcode(body.postcode),
+          value: value,
+          display_value: displayValue,
+          source: "website",
+          phase: phase,
+          category: category,
+        },
+      });
+      console.log("[SUBMIT-CLEANING] Lead creation logged to activity_logs");
+    } catch (activityError) {
+      console.error("[SUBMIT-CLEANING] Failed to log activity (non-blocking):", activityError);
+    }
+
     // Send confirmation email (non-blocking)
     await sendConfirmationEmail(
       supabase,
