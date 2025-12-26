@@ -3,14 +3,12 @@ import { useLocation } from "react-router-dom";
 
 export const ScrollToTop = () => {
   const { pathname, hash } = useLocation();
-  const isFirstRender = useRef(true);
+  const prevPathname = useRef(pathname);
 
   useEffect(() => {
-    // Skip on first render to prevent flash when navigating with URL params
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
+    // Only scroll if pathname changed (not on initial mount with same path)
+    const pathnameChanged = prevPathname.current !== pathname;
+    prevPathname.current = pathname;
 
     if (hash) {
       // Wait for the page to render, then scroll to the element
@@ -20,7 +18,7 @@ export const ScrollToTop = () => {
           element.scrollIntoView({ behavior: "smooth" });
         }
       }, 100);
-    } else {
+    } else if (pathnameChanged) {
       window.scrollTo(0, 0);
     }
   }, [pathname, hash]);
