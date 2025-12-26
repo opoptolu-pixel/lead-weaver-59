@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { channelManager, Visitor } from "./useVisitorData";
@@ -12,6 +12,8 @@ interface PageVisit {
 
 // Generate a unique visitor ID per session
 const getVisitorId = (): string => {
+  if (typeof window === "undefined") return "ssr_visitor";
+  
   let visitorId = sessionStorage.getItem("visitor_id");
   if (!visitorId) {
     visitorId = `visitor_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
@@ -22,6 +24,8 @@ const getVisitorId = (): string => {
 
 // Store page history in session storage
 const getPageHistory = (): PageVisit[] => {
+  if (typeof window === "undefined") return [];
+  
   try {
     const history = sessionStorage.getItem("page_history");
     return history ? JSON.parse(history) : [];
@@ -31,6 +35,8 @@ const getPageHistory = (): PageVisit[] => {
 };
 
 const savePageHistory = (history: PageVisit[]) => {
+  if (typeof window === "undefined") return;
+  
   try {
     // Keep only last 20 page visits
     const trimmed = history.slice(-20);
@@ -43,7 +49,10 @@ const savePageHistory = (history: PageVisit[]) => {
 export function useVisitorPresence() {
   const location = useLocation();
   const { user } = useAuth();
-  const visitorId = getVisitorId();
+  
+  // Use state for visitorId to ensure consistent hook order
+  const [visitorId] = useState(() => getVisitorId());
+  
   const lastPageRef = useRef<string | null>(null);
   const pageEnterTimeRef = useRef<number>(Date.now());
   const sessionStartRef = useRef<number>(Date.now());
@@ -80,7 +89,7 @@ export function useVisitorPresence() {
     return {
       visitorId,
       currentPage: location.pathname,
-      userAgent: navigator.userAgent,
+      userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "unknown",
       joinedAt: new Date().toISOString(),
       isAuthenticated: !!user,
       userId: user?.id || null,
@@ -106,7 +115,7 @@ export function useVisitorPresence() {
       isSubscribedRef.current = false;
       unsubscribe();
     };
-  }, []);
+  }, [location.pathname, trackPageVisit, getVisitorData]);
 
   // Update presence when page changes
   useEffect(() => {
