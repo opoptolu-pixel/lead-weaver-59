@@ -60,6 +60,27 @@ serve(async (req) => {
       try {
         logStep("Sending scheduled email", { id: scheduled.id, to: scheduled.recipient_email });
 
+        // Check if recipient has unsubscribed before sending
+        const { data: subscriber } = await supabase
+          .from("email_subscribers")
+          .select("is_active, unsubscribed_at")
+          .eq("email", scheduled.recipient_email)
+          .maybeSingle();
+
+        if (subscriber && (!subscriber.is_active || subscriber.unsubscribed_at)) {
+          logStep("Skipping unsubscribed recipient", { email: scheduled.recipient_email });
+          
+          // Mark as cancelled instead of sending
+          await supabase
+            .from("scheduled_emails")
+            .update({
+              status: "cancelled",
+              error_message: "Recipient has unsubscribed",
+            })
+            .eq("id", scheduled.id);
+          continue;
+        }
+
         // Send the email
         const response = await fetch(RESEND_API_URL, {
           method: "POST",

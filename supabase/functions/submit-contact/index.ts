@@ -78,18 +78,38 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Contact submission saved:", submission.id);
 
-    // Auto-subscribe to email list for better deliverability
+    // Add to email list only if not already subscribed (respects unsubscribe status)
     try {
-      await supabase
+      // First check if user exists and their unsubscribe status
+      const { data: existingSubscriber } = await supabase
         .from("email_subscribers")
-        .upsert({
-          email: email,
-          name: name,
-          source: "contact_form",
-          source_id: submission.id,
-          is_active: true,
-        }, { onConflict: "email" });
-      console.log("Email subscriber added/updated:", email);
+        .select("id, is_active, unsubscribed_at")
+        .eq("email", email)
+        .maybeSingle();
+
+      if (!existingSubscriber) {
+        // New subscriber - add them
+        await supabase
+          .from("email_subscribers")
+          .insert({
+            email: email,
+            name: name,
+            source: "contact_form",
+            source_id: submission.id,
+            is_active: true,
+          });
+        console.log("New email subscriber added:", email);
+      } else if (existingSubscriber.unsubscribed_at) {
+        // Previously unsubscribed - respect their choice, don't re-subscribe
+        console.log("User previously unsubscribed, respecting preference:", email);
+      } else {
+        // Existing active subscriber - just update name if needed
+        await supabase
+          .from("email_subscribers")
+          .update({ name: name })
+          .eq("id", existingSubscriber.id);
+        console.log("Email subscriber updated:", email);
+      }
     } catch (subError) {
       console.error("Failed to add subscriber (non-blocking):", subError);
     }
