@@ -49,6 +49,27 @@ serve(async (req) => {
       throw new Error("Missing required fields: to, subject, html");
     }
 
+    // Check if recipient has unsubscribed (skip for test emails)
+    if (!isTest) {
+      const { data: subscriber } = await supabase
+        .from("email_subscribers")
+        .select("is_active, unsubscribed_at")
+        .eq("email", to)
+        .maybeSingle();
+
+      if (subscriber && (!subscriber.is_active || subscriber.unsubscribed_at)) {
+        logStep("Skipping unsubscribed recipient", { to });
+        return new Response(JSON.stringify({ 
+          success: false, 
+          skipped: true, 
+          reason: "Recipient has unsubscribed" 
+        }), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+    }
+
     logStep("Sending email", { to, subject, isTest });
 
     const emailPayload: any = {
