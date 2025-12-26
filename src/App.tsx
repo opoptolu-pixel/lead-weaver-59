@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import { BackToTop } from "@/components/BackToTop";
+import ClarityAnalytics from "@/components/ClarityAnalytics";
 
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AdminProvider } from "@/contexts/AdminContext";
@@ -57,7 +58,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          
+          <ClarityAnalytics />
           <BackToTop />
           <AuthProvider>
             <AdminProvider>
