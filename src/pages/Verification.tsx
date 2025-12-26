@@ -12,15 +12,24 @@ import {
   Clock,
   AlertTriangle,
   RefreshCw,
+  Eye,
+  X,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useSignedUrl } from "@/hooks/useSignedUrl";
 
 interface VerificationDocument {
   id: string;
@@ -47,6 +56,12 @@ export default function Verification() {
   const [addressProof, setAddressProof] = useState<File | null>(null);
   const [reuploadingDocId, setReuploadingDocId] = useState<string | null>(null);
   const reuploadInputRef = useRef<HTMLInputElement>(null);
+  
+  // Document preview state
+  const [previewDoc, setPreviewDoc] = useState<VerificationDocument | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
+  const { getSignedUrl } = useSignedUrl();
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -226,6 +241,33 @@ export default function Verification() {
     } finally {
       setUploading(false);
     }
+  };
+
+  const handlePreviewDocument = async (doc: VerificationDocument) => {
+    setPreviewDoc(doc);
+    setLoadingPreview(true);
+    setPreviewUrl(null);
+    
+    try {
+      const url = await getSignedUrl(doc.file_path, "verification-documents", 3600);
+      if (url) {
+        setPreviewUrl(url);
+      } else {
+        toast.error("Failed to load document preview");
+        setPreviewDoc(null);
+      }
+    } catch (error) {
+      console.error("Error loading preview:", error);
+      toast.error("Failed to load document preview");
+      setPreviewDoc(null);
+    } finally {
+      setLoadingPreview(false);
+    }
+  };
+
+  const closePreview = () => {
+    setPreviewDoc(null);
+    setPreviewUrl(null);
   };
 
   if (authLoading) {
@@ -456,6 +498,14 @@ export default function Verification() {
                           <span className="text-sm">{doc.document_type.replace("_", " ")}</span>
                         </div>
                         <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handlePreviewDocument(doc)}
+                            title="Preview document"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
                           {doc.status === "rejected" && (
                             <>
                               <input
@@ -551,6 +601,14 @@ export default function Verification() {
                             <span className="text-sm">Address proof</span>
                           </div>
                           <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handlePreviewDocument(doc)}
+                              title="Preview document"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
                             {doc.status === "rejected" && (
                               <>
                                 <input
@@ -597,6 +655,56 @@ export default function Verification() {
           </div>
         </div>
       </main>
+
+      {/* Document Preview Dialog */}
+      <Dialog open={!!previewDoc} onOpenChange={(open) => !open && closePreview()}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              {previewDoc?.document_type.replace("_", " ").replace(/\b\w/g, l => l.toUpperCase())}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-auto min-h-[400px] bg-muted rounded-lg flex items-center justify-center">
+            {loadingPreview ? (
+              <div className="flex flex-col items-center gap-3">
+                <Loader2 className="w-8 h-8 animate-spin text-secondary" />
+                <p className="text-sm text-muted-foreground">Loading document...</p>
+              </div>
+            ) : previewUrl ? (
+              previewDoc?.file_path.toLowerCase().endsWith('.pdf') ? (
+                <iframe
+                  src={previewUrl}
+                  className="w-full h-full min-h-[500px] rounded-lg"
+                  title="Document Preview"
+                />
+              ) : (
+                <img
+                  src={previewUrl}
+                  alt="Document Preview"
+                  className="max-w-full max-h-[70vh] object-contain rounded-lg"
+                />
+              )
+            ) : (
+              <p className="text-muted-foreground">Unable to load preview</p>
+            )}
+          </div>
+          
+          <div className="flex justify-end gap-2 pt-4">
+            <Button variant="outline" onClick={closePreview}>
+              Close
+            </Button>
+            {previewUrl && (
+              <Button asChild>
+                <a href={previewUrl} target="_blank" rel="noopener noreferrer">
+                  Open in New Tab
+                </a>
+              </Button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
