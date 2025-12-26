@@ -54,15 +54,15 @@ const cacheGeolocation = (geo: GeoLocation) => {
   }
 };
 
-// Fetch geolocation from free IP geolocation API
+// Fetch geolocation from free IP geolocation API (HTTPS)
 const fetchGeolocation = async (): Promise<GeoLocation | null> => {
   // Check cache first
   const cached = getCachedGeolocation();
   if (cached) return cached;
   
   try {
-    // Using ip-api.com (free, no API key required, 45 requests/minute limit)
-    const response = await fetch("http://ip-api.com/json/?fields=city,region,country,countryCode,lat,lon", {
+    // Using ipapi.co (free HTTPS, no API key required, 1000 requests/day)
+    const response = await fetch("https://ipapi.co/json/", {
       method: "GET",
     });
     
@@ -73,16 +73,17 @@ const fetchGeolocation = async (): Promise<GeoLocation | null> => {
     
     const data = await response.json();
     
-    if (data.city) {
+    if (data.city && !data.error) {
       const geo: GeoLocation = {
         city: data.city,
-        region: data.region,
-        country: data.country,
-        countryCode: data.countryCode,
-        lat: data.lat,
-        lon: data.lon,
+        region: data.region || data.region_code,
+        country: data.country_name,
+        countryCode: data.country_code,
+        lat: data.latitude,
+        lon: data.longitude,
       };
       cacheGeolocation(geo);
+      console.log("Geolocation fetched:", geo.city, geo.country);
       return geo;
     }
     
