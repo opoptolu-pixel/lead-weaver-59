@@ -78,11 +78,27 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Contact submission saved:", submission.id);
 
+    // Auto-subscribe to email list for better deliverability
+    try {
+      await supabase
+        .from("email_subscribers")
+        .upsert({
+          email: email,
+          name: name,
+          source: "contact_form",
+          source_id: submission.id,
+          is_active: true,
+        }, { onConflict: "email" });
+      console.log("Email subscriber added/updated:", email);
+    } catch (subError) {
+      console.error("Failed to add subscriber (non-blocking):", subError);
+    }
+
     // Send notification email to admin
     try {
       const adminSubject = `New Contact Form Submission: ${subject}`;
       const adminEmailResponse = await resend.emails.send({
-        from: "Deep Clean UK <noreply@deepcleanco.uk>",
+        from: "Deep Clean UK <hello@deepcleanco.uk>",
         to: ["hello@deepcleanuk.com"],
         subject: adminSubject,
         html: `
@@ -131,7 +147,7 @@ const handler = async (req: Request): Promise<Response> => {
     try {
       const userSubject = "We've received your message - Deep Clean UK";
       const userEmailResponse = await resend.emails.send({
-        from: "Deep Clean UK <noreply@deepcleanco.uk>",
+        from: "Deep Clean UK <hello@deepcleanco.uk>",
         to: [email],
         subject: userSubject,
         html: `
@@ -161,7 +177,8 @@ const handler = async (req: Request): Promise<Response> => {
               <p style="color: #666; font-size: 12px; text-align: center;">
                 © ${new Date().getFullYear()} Deep Clean UK · All rights reserved<br>
                 A trading name of Orbit Shade Ltd (Company No. 15337705)<br>
-                128 City Road, London, EC1V 2NX
+                128 City Road, London, EC1V 2NX<br><br>
+                <a href="mailto:unsubscribe@deepcleanco.uk?subject=Unsubscribe" style="color: #888;">Unsubscribe</a>
               </p>
             </div>
           </div>

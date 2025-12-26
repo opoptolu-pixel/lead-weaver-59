@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const FROM_EMAIL = "Deep Clean UK <noreply@deepcleanco.uk>";
+const FROM_EMAIL = "Deep Clean UK <hello@deepcleanco.uk>";
 const RESEND_API_URL = "https://api.resend.com/emails";
 
 interface CleaningRequest {
@@ -414,6 +414,22 @@ serve(async (req) => {
     }
 
     const referenceId = data.id.slice(0, 8).toUpperCase();
+
+    // Auto-subscribe to email list for better deliverability
+    try {
+      await supabase
+        .from("email_subscribers")
+        .upsert({
+          email: body.customerEmail,
+          name: body.customerName,
+          source: "cleaning_request",
+          source_id: data.id,
+          is_active: true,
+        }, { onConflict: "email" });
+      console.log("[SUBMIT-CLEANING] Email subscriber added/updated:", body.customerEmail);
+    } catch (subError) {
+      console.error("[SUBMIT-CLEANING] Failed to add subscriber (non-blocking):", subError);
+    }
 
     // Enhanced logging for analytics
     console.log("Lead created:", {
