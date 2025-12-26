@@ -51,6 +51,7 @@ import AdminEmailTemplates from "./pages/admin/AdminEmailTemplates";
 import AdminAccounting from "./pages/admin/AdminAccounting";
 import AdminContactSubmissions from "./pages/admin/AdminContactSubmissions";
 import AdminEmailSubscribers from "./pages/admin/AdminEmailSubscribers";
+import AdminLiveData from "./pages/admin/AdminLiveData";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -94,6 +95,7 @@ const App = () => (
                 <Route path="/contact" element={<Contact />} />
                 {/* Admin Routes */}
                 <Route path="/admin" element={<AdminOverview />} />
+                <Route path="/admin/live" element={<AdminLiveData />} />
                 <Route path="/admin/inquiries" element={<AdminInquiries />} />
                 <Route path="/admin/contact" element={<AdminContactSubmissions />} />
                 <Route path="/admin/leads" element={<AdminLeads />} />
