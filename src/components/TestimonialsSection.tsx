@@ -38,40 +38,39 @@ const testimonials = [
 
 // Generate Review structured data for SEO
 export const generateReviewSchema = () => {
-  const reviews = testimonials.map((t, index) => ({
-    "@type": "Review",
-    "@id": `https://deepcleanco.uk/#review-${index + 1}`,
-    "author": {
-      "@type": "Person",
-      "name": t.name
-    },
-    "reviewBody": t.text,
-    "reviewRating": {
-      "@type": "Rating",
-      "ratingValue": t.rating,
-      "bestRating": 5,
-      "worstRating": 1
-    },
-    "datePublished": t.datePublished,
-    "itemReviewed": {
-      "@type": "LocalBusiness",
-      "@id": "https://deepcleanco.uk/#organization"
-    }
-  }));
-
   return {
-    "@context": "https://schema.org",
     "@type": "LocalBusiness",
     "@id": "https://deepcleanco.uk/#organization",
     "name": "Deep Clean UK",
+    "image": "https://deepcleanco.uk/og-image.png",
+    "url": "https://deepcleanco.uk",
+    "telephone": "+44-800-123-4567",
+    "address": {
+      "@type": "PostalAddress",
+      "addressCountry": "GB"
+    },
     "aggregateRating": {
       "@type": "AggregateRating",
-      "ratingValue": "4.9",
-      "reviewCount": testimonials.length.toString(),
-      "bestRating": "5",
-      "worstRating": "1"
+      "ratingValue": 4.9,
+      "reviewCount": testimonials.length,
+      "bestRating": 5,
+      "worstRating": 1
     },
-    "review": reviews
+    "review": testimonials.map((t, index) => ({
+      "@type": "Review",
+      "author": {
+        "@type": "Person",
+        "name": t.name
+      },
+      "reviewBody": t.text,
+      "reviewRating": {
+        "@type": "Rating",
+        "ratingValue": t.rating,
+        "bestRating": 5,
+        "worstRating": 1
+      },
+      "datePublished": t.datePublished
+    }))
   };
 };
 
