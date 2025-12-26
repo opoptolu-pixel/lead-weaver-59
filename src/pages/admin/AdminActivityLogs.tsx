@@ -19,6 +19,13 @@ import {
   XCircle,
   Shield,
   Upload,
+  MessageCircle,
+  Mail,
+  Phone,
+  ArrowRight,
+  Send,
+  MessageSquare,
+  Smartphone,
 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -55,6 +62,12 @@ interface ActivityLog {
   ip_address: string | null;
   created_at: string;
   user_name?: string | null;
+  // Lead details for enriched context
+  lead_customer_name?: string | null;
+  lead_customer_email?: string | null;
+  lead_customer_phone?: string | null;
+  lead_postcode?: string | null;
+  lead_job_type?: string | null;
 }
 
 const ACTION_ICONS: Record<string, any> = {
@@ -68,6 +81,10 @@ const ACTION_ICONS: Record<string, any> = {
   verification_rejected: XCircle,
   document_uploaded: Upload,
   suspension: Shield,
+  confirmation_sent: Send,
+  customer_response: MessageSquare,
+  auto_published: CheckCircle,
+  status_change: RefreshCcw,
 };
 
 const ACTION_LABELS: Record<string, string> = {
@@ -81,6 +98,10 @@ const ACTION_LABELS: Record<string, string> = {
   verification_rejected: "Verification Rejected",
   document_uploaded: "Document Uploaded",
   suspension: "Account Suspension",
+  confirmation_sent: "Confirmation Sent",
+  customer_response: "Customer Response",
+  auto_published: "Auto-Published",
+  status_change: "Status Changed",
 };
 
 const ENTITY_LABELS: Record<string, string> = {
@@ -146,12 +167,23 @@ export default function AdminActivityLogs() {
       return;
     }
 
+    // Get unique user IDs and lead IDs
     const userIds = [...new Set((data || []).map(log => log.user_id))];
+    const leadIds = [...new Set((data || []).filter(log => log.entity_type === 'lead' && log.entity_id).map(log => log.entity_id))];
     
+    // Fetch profiles
     const { data: profiles } = await supabase
       .from("profiles")
       .select("user_id, business_name, contact_name")
       .in("user_id", userIds);
+
+    // Fetch lead details for enriched context
+    const { data: leads } = leadIds.length > 0 
+      ? await supabase
+          .from("leads")
+          .select("id, customer_name, customer_email, customer_phone, postcode, job_type")
+          .in("id", leadIds)
+      : { data: [] };
 
     const userNameMap = new Map(
       (profiles || []).map(p => [
@@ -160,12 +192,25 @@ export default function AdminActivityLogs() {
       ])
     );
 
-    const logsWithNames = (data || []).map(log => ({
-      ...log,
-      user_name: userNameMap.get(log.user_id) || null,
-    }));
+    const leadMap = new Map(
+      (leads || []).map(l => [l.id, l])
+    );
 
-    setLogs(logsWithNames);
+    // Enrich logs with user names and lead details
+    const logsWithDetails = (data || []).map(log => {
+      const lead = log.entity_id ? leadMap.get(log.entity_id) : null;
+      return {
+        ...log,
+        user_name: userNameMap.get(log.user_id) || null,
+        lead_customer_name: lead?.customer_name || null,
+        lead_customer_email: lead?.customer_email || null,
+        lead_customer_phone: lead?.customer_phone || null,
+        lead_postcode: lead?.postcode || null,
+        lead_job_type: lead?.job_type || null,
+      };
+    });
+
+    setLogs(logsWithDetails);
     setLoading(false);
   };
 
@@ -186,6 +231,10 @@ export default function AdminActivityLogs() {
       verification_rejected: "bg-red-500/20 text-red-500",
       document_uploaded: "bg-blue-500/20 text-blue-500",
       suspension: "bg-red-500/20 text-red-500",
+      confirmation_sent: "bg-blue-500/20 text-blue-500",
+      customer_response: "bg-emerald-500/20 text-emerald-500",
+      auto_published: "bg-amber-500/20 text-amber-500",
+      status_change: "bg-purple-500/20 text-purple-500",
     };
     return variants[action] || "bg-muted text-muted-foreground";
   };
@@ -194,6 +243,7 @@ export default function AdminActivityLogs() {
     const matchesSearch =
       log.user_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (log.user_name?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
+      (log.lead_customer_name?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
       log.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
       log.entity_type.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesEntity = entityFilter === "all" || log.entity_type === entityFilter;
@@ -226,6 +276,7 @@ export default function AdminActivityLogs() {
       { key: "action", label: "Action" },
       { key: "entity_type", label: "Entity Type" },
       { key: "user_display", label: "User" },
+      { key: "lead_customer_name", label: "Customer" },
       { key: "details", label: "Details" },
     ]);
     toast.success("Export started");
@@ -263,6 +314,7 @@ export default function AdminActivityLogs() {
       status: "Status",
       old_status: "Previous Status",
       new_status: "New Status",
+      previous_status: "Previous Status",
       document_type: "Document Type",
       business_name: "Business Name",
       admin_notes: "Admin Notes",
@@ -271,19 +323,33 @@ export default function AdminActivityLogs() {
       session_id: "Session ID",
       value: "Value",
       display_value: "Display Value",
+      method: "Method",
+      auto_publish_at: "Auto-Publish At",
+      customer_response: "Customer Reply",
+      is_positive: "Positive Response",
     };
     return labels[key] || key.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
   };
 
   const getActivitySummary = (log: ActivityLog): string => {
-    const action = ACTION_LABELS[log.action] || log.action;
-    const entity = ENTITY_LABELS[log.entity_type] || log.entity_type;
     const details = (typeof log.details === 'object' && log.details !== null) 
       ? log.details as Record<string, unknown> 
       : null;
     
-    if (log.action === "purchase" && details) {
-      return `Purchased lead in ${details.postcode || "unknown area"}`;
+    if (log.action === "confirmation_sent") {
+      const method = details?.method === "whatsapp" ? "WhatsApp" : "SMS";
+      return `${method} sent to ${log.lead_customer_name || "customer"}`;
+    }
+    if (log.action === "customer_response") {
+      const response = details?.customer_response || "";
+      const isPositive = details?.is_positive;
+      return `${log.lead_customer_name || "Customer"} replied "${response}" ${isPositive ? "✓" : "✗"}`;
+    }
+    if (log.action === "auto_published") {
+      return `Lead auto-published (no response from ${log.lead_customer_name || "customer"})`;
+    }
+    if (log.action === "purchase" && log.lead_postcode) {
+      return `Lead purchased in ${log.lead_postcode}`;
     }
     if (log.action === "credits_added" && details) {
       return `Added ${details.credits || details.amount || "?"} credits`;
@@ -300,8 +366,11 @@ export default function AdminActivityLogs() {
     if (log.action === "login") {
       return "User logged into the system";
     }
+    if (log.action === "status_change" && details) {
+      return `Status: ${details.previous_status} → ${details.new_status}`;
+    }
     
-    return `${action} on ${entity}`;
+    return ACTION_LABELS[log.action] || log.action;
   };
 
   return (
@@ -329,7 +398,7 @@ export default function AdminActivityLogs() {
           <div className="relative flex-1 min-w-[200px] max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Search by user name or ID..."
+              placeholder="Search by user or customer name..."
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
@@ -413,12 +482,29 @@ export default function AdminActivityLogs() {
                               <p className="font-medium text-foreground">
                                 {getActivitySummary(log)}
                               </p>
-                              <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                                <User className="w-3 h-3" />
-                                <span>{log.user_name || log.user_id.slice(0, 8) + "..."}</span>
-                                <span>•</span>
-                                <Clock className="w-3 h-3" />
-                                <span>{format(new Date(log.created_at), "HH:mm")}</span>
+                              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-muted-foreground">
+                                {log.lead_customer_name && (
+                                  <>
+                                    <span className="flex items-center gap-1">
+                                      <User className="w-3 h-3" />
+                                      {log.lead_customer_name}
+                                    </span>
+                                    <span>•</span>
+                                  </>
+                                )}
+                                {log.lead_postcode && (
+                                  <>
+                                    <span className="flex items-center gap-1">
+                                      <MapPin className="w-3 h-3" />
+                                      {log.lead_postcode}
+                                    </span>
+                                    <span>•</span>
+                                  </>
+                                )}
+                                <span className="flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  {format(new Date(log.created_at), "HH:mm")}
+                                </span>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
@@ -455,7 +541,7 @@ export default function AdminActivityLogs() {
 
       {/* Detail Modal */}
       <Dialog open={!!selectedLog} onOpenChange={() => setSelectedLog(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3">
               <div className={`p-2 rounded-full ${selectedLog ? getActionBadge(selectedLog.action) : ""}`}>
@@ -467,75 +553,123 @@ export default function AdminActivityLogs() {
 
           {selectedLog && (
             <div className="space-y-6">
-              {/* Summary */}
-              <div className="bg-muted/50 rounded-lg p-4">
-                <p className="text-foreground font-medium">
+              {/* Summary Card */}
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+                <p className="text-foreground font-medium text-lg">
                   {getActivitySummary(selectedLog)}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {format(new Date(selectedLog.created_at), "d MMMM yyyy 'at' HH:mm:ss")}
                 </p>
               </div>
 
-              {/* Metadata */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide">User</p>
-                  <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-muted-foreground" />
-                    <div>
-                      {selectedLog.user_name && (
-                        <p className="font-medium">{selectedLog.user_name}</p>
-                      )}
-                      <p className="text-xs text-muted-foreground font-mono">
-                        {selectedLog.user_id.slice(0, 12)}...
-                      </p>
-                    </div>
+              {/* Communication Flow - Show for confirmation/response actions */}
+              {(selectedLog.action === "confirmation_sent" || selectedLog.action === "customer_response") && (
+                <div className="space-y-3">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Communication Flow</p>
+                  <div className="bg-muted/30 rounded-lg p-4">
+                    {selectedLog.action === "confirmation_sent" && (
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 bg-background rounded-lg px-3 py-2 border">
+                          <Shield className="w-4 h-4 text-primary" />
+                          <span className="font-medium">Deep Clean UK</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <ArrowRight className="w-4 h-4" />
+                          {(selectedLog.details as any)?.method === "whatsapp" ? (
+                            <MessageCircle className="w-4 h-4 text-green-500" />
+                          ) : (
+                            <Smartphone className="w-4 h-4 text-blue-500" />
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 bg-background rounded-lg px-3 py-2 border flex-1">
+                          <User className="w-4 h-4 text-muted-foreground" />
+                          <div className="min-w-0">
+                            <p className="font-medium truncate">{selectedLog.lead_customer_name || "Customer"}</p>
+                            <p className="text-xs text-muted-foreground">{selectedLog.lead_customer_phone}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {selectedLog.action === "customer_response" && (
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 bg-background rounded-lg px-3 py-2 border flex-1">
+                          <User className="w-4 h-4 text-muted-foreground" />
+                          <div className="min-w-0">
+                            <p className="font-medium truncate">{selectedLog.lead_customer_name || "Customer"}</p>
+                            <p className="text-xs text-muted-foreground">{selectedLog.lead_customer_phone}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <MessageSquare className="w-4 h-4 text-emerald-500" />
+                          <ArrowRight className="w-4 h-4" />
+                        </div>
+                        <div className="flex items-center gap-2 bg-background rounded-lg px-3 py-2 border">
+                          <Shield className="w-4 h-4 text-primary" />
+                          <span className="font-medium">Deep Clean UK</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
+              )}
 
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Timestamp</p>
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-muted-foreground" />
-                    <div>
-                      <p className="font-medium">{format(new Date(selectedLog.created_at), "HH:mm:ss")}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {format(new Date(selectedLog.created_at), "d MMMM yyyy")}
-                      </p>
+              {/* Customer Details - Show for lead-related actions */}
+              {selectedLog.lead_customer_name && (
+                <div className="space-y-3">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Customer Details</p>
+                  <div className="bg-muted/30 rounded-lg divide-y divide-border">
+                    <div className="flex items-center justify-between p-3">
+                      <span className="text-sm text-muted-foreground flex items-center gap-2">
+                        <User className="w-4 h-4" />
+                        Name
+                      </span>
+                      <span className="text-sm font-medium">{selectedLog.lead_customer_name}</span>
                     </div>
+                    {selectedLog.lead_customer_phone && (
+                      <div className="flex items-center justify-between p-3">
+                        <span className="text-sm text-muted-foreground flex items-center gap-2">
+                          <Phone className="w-4 h-4" />
+                          Phone
+                        </span>
+                        <span className="text-sm font-medium font-mono">{selectedLog.lead_customer_phone}</span>
+                      </div>
+                    )}
+                    {selectedLog.lead_customer_email && (
+                      <div className="flex items-center justify-between p-3">
+                        <span className="text-sm text-muted-foreground flex items-center gap-2">
+                          <Mail className="w-4 h-4" />
+                          Email
+                        </span>
+                        <span className="text-sm font-medium">{selectedLog.lead_customer_email}</span>
+                      </div>
+                    )}
+                    {selectedLog.lead_postcode && (
+                      <div className="flex items-center justify-between p-3">
+                        <span className="text-sm text-muted-foreground flex items-center gap-2">
+                          <MapPin className="w-4 h-4" />
+                          Postcode
+                        </span>
+                        <span className="text-sm font-medium">{selectedLog.lead_postcode}</span>
+                      </div>
+                    )}
+                    {selectedLog.lead_job_type && (
+                      <div className="flex items-center justify-between p-3">
+                        <span className="text-sm text-muted-foreground flex items-center gap-2">
+                          <FileText className="w-4 h-4" />
+                          Job Type
+                        </span>
+                        <span className="text-sm font-medium">{selectedLog.lead_job_type}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
+              )}
 
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Entity Type</p>
-                  <Badge variant="outline">
-                    {ENTITY_LABELS[selectedLog.entity_type] || selectedLog.entity_type}
-                  </Badge>
-                </div>
-
-                {selectedLog.entity_id && (
-                  <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Entity ID</p>
-                    <div className="flex items-center gap-2">
-                      <Hash className="w-4 h-4 text-muted-foreground" />
-                      <p className="text-xs font-mono">{selectedLog.entity_id.slice(0, 12)}...</p>
-                    </div>
-                  </div>
-                )}
-
-                {selectedLog.ip_address && (
-                  <div className="space-y-1 col-span-2">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide">IP Address</p>
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-muted-foreground" />
-                      <p className="font-mono text-sm">{selectedLog.ip_address}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Details */}
+              {/* Action Details */}
               {selectedLog.details && typeof selectedLog.details === 'object' && Object.keys(selectedLog.details).length > 0 && (
                 <div className="space-y-3">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Transaction Details</p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Action Details</p>
                   <div className="bg-muted/30 rounded-lg divide-y divide-border">
                     {Object.entries(selectedLog.details as Record<string, unknown>).map(([key, value]) => (
                       <div key={key} className="flex items-start justify-between p-3">
@@ -543,7 +677,21 @@ export default function AdminActivityLogs() {
                           {getDetailLabel(key)}
                         </span>
                         <span className="text-sm font-medium text-right max-w-[60%] break-words">
-                          {formatDetailValue(value)}
+                          {key === "method" ? (
+                            <Badge variant="outline" className="capitalize">
+                              {value === "whatsapp" ? "WhatsApp" : String(value)}
+                            </Badge>
+                          ) : key === "is_positive" ? (
+                            value ? (
+                              <Badge className="bg-green-500/20 text-green-600">Positive</Badge>
+                            ) : (
+                              <Badge className="bg-red-500/20 text-red-600">Negative</Badge>
+                            )
+                          ) : key === "auto_publish_at" ? (
+                            format(new Date(String(value)), "d MMM yyyy 'at' HH:mm")
+                          ) : (
+                            formatDetailValue(value)
+                          )}
                         </span>
                       </div>
                     ))}
@@ -551,13 +699,34 @@ export default function AdminActivityLogs() {
                 </div>
               )}
 
-              {/* No Details Message */}
-              {(!selectedLog.details || typeof selectedLog.details !== 'object' || Object.keys(selectedLog.details).length === 0) && (
-                <div className="flex items-center gap-2 text-muted-foreground text-sm bg-muted/30 rounded-lg p-4">
-                  <AlertCircle className="w-4 h-4" />
-                  <span>No additional details recorded for this activity</span>
+              {/* System Info */}
+              <div className="space-y-3">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">System Information</p>
+                <div className="bg-muted/30 rounded-lg divide-y divide-border">
+                  {selectedLog.user_name && (
+                    <div className="flex items-center justify-between p-3">
+                      <span className="text-sm text-muted-foreground">Triggered By</span>
+                      <span className="text-sm font-medium">{selectedLog.user_name}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between p-3">
+                    <span className="text-sm text-muted-foreground">User ID</span>
+                    <span className="text-xs font-mono text-muted-foreground">{selectedLog.user_id.slice(0, 16)}...</span>
+                  </div>
+                  {selectedLog.entity_id && (
+                    <div className="flex items-center justify-between p-3">
+                      <span className="text-sm text-muted-foreground">Entity ID</span>
+                      <span className="text-xs font-mono text-muted-foreground">{selectedLog.entity_id.slice(0, 16)}...</span>
+                    </div>
+                  )}
+                  {selectedLog.ip_address && (
+                    <div className="flex items-center justify-between p-3">
+                      <span className="text-sm text-muted-foreground">IP Address</span>
+                      <span className="text-sm font-mono">{selectedLog.ip_address}</span>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
           )}
         </DialogContent>
