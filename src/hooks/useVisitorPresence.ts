@@ -77,33 +77,34 @@ export function useVisitorPresence() {
   }, []);
 
   useEffect(() => {
-    const channel = supabase.channel("site-visitors", {
-      config: {
-        presence: {
-          key: visitorId,
-        },
-      },
-    });
+    // Create channel with unique name per visitor to avoid conflicts
+    const channel = supabase.channel("site-visitors");
 
     channelRef.current = channel;
 
-    channel.subscribe(async (status) => {
-      if (status === "SUBSCRIBED") {
-        // Track initial page visit
-        trackPageVisit(location.pathname, null);
-        
-        await channel.track({
-          visitorId,
-          currentPage: location.pathname,
-          userAgent: navigator.userAgent,
-          joinedAt: new Date().toISOString(),
-          isAuthenticated: !!user,
-          userId: user?.id || null,
-          pageHistory: getPageHistory(),
-          sessionDuration: getSessionDuration(),
-        });
-      }
-    });
+    channel
+      .on("presence", { event: "sync" }, () => {
+        console.log("Presence sync:", channel.presenceState());
+      })
+      .subscribe(async (status) => {
+        console.log("Realtime connection status:", status);
+        if (status === "SUBSCRIBED") {
+          // Track initial page visit
+          trackPageVisit(location.pathname, null);
+          
+          const trackResult = await channel.track({
+            visitorId,
+            currentPage: location.pathname,
+            userAgent: navigator.userAgent,
+            joinedAt: new Date().toISOString(),
+            isAuthenticated: !!user,
+            userId: user?.id || null,
+            pageHistory: getPageHistory(),
+            sessionDuration: getSessionDuration(),
+          });
+          console.log("Track result:", trackResult);
+        }
+      });
 
     return () => {
       if (channelRef.current) {
