@@ -17,6 +17,62 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+// Common rejection reasons with pre-written guidance
+const REJECTION_REASONS = [
+  {
+    id: "blurry",
+    label: "Document is blurry or unreadable",
+    message: "The document you submitted is too blurry or low quality to read. Please upload a clearer, higher-resolution image or PDF where all text is legible."
+  },
+  {
+    id: "incomplete",
+    label: "Document is incomplete or cropped",
+    message: "The document appears to be cropped or incomplete. Please upload the full document showing all corners and edges, including headers and footers."
+  },
+  {
+    id: "expired",
+    label: "Document is expired or outdated",
+    message: "The document you submitted is too old. Please upload a document dated within the last 3 months."
+  },
+  {
+    id: "wrong_type",
+    label: "Wrong document type",
+    message: "The document submitted does not match the required document type. Please upload the correct type of document as specified in the verification requirements."
+  },
+  {
+    id: "name_mismatch",
+    label: "Business name doesn't match",
+    message: "The business name on the document does not match your registered business name. Please upload a document that shows your registered business name."
+  },
+  {
+    id: "address_mismatch",
+    label: "Address doesn't match (for address proof)",
+    message: "The address on the document does not match your registered business address. Please upload a document showing your correct business address."
+  },
+  {
+    id: "not_official",
+    label: "Not an official document",
+    message: "The document does not appear to be an official document from a recognised institution. Please upload an official document such as a utility bill, bank statement, or government-issued letter."
+  },
+  {
+    id: "modified",
+    label: "Document appears to be modified",
+    message: "The document appears to have been digitally altered or modified. Please upload an unaltered, original document."
+  },
+  {
+    id: "custom",
+    label: "Other (custom reason)",
+    message: ""
+  }
+];
 
 interface VerificationDoc {
   id: string;
@@ -39,6 +95,7 @@ export default function AdminVerifications() {
   const [loading, setLoading] = useState(true);
   const [selectedDoc, setSelectedDoc] = useState<VerificationDoc | null>(null);
   const [adminNotes, setAdminNotes] = useState("");
+  const [selectedReason, setSelectedReason] = useState<string>("");
   const [processing, setProcessing] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
@@ -526,8 +583,14 @@ export default function AdminVerifications() {
       </div>
 
       {/* Review Dialog */}
-      <Dialog open={!!selectedDoc} onOpenChange={() => setSelectedDoc(null)}>
-        <DialogContent>
+      <Dialog open={!!selectedDoc} onOpenChange={(open) => {
+        if (!open) {
+          setSelectedDoc(null);
+          setAdminNotes("");
+          setSelectedReason("");
+        }
+      }}>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Review Document</DialogTitle>
           </DialogHeader>
@@ -558,16 +621,51 @@ export default function AdminVerifications() {
               View Document
             </Button>
 
-            <div>
-              <p className="text-sm text-muted-foreground mb-2">Admin Notes</p>
-              <Textarea
-                placeholder="Add notes (required for rejection)..."
-                value={adminNotes}
-                onChange={(e) => setAdminNotes(e.target.value)}
-              />
+            <div className="border-t border-border pt-4">
+              <p className="text-sm font-medium text-foreground mb-3">Quick Rejection Reasons</p>
+              <Select
+                value={selectedReason}
+                onValueChange={(value) => {
+                  setSelectedReason(value);
+                  const reason = REJECTION_REASONS.find(r => r.id === value);
+                  if (reason && reason.id !== "custom") {
+                    setAdminNotes(reason.message);
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a rejection reason..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {REJECTION_REASONS.map((reason) => (
+                    <SelectItem key={reason.id} value={reason.id}>
+                      {reason.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
-            <div className="flex gap-3">
+            <div>
+              <p className="text-sm text-muted-foreground mb-2">
+                Admin Notes {selectedReason === "custom" && <span className="text-destructive">*</span>}
+              </p>
+              <Textarea
+                placeholder={selectedReason === "custom" 
+                  ? "Enter your custom rejection reason..." 
+                  : "Add notes (required for rejection, optional for approval)..."}
+                value={adminNotes}
+                onChange={(e) => setAdminNotes(e.target.value)}
+                rows={4}
+              />
+              {selectedReason && selectedReason !== "custom" && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  You can edit the pre-filled message above if needed.
+                </p>
+              )}
+            </div>
+
+            <div className="flex gap-3 pt-2">
               <Button
                 className="flex-1 bg-green-600 hover:bg-green-700"
                 onClick={() => selectedDoc && handleApprove(selectedDoc)}
@@ -584,7 +682,7 @@ export default function AdminVerifications() {
                 variant="destructive"
                 className="flex-1"
                 onClick={() => selectedDoc && handleReject(selectedDoc)}
-                disabled={processing}
+                disabled={processing || !adminNotes.trim()}
               >
                 {processing ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
