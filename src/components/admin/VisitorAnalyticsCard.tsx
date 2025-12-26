@@ -158,20 +158,16 @@ export function VisitorAnalyticsCard() {
   const totalPageViews = pageStats.reduce((sum, p) => sum + p.visits, 0);
 
   return (
-    <Card className="relative border-0 bg-gradient-to-br from-card via-card to-muted/30 shadow-elevated overflow-hidden">
-      {/* Live session indicator */}
-      <div className="absolute top-4 right-4 z-10">
-        <Badge variant="secondary" className="text-[10px]">
-          Live Session
-        </Badge>
-      </div>
-
+    <Card className="border-0 bg-gradient-to-br from-card via-card to-muted/30 shadow-elevated">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2.5 text-lg font-semibold">
           <div className="p-2 bg-blue-500/10 rounded-lg">
             <BarChart3 className="w-5 h-5 text-blue-500" />
           </div>
-          <span>Click-Through Analytics</span>
+          <span className="flex-1">Click-Through Analytics</span>
+          <Badge variant="secondary" className="text-[10px] shrink-0">
+            Live Session
+          </Badge>
         </CardTitle>
       </CardHeader>
 

@@ -83,17 +83,14 @@ export function LiveVisitorsCard() {
   const [peakVisitors, setPeakVisitors] = useState(0);
 
   useEffect(() => {
-    const channel = supabase.channel("site-visitors", {
-      config: {
-        presence: {
-          key: "visitors",
-        },
-      },
-    });
+    // Use same channel name as VisitorPresenceTracker to see presence data
+    const channel = supabase.channel("site-visitors");
 
     channel
       .on("presence", { event: "sync" }, () => {
+        console.log("Admin: Presence sync received");
         const state = channel.presenceState() as PresenceState;
+        console.log("Admin: Presence state:", state);
         const allVisitors: Visitor[] = [];
         
         Object.values(state).forEach((presences) => {
