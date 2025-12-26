@@ -89,8 +89,8 @@ const RequestCleaningThankYou = () => {
                 <Phone className="w-5 h-5 text-blue-600" />
               </div>
               <div>
-                <p className="font-medium text-gray-900">Get quotes within 24 hours</p>
-                <p className="text-gray-600 text-sm">Verified cleaners will contact you with competitive quotes</p>
+                <p className="font-medium text-gray-900">A cleaner will be in touch</p>
+                <p className="text-gray-600 text-sm">A verified local cleaner will contact you to discuss your requirements</p>
               </div>
             </div>
           </div>
