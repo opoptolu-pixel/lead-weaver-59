@@ -8,6 +8,7 @@ const corsHeaders = {
 
 const FROM_EMAIL = "Deep Clean UK <hello@deepcleanco.uk>";
 const RESEND_API_URL = "https://api.resend.com/emails";
+const UNSUBSCRIBE_EMAIL = "unsubscribe@deepcleanco.uk";
 
 interface EmailRequest {
   to: string;
@@ -55,6 +56,10 @@ serve(async (req) => {
       to: [to],
       subject: subject,
       html: html,
+      headers: {
+        "List-Unsubscribe": `<mailto:${UNSUBSCRIBE_EMAIL}?subject=Unsubscribe%20${encodeURIComponent(to)}>`,
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+      },
     };
 
     if (replyTo) {
