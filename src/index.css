@@ -201,6 +201,19 @@
 }
 
 /* Scroll-triggered animations */
+/* For screen recorders (Clarity, etc.) and reduced motion preference - show content immediately */
+@media (prefers-reduced-motion: reduce) {
+  .scroll-animate,
+  .scroll-fade-up,
+  .scroll-fade-left,
+  .scroll-fade-right,
+  .scroll-scale {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
 .scroll-animate {
   opacity: 0;
 }
@@ -251,6 +264,16 @@
 .scroll-scale.visible {
   opacity: 1;
   transform: scale(1);
+}
+
+/* Noscript fallback - show content when JS is disabled */
+noscript ~ * .scroll-animate,
+noscript ~ * .scroll-fade-up,
+noscript ~ * .scroll-fade-left,
+noscript ~ * .scroll-fade-right,
+noscript ~ * .scroll-scale {
+  opacity: 1;
+  transform: none;
 }
 
 /* Stagger animations */
