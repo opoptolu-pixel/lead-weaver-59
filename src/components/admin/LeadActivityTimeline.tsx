@@ -75,6 +75,7 @@ interface LeadActivityTimelineProps {
 
 const ACTION_ICONS: Record<string, any> = {
   created: Sparkles,
+  lead_created: Sparkles,
   confirmation_sent: Send,
   customer_response: MessageSquare,
   auto_published: CheckCircle,
@@ -88,6 +89,7 @@ const ACTION_ICONS: Record<string, any> = {
 
 const ACTION_LABELS: Record<string, string> = {
   created: "Lead Created",
+  lead_created: "Lead Submitted",
   confirmation_sent: "Confirmation Sent",
   customer_response: "Customer Response",
   auto_published: "Auto-Published",
@@ -101,6 +103,7 @@ const ACTION_LABELS: Record<string, string> = {
 
 const ACTION_COLORS: Record<string, string> = {
   created: "bg-purple-500/20 text-purple-500 border-purple-500/30",
+  lead_created: "bg-purple-500/20 text-purple-500 border-purple-500/30",
   confirmation_sent: "bg-blue-500/20 text-blue-500 border-blue-500/30",
   customer_response: "bg-emerald-500/20 text-emerald-500 border-emerald-500/30",
   auto_published: "bg-amber-500/20 text-amber-500 border-amber-500/30",
@@ -211,6 +214,9 @@ export default function LeadActivityTimeline({ leadId, open, onOpenChange }: Lea
     switch (activity.action) {
       case "created":
         return `New cleaning request received from ${details?.customer_name || "customer"}`;
+      case "lead_created":
+        const source = details?.source || "website";
+        return `New ${details?.job_type || "cleaning"} request submitted via ${source} from ${details?.customer_name || "customer"} (${details?.postcode || "unknown location"})`;
       case "confirmation_sent":
         const method = details?.method === "whatsapp" ? "WhatsApp" : "SMS";
         return `Confirmation ${method} sent to customer`;

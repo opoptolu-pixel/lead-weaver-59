@@ -87,6 +87,7 @@ const ACTION_ICONS: Record<string, any> = {
   auto_published: CheckCircle,
   status_change: RefreshCcw,
   job_status_change: CheckCircle,
+  lead_created: FileText,
 };
 
 const ACTION_LABELS: Record<string, string> = {
@@ -105,6 +106,7 @@ const ACTION_LABELS: Record<string, string> = {
   auto_published: "Auto-Published",
   status_change: "Status Changed",
   job_status_change: "Job Status Updated",
+  lead_created: "Lead Submitted",
 };
 
 const ENTITY_LABELS: Record<string, string> = {
