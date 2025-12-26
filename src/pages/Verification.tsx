@@ -538,9 +538,31 @@ export default function Verification() {
                           </span>
                         </div>
                       </div>
-                      {doc.status === "rejected" && doc.admin_notes && (
-                        <div className="mt-2 p-2 bg-destructive/10 border border-destructive/20 rounded text-sm text-destructive">
-                          <strong>Reason:</strong> {doc.admin_notes}
+                      {doc.status === "rejected" && (
+                        <div className="mt-3 p-4 bg-destructive/10 border border-destructive/30 rounded-lg">
+                          <div className="flex items-start gap-3">
+                            <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+                            <div className="space-y-2">
+                              <p className="font-medium text-destructive">Document Rejected</p>
+                              {doc.admin_notes && (
+                                <p className="text-sm text-destructive/90">
+                                  <strong>Reason:</strong> {doc.admin_notes}
+                                </p>
+                              )}
+                              <div className="text-sm text-muted-foreground space-y-1 mt-2">
+                                <p className="font-medium">How to fix:</p>
+                                <ul className="list-disc list-inside space-y-1 text-xs">
+                                  <li>Ensure the document is clearly readable and not blurry</li>
+                                  <li>Make sure all corners of the document are visible</li>
+                                  <li>Upload a recent document (within last 3 months if applicable)</li>
+                                  <li>Verify the document shows your registered business name</li>
+                                </ul>
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-2">
+                                Click the "Re-upload" button above to submit a new document.
+                              </p>
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -673,9 +695,31 @@ export default function Verification() {
                             </span>
                           </div>
                         </div>
-                        {doc.status === "rejected" && doc.admin_notes && (
-                          <div className="mt-2 p-2 bg-destructive/10 border border-destructive/20 rounded text-sm text-destructive">
-                            <strong>Reason:</strong> {doc.admin_notes}
+                        {doc.status === "rejected" && (
+                          <div className="mt-3 p-4 bg-destructive/10 border border-destructive/30 rounded-lg">
+                            <div className="flex items-start gap-3">
+                              <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+                              <div className="space-y-2">
+                                <p className="font-medium text-destructive">Document Rejected</p>
+                                {doc.admin_notes && (
+                                  <p className="text-sm text-destructive/90">
+                                    <strong>Reason:</strong> {doc.admin_notes}
+                                  </p>
+                                )}
+                                <div className="text-sm text-muted-foreground space-y-1 mt-2">
+                                  <p className="font-medium">How to fix:</p>
+                                  <ul className="list-disc list-inside space-y-1 text-xs">
+                                    <li>Ensure the document is clearly readable and not blurry</li>
+                                    <li>Make sure all corners of the document are visible</li>
+                                    <li>Document must be dated within the last 3 months</li>
+                                    <li>Verify the address matches your business registration</li>
+                                  </ul>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-2">
+                                  Click the "Re-upload" button above to submit a new document.
+                                </p>
+                              </div>
+                            </div>
                           </div>
                         )}
                       </div>
