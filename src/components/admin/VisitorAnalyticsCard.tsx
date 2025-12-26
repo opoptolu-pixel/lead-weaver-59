@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useVisitorData, Visitor } from "@/hooks/useVisitorData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -24,17 +24,6 @@ interface PageVisit {
   enteredAt: string;
   leftAt?: string;
   timeSpent?: number;
-}
-
-interface Visitor {
-  visitorId: string;
-  currentPage: string;
-  pageHistory?: PageVisit[];
-  sessionDuration?: number;
-}
-
-interface PresenceState {
-  [key: string]: Visitor[];
 }
 
 interface PageStats {
@@ -64,62 +53,39 @@ const getPageName = (path: string): string => {
 };
 
 export function VisitorAnalyticsCard() {
-  const [visitors, setVisitors] = useState<Visitor[]>([]);
+  const visitors = useVisitorData();
   const [pageStats, setPageStats] = useState<PageStats[]>([]);
 
   useEffect(() => {
-    // Use same channel as VisitorPresenceTracker to receive real data
-    const channel = supabase.channel("site-visitors");
-
-    channel
-      .on("presence", { event: "sync" }, () => {
-        console.log("Analytics: Presence sync received");
-        const state = channel.presenceState() as PresenceState;
-        const allVisitors: Visitor[] = [];
-        
-        Object.values(state).forEach((presences) => {
-          presences.forEach((presence) => {
-            allVisitors.push(presence);
-          });
-        });
-        
-        setVisitors(allVisitors);
-        
-        // Aggregate page statistics from all visitors' page history
-        const statsMap = new Map<string, { visits: number; totalTime: number; count: number }>();
-        
-        allVisitors.forEach((visitor) => {
-          if (visitor.pageHistory) {
-            visitor.pageHistory.forEach((visit) => {
-              const pageName = getPageName(visit.page);
-              const current = statsMap.get(pageName) || { visits: 0, totalTime: 0, count: 0 };
-              current.visits += 1;
-              if (visit.timeSpent) {
-                current.totalTime += visit.timeSpent;
-                current.count += 1;
-              }
-              statsMap.set(pageName, current);
-            });
+    // Aggregate page statistics from all visitors' page history
+    const statsMap = new Map<string, { visits: number; totalTime: number; count: number }>();
+    
+    visitors.forEach((visitor) => {
+      if (visitor.pageHistory) {
+        visitor.pageHistory.forEach((visit) => {
+          const pageName = getPageName(visit.page);
+          const current = statsMap.get(pageName) || { visits: 0, totalTime: 0, count: 0 };
+          current.visits += 1;
+          if (visit.timeSpent) {
+            current.totalTime += visit.timeSpent;
+            current.count += 1;
           }
+          statsMap.set(pageName, current);
         });
-        
-        const stats = Array.from(statsMap.entries())
-          .map(([page, data]) => ({
-            page,
-            visits: data.visits,
-            avgTimeSpent: data.count > 0 ? Math.round(data.totalTime / data.count) : 0,
-          }))
-          .sort((a, b) => b.visits - a.visits)
-          .slice(0, 6);
-        
-        setPageStats(stats);
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
+      }
+    });
+    
+    const stats = Array.from(statsMap.entries())
+      .map(([page, data]) => ({
+        page,
+        visits: data.visits,
+        avgTimeSpent: data.count > 0 ? Math.round(data.totalTime / data.count) : 0,
+      }))
+      .sort((a, b) => b.visits - a.visits)
+      .slice(0, 6);
+    
+    setPageStats(stats);
+  }, [visitors]);
 
   const journeyPaths = useMemo(() => {
     const paths: { from: string; to: string; count: number }[] = [];

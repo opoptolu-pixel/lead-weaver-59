@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useVisitorData, Visitor } from "@/hooks/useVisitorData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -15,27 +15,6 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
-
-interface PageVisit {
-  page: string;
-  enteredAt: string;
-  timeSpent?: number;
-}
-
-interface Visitor {
-  visitorId: string;
-  currentPage: string;
-  userAgent: string;
-  joinedAt: string;
-  isAuthenticated: boolean;
-  userId?: string;
-  pageHistory?: PageVisit[];
-  sessionDuration?: number;
-}
-
-interface PresenceState {
-  [key: string]: Visitor[];
-}
 
 const getDeviceType = (userAgent: string): "desktop" | "mobile" | "tablet" => {
   if (/tablet|ipad/i.test(userAgent)) return "tablet";
@@ -77,65 +56,35 @@ const getPageColor = (page: string): string => {
 };
 
 export function LiveVisitorsCard() {
-  const [visitors, setVisitors] = useState<Visitor[]>([]);
+  const visitors = useVisitorData();
   const [pageBreakdown, setPageBreakdown] = useState<Record<string, number>>({});
   const [avgSessionDuration, setAvgSessionDuration] = useState(0);
   const [peakVisitors, setPeakVisitors] = useState(0);
 
   useEffect(() => {
-    // Use same channel name as VisitorPresenceTracker to see presence data
-    const channel = supabase.channel("site-visitors");
-
-    channel
-      .on("presence", { event: "sync" }, () => {
-        console.log("Admin: Presence sync received");
-        const state = channel.presenceState() as PresenceState;
-        console.log("Admin: Presence state:", state);
-        const allVisitors: Visitor[] = [];
-        
-        Object.values(state).forEach((presences) => {
-          presences.forEach((presence) => {
-            allVisitors.push(presence);
-          });
-        });
-        
-        setVisitors(allVisitors);
-        
-        // Track peak visitors
-        if (allVisitors.length > peakVisitors) {
-          setPeakVisitors(allVisitors.length);
-        }
-        
-        // Calculate page breakdown
-        const breakdown: Record<string, number> = {};
-        allVisitors.forEach((v) => {
-          const page = getPageName(v.currentPage);
-          breakdown[page] = (breakdown[page] || 0) + 1;
-        });
-        setPageBreakdown(breakdown);
-        
-        // Calculate average session duration
-        const now = new Date().getTime();
-        const durations = allVisitors.map(v => {
-          const joinedTime = new Date(v.joinedAt).getTime();
-          return (now - joinedTime) / 1000 / 60; // in minutes
-        });
-        if (durations.length > 0) {
-          setAvgSessionDuration(durations.reduce((a, b) => a + b, 0) / durations.length);
-        }
-      })
-      .on("presence", { event: "join" }, ({ newPresences }) => {
-        console.log("Visitor joined:", newPresences);
-      })
-      .on("presence", { event: "leave" }, ({ leftPresences }) => {
-        console.log("Visitor left:", leftPresences);
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [peakVisitors]);
+    // Track peak visitors
+    if (visitors.length > peakVisitors) {
+      setPeakVisitors(visitors.length);
+    }
+    
+    // Calculate page breakdown
+    const breakdown: Record<string, number> = {};
+    visitors.forEach((v) => {
+      const page = getPageName(v.currentPage);
+      breakdown[page] = (breakdown[page] || 0) + 1;
+    });
+    setPageBreakdown(breakdown);
+    
+    // Calculate average session duration
+    const now = new Date().getTime();
+    const durations = visitors.map(v => {
+      const joinedTime = new Date(v.joinedAt).getTime();
+      return (now - joinedTime) / 1000 / 60; // in minutes
+    });
+    if (durations.length > 0) {
+      setAvgSessionDuration(durations.reduce((a, b) => a + b, 0) / durations.length);
+    }
+  }, [visitors, peakVisitors]);
 
   const desktopCount = visitors.filter(v => getDeviceType(v.userAgent) === "desktop").length;
   const mobileCount = visitors.filter(v => getDeviceType(v.userAgent) === "mobile").length;
