@@ -1,9 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -20,32 +27,258 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  LineChart,
-  Line,
   PieChart,
   Pie,
   Cell,
 } from "recharts";
-import { Download, TrendingUp, TrendingDown, Users, FileText, Loader2 } from "lucide-react";
+import { 
+  Download, 
+  TrendingUp, 
+  Users, 
+  FileText, 
+  Loader2, 
+  MapPin, 
+  Building2, 
+  Eye,
+  ChevronRight,
+  Globe2,
+  Target,
+  Sparkles,
+  ArrowUpRight,
+  Crown
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdmin } from "@/contexts/AdminContext";
+import { useVisitorData, Visitor, GeoLocation } from "@/hooks/useVisitorData";
 import { exportToCsv } from "@/lib/exportCsv";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
-const COLORS = ["hsl(var(--primary))", "hsl(var(--secondary))", "hsl(var(--accent))", "hsl(var(--muted))", "hsl(var(--destructive))"];
+const COLORS = [
+  "hsl(var(--secondary))", 
+  "hsl(142, 76%, 36%)", 
+  "hsl(200, 80%, 50%)", 
+  "hsl(280, 65%, 60%)", 
+  "hsl(30, 80%, 55%)",
+  "hsl(340, 70%, 55%)"
+];
+
+interface CityStats {
+  city: string;
+  region: string;
+  country: string;
+  leads: number;
+  purchased: number;
+  purchaseRate: number;
+  revenue: number;
+  refunds: number;
+  refundRate: number;
+}
+
+interface BuyerCityStats {
+  city: string;
+  region: string;
+  buyers: number;
+  totalPurchases: number;
+  totalSpend: number;
+  avgPurchases: number;
+}
+
+interface LeadDetail {
+  id: string;
+  postcode: string;
+  job_type: string;
+  display_value: string;
+  created_at: string;
+  is_unlocked: boolean;
+  unlocked_at?: string;
+  refunded_at?: string;
+}
+
+interface BuyerDetail {
+  name: string;
+  postcode: string;
+  purchases: number;
+  spend: number;
+  refundRate: number;
+}
 
 export default function AdminAnalytics() {
   const { getDateFilter, dateRange } = useAdmin();
-  const [activeTab, setActiveTab] = useState("acquisition");
+  const visitors = useVisitorData();
+  
+  const [activeTab, setActiveTab] = useState("geographic");
   const [loading, setLoading] = useState(true);
+  
+  // Data states
   const [leadsBySource, setLeadsBySource] = useState<any[]>([]);
   const [topPostcodes, setTopPostcodes] = useState<any[]>([]);
   const [topBuyers, setTopBuyers] = useState<any[]>([]);
-  const [marketplaceStats, setMarketplaceStats] = useState({ purchaseRate: 0, avgTimeToPurchase: 0, expiredRate: 0, refundRate: 0 });
+  const [marketplaceStats, setMarketplaceStats] = useState({ 
+    purchaseRate: 0, 
+    avgTimeToPurchase: 0, 
+    expiredRate: 0, 
+    refundRate: 0 
+  });
+  const [cityLeadStats, setCityLeadStats] = useState<CityStats[]>([]);
+  const [buyerCityStats, setBuyerCityStats] = useState<BuyerCityStats[]>([]);
+  const [allLeads, setAllLeads] = useState<LeadDetail[]>([]);
+  const [allBuyers, setAllBuyers] = useState<BuyerDetail[]>([]);
+  
+  // Dialog states
+  const [selectedCity, setSelectedCity] = useState<CityStats | null>(null);
+  const [selectedBuyerCity, setSelectedBuyerCity] = useState<BuyerCityStats | null>(null);
+  const [showAllLeads, setShowAllLeads] = useState(false);
+  const [showAllBuyers, setShowAllBuyers] = useState(false);
+  const [cityLeadsDetail, setCityLeadsDetail] = useState<LeadDetail[]>([]);
+  const [cityBuyersDetail, setCityBuyersDetail] = useState<BuyerDetail[]>([]);
+
+  // Live visitor location stats
+  const liveVisitorLocations = useMemo(() => {
+    const locationMap = new Map<string, { city: string; region: string; country: string; visitors: number }>();
+    
+    visitors.forEach((visitor) => {
+      if (visitor.geolocation) {
+        const geo = visitor.geolocation as GeoLocation;
+        const key = `${geo.city}-${geo.countryCode}`;
+        
+        if (locationMap.has(key)) {
+          locationMap.get(key)!.visitors++;
+        } else {
+          locationMap.set(key, {
+            city: geo.city,
+            region: geo.region,
+            country: geo.country,
+            visitors: 1
+          });
+        }
+      }
+    });
+    
+    return Array.from(locationMap.values())
+      .sort((a, b) => b.visitors - a.visitors)
+      .slice(0, 10);
+  }, [visitors]);
 
   useEffect(() => {
     fetchAnalytics();
   }, [dateRange]);
+
+  const extractCityFromPostcode = (postcode: string): { city: string; region: string } => {
+    // UK postcode area to city mapping
+    const postcodeMap: Record<string, { city: string; region: string }> = {
+      'B': { city: 'Birmingham', region: 'West Midlands' },
+      'BA': { city: 'Bath', region: 'Somerset' },
+      'BB': { city: 'Blackburn', region: 'Lancashire' },
+      'BD': { city: 'Bradford', region: 'West Yorkshire' },
+      'BH': { city: 'Bournemouth', region: 'Dorset' },
+      'BL': { city: 'Bolton', region: 'Greater Manchester' },
+      'BN': { city: 'Brighton', region: 'East Sussex' },
+      'BR': { city: 'Bromley', region: 'Greater London' },
+      'BS': { city: 'Bristol', region: 'Bristol' },
+      'CA': { city: 'Carlisle', region: 'Cumbria' },
+      'CB': { city: 'Cambridge', region: 'Cambridgeshire' },
+      'CF': { city: 'Cardiff', region: 'South Wales' },
+      'CH': { city: 'Chester', region: 'Cheshire' },
+      'CM': { city: 'Chelmsford', region: 'Essex' },
+      'CO': { city: 'Colchester', region: 'Essex' },
+      'CR': { city: 'Croydon', region: 'Greater London' },
+      'CT': { city: 'Canterbury', region: 'Kent' },
+      'CV': { city: 'Coventry', region: 'West Midlands' },
+      'CW': { city: 'Crewe', region: 'Cheshire' },
+      'DA': { city: 'Dartford', region: 'Kent' },
+      'DE': { city: 'Derby', region: 'Derbyshire' },
+      'DN': { city: 'Doncaster', region: 'South Yorkshire' },
+      'DT': { city: 'Dorchester', region: 'Dorset' },
+      'DY': { city: 'Dudley', region: 'West Midlands' },
+      'E': { city: 'East London', region: 'Greater London' },
+      'EC': { city: 'City of London', region: 'Greater London' },
+      'EH': { city: 'Edinburgh', region: 'Scotland' },
+      'EN': { city: 'Enfield', region: 'Greater London' },
+      'EX': { city: 'Exeter', region: 'Devon' },
+      'G': { city: 'Glasgow', region: 'Scotland' },
+      'GL': { city: 'Gloucester', region: 'Gloucestershire' },
+      'GU': { city: 'Guildford', region: 'Surrey' },
+      'HA': { city: 'Harrow', region: 'Greater London' },
+      'HD': { city: 'Huddersfield', region: 'West Yorkshire' },
+      'HG': { city: 'Harrogate', region: 'North Yorkshire' },
+      'HP': { city: 'Hemel Hempstead', region: 'Hertfordshire' },
+      'HU': { city: 'Hull', region: 'East Yorkshire' },
+      'HX': { city: 'Halifax', region: 'West Yorkshire' },
+      'IG': { city: 'Ilford', region: 'Greater London' },
+      'IP': { city: 'Ipswich', region: 'Suffolk' },
+      'KT': { city: 'Kingston', region: 'Greater London' },
+      'L': { city: 'Liverpool', region: 'Merseyside' },
+      'LA': { city: 'Lancaster', region: 'Lancashire' },
+      'LE': { city: 'Leicester', region: 'Leicestershire' },
+      'LS': { city: 'Leeds', region: 'West Yorkshire' },
+      'LU': { city: 'Luton', region: 'Bedfordshire' },
+      'M': { city: 'Manchester', region: 'Greater Manchester' },
+      'ME': { city: 'Maidstone', region: 'Kent' },
+      'MK': { city: 'Milton Keynes', region: 'Buckinghamshire' },
+      'N': { city: 'North London', region: 'Greater London' },
+      'NE': { city: 'Newcastle', region: 'Tyne and Wear' },
+      'NG': { city: 'Nottingham', region: 'Nottinghamshire' },
+      'NN': { city: 'Northampton', region: 'Northamptonshire' },
+      'NP': { city: 'Newport', region: 'South Wales' },
+      'NR': { city: 'Norwich', region: 'Norfolk' },
+      'NW': { city: 'North West London', region: 'Greater London' },
+      'OL': { city: 'Oldham', region: 'Greater Manchester' },
+      'OX': { city: 'Oxford', region: 'Oxfordshire' },
+      'PE': { city: 'Peterborough', region: 'Cambridgeshire' },
+      'PL': { city: 'Plymouth', region: 'Devon' },
+      'PO': { city: 'Portsmouth', region: 'Hampshire' },
+      'PR': { city: 'Preston', region: 'Lancashire' },
+      'RG': { city: 'Reading', region: 'Berkshire' },
+      'RH': { city: 'Redhill', region: 'Surrey' },
+      'RM': { city: 'Romford', region: 'Greater London' },
+      'S': { city: 'Sheffield', region: 'South Yorkshire' },
+      'SA': { city: 'Swansea', region: 'South Wales' },
+      'SE': { city: 'South East London', region: 'Greater London' },
+      'SG': { city: 'Stevenage', region: 'Hertfordshire' },
+      'SK': { city: 'Stockport', region: 'Greater Manchester' },
+      'SL': { city: 'Slough', region: 'Berkshire' },
+      'SM': { city: 'Sutton', region: 'Greater London' },
+      'SN': { city: 'Swindon', region: 'Wiltshire' },
+      'SO': { city: 'Southampton', region: 'Hampshire' },
+      'SP': { city: 'Salisbury', region: 'Wiltshire' },
+      'SR': { city: 'Sunderland', region: 'Tyne and Wear' },
+      'SS': { city: 'Southend', region: 'Essex' },
+      'ST': { city: 'Stoke-on-Trent', region: 'Staffordshire' },
+      'SW': { city: 'South West London', region: 'Greater London' },
+      'TN': { city: 'Tunbridge Wells', region: 'Kent' },
+      'TQ': { city: 'Torquay', region: 'Devon' },
+      'TS': { city: 'Teesside', region: 'North Yorkshire' },
+      'TW': { city: 'Twickenham', region: 'Greater London' },
+      'UB': { city: 'Uxbridge', region: 'Greater London' },
+      'W': { city: 'West London', region: 'Greater London' },
+      'WA': { city: 'Warrington', region: 'Cheshire' },
+      'WC': { city: 'West Central London', region: 'Greater London' },
+      'WD': { city: 'Watford', region: 'Hertfordshire' },
+      'WF': { city: 'Wakefield', region: 'West Yorkshire' },
+      'WN': { city: 'Wigan', region: 'Greater Manchester' },
+      'WR': { city: 'Worcester', region: 'Worcestershire' },
+      'WS': { city: 'Walsall', region: 'West Midlands' },
+      'WV': { city: 'Wolverhampton', region: 'West Midlands' },
+      'YO': { city: 'York', region: 'North Yorkshire' },
+    };
+    
+    // Extract area code from postcode
+    const areaMatch = postcode.match(/^([A-Z]{1,2})/i);
+    if (areaMatch) {
+      const area = areaMatch[1].toUpperCase();
+      
+      // Try 2-letter match first, then 1-letter
+      if (postcodeMap[area]) {
+        return postcodeMap[area];
+      }
+      if (postcodeMap[area[0]]) {
+        return postcodeMap[area[0]];
+      }
+    }
+    
+    return { city: 'Other', region: 'UK' };
+  };
 
   const fetchAnalytics = async () => {
     setLoading(true);
@@ -53,14 +286,16 @@ export default function AdminAnalytics() {
     const startISO = start.toISOString();
     const endISO = end.toISOString();
 
-    // Fetch leads
+    // Fetch leads with more details
     const { data: leads } = await supabase
       .from("leads")
-      .select("id, source, postcode, is_unlocked, unlocked_by, refunded_at, created_at, unlocked_at, lead_status")
+      .select("id, source, postcode, is_unlocked, unlocked_by, refunded_at, created_at, unlocked_at, lead_status, job_type, display_value")
       .gte("created_at", startISO)
       .lte("created_at", endISO);
 
     if (leads) {
+      setAllLeads(leads as LeadDetail[]);
+      
       // Leads by source
       const sourceMap = new Map<string, { leads: number; purchased: number; refunded: number }>();
       leads.forEach((lead) => {
@@ -88,48 +323,162 @@ export default function AdminAnalytics() {
         .slice(0, 8);
       setTopPostcodes(sortedPostcodes);
 
+      // City-based lead stats
+      const cityMap = new Map<string, CityStats>();
+      leads.forEach((lead) => {
+        const { city, region } = extractCityFromPostcode(lead.postcode);
+        const key = `${city}-${region}`;
+        
+        if (!cityMap.has(key)) {
+          cityMap.set(key, {
+            city,
+            region,
+            country: 'UK',
+            leads: 0,
+            purchased: 0,
+            purchaseRate: 0,
+            revenue: 0,
+            refunds: 0,
+            refundRate: 0
+          });
+        }
+        
+        const stats = cityMap.get(key)!;
+        stats.leads++;
+        if (lead.is_unlocked) {
+          stats.purchased++;
+          stats.revenue += 20;
+        }
+        if (lead.refunded_at) {
+          stats.refunds++;
+        }
+      });
+      
+      // Calculate rates
+      const cityStats = Array.from(cityMap.values())
+        .map(stat => ({
+          ...stat,
+          purchaseRate: stat.leads > 0 ? Math.round((stat.purchased / stat.leads) * 100) : 0,
+          refundRate: stat.purchased > 0 ? Math.round((stat.refunds / stat.purchased) * 100) : 0
+        }))
+        .sort((a, b) => b.leads - a.leads);
+      
+      setCityLeadStats(cityStats);
+
       // Marketplace stats
       const totalLeads = leads.length;
       const purchased = leads.filter(l => l.is_unlocked).length;
       const refunded = leads.filter(l => l.refunded_at).length;
       const expired = leads.filter(l => l.lead_status === "expired").length;
+      
+      // Calculate average time to purchase
+      const purchasedLeads = leads.filter(l => l.is_unlocked && l.unlocked_at);
+      let avgTimeHours = 0;
+      if (purchasedLeads.length > 0) {
+        const totalTimeMs = purchasedLeads.reduce((sum, lead) => {
+          const createdAt = new Date(lead.created_at).getTime();
+          const unlockedAt = new Date(lead.unlocked_at!).getTime();
+          return sum + (unlockedAt - createdAt);
+        }, 0);
+        avgTimeHours = Math.round((totalTimeMs / purchasedLeads.length) / (1000 * 60 * 60) * 10) / 10;
+      }
+      
       setMarketplaceStats({
         purchaseRate: totalLeads > 0 ? Math.round((purchased / totalLeads) * 100) : 0,
-        avgTimeToPurchase: 4.2,
+        avgTimeToPurchase: avgTimeHours,
         expiredRate: totalLeads > 0 ? Math.round((expired / totalLeads) * 100) : 0,
-        refundRate: purchased > 0 ? ((refunded / purchased) * 100).toFixed(1) as any : 0,
+        refundRate: purchased > 0 ? Math.round((refunded / purchased) * 100) : 0,
       });
     }
 
-    // Top buyers
+    // Top buyers with city data
     const { data: profiles } = await supabase
       .from("profiles")
-      .select("id, user_id, business_name, leads_purchased")
+      .select("id, user_id, business_name, leads_purchased, postcode")
       .order("leads_purchased", { ascending: false })
-      .limit(10);
+      .limit(50);
 
     if (profiles) {
+      // City-based buyer stats
+      const buyerCityMap = new Map<string, BuyerCityStats>();
+      
       const buyersWithStats = await Promise.all(
-        profiles.filter(p => p.leads_purchased > 0).slice(0, 5).map(async (profile) => {
+        profiles.filter(p => p.leads_purchased > 0).map(async (profile) => {
           const { count: refundCount } = await supabase
             .from("leads")
             .select("*", { count: "exact", head: true })
             .eq("unlocked_by", profile.user_id)
             .not("refunded_at", "is", null);
 
-          return {
+          const buyerData = {
             name: profile.business_name || "Unnamed Business",
+            postcode: profile.postcode || "Unknown",
             purchases: profile.leads_purchased,
             spend: profile.leads_purchased * 20,
-            refunds: refundCount || 0,
-            refundRate: profile.leads_purchased > 0 ? (((refundCount || 0) / profile.leads_purchased) * 100).toFixed(1) : 0,
+            refundRate: profile.leads_purchased > 0 ? Math.round(((refundCount || 0) / profile.leads_purchased) * 100) : 0,
           };
+          
+          // Add to city map
+          if (profile.postcode) {
+            const { city, region } = extractCityFromPostcode(profile.postcode);
+            const key = `${city}-${region}`;
+            
+            if (!buyerCityMap.has(key)) {
+              buyerCityMap.set(key, {
+                city,
+                region,
+                buyers: 0,
+                totalPurchases: 0,
+                totalSpend: 0,
+                avgPurchases: 0
+              });
+            }
+            
+            const stats = buyerCityMap.get(key)!;
+            stats.buyers++;
+            stats.totalPurchases += profile.leads_purchased;
+            stats.totalSpend += profile.leads_purchased * 20;
+          }
+          
+          return buyerData;
         })
       );
-      setTopBuyers(buyersWithStats);
+      
+      setAllBuyers(buyersWithStats);
+      setTopBuyers(buyersWithStats.slice(0, 10));
+      
+      // Calculate averages and sort
+      const buyerCityData = Array.from(buyerCityMap.values())
+        .map(stat => ({
+          ...stat,
+          avgPurchases: stat.buyers > 0 ? Math.round(stat.totalPurchases / stat.buyers) : 0
+        }))
+        .sort((a, b) => b.totalPurchases - a.totalPurchases);
+      
+      setBuyerCityStats(buyerCityData);
     }
 
     setLoading(false);
+  };
+
+  const handleCityClick = (city: CityStats) => {
+    setSelectedCity(city);
+    // Filter leads for this city
+    const cityLeads = allLeads.filter(lead => {
+      const { city: leadCity } = extractCityFromPostcode(lead.postcode);
+      return leadCity === city.city;
+    });
+    setCityLeadsDetail(cityLeads);
+  };
+
+  const handleBuyerCityClick = (city: BuyerCityStats) => {
+    setSelectedBuyerCity(city);
+    // Filter buyers for this city
+    const cityBuyers = allBuyers.filter(buyer => {
+      const { city: buyerCity } = extractCityFromPostcode(buyer.postcode);
+      return buyerCity === city.city;
+    });
+    setCityBuyersDetail(cityBuyers);
   };
 
   const handleExport = (reportName: string) => {
@@ -147,8 +496,35 @@ export default function AdminAnalytics() {
         { key: "spend", label: "Spend" },
         { key: "refundRate", label: "Refund Rate" },
       ]);
+    } else if (reportName === "cities") {
+      exportToCsv(cityLeadStats, "leads_by_city", [
+        { key: "city", label: "City" },
+        { key: "region", label: "Region" },
+        { key: "leads", label: "Leads" },
+        { key: "purchased", label: "Purchased" },
+        { key: "purchaseRate", label: "Purchase Rate %" },
+        { key: "revenue", label: "Revenue" },
+        { key: "refundRate", label: "Refund Rate %" },
+      ]);
+    } else if (reportName === "buyerCities") {
+      exportToCsv(buyerCityStats, "buyers_by_city", [
+        { key: "city", label: "City" },
+        { key: "region", label: "Region" },
+        { key: "buyers", label: "Buyers" },
+        { key: "totalPurchases", label: "Total Purchases" },
+        { key: "totalSpend", label: "Total Spend" },
+        { key: "avgPurchases", label: "Avg Purchases" },
+      ]);
     }
     toast.success("Export started");
+  };
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('en-GB', { 
+      day: 'numeric', 
+      month: 'short', 
+      year: 'numeric' 
+    });
   };
 
   return (
@@ -157,7 +533,7 @@ export default function AdminAnalytics() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Analytics</h1>
-            <p className="text-muted-foreground">Business intelligence and reporting</p>
+            <p className="text-muted-foreground">Business intelligence and marketing insights</p>
           </div>
         </div>
 
@@ -168,15 +544,362 @@ export default function AdminAnalytics() {
           </div>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList>
+            <TabsList className="flex-wrap h-auto gap-1">
+              <TabsTrigger value="geographic"><MapPin className="h-4 w-4 mr-2" />Geographic</TabsTrigger>
+              <TabsTrigger value="live"><Globe2 className="h-4 w-4 mr-2" />Live Visitors</TabsTrigger>
               <TabsTrigger value="acquisition"><FileText className="h-4 w-4 mr-2" />Acquisition</TabsTrigger>
               <TabsTrigger value="marketplace"><TrendingUp className="h-4 w-4 mr-2" />Marketplace</TabsTrigger>
               <TabsTrigger value="buyers"><Users className="h-4 w-4 mr-2" />Buyer Performance</TabsTrigger>
             </TabsList>
 
+            {/* GEOGRAPHIC TAB */}
+            <TabsContent value="geographic" className="space-y-6 mt-6">
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => handleExport("cities")}>
+                  <Download className="h-4 w-4 mr-2" />Export Leads by City
+                </Button>
+                <Button variant="outline" onClick={() => handleExport("buyerCities")}>
+                  <Download className="h-4 w-4 mr-2" />Export Buyers by City
+                </Button>
+              </div>
+
+              {/* Summary Cards */}
+              <div className="grid gap-4 md:grid-cols-4">
+                <Card className="bg-gradient-to-br from-secondary/10 to-secondary/5 border-secondary/20">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 text-secondary mb-2">
+                      <MapPin className="w-4 h-4" />
+                      <span className="text-xs font-medium uppercase">Top Lead City</span>
+                    </div>
+                    <p className="text-2xl font-bold">{cityLeadStats[0]?.city || '-'}</p>
+                    <p className="text-sm text-muted-foreground">{cityLeadStats[0]?.leads || 0} leads</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 text-green-600 mb-2">
+                      <Target className="w-4 h-4" />
+                      <span className="text-xs font-medium uppercase">Best Conversion</span>
+                    </div>
+                    <p className="text-2xl font-bold">
+                      {cityLeadStats.filter(c => c.leads >= 5).sort((a, b) => b.purchaseRate - a.purchaseRate)[0]?.city || '-'}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {cityLeadStats.filter(c => c.leads >= 5).sort((a, b) => b.purchaseRate - a.purchaseRate)[0]?.purchaseRate || 0}% rate
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 text-purple-600 mb-2">
+                      <Crown className="w-4 h-4" />
+                      <span className="text-xs font-medium uppercase">Most Buyers</span>
+                    </div>
+                    <p className="text-2xl font-bold">{buyerCityStats[0]?.city || '-'}</p>
+                    <p className="text-sm text-muted-foreground">{buyerCityStats[0]?.buyers || 0} businesses</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 text-amber-600 mb-2">
+                      <Sparkles className="w-4 h-4" />
+                      <span className="text-xs font-medium uppercase">Highest Revenue</span>
+                    </div>
+                    <p className="text-2xl font-bold">{buyerCityStats[0]?.city || '-'}</p>
+                    <p className="text-sm text-muted-foreground">£{buyerCityStats[0]?.totalSpend?.toLocaleString() || 0}</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="grid gap-6 lg:grid-cols-2">
+                {/* Cities with Most Leads */}
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <MapPin className="w-5 h-5 text-secondary" />
+                        Cities with Most Leads
+                      </CardTitle>
+                      <CardDescription>Click to see detailed lead data</CardDescription>
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={() => setShowAllLeads(true)}>
+                      View All <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>City</TableHead>
+                          <TableHead className="text-right">Leads</TableHead>
+                          <TableHead className="text-right">Purchased</TableHead>
+                          <TableHead className="text-right">Rate</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {cityLeadStats.slice(0, 8).map((city, idx) => (
+                          <TableRow 
+                            key={city.city} 
+                            className="cursor-pointer hover:bg-muted/50"
+                            onClick={() => handleCityClick(city)}
+                          >
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="w-6 h-6 rounded-full flex items-center justify-center p-0 text-xs">
+                                  {idx + 1}
+                                </Badge>
+                                <div>
+                                  <p className="font-medium">{city.city}</p>
+                                  <p className="text-xs text-muted-foreground">{city.region}</p>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right font-medium">{city.leads}</TableCell>
+                            <TableCell className="text-right">{city.purchased}</TableCell>
+                            <TableCell className="text-right">
+                              <Badge variant={city.purchaseRate >= 30 ? "default" : "secondary"}>
+                                {city.purchaseRate}%
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+
+                {/* Best Quality Leads (Highest Purchase Rate) */}
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center gap-2">
+                      <Sparkles className="w-5 h-5 text-green-500" />
+                      Best Quality Lead Cities
+                    </CardTitle>
+                    <CardDescription>Cities with highest purchase rates (min 5 leads)</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>City</TableHead>
+                          <TableHead className="text-right">Rate</TableHead>
+                          <TableHead className="text-right">Purchased</TableHead>
+                          <TableHead className="text-right">Revenue</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {cityLeadStats
+                          .filter(c => c.leads >= 5)
+                          .sort((a, b) => b.purchaseRate - a.purchaseRate)
+                          .slice(0, 8)
+                          .map((city, idx) => (
+                            <TableRow 
+                              key={city.city}
+                              className="cursor-pointer hover:bg-muted/50"
+                              onClick={() => handleCityClick(city)}
+                            >
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <div className={cn(
+                                    "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white",
+                                    idx === 0 ? "bg-yellow-500" : idx === 1 ? "bg-gray-400" : idx === 2 ? "bg-amber-600" : "bg-muted-foreground"
+                                  )}>
+                                    {idx + 1}
+                                  </div>
+                                  <div>
+                                    <p className="font-medium">{city.city}</p>
+                                    <p className="text-xs text-muted-foreground">{city.leads} leads</p>
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Badge variant="default" className="bg-green-500">
+                                  {city.purchaseRate}%
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right font-medium">{city.purchased}</TableCell>
+                              <TableCell className="text-right text-green-600 font-medium">£{city.revenue}</TableCell>
+                            </TableRow>
+                          ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+
+                {/* Cities with Most Active Buyers */}
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <Building2 className="w-5 h-5 text-purple-500" />
+                        Cities with Most Buyers
+                      </CardTitle>
+                      <CardDescription>Where cleaning businesses are buying leads</CardDescription>
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={() => setShowAllBuyers(true)}>
+                      View All <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>City</TableHead>
+                          <TableHead className="text-right">Buyers</TableHead>
+                          <TableHead className="text-right">Purchases</TableHead>
+                          <TableHead className="text-right">Spend</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {buyerCityStats.slice(0, 8).map((city, idx) => (
+                          <TableRow 
+                            key={city.city}
+                            className="cursor-pointer hover:bg-muted/50"
+                            onClick={() => handleBuyerCityClick(city)}
+                          >
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="w-6 h-6 rounded-full flex items-center justify-center p-0 text-xs">
+                                  {idx + 1}
+                                </Badge>
+                                <div>
+                                  <p className="font-medium">{city.city}</p>
+                                  <p className="text-xs text-muted-foreground">{city.region}</p>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right font-medium">{city.buyers}</TableCell>
+                            <TableCell className="text-right">{city.totalPurchases}</TableCell>
+                            <TableCell className="text-right text-secondary font-medium">£{city.totalSpend.toLocaleString()}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+
+                {/* Geographic Distribution Chart */}
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle>Lead Distribution by City</CardTitle>
+                    <CardDescription>Top 6 cities by lead volume</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[280px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={cityLeadStats.slice(0, 6)}
+                            dataKey="leads"
+                            nameKey="city"
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={100}
+                            label={({ city, leads }) => `${city}: ${leads}`}
+                            labelLine={false}
+                          >
+                            {cityLeadStats.slice(0, 6).map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: "hsl(var(--card))", 
+                              border: "1px solid hsl(var(--border))" 
+                            }} 
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            {/* LIVE VISITORS TAB */}
+            <TabsContent value="live" className="space-y-6 mt-6">
+              <div className="grid gap-4 md:grid-cols-3">
+                <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 text-green-600 mb-2">
+                      <Eye className="w-4 h-4" />
+                      <span className="text-xs font-medium uppercase">Live Visitors</span>
+                    </div>
+                    <p className="text-3xl font-bold">{visitors.length}</p>
+                    <p className="text-sm text-muted-foreground">Currently on site</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                      <Globe2 className="w-4 h-4" />
+                      <span className="text-xs font-medium uppercase">Tracked Locations</span>
+                    </div>
+                    <p className="text-3xl font-bold">{liveVisitorLocations.length}</p>
+                    <p className="text-sm text-muted-foreground">Unique cities</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                      <Users className="w-4 h-4" />
+                      <span className="text-xs font-medium uppercase">Authenticated</span>
+                    </div>
+                    <p className="text-3xl font-bold">{visitors.filter(v => v.isAuthenticated).length}</p>
+                    <p className="text-sm text-muted-foreground">Logged in users</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MapPin className="w-5 h-5 text-secondary" />
+                    Live Visitor Locations
+                  </CardTitle>
+                  <CardDescription>Real-time geographic distribution of current visitors</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {liveVisitorLocations.length > 0 ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>City</TableHead>
+                          <TableHead>Region</TableHead>
+                          <TableHead>Country</TableHead>
+                          <TableHead className="text-right">Visitors</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {liveVisitorLocations.map((loc, idx) => (
+                          <TableRow key={`${loc.city}-${idx}`}>
+                            <TableCell className="font-medium">{loc.city}</TableCell>
+                            <TableCell>{loc.region}</TableCell>
+                            <TableCell>{loc.country}</TableCell>
+                            <TableCell className="text-right">
+                              <Badge variant="secondary">{loc.visitors}</Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Globe2 className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                      <p>No location data available yet</p>
+                      <p className="text-sm">Visitor locations will appear as they browse</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* ACQUISITION TAB */}
             <TabsContent value="acquisition" className="space-y-6 mt-6">
               <div className="flex justify-end">
-                <Button variant="outline" onClick={() => handleExport("acquisition")}><Download className="h-4 w-4 mr-2" />Export CSV</Button>
+                <Button variant="outline" onClick={() => handleExport("acquisition")}>
+                  <Download className="h-4 w-4 mr-2" />Export CSV
+                </Button>
               </div>
               <div className="grid gap-6 md:grid-cols-2">
                 <Card>
@@ -200,10 +923,24 @@ export default function AdminAnalytics() {
                   <CardHeader><CardTitle>Top Postcode Prefixes</CardTitle></CardHeader>
                   <CardContent>
                     <Table>
-                      <TableHeader><TableRow><TableHead>Postcode</TableHead><TableHead className="text-right">Leads</TableHead><TableHead className="text-right">Purchased</TableHead><TableHead className="text-right">Rate</TableHead></TableRow></TableHeader>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Postcode</TableHead>
+                          <TableHead className="text-right">Leads</TableHead>
+                          <TableHead className="text-right">Purchased</TableHead>
+                          <TableHead className="text-right">Rate</TableHead>
+                        </TableRow>
+                      </TableHeader>
                       <TableBody>
                         {topPostcodes.map((pc) => (
-                          <TableRow key={pc.prefix}><TableCell className="font-medium">{pc.prefix}</TableCell><TableCell className="text-right">{pc.leads}</TableCell><TableCell className="text-right">{pc.purchased}</TableCell><TableCell className="text-right"><Badge variant="secondary">{pc.rate}%</Badge></TableCell></TableRow>
+                          <TableRow key={pc.prefix}>
+                            <TableCell className="font-medium">{pc.prefix}</TableCell>
+                            <TableCell className="text-right">{pc.leads}</TableCell>
+                            <TableCell className="text-right">{pc.purchased}</TableCell>
+                            <TableCell className="text-right">
+                              <Badge variant="secondary">{pc.rate}%</Badge>
+                            </TableCell>
+                          </TableRow>
                         ))}
                       </TableBody>
                     </Table>
@@ -212,36 +949,77 @@ export default function AdminAnalytics() {
               </div>
             </TabsContent>
 
+            {/* MARKETPLACE TAB */}
             <TabsContent value="marketplace" className="space-y-6 mt-6">
               <Card>
                 <CardHeader><CardTitle>Marketplace Health</CardTitle></CardHeader>
                 <CardContent>
                   <div className="grid gap-4 md:grid-cols-4">
-                    <div className="text-center p-4 border rounded-lg"><p className="text-2xl font-bold">{marketplaceStats.purchaseRate}%</p><p className="text-sm text-muted-foreground">Lead Purchase Rate</p></div>
-                    <div className="text-center p-4 border rounded-lg"><p className="text-2xl font-bold">{marketplaceStats.avgTimeToPurchase} hrs</p><p className="text-sm text-muted-foreground">Avg Time to Purchase</p></div>
-                    <div className="text-center p-4 border rounded-lg"><p className="text-2xl font-bold">{marketplaceStats.expiredRate}%</p><p className="text-sm text-muted-foreground">Leads Expired</p></div>
-                    <div className="text-center p-4 border rounded-lg"><p className="text-2xl font-bold">{marketplaceStats.refundRate}%</p><p className="text-sm text-muted-foreground">Refund Rate</p></div>
+                    <div className="text-center p-4 border rounded-lg">
+                      <p className="text-2xl font-bold">{marketplaceStats.purchaseRate}%</p>
+                      <p className="text-sm text-muted-foreground">Lead Purchase Rate</p>
+                    </div>
+                    <div className="text-center p-4 border rounded-lg">
+                      <p className="text-2xl font-bold">{marketplaceStats.avgTimeToPurchase} hrs</p>
+                      <p className="text-sm text-muted-foreground">Avg Time to Purchase</p>
+                    </div>
+                    <div className="text-center p-4 border rounded-lg">
+                      <p className="text-2xl font-bold">{marketplaceStats.expiredRate}%</p>
+                      <p className="text-sm text-muted-foreground">Leads Expired</p>
+                    </div>
+                    <div className="text-center p-4 border rounded-lg">
+                      <p className="text-2xl font-bold">{marketplaceStats.refundRate}%</p>
+                      <p className="text-sm text-muted-foreground">Refund Rate</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             </TabsContent>
 
+            {/* BUYERS TAB */}
             <TabsContent value="buyers" className="space-y-6 mt-6">
               <div className="flex justify-end">
-                <Button variant="outline" onClick={() => handleExport("buyers")}><Download className="h-4 w-4 mr-2" />Export CSV</Button>
+                <Button variant="outline" onClick={() => handleExport("buyers")}>
+                  <Download className="h-4 w-4 mr-2" />Export CSV
+                </Button>
               </div>
               <Card>
-                <CardHeader><CardTitle>Top Buyers</CardTitle><CardDescription>Highest spending businesses in the selected period</CardDescription></CardHeader>
+                <CardHeader>
+                  <CardTitle>Top Buyers</CardTitle>
+                  <CardDescription>Highest spending businesses in the selected period</CardDescription>
+                </CardHeader>
                 <CardContent>
                   <Table>
-                    <TableHeader><TableRow><TableHead>Business</TableHead><TableHead className="text-right">Purchases</TableHead><TableHead className="text-right">Total Spend</TableHead><TableHead className="text-right">Refund Rate</TableHead></TableRow></TableHeader>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Business</TableHead>
+                        <TableHead>Location</TableHead>
+                        <TableHead className="text-right">Purchases</TableHead>
+                        <TableHead className="text-right">Total Spend</TableHead>
+                        <TableHead className="text-right">Refund Rate</TableHead>
+                      </TableRow>
+                    </TableHeader>
                     <TableBody>
                       {topBuyers.map((buyer, index) => (
                         <TableRow key={buyer.name}>
-                          <TableCell><div className="flex items-center gap-2"><Badge variant="outline" className="w-6 h-6 rounded-full flex items-center justify-center p-0">{index + 1}</Badge><span className="font-medium">{buyer.name}</span></div></TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="w-6 h-6 rounded-full flex items-center justify-center p-0">
+                                {index + 1}
+                              </Badge>
+                              <span className="font-medium">{buyer.name}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {extractCityFromPostcode(buyer.postcode).city}
+                          </TableCell>
                           <TableCell className="text-right">{buyer.purchases}</TableCell>
                           <TableCell className="text-right font-medium">£{buyer.spend}</TableCell>
-                          <TableCell className="text-right"><Badge variant={Number(buyer.refundRate) > 5 ? "destructive" : "default"}>{buyer.refundRate}%</Badge></TableCell>
+                          <TableCell className="text-right">
+                            <Badge variant={buyer.refundRate > 5 ? "destructive" : "default"}>
+                              {buyer.refundRate}%
+                            </Badge>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -252,6 +1030,197 @@ export default function AdminAnalytics() {
           </Tabs>
         )}
       </div>
+
+      {/* City Leads Detail Dialog */}
+      <Dialog open={!!selectedCity} onOpenChange={() => setSelectedCity(null)}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-secondary" />
+              {selectedCity?.city} - Lead Details
+            </DialogTitle>
+            <DialogDescription>
+              {selectedCity?.region} • {selectedCity?.leads} total leads • {selectedCity?.purchaseRate}% purchase rate
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-4 gap-4 mb-4">
+            <div className="p-3 bg-muted/50 rounded-lg text-center">
+              <p className="text-2xl font-bold">{selectedCity?.leads}</p>
+              <p className="text-xs text-muted-foreground">Total Leads</p>
+            </div>
+            <div className="p-3 bg-green-500/10 rounded-lg text-center">
+              <p className="text-2xl font-bold text-green-600">{selectedCity?.purchased}</p>
+              <p className="text-xs text-muted-foreground">Purchased</p>
+            </div>
+            <div className="p-3 bg-secondary/10 rounded-lg text-center">
+              <p className="text-2xl font-bold text-secondary">£{selectedCity?.revenue}</p>
+              <p className="text-xs text-muted-foreground">Revenue</p>
+            </div>
+            <div className="p-3 bg-red-500/10 rounded-lg text-center">
+              <p className="text-2xl font-bold text-red-600">{selectedCity?.refundRate}%</p>
+              <p className="text-xs text-muted-foreground">Refund Rate</p>
+            </div>
+          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Postcode</TableHead>
+                <TableHead>Job Type</TableHead>
+                <TableHead>Value</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {cityLeadsDetail.slice(0, 50).map((lead) => (
+                <TableRow key={lead.id}>
+                  <TableCell className="font-medium">{lead.postcode}</TableCell>
+                  <TableCell>{lead.job_type}</TableCell>
+                  <TableCell>{lead.display_value}</TableCell>
+                  <TableCell>{formatDate(lead.created_at)}</TableCell>
+                  <TableCell>
+                    {lead.refunded_at ? (
+                      <Badge variant="destructive">Refunded</Badge>
+                    ) : lead.is_unlocked ? (
+                      <Badge variant="default">Purchased</Badge>
+                    ) : (
+                      <Badge variant="secondary">Available</Badge>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          {cityLeadsDetail.length > 50 && (
+            <p className="text-sm text-muted-foreground text-center mt-2">
+              Showing 50 of {cityLeadsDetail.length} leads
+            </p>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Buyer City Detail Dialog */}
+      <Dialog open={!!selectedBuyerCity} onOpenChange={() => setSelectedBuyerCity(null)}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-purple-500" />
+              {selectedBuyerCity?.city} - Buyer Details
+            </DialogTitle>
+            <DialogDescription>
+              {selectedBuyerCity?.region} • {selectedBuyerCity?.buyers} businesses • £{selectedBuyerCity?.totalSpend.toLocaleString()} total spend
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-3 gap-4 mb-4">
+            <div className="p-3 bg-purple-500/10 rounded-lg text-center">
+              <p className="text-2xl font-bold text-purple-600">{selectedBuyerCity?.buyers}</p>
+              <p className="text-xs text-muted-foreground">Businesses</p>
+            </div>
+            <div className="p-3 bg-secondary/10 rounded-lg text-center">
+              <p className="text-2xl font-bold text-secondary">{selectedBuyerCity?.totalPurchases}</p>
+              <p className="text-xs text-muted-foreground">Total Purchases</p>
+            </div>
+            <div className="p-3 bg-green-500/10 rounded-lg text-center">
+              <p className="text-2xl font-bold text-green-600">£{selectedBuyerCity?.totalSpend.toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground">Total Spend</p>
+            </div>
+          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Business</TableHead>
+                <TableHead className="text-right">Purchases</TableHead>
+                <TableHead className="text-right">Spend</TableHead>
+                <TableHead className="text-right">Refund Rate</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {cityBuyersDetail.map((buyer) => (
+                <TableRow key={buyer.name}>
+                  <TableCell className="font-medium">{buyer.name}</TableCell>
+                  <TableCell className="text-right">{buyer.purchases}</TableCell>
+                  <TableCell className="text-right font-medium">£{buyer.spend}</TableCell>
+                  <TableCell className="text-right">
+                    <Badge variant={buyer.refundRate > 5 ? "destructive" : "default"}>
+                      {buyer.refundRate}%
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </DialogContent>
+      </Dialog>
+
+      {/* All Leads by City Dialog */}
+      <Dialog open={showAllLeads} onOpenChange={setShowAllLeads}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>All Cities - Lead Statistics</DialogTitle>
+            <DialogDescription>Complete breakdown of leads by city</DialogDescription>
+          </DialogHeader>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>City</TableHead>
+                <TableHead>Region</TableHead>
+                <TableHead className="text-right">Leads</TableHead>
+                <TableHead className="text-right">Purchased</TableHead>
+                <TableHead className="text-right">Rate</TableHead>
+                <TableHead className="text-right">Revenue</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {cityLeadStats.map((city) => (
+                <TableRow key={city.city} className="cursor-pointer hover:bg-muted/50" onClick={() => { setShowAllLeads(false); handleCityClick(city); }}>
+                  <TableCell className="font-medium">{city.city}</TableCell>
+                  <TableCell className="text-muted-foreground">{city.region}</TableCell>
+                  <TableCell className="text-right">{city.leads}</TableCell>
+                  <TableCell className="text-right">{city.purchased}</TableCell>
+                  <TableCell className="text-right">
+                    <Badge variant={city.purchaseRate >= 30 ? "default" : "secondary"}>{city.purchaseRate}%</Badge>
+                  </TableCell>
+                  <TableCell className="text-right text-secondary font-medium">£{city.revenue}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </DialogContent>
+      </Dialog>
+
+      {/* All Buyers by City Dialog */}
+      <Dialog open={showAllBuyers} onOpenChange={setShowAllBuyers}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>All Cities - Buyer Statistics</DialogTitle>
+            <DialogDescription>Complete breakdown of buyers by city</DialogDescription>
+          </DialogHeader>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>City</TableHead>
+                <TableHead>Region</TableHead>
+                <TableHead className="text-right">Buyers</TableHead>
+                <TableHead className="text-right">Purchases</TableHead>
+                <TableHead className="text-right">Total Spend</TableHead>
+                <TableHead className="text-right">Avg/Buyer</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {buyerCityStats.map((city) => (
+                <TableRow key={city.city} className="cursor-pointer hover:bg-muted/50" onClick={() => { setShowAllBuyers(false); handleBuyerCityClick(city); }}>
+                  <TableCell className="font-medium">{city.city}</TableCell>
+                  <TableCell className="text-muted-foreground">{city.region}</TableCell>
+                  <TableCell className="text-right">{city.buyers}</TableCell>
+                  <TableCell className="text-right">{city.totalPurchases}</TableCell>
+                  <TableCell className="text-right text-secondary font-medium">£{city.totalSpend.toLocaleString()}</TableCell>
+                  <TableCell className="text-right">{city.avgPurchases}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }
