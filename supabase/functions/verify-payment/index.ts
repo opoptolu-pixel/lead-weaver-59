@@ -193,6 +193,30 @@ serve(async (req) => {
     if (updateError) throw new Error(`Failed to unlock lead: ${updateError.message}`);
     logStep("Lead unlocked successfully", { leadId, userId });
 
+    // Fetch the business profile for activity logging
+    const { data: profile } = await supabaseClient
+      .from("profiles")
+      .select("business_name, contact_name")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    // Log the purchase activity
+    await supabaseClient.from("activity_logs").insert({
+      user_id: userId,
+      entity_type: "lead",
+      entity_id: leadId,
+      action: "purchase",
+      details: {
+        payment_method: "stripe",
+        session_id: sessionId,
+        business_name: profile?.business_name || "Unknown Business",
+        contact_name: profile?.contact_name || customerEmail,
+        is_new_user: isNewUser,
+        amount_paid: "£20",
+      },
+    });
+    logStep("Purchase activity logged");
+
     // Increment leads_purchased counter on profile
     const { error: profileUpdateError } = await supabaseClient.rpc('increment_leads_purchased', { user_uuid: userId });
     if (profileUpdateError) {

@@ -167,6 +167,11 @@ export default function Dashboard() {
   };
 
   const handleStatusUpdate = async (leadId: string, newStatus: string, notes?: string) => {
+    if (!user) return;
+    
+    const lead = leads.find(l => l.id === leadId);
+    const previousStatus = lead?.job_status || 'pending';
+    
     setUpdatingStatus(leadId);
     try {
       const updateData: any = {
@@ -187,6 +192,21 @@ export default function Dashboard() {
         .eq("id", leadId);
 
       if (error) throw error;
+
+      // Log the job status change activity
+      await supabase.from("activity_logs").insert({
+        user_id: user.id,
+        entity_type: "lead",
+        entity_id: leadId,
+        action: "job_status_change",
+        details: {
+          previous_status: previousStatus,
+          new_status: newStatus,
+          business_name: profile?.business_name || "Unknown Business",
+          contact_name: profile?.contact_name || user.email,
+          notes: notes || null,
+        },
+      });
 
       // Update local state
       setLeads(prev => prev.map(lead => 
