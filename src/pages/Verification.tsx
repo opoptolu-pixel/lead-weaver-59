@@ -559,7 +559,39 @@ export default function Verification() {
             </h2>
 
             {profile?.address_verified ? (
-              <p className="text-muted-foreground">Your address has been verified.</p>
+              <div className="space-y-4">
+                <p className="text-muted-foreground">Your address has been verified.</p>
+                
+                {/* Show uploaded documents with preview even after verification */}
+                {documents.filter(d => d.document_type === "address_proof").length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-foreground">Uploaded Documents</p>
+                    {documents.filter(d => d.document_type === "address_proof").map((doc) => (
+                      <div key={doc.id} className="bg-muted rounded-lg p-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-sm">Address proof</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handlePreviewDocument(doc)}
+                              title="Preview document"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            <span className="text-xs px-2 py-1 rounded bg-secondary/20 text-secondary">
+                              approved
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="space-y-4">
                 <p className="text-muted-foreground text-sm">
