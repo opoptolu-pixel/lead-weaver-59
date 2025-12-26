@@ -59,3 +59,9 @@ verify_jwt = false
 
 [functions.validate-phone]
 verify_jwt = false
+
+[functions.unsubscribe]
+verify_jwt = false
+
+[functions.send-campaign]
+verify_jwt = false
