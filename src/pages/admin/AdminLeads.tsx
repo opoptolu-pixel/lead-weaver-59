@@ -1152,7 +1152,7 @@ export default function AdminLeads() {
                 </div>
 
                 {/* Quick Contact Actions */}
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   <Button variant="outline" size="sm" onClick={() => handleSendEmail(selectedLead)}>
                     <Mail className="w-4 h-4 mr-2" />
                     Email Customer
@@ -1160,6 +1160,17 @@ export default function AdminLeads() {
                   <Button variant="outline" size="sm" onClick={() => handleSendWhatsApp(selectedLead)}>
                     <MessageSquare className="w-4 h-4 mr-2" />
                     WhatsApp
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => {
+                      setIsDetailOpen(false);
+                      setTimelineLeadId(selectedLead.id);
+                    }}
+                  >
+                    <History className="w-4 h-4 mr-2" />
+                    Activity Timeline
                   </Button>
                 </div>
 
