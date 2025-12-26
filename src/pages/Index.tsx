@@ -84,56 +84,22 @@ const Index = () => {
         }
       },
       {
-        "@type": "Service",
-        "@id": "https://deepcleanco.uk/#service",
-        "serviceType": "Cleaning Service Marketplace",
-        "name": "Professional Cleaning Services",
-        "description": "Connect with verified professional cleaners for deep cleaning, end of tenancy cleaning, carpet cleaning, and more across the UK.",
-        "provider": {
-          "@id": "https://deepcleanco.uk/#organization"
+        "@type": "LocalBusiness",
+        "@id": "https://deepcleanco.uk/#localbusiness",
+        "name": "Deep Clean UK",
+        "description": "UK's trusted platform connecting customers with verified professional cleaners for deep cleaning, end of tenancy cleaning, carpet cleaning, and more.",
+        "url": "https://deepcleanco.uk",
+        "telephone": "+44-7757-188-197",
+        "email": "hello@deepcleanco.uk",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "128 City Road",
+          "addressLocality": "London",
+          "postalCode": "EC1V 2NX",
+          "addressCountry": "GB"
         },
-        "areaServed": {
-          "@type": "Country",
-          "name": "United Kingdom"
-        },
-        "hasOfferCatalog": {
-          "@type": "OfferCatalog",
-          "name": "Cleaning Services",
-          "itemListElement": [
-            {
-              "@type": "Offer",
-              "itemOffered": {
-                "@type": "Service",
-                "name": "End of Tenancy Cleaning",
-                "description": "Professional end of tenancy cleaning to help you get your deposit back"
-              }
-            },
-            {
-              "@type": "Offer",
-              "itemOffered": {
-                "@type": "Service",
-                "name": "Deep Cleaning",
-                "description": "Thorough deep cleaning for your entire home"
-              }
-            },
-            {
-              "@type": "Offer",
-              "itemOffered": {
-                "@type": "Service",
-                "name": "Carpet Cleaning",
-                "description": "Professional carpet cleaning for homes and offices"
-              }
-            },
-            {
-              "@type": "Offer",
-              "itemOffered": {
-                "@type": "Service",
-                "name": "Upholstery Cleaning",
-                "description": "Sofa, mattress and upholstery cleaning services"
-              }
-            }
-          ]
-        },
+        "priceRange": "£100-£500",
+        "image": "https://deepcleanco.uk/og-image.png",
         "aggregateRating": {
           "@type": "AggregateRating",
           "ratingValue": "4.8",
