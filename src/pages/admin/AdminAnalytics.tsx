@@ -45,7 +45,8 @@ import {
   Target,
   Sparkles,
   ArrowUpRight,
-  Crown
+  Crown,
+  Lightbulb
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdmin } from "@/contexts/AdminContext";
@@ -53,6 +54,8 @@ import { useVisitorData, Visitor, GeoLocation } from "@/hooks/useVisitorData";
 import { exportToCsv } from "@/lib/exportCsv";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { TrendComparisonChart } from "@/components/admin/TrendComparisonChart";
+import { MarketingRecommendations } from "@/components/admin/MarketingRecommendations";
 
 const COLORS = [
   "hsl(var(--secondary))", 
@@ -546,9 +549,11 @@ export default function AdminAnalytics() {
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="flex-wrap h-auto gap-1">
               <TabsTrigger value="geographic"><MapPin className="h-4 w-4 mr-2" />Geographic</TabsTrigger>
+              <TabsTrigger value="trends"><TrendingUp className="h-4 w-4 mr-2" />Trends</TabsTrigger>
+              <TabsTrigger value="recommendations"><Lightbulb className="h-4 w-4 mr-2" />Recommendations</TabsTrigger>
               <TabsTrigger value="live"><Globe2 className="h-4 w-4 mr-2" />Live Visitors</TabsTrigger>
               <TabsTrigger value="acquisition"><FileText className="h-4 w-4 mr-2" />Acquisition</TabsTrigger>
-              <TabsTrigger value="marketplace"><TrendingUp className="h-4 w-4 mr-2" />Marketplace</TabsTrigger>
+              <TabsTrigger value="marketplace"><Target className="h-4 w-4 mr-2" />Marketplace</TabsTrigger>
               <TabsTrigger value="buyers"><Users className="h-4 w-4 mr-2" />Buyer Performance</TabsTrigger>
             </TabsList>
 
@@ -814,6 +819,24 @@ export default function AdminAnalytics() {
                   </CardContent>
                 </Card>
               </div>
+            </TabsContent>
+
+            {/* TRENDS TAB */}
+            <TabsContent value="trends" className="space-y-6 mt-6">
+              <TrendComparisonChart 
+                leads={allLeads}
+                extractCityFromPostcode={extractCityFromPostcode}
+                dateRange={dateRange}
+              />
+            </TabsContent>
+
+            {/* RECOMMENDATIONS TAB */}
+            <TabsContent value="recommendations" className="space-y-6 mt-6">
+              <MarketingRecommendations
+                cityLeadStats={cityLeadStats}
+                buyerCityStats={buyerCityStats}
+                marketplaceStats={marketplaceStats}
+              />
             </TabsContent>
 
             {/* LIVE VISITORS TAB */}
