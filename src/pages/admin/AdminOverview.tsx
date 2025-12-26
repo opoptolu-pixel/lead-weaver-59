@@ -20,6 +20,9 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import KPICard from "@/components/admin/KPICard";
 import QueueWidget from "@/components/admin/QueueWidget";
 import { LiveVisitorsCard } from "@/components/admin/LiveVisitorsCard";
+import { ConversionNotifications } from "@/components/admin/ConversionNotifications";
+import { VisitorAnalyticsCard } from "@/components/admin/VisitorAnalyticsCard";
+import { VisitorMapCard } from "@/components/admin/VisitorMapCard";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdmin } from "@/contexts/AdminContext";
@@ -581,6 +584,9 @@ export default function AdminOverview() {
 
   return (
     <AdminLayout title="Overview">
+      {/* Real-time conversion notifications */}
+      <ConversionNotifications />
+
       {/* Export Button */}
       <div className="flex justify-end mb-4">
         <Button variant="outline" size="sm" onClick={handleExportCSV}>
@@ -589,9 +595,11 @@ export default function AdminOverview() {
         </Button>
       </div>
 
-      {/* Live Visitors Card - Top of page */}
-      <div className="mb-8">
+      {/* Live Visitors Section - 3 column grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <LiveVisitorsCard />
+        <VisitorAnalyticsCard />
+        <VisitorMapCard />
       </div>
 
       {/* KPI Cards - Row 1 */}
