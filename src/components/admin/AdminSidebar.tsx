@@ -30,6 +30,7 @@ import {
 
 const navItems = [
   { title: "Overview", url: "/admin", icon: LayoutDashboard },
+  { title: "Live Data", url: "/admin/live", icon: Activity },
   { title: "Lead Pipeline", url: "/admin/leads", icon: FileText },
   { title: "Business Inquiries", url: "/admin/inquiries", icon: Inbox },
   { title: "Contact Messages", url: "/admin/contact", icon: MessageSquare },
