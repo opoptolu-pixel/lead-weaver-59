@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { BackToTop } from "@/components/BackToTop";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import ClarityAnalytics from "@/components/ClarityAnalytics";
+import { VisitorPresenceTracker } from "@/components/VisitorPresenceTracker";
 
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AdminProvider } from "@/contexts/AdminContext";
@@ -111,6 +112,7 @@ const App = () => (
                 <Route path="*" element={<NotFound />} />
               </Routes>
               <MobileBottomNav />
+              <VisitorPresenceTracker />
             </AdminProvider>
           </AuthProvider>
         </BrowserRouter>

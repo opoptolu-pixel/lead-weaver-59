@@ -19,6 +19,7 @@ import {
 import AdminLayout from "@/components/admin/AdminLayout";
 import KPICard from "@/components/admin/KPICard";
 import QueueWidget from "@/components/admin/QueueWidget";
+import { LiveVisitorsCard } from "@/components/admin/LiveVisitorsCard";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdmin } from "@/contexts/AdminContext";
@@ -586,6 +587,11 @@ export default function AdminOverview() {
           <Download className="w-4 h-4 mr-2" />
           Export CSV
         </Button>
+      </div>
+
+      {/* Live Visitors Card - Top of page */}
+      <div className="mb-8">
+        <LiveVisitorsCard />
       </div>
 
       {/* KPI Cards - Row 1 */}
