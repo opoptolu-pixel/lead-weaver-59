@@ -1,21 +1,9 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useVisitorData, Visitor } from "@/hooks/useVisitorData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Globe2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface Visitor {
-  visitorId: string;
-  currentPage: string;
-  userAgent: string;
-  joinedAt: string;
-  isAuthenticated: boolean;
-}
-
-interface PresenceState {
-  [key: string]: Visitor[];
-}
 
 // Simulated regions based on visitor count (real implementation would need IP geolocation)
 const REGION_DATA = [
@@ -30,61 +18,38 @@ const REGION_DATA = [
 ];
 
 export function VisitorMapCard() {
-  const [visitors, setVisitors] = useState<Visitor[]>([]);
+  const visitors = useVisitorData();
   const [regionBreakdown, setRegionBreakdown] = useState<{ region: string; count: number; percentage: number }[]>([]);
 
   useEffect(() => {
-    // Use same channel as VisitorPresenceTracker to receive real data
-    const channel = supabase.channel("site-visitors");
-
-    channel
-      .on("presence", { event: "sync" }, () => {
-        console.log("Map: Presence sync received");
-        const state = channel.presenceState() as PresenceState;
-        const allVisitors: Visitor[] = [];
-        
-        Object.values(state).forEach((presences) => {
-          presences.forEach((presence) => {
-            allVisitors.push(presence);
-          });
-        });
-        
-        setVisitors(allVisitors);
-        
-        // Simulate region distribution (in production, this would use actual IP geolocation)
-        if (allVisitors.length > 0) {
-          const total = allVisitors.length;
-          // Distribute visitors across regions based on UK population distribution
-          const weights = [0.35, 0.15, 0.12, 0.10, 0.08, 0.08, 0.06, 0.06];
-          let remaining = total;
-          const regions = REGION_DATA.map((region, idx) => {
-            const count = idx === REGION_DATA.length - 1 
-              ? remaining 
-              : Math.max(0, Math.round(total * weights[idx] + (Math.random() - 0.5) * 2));
-            remaining -= count;
-            return {
-              region: region.name,
-              count: Math.max(0, count),
-              percentage: 0
-            };
-          }).filter(r => r.count > 0);
-          
-          const totalAssigned = regions.reduce((sum, r) => sum + r.count, 0);
-          regions.forEach(r => {
-            r.percentage = Math.round((r.count / totalAssigned) * 100);
-          });
-          
-          setRegionBreakdown(regions.sort((a, b) => b.count - a.count));
-        } else {
-          setRegionBreakdown([]);
-        }
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
+    // Simulate region distribution (in production, this would use actual IP geolocation)
+    if (visitors.length > 0) {
+      const total = visitors.length;
+      // Distribute visitors across regions based on UK population distribution
+      const weights = [0.35, 0.15, 0.12, 0.10, 0.08, 0.08, 0.06, 0.06];
+      let remaining = total;
+      const regions = REGION_DATA.map((region, idx) => {
+        const count = idx === REGION_DATA.length - 1 
+          ? remaining 
+          : Math.max(0, Math.round(total * weights[idx] + (Math.random() - 0.5) * 2));
+        remaining -= count;
+        return {
+          region: region.name,
+          count: Math.max(0, count),
+          percentage: 0
+        };
+      }).filter(r => r.count > 0);
+      
+      const totalAssigned = regions.reduce((sum, r) => sum + r.count, 0);
+      regions.forEach(r => {
+        r.percentage = Math.round((r.count / totalAssigned) * 100);
+      });
+      
+      setRegionBreakdown(regions.sort((a, b) => b.count - a.count));
+    } else {
+      setRegionBreakdown([]);
+    }
+  }, [visitors]);
 
   return (
     <Card className="relative border-0 bg-gradient-to-br from-card via-card to-muted/30 shadow-elevated overflow-hidden">

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { useLocation } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { channelManager, Visitor } from "./useVisitorData";
 
 interface PageVisit {
   page: string;
@@ -43,11 +43,11 @@ const savePageHistory = (history: PageVisit[]) => {
 export function useVisitorPresence() {
   const location = useLocation();
   const { user } = useAuth();
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const visitorId = getVisitorId();
   const lastPageRef = useRef<string | null>(null);
   const pageEnterTimeRef = useRef<number>(Date.now());
   const sessionStartRef = useRef<number>(Date.now());
+  const isSubscribedRef = useRef(false);
 
   const trackPageVisit = useCallback((currentPath: string, previousPath: string | null) => {
     const now = Date.now();
@@ -76,40 +76,35 @@ export function useVisitorPresence() {
     return Math.round((Date.now() - sessionStartRef.current) / 1000);
   }, []);
 
+  const getVisitorData = useCallback((): Visitor => {
+    return {
+      visitorId,
+      currentPage: location.pathname,
+      userAgent: navigator.userAgent,
+      joinedAt: new Date().toISOString(),
+      isAuthenticated: !!user,
+      userId: user?.id || null,
+      pageHistory: getPageHistory(),
+      sessionDuration: getSessionDuration(),
+    };
+  }, [visitorId, location.pathname, user, getSessionDuration]);
+
+  // Subscribe and track initial presence
   useEffect(() => {
-    // Create channel with unique name per visitor to avoid conflicts
-    const channel = supabase.channel("site-visitors");
-
-    channelRef.current = channel;
-
-    channel
-      .on("presence", { event: "sync" }, () => {
-        console.log("Presence sync:", channel.presenceState());
-      })
-      .subscribe(async (status) => {
-        console.log("Realtime connection status:", status);
-        if (status === "SUBSCRIBED") {
-          // Track initial page visit
-          trackPageVisit(location.pathname, null);
-          
-          const trackResult = await channel.track({
-            visitorId,
-            currentPage: location.pathname,
-            userAgent: navigator.userAgent,
-            joinedAt: new Date().toISOString(),
-            isAuthenticated: !!user,
-            userId: user?.id || null,
-            pageHistory: getPageHistory(),
-            sessionDuration: getSessionDuration(),
-          });
-          console.log("Track result:", trackResult);
-        }
-      });
-
-    return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
+    const callback = () => {
+      // On first sync, track our presence
+      if (!isSubscribedRef.current) {
+        isSubscribedRef.current = true;
+        trackPageVisit(location.pathname, null);
+        channelManager.track(getVisitorData());
       }
+    };
+    
+    const unsubscribe = channelManager.subscribe(callback);
+    
+    return () => {
+      isSubscribedRef.current = false;
+      unsubscribe();
     };
   }, []);
 
@@ -117,43 +112,22 @@ export function useVisitorPresence() {
   useEffect(() => {
     const previousPage = lastPageRef.current;
     
-    if (previousPage !== location.pathname) {
+    if (previousPage !== location.pathname && isSubscribedRef.current) {
       // Track the page transition
       trackPageVisit(location.pathname, previousPage);
       lastPageRef.current = location.pathname;
-      
-      if (channelRef.current) {
-        channelRef.current.track({
-          visitorId,
-          currentPage: location.pathname,
-          userAgent: navigator.userAgent,
-          joinedAt: new Date().toISOString(),
-          isAuthenticated: !!user,
-          userId: user?.id || null,
-          pageHistory: getPageHistory(),
-          sessionDuration: getSessionDuration(),
-        });
-      }
+      channelManager.track(getVisitorData());
     }
-  }, [location.pathname, user, trackPageVisit, getSessionDuration]);
+  }, [location.pathname, user, trackPageVisit, getVisitorData]);
 
   // Update session duration periodically
   useEffect(() => {
     const interval = setInterval(() => {
-      if (channelRef.current) {
-        channelRef.current.track({
-          visitorId,
-          currentPage: location.pathname,
-          userAgent: navigator.userAgent,
-          joinedAt: new Date().toISOString(),
-          isAuthenticated: !!user,
-          userId: user?.id || null,
-          pageHistory: getPageHistory(),
-          sessionDuration: getSessionDuration(),
-        });
+      if (isSubscribedRef.current) {
+        channelManager.track(getVisitorData());
       }
     }, 30000); // Update every 30 seconds
 
     return () => clearInterval(interval);
-  }, [location.pathname, user, getSessionDuration]);
+  }, [getVisitorData]);
 }
