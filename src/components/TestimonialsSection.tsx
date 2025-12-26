@@ -37,41 +37,29 @@ const testimonials = [
 ];
 
 // Generate Review structured data for SEO
+// Reviews are attached to the Organization entity defined in index.html
+// Using proper nesting to avoid "Invalid object type" errors
 export const generateReviewSchema = () => {
-  return {
-    "@type": "LocalBusiness",
-    "@id": "https://deepcleanco.uk/#organization",
-    "name": "Deep Clean UK",
-    "image": "https://deepcleanco.uk/og-image.png",
-    "url": "https://deepcleanco.uk",
-    "telephone": "+44-800-123-4567",
-    "address": {
-      "@type": "PostalAddress",
-      "addressCountry": "GB"
+  return testimonials.map((t) => ({
+    "@type": "Review",
+    "itemReviewed": {
+      "@type": "Organization",
+      "@id": "https://deepcleanco.uk/#organization",
+      "name": "Deep Clean UK"
     },
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": 4.9,
-      "reviewCount": testimonials.length,
+    "author": {
+      "@type": "Person",
+      "name": t.name
+    },
+    "reviewBody": t.text,
+    "reviewRating": {
+      "@type": "Rating",
+      "ratingValue": t.rating,
       "bestRating": 5,
       "worstRating": 1
     },
-    "review": testimonials.map((t, index) => ({
-      "@type": "Review",
-      "author": {
-        "@type": "Person",
-        "name": t.name
-      },
-      "reviewBody": t.text,
-      "reviewRating": {
-        "@type": "Rating",
-        "ratingValue": t.rating,
-        "bestRating": 5,
-        "worstRating": 1
-      },
-      "datePublished": t.datePublished
-    }))
-  };
+    "datePublished": t.datePublished
+  }));
 };
 
 export const TestimonialsSection = () => {

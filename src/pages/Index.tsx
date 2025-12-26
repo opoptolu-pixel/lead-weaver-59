@@ -9,7 +9,7 @@ import { Footer } from "@/components/Footer";
 import { SEOHead } from "@/components/SEOHead";
 
 const Index = () => {
-  const reviewSchema = generateReviewSchema();
+  const reviewSchemas = generateReviewSchema();
 
   const structuredData = {
     "@context": "https://schema.org",
@@ -142,7 +142,8 @@ const Index = () => {
           "worstRating": "1"
         }
       },
-      reviewSchema
+      // Spread individual reviews - each properly references the Organization
+      ...reviewSchemas
     ]
   };
 
