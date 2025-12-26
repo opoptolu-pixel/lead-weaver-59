@@ -110,6 +110,28 @@ serve(async (req) => {
 
     logStep("Credit deducted atomically", { remainingCredits: atomicResult.remaining_credits });
 
+    // Fetch the business profile for activity logging
+    const { data: profile } = await supabaseClient
+      .from("profiles")
+      .select("business_name, contact_name")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    // Log the purchase activity
+    await supabaseClient.from("activity_logs").insert({
+      user_id: user.id,
+      entity_type: "lead",
+      entity_id: leadId,
+      action: "purchase",
+      details: {
+        payment_method: "credit",
+        business_name: profile?.business_name || "Unknown Business",
+        contact_name: profile?.contact_name || user.email,
+        credits_remaining: atomicResult.remaining_credits,
+      },
+    });
+    logStep("Purchase activity logged");
+
     // Fetch the unlocked lead details to return to client
     const { data: lead, error: leadError } = await supabaseClient
       .from("leads")

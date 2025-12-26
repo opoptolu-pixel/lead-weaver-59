@@ -86,6 +86,7 @@ const ACTION_ICONS: Record<string, any> = {
   customer_response: MessageSquare,
   auto_published: CheckCircle,
   status_change: RefreshCcw,
+  job_status_change: CheckCircle,
 };
 
 const ACTION_LABELS: Record<string, string> = {
@@ -103,6 +104,7 @@ const ACTION_LABELS: Record<string, string> = {
   customer_response: "Customer Response",
   auto_published: "Auto-Published",
   status_change: "Status Changed",
+  job_status_change: "Job Status Updated",
 };
 
 const ENTITY_LABELS: Record<string, string> = {
@@ -237,6 +239,7 @@ export default function AdminActivityLogs() {
       customer_response: "bg-emerald-500/20 text-emerald-500",
       auto_published: "bg-amber-500/20 text-amber-500",
       status_change: "bg-purple-500/20 text-purple-500",
+      job_status_change: "bg-cyan-500/20 text-cyan-500",
     };
     return variants[action] || "bg-muted text-muted-foreground";
   };
@@ -319,6 +322,12 @@ export default function AdminActivityLogs() {
       previous_status: "Previous Status",
       document_type: "Document Type",
       business_name: "Business Name",
+      contact_name: "Contact Name",
+      payment_method: "Payment Method",
+      credits_remaining: "Credits Remaining",
+      amount_paid: "Amount Paid",
+      is_new_user: "New User",
+      notes: "Notes",
       admin_notes: "Admin Notes",
       ip_address: "IP Address",
       user_agent: "User Agent",
@@ -350,8 +359,16 @@ export default function AdminActivityLogs() {
     if (log.action === "auto_published") {
       return `Lead auto-published (no response from ${log.lead_customer_name || "customer"})`;
     }
-    if (log.action === "purchase" && log.lead_postcode) {
-      return `Lead purchased in ${log.lead_postcode}`;
+    if (log.action === "purchase") {
+      const businessName = details?.business_name || log.user_name || "Unknown";
+      const paymentMethod = details?.payment_method === "credit" ? "using credit" : "via Stripe";
+      return `${businessName} purchased lead ${paymentMethod}`;
+    }
+    if (log.action === "job_status_change" && details) {
+      const businessName = details?.business_name || log.user_name || "Business";
+      const prevStatus = details?.previous_status || "pending";
+      const newStatus = details?.new_status || "unknown";
+      return `${businessName}: ${prevStatus} → ${newStatus}`;
     }
     if (log.action === "credits_added" && details) {
       return `Added ${details.credits || details.amount || "?"} credits`;
