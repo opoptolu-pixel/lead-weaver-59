@@ -336,7 +336,7 @@ export default function RequestCleaning() {
         "provider": {
           "@type": "Organization",
           "name": "Deep Clean UK",
-          "@id": "https://deepcleanuk.com/#organization"
+          "@id": "https://deepcleanco.uk/#organization"
         },
         "areaServed": {
           "@type": "Country",
@@ -352,11 +352,11 @@ export default function RequestCleaning() {
       },
       {
         "@type": "WebPage",
-        "@id": "https://deepcleanuk.com/request-cleaning#webpage",
-        "url": "https://deepcleanuk.com/request-cleaning",
+        "@id": "https://deepcleanco.uk/request-cleaning#webpage",
+        "url": "https://deepcleanco.uk/request-cleaning",
         "name": "Request a Free Cleaning Quote | Deep Clean UK",
         "description": "Get free quotes from verified local cleaners. Request deep cleaning, end of tenancy, carpet cleaning and more.",
-        "isPartOf": { "@id": "https://deepcleanuk.com/#website" },
+        "isPartOf": { "@id": "https://deepcleanco.uk/#website" },
         "breadcrumb": {
           "@type": "BreadcrumbList",
           "itemListElement": [
@@ -364,13 +364,13 @@ export default function RequestCleaning() {
               "@type": "ListItem",
               "position": 1,
               "name": "Home",
-              "item": "https://deepcleanuk.com"
+              "item": "https://deepcleanco.uk"
             },
             {
               "@type": "ListItem",
               "position": 2,
               "name": "Request Cleaning",
-              "item": "https://deepcleanuk.com/request-cleaning"
+              "item": "https://deepcleanco.uk/request-cleaning"
             }
           ]
         }
@@ -383,7 +383,7 @@ export default function RequestCleaning() {
       <SEOHead
         title="Get Free Cleaning Quotes in Minutes | Request a Cleaner | Deep Clean UK"
         description="Request free quotes from verified local cleaners. Choose your service, enter your postcode, and get contacted within 24 hours. No obligation, 100% free."
-        canonical="https://deepcleanuk.com/request-cleaning"
+        canonical="https://deepcleanco.uk/request-cleaning"
         structuredData={structuredData}
       />
       {/* Header */}

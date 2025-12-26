@@ -119,7 +119,7 @@ const handler = async (req: Request): Promise<Response> => {
       const adminSubject = `New Contact Form Submission: ${subject}`;
       const adminEmailResponse = await resend.emails.send({
         from: "Deep Clean UK <hello@deepcleanco.uk>",
-        to: ["hello@deepcleanuk.com"],
+        to: ["hello@deepcleanco.uk"],
         subject: adminSubject,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -150,7 +150,7 @@ const handler = async (req: Request): Promise<Response> => {
         .from("email_logs")
         .insert({
           template_name: "contact_admin_notification",
-          recipient_email: "hello@deepcleanuk.com",
+          recipient_email: "hello@deepcleanco.uk",
           subject: adminSubject,
           status: "sent",
           resend_id: adminEmailResponse.data?.id || null,

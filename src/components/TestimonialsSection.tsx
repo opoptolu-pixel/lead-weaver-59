@@ -40,7 +40,7 @@ const testimonials = [
 export const generateReviewSchema = () => {
   const reviews = testimonials.map((t, index) => ({
     "@type": "Review",
-    "@id": `https://deepcleanuk.com/#review-${index + 1}`,
+    "@id": `https://deepcleanco.uk/#review-${index + 1}`,
     "author": {
       "@type": "Person",
       "name": t.name
@@ -55,14 +55,14 @@ export const generateReviewSchema = () => {
     "datePublished": t.datePublished,
     "itemReviewed": {
       "@type": "LocalBusiness",
-      "@id": "https://deepcleanuk.com/#organization"
+      "@id": "https://deepcleanco.uk/#organization"
     }
   }));
 
   return {
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
-    "@id": "https://deepcleanuk.com/#organization",
+    "@id": "https://deepcleanco.uk/#organization",
     "name": "Deep Clean UK",
     "aggregateRating": {
       "@type": "AggregateRating",
