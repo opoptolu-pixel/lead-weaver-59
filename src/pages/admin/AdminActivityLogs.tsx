@@ -26,6 +26,7 @@ import {
   Send,
   MessageSquare,
   Smartphone,
+  History,
 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -51,7 +52,7 @@ import { useAdmin } from "@/contexts/AdminContext";
 import { usePagination } from "@/hooks/usePagination";
 import { PaginationControls } from "@/components/admin/PaginationControls";
 import { exportToCsv } from "@/lib/exportCsv";
-
+import LeadActivityTimeline from "@/components/admin/LeadActivityTimeline";
 interface ActivityLog {
   id: string;
   user_id: string;
@@ -122,6 +123,7 @@ export default function AdminActivityLogs() {
   const [entityFilter, setEntityFilter] = useState<string>("all");
   const [actionFilter, setActionFilter] = useState<string>("all");
   const [selectedLog, setSelectedLog] = useState<ActivityLog | null>(null);
+  const [timelineLeadId, setTimelineLeadId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchLogs();
@@ -555,12 +557,30 @@ export default function AdminActivityLogs() {
             <div className="space-y-6">
               {/* Summary Card */}
               <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
-                <p className="text-foreground font-medium text-lg">
-                  {getActivitySummary(selectedLog)}
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {format(new Date(selectedLog.created_at), "d MMMM yyyy 'at' HH:mm:ss")}
-                </p>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-foreground font-medium text-lg">
+                      {getActivitySummary(selectedLog)}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {format(new Date(selectedLog.created_at), "d MMMM yyyy 'at' HH:mm:ss")}
+                    </p>
+                  </div>
+                  {selectedLog.entity_type === "lead" && selectedLog.entity_id && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        setSelectedLog(null);
+                        setTimelineLeadId(selectedLog.entity_id);
+                      }}
+                      className="flex-shrink-0"
+                    >
+                      <History className="w-4 h-4 mr-2" />
+                      View Timeline
+                    </Button>
+                  )}
+                </div>
               </div>
 
               {/* Communication Flow - Show for confirmation/response actions */}
@@ -731,6 +751,13 @@ export default function AdminActivityLogs() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Lead Activity Timeline */}
+      <LeadActivityTimeline
+        leadId={timelineLeadId || ""}
+        open={!!timelineLeadId}
+        onOpenChange={(open) => !open && setTimelineLeadId(null)}
+      />
     </AdminLayout>
   );
 }
