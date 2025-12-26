@@ -22,11 +22,13 @@ import {
   GripVertical,
   Home,
   BedDouble,
+  History,
 } from "lucide-react";
 import { usePagination } from "@/hooks/usePagination";
 import { PaginationControls } from "@/components/admin/PaginationControls";
 import { exportToCsv } from "@/lib/exportCsv";
 import AdminLayout from "@/components/admin/AdminLayout";
+import LeadActivityTimeline from "@/components/admin/LeadActivityTimeline";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -182,6 +184,7 @@ export default function AdminLeads() {
   const [selectedLeadIds, setSelectedLeadIds] = useState<Set<string>>(new Set());
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
   const [draggedLead, setDraggedLead] = useState<Lead | null>(null);
+  const [timelineLeadId, setTimelineLeadId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchLeads();
@@ -1047,6 +1050,10 @@ export default function AdminLeads() {
                                     <Eye className="w-4 h-4 mr-2" />
                                     View Details
                                   </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => setTimelineLeadId(lead.id)}>
+                                    <History className="w-4 h-4 mr-2" />
+                                    Activity Timeline
+                                  </DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => handleSendEmail(lead)}>
                                     <Mail className="w-4 h-4 mr-2" />
                                     Send Email
@@ -1318,6 +1325,15 @@ export default function AdminLeads() {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Lead Activity Timeline */}
+        {timelineLeadId && (
+          <LeadActivityTimeline 
+            leadId={timelineLeadId}
+            open={!!timelineLeadId}
+            onOpenChange={(open) => !open && setTimelineLeadId(null)}
+          />
+        )}
       </TooltipProvider>
     </AdminLayout>
   );
