@@ -91,16 +91,20 @@ export function VisitorMapCard() {
   }, []);
 
   return (
-    <Card className="border-0 bg-gradient-to-br from-card via-card to-muted/30 shadow-elevated">
+    <Card className="relative border-0 bg-gradient-to-br from-card via-card to-muted/30 shadow-elevated overflow-hidden">
+      {/* Simulated data indicator */}
+      <div className="absolute top-4 right-4 z-10">
+        <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-600 border-amber-200 dark:text-amber-400 dark:border-amber-400/30">
+          Simulated
+        </Badge>
+      </div>
+
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2.5 text-lg font-semibold">
           <div className="p-2 bg-purple-500/10 rounded-lg">
             <Globe2 className="w-5 h-5 text-purple-500" />
           </div>
           <span>Visitor Locations</span>
-          <Badge variant="outline" className="ml-auto text-xs bg-amber-500/10 text-amber-600 border-amber-200">
-            Simulated Data
-          </Badge>
         </CardTitle>
       </CardHeader>
 
@@ -152,9 +156,10 @@ export function VisitorMapCard() {
           </svg>
           
           {/* Legend */}
-          <div className="absolute bottom-2 left-2 flex items-center gap-2 bg-card/80 backdrop-blur-sm rounded-lg px-2 py-1 text-xs">
-            <span className="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
-            <span className="text-muted-foreground">{visitors.length} active</span>
+          <div className="absolute bottom-2 left-2 flex items-center gap-2 bg-card/90 backdrop-blur-sm rounded-lg px-2.5 py-1.5 text-xs border border-border/50 shadow-sm">
+            <span className="w-2 h-2 rounded-full bg-secondary animate-pulse shrink-0"></span>
+            <span className="text-foreground font-medium">{visitors.length}</span>
+            <span className="text-muted-foreground">active</span>
           </div>
         </div>
 
