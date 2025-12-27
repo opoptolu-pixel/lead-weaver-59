@@ -1,6 +1,6 @@
 import { forwardRef } from "react";
 import { Link } from "react-router-dom";
-import logo from "@/assets/logo.svg";
+import logoPng from "@/assets/cleanda-logo-generated.png";
 
 interface LogoProps {
   size?: "sm" | "md" | "lg";
@@ -11,15 +11,15 @@ interface LogoProps {
 export const Logo = forwardRef<HTMLImageElement, LogoProps>(
   ({ size = "md", linkTo = "/", className = "" }, ref) => {
     const sizeClasses = {
-      sm: "h-8",
-      md: "h-12",
-      lg: "h-14",
+      sm: "h-7",
+      md: "h-9",
+      lg: "h-11",
     };
 
     const logoElement = (
       <img 
         ref={ref}
-        src={logo} 
+        src={logoPng} 
         alt="Cleanda" 
         className={`${sizeClasses[size]} w-auto ${className}`}
       />
