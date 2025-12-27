@@ -110,10 +110,10 @@ serve(async (req) => {
         // Send welcome email with magic link via Resend
         try {
           const magicLink = magicLinkData.properties?.action_link;
-          const emailSubject = "Welcome to Deep Clean UK - Access Your Account";
+          const emailSubject = "Welcome to Cleanda - Access Your Account";
           
           const emailResponse = await resend.emails.send({
-            from: "Deep Clean UK <noreply@deepcleanco.uk>",
+            from: "Cleanda <noreply@cleanda.co.uk>",
             to: [customerEmail],
             subject: emailSubject,
             html: `
@@ -125,7 +125,7 @@ serve(async (req) => {
               </head>
               <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
                 <div style="background: linear-gradient(135deg, #0B3D2E 0%, #145A44 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
-                  <h1 style="color: #ffffff; margin: 0; font-size: 28px;">Welcome to Deep Clean UK!</h1>
+                  <h1 style="color: #ffffff; margin: 0; font-size: 28px;">Welcome to Cleanda!</h1>
                   <p style="color: #7DD3A8; margin: 8px 0 0 0; font-size: 14px;">Partner Network</p>
                 </div>
                 
@@ -151,7 +151,7 @@ serve(async (req) => {
                   <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 25px 0;">
                   
                   <p style="font-size: 12px; color: #999; text-align: center;">
-                    © ${new Date().getFullYear()} Deep Clean UK · All rights reserved
+                    © ${new Date().getFullYear()} Cleanda · All rights reserved
                   </p>
                 </div>
               </body>

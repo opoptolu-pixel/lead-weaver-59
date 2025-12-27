@@ -335,8 +335,8 @@ export default function RequestCleaning() {
         "description": "Request free quotes from verified local cleaners for deep cleaning, end of tenancy, carpet cleaning and more across the UK.",
         "provider": {
           "@type": "Organization",
-          "name": "Deep Clean UK",
-          "@id": "https://deepcleanco.uk/#organization"
+          "name": "Cleanda",
+          "@id": "https://cleanda.co.uk/#organization"
         },
         "areaServed": {
           "@type": "Country",
@@ -352,11 +352,11 @@ export default function RequestCleaning() {
       },
       {
         "@type": "WebPage",
-        "@id": "https://deepcleanco.uk/request-cleaning#webpage",
-        "url": "https://deepcleanco.uk/request-cleaning",
-        "name": "Request a Free Cleaning Quote | Deep Clean UK",
+        "@id": "https://cleanda.co.uk/request-cleaning#webpage",
+        "url": "https://cleanda.co.uk/request-cleaning",
+        "name": "Request a Free Cleaning Quote | Cleanda",
         "description": "Get free quotes from verified local cleaners. Request deep cleaning, end of tenancy, carpet cleaning and more.",
-        "isPartOf": { "@id": "https://deepcleanco.uk/#website" },
+        "isPartOf": { "@id": "https://cleanda.co.uk/#website" },
         "breadcrumb": {
           "@type": "BreadcrumbList",
           "itemListElement": [
@@ -364,13 +364,13 @@ export default function RequestCleaning() {
               "@type": "ListItem",
               "position": 1,
               "name": "Home",
-              "item": "https://deepcleanco.uk"
+              "item": "https://cleanda.co.uk"
             },
             {
               "@type": "ListItem",
               "position": 2,
               "name": "Request Cleaning",
-              "item": "https://deepcleanco.uk/request-cleaning"
+              "item": "https://cleanda.co.uk/request-cleaning"
             }
           ]
         }
@@ -381,9 +381,9 @@ export default function RequestCleaning() {
   return (
     <div className="min-h-screen bg-primary flex flex-col">
       <SEOHead
-        title="Get Free Cleaning Quotes in Minutes | Request a Cleaner | Deep Clean UK"
+        title="Get Free Cleaning Quotes in Minutes | Request a Cleaner | Cleanda"
         description="Request free quotes from verified local cleaners. Choose your service, enter your postcode, and get contacted within 24 hours. No obligation, 100% free."
-        canonical="https://deepcleanco.uk/request-cleaning"
+        canonical="https://cleanda.co.uk/request-cleaning"
         structuredData={structuredData}
       />
       {/* Header */}
