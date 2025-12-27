@@ -61,15 +61,15 @@ const Index = () => {
       },
       {
         "@type": "WebPage",
-        "@id": "https://deepcleanco.uk/#webpage",
-        "url": "https://deepcleanco.uk",
-        "name": "Find Trusted Cleaners Near You | Free Quotes | Deep Clean UK",
+        "@id": "https://cleanda.co.uk/#webpage",
+        "url": "https://cleanda.co.uk",
+        "name": "Find Trusted Cleaners Near You | Free Quotes | Cleanda",
         "description": "Get free quotes from verified local cleaners in the UK. Compare prices for deep cleaning, end of tenancy, carpet cleaning & more.",
-        "isPartOf": { "@id": "https://deepcleanco.uk/#website" },
-        "about": { "@id": "https://deepcleanco.uk/#organization" },
+        "isPartOf": { "@id": "https://cleanda.co.uk/#website" },
+        "about": { "@id": "https://cleanda.co.uk/#organization" },
         "primaryImageOfPage": {
           "@type": "ImageObject",
-          "url": "https://deepcleanco.uk/og-image.png"
+          "url": "https://cleanda.co.uk/og-image.png"
         },
         "breadcrumb": {
           "@type": "BreadcrumbList",
@@ -78,19 +78,19 @@ const Index = () => {
               "@type": "ListItem",
               "position": 1,
               "name": "Home",
-              "item": "https://deepcleanco.uk"
+              "item": "https://cleanda.co.uk"
             }
           ]
         }
       },
       {
         "@type": "LocalBusiness",
-        "@id": "https://deepcleanco.uk/#localbusiness",
-        "name": "Deep Clean UK",
+        "@id": "https://cleanda.co.uk/#localbusiness",
+        "name": "Cleanda",
         "description": "UK's trusted platform connecting customers with verified professional cleaners for deep cleaning, end of tenancy cleaning, carpet cleaning, and more.",
-        "url": "https://deepcleanco.uk",
+        "url": "https://cleanda.co.uk",
         "telephone": "+44-7757-188-197",
-        "email": "hello@deepcleanco.uk",
+        "email": "hello@cleanda.co.uk",
         "address": {
           "@type": "PostalAddress",
           "streetAddress": "128 City Road",
@@ -99,7 +99,7 @@ const Index = () => {
           "addressCountry": "GB"
         },
         "priceRange": "£100-£500",
-        "image": "https://deepcleanco.uk/og-image.png",
+        "image": "https://cleanda.co.uk/og-image.png",
         "aggregateRating": {
           "@type": "AggregateRating",
           "ratingValue": "4.8",
@@ -116,9 +116,9 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <SEOHead
-        title="Find Trusted Cleaners Near You | Free Quotes | Deep Clean UK"
+        title="Find Trusted Cleaners Near You | Free Quotes | Cleanda"
         description="Get free quotes from verified local cleaners in the UK. Compare prices for deep cleaning, end of tenancy, carpet cleaning & more. Fast response within 24 hours."
-        canonical="https://deepcleanco.uk"
+        canonical="https://cleanda.co.uk"
         structuredData={structuredData}
       />
       <Header />

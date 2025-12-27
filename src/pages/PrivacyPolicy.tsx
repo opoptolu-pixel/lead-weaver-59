@@ -6,17 +6,17 @@ const PrivacyPolicy = () => {
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    "@id": "https://deepcleanco.uk/privacy-policy#webpage",
-    "url": "https://deepcleanco.uk/privacy-policy",
-    "name": "Privacy Policy | Deep Clean UK",
-    "description": "Learn how Deep Clean UK collects, uses, and protects your personal information.",
-    "isPartOf": { "@id": "https://deepcleanco.uk/#website" },
-    "about": { "@id": "https://deepcleanco.uk/#organization" },
+    "@id": "https://cleanda.co.uk/privacy-policy#webpage",
+    "url": "https://cleanda.co.uk/privacy-policy",
+    "name": "Privacy Policy | Cleanda",
+    "description": "Learn how Cleanda collects, uses, and protects your personal information.",
+    "isPartOf": { "@id": "https://cleanda.co.uk/#website" },
+    "about": { "@id": "https://cleanda.co.uk/#organization" },
     "breadcrumb": {
       "@type": "BreadcrumbList",
       "itemListElement": [
-        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://deepcleanco.uk" },
-        { "@type": "ListItem", "position": 2, "name": "Privacy Policy", "item": "https://deepcleanco.uk/privacy-policy" }
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://cleanda.co.uk" },
+        { "@type": "ListItem", "position": 2, "name": "Privacy Policy", "item": "https://cleanda.co.uk/privacy-policy" }
       ]
     }
   };
@@ -24,9 +24,9 @@ const PrivacyPolicy = () => {
   return (
     <div className="min-h-screen bg-background">
       <SEOHead
-        title="Privacy Policy | Deep Clean UK"
-        description="Learn how Deep Clean UK collects, uses, and protects your personal information. Our privacy policy explains your data rights and our commitment to data security."
-        canonical="https://deepcleanco.uk/privacy-policy"
+        title="Privacy Policy | Cleanda"
+        description="Learn how Cleanda collects, uses, and protects your personal information. Our privacy policy explains your data rights and our commitment to data security."
+        canonical="https://cleanda.co.uk/privacy-policy"
         structuredData={structuredData}
       />
       <Header />
@@ -37,7 +37,7 @@ const PrivacyPolicy = () => {
         <div className="prose prose-lg max-w-none space-y-8 text-foreground">
           <section className="p-4 bg-muted rounded-lg mb-8">
             <p className="text-muted-foreground text-sm">
-              Deep Clean UK is a trading name of <strong>Orbit Shade Ltd</strong> (Company No. 15337705), registered in England and Wales. 
+              Cleanda is a trading name of <strong>Orbit Shade Ltd</strong> (Company No. 15337705), registered in England and Wales. 
               Registered address: 128 City Road, London, EC1V 2NX, United Kingdom.
             </p>
           </section>
@@ -45,7 +45,7 @@ const PrivacyPolicy = () => {
           <section>
             <h2 className="text-2xl font-semibold mb-4">1. Introduction</h2>
             <p className="text-muted-foreground leading-relaxed">
-              Deep Clean UK ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our lead generation platform connecting cleaning businesses with potential customers.
+              Cleanda ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our platform connecting cleaning businesses with potential customers. Cleanda is a platform that connects customers with independent cleaning businesses. We do not provide cleaning services directly.
             </p>
           </section>
 
@@ -73,7 +73,7 @@ const PrivacyPolicy = () => {
             <h2 className="text-2xl font-semibold mb-4">3. How We Use Your Information</h2>
             <p className="text-muted-foreground leading-relaxed mb-4">We use the information we collect to:</p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Provide and maintain our lead generation services</li>
+              <li>Provide and maintain our platform services</li>
               <li>Process transactions and send related information</li>
               <li>Verify your business identity and credentials</li>
               <li>Send you marketing communications (with your consent)</li>
@@ -148,8 +148,8 @@ const PrivacyPolicy = () => {
               If you have any questions about this Privacy Policy, please contact us at:
             </p>
             <div className="mt-4 p-4 bg-muted rounded-lg">
-              <p className="text-foreground">Deep Clean UK</p>
-              <p className="text-muted-foreground">Email: hello@deepcleanco.uk</p>
+              <p className="text-foreground">Cleanda</p>
+              <p className="text-muted-foreground">Email: hello@cleanda.co.uk</p>
               <p className="text-muted-foreground">Phone: 07757 188 197</p>
             </div>
           </section>

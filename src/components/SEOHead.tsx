@@ -15,13 +15,13 @@ export const SEOHead = ({
   description,
   canonical,
   ogType = "website",
-  ogImage = "https://deepcleanco.uk/og-image.png",
+  ogImage = "https://cleanda.co.uk/og-image.png",
   noIndex = false,
   structuredData,
 }: SEOHeadProps) => {
   useEffect(() => {
     // Update document title
-    document.title = title.includes("Deep Clean UK") ? title : `${title} | Deep Clean UK`;
+    document.title = title.includes("Cleanda") ? title : `${title} | Cleanda`;
 
     // Update or create meta tags
     const updateMeta = (name: string, content: string, isProperty = false) => {

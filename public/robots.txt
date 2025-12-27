@@ -1,6 +1,6 @@
-# Deep Clean UK - Robots.txt
-# https://deepcleanco.uk
-# Updated: 2025-06-25
+# Cleanda - Robots.txt
+# https://cleanda.co.uk
+# Updated: 2025-12-27
 
 # Allow all search engines full access
 User-agent: *
@@ -79,4 +79,4 @@ User-agent: Google-Extended
 Disallow: /
 
 # Sitemap location
-Sitemap: https://deepcleanco.uk/sitemap.xml
+Sitemap: https://cleanda.co.uk/sitemap.xml
