@@ -41,7 +41,7 @@ export const Footer = forwardRef<HTMLElement>((_, ref) => {
           {/* Brand */}
           <div className="lg:col-span-2">
             <div className="mb-6">
-              <Logo size="md" linkTo="/" />
+              <Logo size="md" variant="white" linkTo="/" />
             </div>
             <p className="text-primary-foreground/70 text-sm mb-4 max-w-sm leading-relaxed">
               Cleanda is a platform that connects customers with independent cleaning businesses. We do not provide cleaning services directly.
