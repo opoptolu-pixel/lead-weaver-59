@@ -131,7 +131,7 @@ serve(async (req) => {
       `We've received your cleaning request for ${lead.job_type} at ${lead.postcode}.\n\n` +
       `Reply YES to confirm and get matched with local cleaning professionals.\n\n` +
       `Reply NO to cancel this request.\n\n` +
-      `- Deep Clean UK`;
+      `- Cleanda`;
 
     // Calculate auto-publish time
     const autoPublishAt = new Date();

@@ -44,8 +44,8 @@ export const generateReviewSchema = () => {
     "@type": "Review",
     "itemReviewed": {
       "@type": "Organization",
-      "@id": "https://deepcleanco.uk/#organization",
-      "name": "Deep Clean UK"
+      "@id": "https://cleanda.co.uk/#organization",
+      "name": "Cleanda"
     },
     "author": {
       "@type": "Person",

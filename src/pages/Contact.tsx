@@ -108,12 +108,12 @@ const Contact = () => {
     "@graph": [
       {
         "@type": "ContactPage",
-        "@id": "https://deepcleanco.uk/contact#webpage",
-        "url": "https://deepcleanco.uk/contact",
-        "name": "Contact Deep Clean UK - Get in Touch",
-        "description": "Contact Deep Clean UK for support, questions or partnership inquiries.",
-        "isPartOf": { "@id": "https://deepcleanco.uk/#website" },
-        "about": { "@id": "https://deepcleanco.uk/#organization" },
+        "@id": "https://cleanda.co.uk/contact#webpage",
+        "url": "https://cleanda.co.uk/contact",
+        "name": "Contact Cleanda - Get in Touch",
+        "description": "Contact Cleanda for support, questions or partnership inquiries.",
+        "isPartOf": { "@id": "https://cleanda.co.uk/#website" },
+        "about": { "@id": "https://cleanda.co.uk/#organization" },
         "breadcrumb": {
           "@type": "BreadcrumbList",
           "itemListElement": [
@@ -121,24 +121,24 @@ const Contact = () => {
               "@type": "ListItem",
               "position": 1,
               "name": "Home",
-              "item": "https://deepcleanco.uk"
+              "item": "https://cleanda.co.uk"
             },
             {
               "@type": "ListItem",
               "position": 2,
               "name": "Contact",
-              "item": "https://deepcleanco.uk/contact"
+              "item": "https://cleanda.co.uk/contact"
             }
           ]
         }
       },
       {
         "@type": "Organization",
-        "name": "Deep Clean UK",
+        "name": "Cleanda",
         "contactPoint": {
           "@type": "ContactPoint",
           "telephone": "+44-7757-188-197",
-          "email": "hello@deepcleanco.uk",
+          "email": "hello@cleanda.co.uk",
           "contactType": "customer service",
           "areaServed": "GB",
           "availableLanguage": "English",
@@ -156,9 +156,9 @@ const Contact = () => {
   return (
     <div className="min-h-screen bg-background">
       <SEOHead
-        title="Contact Us | Get Support & Help | Deep Clean UK"
-        description="Contact Deep Clean UK for support, partnership inquiries, or questions about finding cleaners. Email hello@deepcleanco.uk or call 07757 188 197. Response within 1-2 business days."
-        canonical="https://deepcleanco.uk/contact"
+        title="Contact Us | Get Support & Help | Cleanda"
+        description="Contact Cleanda for support, partnership inquiries, or questions about finding cleaners. Email hello@cleanda.co.uk or call 07757 188 197. Response within 1-2 business days."
+        canonical="https://cleanda.co.uk/contact"
         structuredData={contactStructuredData}
       />
       <Header />
@@ -194,8 +194,8 @@ const Contact = () => {
                   </div>
                   <div>
                     <h3 className="font-medium text-foreground">Email</h3>
-                    <a href="mailto:hello@deepcleanco.uk" className="text-muted-foreground hover:text-primary transition-colors">
-                      hello@deepcleanco.uk
+                    <a href="mailto:hello@cleanda.co.uk" className="text-muted-foreground hover:text-primary transition-colors">
+                      hello@cleanda.co.uk
                     </a>
                   </div>
                 </div>
@@ -248,7 +248,7 @@ const Contact = () => {
                 <h3 className="font-medium text-foreground">Company Details</h3>
               </div>
               <div className="space-y-2 text-sm text-muted-foreground">
-                <p><strong>Trading Name:</strong> Deep Clean UK</p>
+                <p><strong>Trading Name:</strong> Cleanda</p>
                 <p><strong>Legal Entity:</strong> Orbit Shade Ltd</p>
                 <p><strong>Company Number:</strong> 15337705</p>
                 <p><strong>Registered in:</strong> England and Wales</p>

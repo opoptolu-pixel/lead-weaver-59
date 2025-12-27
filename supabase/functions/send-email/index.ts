@@ -6,9 +6,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const FROM_EMAIL = "Deep Clean UK <hello@deepcleanco.uk>";
+const FROM_EMAIL = "Cleanda <hello@cleanda.co.uk>";
 const RESEND_API_URL = "https://api.resend.com/emails";
-const UNSUBSCRIBE_EMAIL = "unsubscribe@deepcleanco.uk";
+const UNSUBSCRIBE_EMAIL = "unsubscribe@cleanda.co.uk";
 
 interface EmailRequest {
   to: string;
@@ -77,7 +77,7 @@ serve(async (req) => {
       to: [to],
       subject: subject,
       html: html,
-      reply_to: replyTo || "hello@deepcleanco.uk", // Always set reply-to
+      reply_to: replyTo || "hello@cleanda.co.uk", // Always set reply-to
       headers: {
         "List-Unsubscribe": `<mailto:${UNSUBSCRIBE_EMAIL}?subject=Unsubscribe%20${encodeURIComponent(to)}>`,
         "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",

@@ -33,22 +33,22 @@ const Blog = () => {
   const blogStructuredData = {
     "@context": "https://schema.org",
     "@type": "Blog",
-    "@id": "https://deepcleanco.uk/blog#blog",
-    "name": "Deep Clean UK Blog - Cleaning Tips & Guides",
+    "@id": "https://cleanda.co.uk/blog#blog",
+    "name": "Cleanda Blog - Cleaning Tips & Guides",
     "description": "Expert cleaning tips, guides, and advice for homes and businesses across the UK.",
-    "url": "https://deepcleanco.uk/blog",
+    "url": "https://cleanda.co.uk/blog",
     "publisher": {
-      "@id": "https://deepcleanco.uk/#organization"
+      "@id": "https://cleanda.co.uk/#organization"
     },
     "blogPost": blogPosts.slice(0, 10).map(post => ({
       "@type": "BlogPosting",
       "headline": post.title,
       "description": post.excerpt,
-      "url": `https://deepcleanco.uk/blog/${post.slug}`,
+      "url": `https://cleanda.co.uk/blog/${post.slug}`,
       "datePublished": post.publishedAt,
       "author": {
         "@type": "Organization",
-        "name": "Deep Clean UK"
+        "name": "Cleanda"
       }
     }))
   };
@@ -56,9 +56,9 @@ const Blog = () => {
   return (
     <div className="min-h-screen bg-background">
       <SEOHead
-        title="Cleaning Tips & Guides | Expert Advice | Deep Clean UK Blog"
+        title="Cleaning Tips & Guides | Expert Advice | Cleanda Blog"
         description="Expert cleaning tips, guides, and advice for UK homes and businesses. Learn professional techniques for deep cleaning, carpet care, end of tenancy cleaning and more."
-        canonical="https://deepcleanco.uk/blog"
+        canonical="https://cleanda.co.uk/blog"
         structuredData={blogStructuredData}
       />
       <Header />

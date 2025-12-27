@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const FROM_EMAIL = "Deep Clean UK <hello@deepcleanco.uk>";
+const FROM_EMAIL = "Cleanda <hello@cleanda.co.uk>";
 const RESEND_API_URL = "https://api.resend.com/emails";
 
 interface CleaningRequest {
@@ -99,10 +99,9 @@ const generateConfirmationEmail = (
     <tr>
       <td align="center">
         <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-          <!-- Header -->
           <tr>
             <td style="background-color: #0B3D2E; padding: 30px 40px; text-align: center;">
-              <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 700;">Deep Clean UK</h1>
+              <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 700;">Cleanda</h1>
               <p style="color: #7DD3A8; margin: 8px 0 0 0; font-size: 14px;">Professional Cleaning Services</p>
             </td>
           </tr>
@@ -121,7 +120,7 @@ const generateConfirmationEmail = (
             <td style="padding: 0 40px 30px 40px;">
               <h2 style="color: #0B3D2E; margin: 0 0 10px 0; font-size: 24px; text-align: center;">Request Received!</h2>
               <p style="color: #666666; font-size: 16px; line-height: 1.6; text-align: center; margin: 0 0 30px 0;">
-                Hi ${customerName}, thank you for choosing Deep Clean UK. We've received your cleaning request and will connect you with a trusted local cleaner soon.
+                Hi ${customerName}, thank you for choosing Cleanda. We've received your cleaning request and will connect you with a trusted local cleaner soon.
               </p>
               
               <!-- Booking Details Box -->
@@ -178,7 +177,7 @@ const generateConfirmationEmail = (
                 Questions? Reply to this email or visit our website.
               </p>
               <p style="color: #aaaaaa; font-size: 12px; margin: 0;">
-                © ${new Date().getFullYear()} Deep Clean UK. All rights reserved.
+                © ${new Date().getFullYear()} Cleanda. All rights reserved.
               </p>
             </td>
           </tr>

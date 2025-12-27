@@ -118,8 +118,8 @@ const handler = async (req: Request): Promise<Response> => {
     try {
       const adminSubject = `New Contact Form Submission: ${subject}`;
       const adminEmailResponse = await resend.emails.send({
-        from: "Deep Clean UK <hello@deepcleanco.uk>",
-        to: ["hello@deepcleanco.uk"],
+        from: "Cleanda <hello@cleanda.co.uk>",
+        to: ["hello@cleanda.co.uk"],
         subject: adminSubject,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -150,7 +150,7 @@ const handler = async (req: Request): Promise<Response> => {
         .from("email_logs")
         .insert({
           template_name: "contact_admin_notification",
-          recipient_email: "hello@deepcleanco.uk",
+          recipient_email: "hello@cleanda.co.uk",
           subject: adminSubject,
           status: "sent",
           resend_id: adminEmailResponse.data?.id || null,
@@ -165,9 +165,9 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send confirmation email to user
     try {
-      const userSubject = "We've received your message - Deep Clean UK";
+      const userSubject = "We've received your message - Cleanda";
       const userEmailResponse = await resend.emails.send({
-        from: "Deep Clean UK <hello@deepcleanco.uk>",
+        from: "Cleanda <hello@cleanda.co.uk>",
         to: [email],
         subject: userSubject,
         html: `
@@ -189,16 +189,16 @@ const handler = async (req: Request): Promise<Response> => {
               
               <p style="margin-top: 30px;">
                 Best regards,<br>
-                <strong>The Deep Clean UK Team</strong>
+                <strong>The Cleanda Team</strong>
               </p>
               
               <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;" />
               
               <p style="color: #666; font-size: 12px; text-align: center;">
-                © ${new Date().getFullYear()} Deep Clean UK · All rights reserved<br>
+                © ${new Date().getFullYear()} Cleanda · All rights reserved<br>
                 A trading name of Orbit Shade Ltd (Company No. 15337705)<br>
                 128 City Road, London, EC1V 2NX<br><br>
-                <a href="mailto:unsubscribe@deepcleanco.uk?subject=Unsubscribe" style="color: #888;">Unsubscribe</a>
+                <a href="mailto:unsubscribe@cleanda.co.uk?subject=Unsubscribe" style="color: #888;">Unsubscribe</a>
               </p>
             </div>
           </div>

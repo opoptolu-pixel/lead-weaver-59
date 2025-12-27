@@ -42,23 +42,23 @@ const BlogPost = () => {
   const articleStructuredData = {
     "@context": "https://schema.org",
     "@type": "Article",
-    "@id": `https://deepcleanco.uk/blog/${post.slug}#article`,
+    "@id": `https://cleanda.co.uk/blog/${post.slug}#article`,
     "headline": post.title,
     "description": post.metaDescription,
-    "image": post.featuredImage || "https://deepcleanco.uk/og-image.png",
+    "image": post.featuredImage || "https://cleanda.co.uk/og-image.png",
     "datePublished": post.publishedAt,
     "dateModified": post.publishedAt,
     "author": {
       "@type": "Organization",
-      "name": "Deep Clean UK",
-      "@id": "https://deepcleanco.uk/#organization"
+      "name": "Cleanda",
+      "@id": "https://cleanda.co.uk/#organization"
     },
     "publisher": {
-      "@id": "https://deepcleanco.uk/#organization"
+      "@id": "https://cleanda.co.uk/#organization"
     },
     "mainEntityOfPage": {
       "@type": "WebPage",
-      "@id": `https://deepcleanco.uk/blog/${post.slug}`
+      "@id": `https://cleanda.co.uk/blog/${post.slug}`
     },
     "keywords": post.keywords.join(", "),
     "wordCount": post.content.split(/\s+/).length,
@@ -74,19 +74,19 @@ const BlogPost = () => {
         "@type": "ListItem",
         "position": 1,
         "name": "Home",
-        "item": "https://deepcleanco.uk"
+        "item": "https://cleanda.co.uk"
       },
       {
         "@type": "ListItem",
         "position": 2,
         "name": "Blog",
-        "item": "https://deepcleanco.uk/blog"
+        "item": "https://cleanda.co.uk/blog"
       },
       {
         "@type": "ListItem",
         "position": 3,
         "name": post.title,
-        "item": `https://deepcleanco.uk/blog/${post.slug}`
+        "item": `https://cleanda.co.uk/blog/${post.slug}`
       }
     ]
   };
@@ -99,9 +99,9 @@ const BlogPost = () => {
   return (
     <div className="min-h-screen bg-background">
       <SEOHead
-        title={`${post.title} | Deep Clean UK Blog`}
+        title={`${post.title} | Cleanda Blog`}
         description={post.metaDescription}
-        canonical={`https://deepcleanco.uk/blog/${post.slug}`}
+        canonical={`https://cleanda.co.uk/blog/${post.slug}`}
         structuredData={combinedStructuredData}
       />
       <Header />
@@ -190,7 +190,7 @@ const BlogPost = () => {
           {/* Social Sharing */}
           <div className="mt-10 pt-6 border-t border-border">
             <SocialShareButtons 
-              url={`https://deepcleanco.uk/blog/${post.slug}`}
+              url={`https://cleanda.co.uk/blog/${post.slug}`}
               title={post.title}
               description={post.metaDescription}
             />

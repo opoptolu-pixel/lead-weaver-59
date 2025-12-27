@@ -9,8 +9,8 @@ const corsHeaders = {
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const FROM_EMAIL = "hello@deepcleanco.uk";
-const UNSUBSCRIBE_EMAIL = "unsubscribe@deepcleanco.uk";
+const FROM_EMAIL = "hello@cleanda.co.uk";
+const UNSUBSCRIBE_EMAIL = "unsubscribe@cleanda.co.uk";
 const BATCH_SIZE = 50;
 
 interface CampaignRequest {
@@ -77,7 +77,7 @@ serve(async (req: Request) => {
       const htmlWithUnsubscribe = appendUnsubscribeLink(html_body, unsubscribeUrl);
       
       const { error: sendError } = await resend.emails.send({
-        from: `Deep Clean UK <${FROM_EMAIL}>`,
+        from: `Cleanda <${FROM_EMAIL}>`,
         to: [test_email],
         subject: `[TEST] ${subject}`,
         html: htmlWithUnsubscribe,
@@ -144,7 +144,7 @@ serve(async (req: Request) => {
           const htmlWithUnsubscribe = appendUnsubscribeLink(html_body, unsubscribeUrl);
           
           const { error: sendError } = await resend.emails.send({
-            from: `Deep Clean UK <${FROM_EMAIL}>`,
+            from: `Cleanda <${FROM_EMAIL}>`,
             to: [subscriber.email],
             subject: subject,
             html: htmlWithUnsubscribe,
@@ -214,7 +214,7 @@ function appendUnsubscribeLink(html: string, unsubscribeUrl: string): string {
       <tr>
         <td align="center" style="padding: 20px;">
           <p style="color: #888888; font-size: 12px; line-height: 1.5; margin: 0;">
-            You're receiving this email because you signed up at Deep Clean UK.<br>
+            You're receiving this email because you signed up at Cleanda.<br>
             <a href="${unsubscribeUrl}" style="color: #0B3D2E; text-decoration: underline;">Unsubscribe</a> from these emails.
           </p>
         </td>
