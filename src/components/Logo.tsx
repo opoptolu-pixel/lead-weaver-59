@@ -1,25 +1,29 @@
 import { forwardRef } from "react";
 import { Link } from "react-router-dom";
-import logoPng from "@/assets/cleanda-logo-generated.png";
+import logoDark from "@/assets/cleanda-logo-dark.png";
+import logoWhite from "@/assets/cleanda-logo-white.png";
 
 interface LogoProps {
   size?: "sm" | "md" | "lg";
+  variant?: "dark" | "white";
   linkTo?: string;
   className?: string;
 }
 
 export const Logo = forwardRef<HTMLImageElement, LogoProps>(
-  ({ size = "md", linkTo = "/", className = "" }, ref) => {
+  ({ size = "md", variant = "dark", linkTo = "/", className = "" }, ref) => {
     const sizeClasses = {
       sm: "h-7",
       md: "h-9",
       lg: "h-11",
     };
 
+    const logoSrc = variant === "white" ? logoWhite : logoDark;
+
     const logoElement = (
       <img 
         ref={ref}
-        src={logoPng} 
+        src={logoSrc} 
         alt="Cleanda" 
         className={`${sizeClasses[size]} w-auto ${className}`}
       />
