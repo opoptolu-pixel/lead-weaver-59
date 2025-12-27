@@ -6,17 +6,17 @@ const TermsOfUse = () => {
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    "@id": "https://deepcleanco.uk/terms-of-use#webpage",
-    "url": "https://deepcleanco.uk/terms-of-use",
-    "name": "Terms of Use | Deep Clean UK",
-    "description": "Read the terms and conditions for using Deep Clean UK's lead generation platform.",
-    "isPartOf": { "@id": "https://deepcleanco.uk/#website" },
-    "about": { "@id": "https://deepcleanco.uk/#organization" },
+    "@id": "https://cleanda.co.uk/terms-of-use#webpage",
+    "url": "https://cleanda.co.uk/terms-of-use",
+    "name": "Terms of Use | Cleanda",
+    "description": "Read the terms and conditions for using Cleanda's platform.",
+    "isPartOf": { "@id": "https://cleanda.co.uk/#website" },
+    "about": { "@id": "https://cleanda.co.uk/#organization" },
     "breadcrumb": {
       "@type": "BreadcrumbList",
       "itemListElement": [
-        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://deepcleanco.uk" },
-        { "@type": "ListItem", "position": 2, "name": "Terms of Use", "item": "https://deepcleanco.uk/terms-of-use" }
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://cleanda.co.uk" },
+        { "@type": "ListItem", "position": 2, "name": "Terms of Use", "item": "https://cleanda.co.uk/terms-of-use" }
       ]
     }
   };
@@ -24,9 +24,9 @@ const TermsOfUse = () => {
   return (
     <div className="min-h-screen bg-background">
       <SEOHead
-        title="Terms of Use | Deep Clean UK"
-        description="Read the terms and conditions for using Deep Clean UK's lead generation platform. Understand your rights and responsibilities as a registered user."
-        canonical="https://deepcleanco.uk/terms-of-use"
+        title="Terms of Use | Cleanda"
+        description="Read the terms and conditions for using Cleanda's platform. Understand your rights and responsibilities as a registered user."
+        canonical="https://cleanda.co.uk/terms-of-use"
         structuredData={structuredData}
       />
       <Header />
@@ -37,7 +37,7 @@ const TermsOfUse = () => {
         <div className="prose prose-lg max-w-none space-y-8 text-foreground">
           <section className="p-4 bg-muted rounded-lg mb-8">
             <p className="text-muted-foreground text-sm">
-              Deep Clean UK is a trading name of <strong>Orbit Shade Ltd</strong> (Company No. 15337705), registered in England and Wales. 
+              Cleanda is a trading name of <strong>Orbit Shade Ltd</strong> (Company No. 15337705), registered in England and Wales. 
               Registered address: 128 City Road, London, EC1V 2NX, United Kingdom.
             </p>
           </section>
@@ -45,14 +45,14 @@ const TermsOfUse = () => {
           <section>
             <h2 className="text-2xl font-semibold mb-4">1. Agreement to Terms</h2>
             <p className="text-muted-foreground leading-relaxed">
-              By accessing or using the Deep Clean UK platform, you agree to be bound by these Terms of Use. If you do not agree to these terms, you may not use our services.
+              By accessing or using the Cleanda platform, you agree to be bound by these Terms of Use. If you do not agree to these terms, you may not use our services. Cleanda is a platform that connects customers with independent cleaning businesses. We do not provide cleaning services directly.
             </p>
           </section>
 
           <section>
             <h2 className="text-2xl font-semibold mb-4">2. Description of Service</h2>
             <p className="text-muted-foreground leading-relaxed">
-              Deep Clean UK is a lead generation platform that connects cleaning businesses with potential customers. We provide leads containing customer contact information and job details. Our service operates on a pay-per-lead model where businesses purchase credits to unlock lead information.
+              Cleanda is a marketplace platform that connects cleaning businesses with potential customers. We provide leads containing customer contact information and job details. Our service operates on a pay-per-lead model where businesses purchase credits to unlock lead information. Typical jobs start from £100+.
             </p>
           </section>
 
@@ -114,21 +114,21 @@ const TermsOfUse = () => {
           <section>
             <h2 className="text-2xl font-semibold mb-4">9. Intellectual Property</h2>
             <p className="text-muted-foreground leading-relaxed">
-              All content on the Deep Clean UK platform, including logos, text, graphics, and software, is our property or licensed to us. You may not copy, modify, or distribute this content without our permission.
+              All content on the Cleanda platform, including logos, text, graphics, and software, is our property or licensed to us. You may not copy, modify, or distribute this content without our permission.
             </p>
           </section>
 
           <section>
             <h2 className="text-2xl font-semibold mb-4">10. Limitation of Liability</h2>
             <p className="text-muted-foreground leading-relaxed">
-              To the maximum extent permitted by law, Deep Clean UK shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of the platform. Our total liability shall not exceed the amount you have paid us in the preceding 12 months.
+              To the maximum extent permitted by law, Cleanda shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of the platform. Our total liability shall not exceed the amount you have paid us in the preceding 12 months.
             </p>
           </section>
 
           <section>
             <h2 className="text-2xl font-semibold mb-4">11. Indemnification</h2>
             <p className="text-muted-foreground leading-relaxed">
-              You agree to indemnify and hold Deep Clean UK harmless from any claims, damages, or expenses arising from your use of the platform, violation of these terms, or infringement of any third-party rights.
+              You agree to indemnify and hold Cleanda harmless from any claims, damages, or expenses arising from your use of the platform, violation of these terms, or infringement of any third-party rights.
             </p>
           </section>
 
@@ -157,8 +157,8 @@ const TermsOfUse = () => {
             <h2 className="text-2xl font-semibold mb-4">15. Contact Information</h2>
             <p className="text-muted-foreground leading-relaxed">For questions about these terms:</p>
             <div className="mt-4 p-4 bg-muted rounded-lg">
-              <p className="text-foreground">Deep Clean UK</p>
-              <p className="text-muted-foreground">Email: hello@deepcleanco.uk</p>
+              <p className="text-foreground">Cleanda</p>
+              <p className="text-muted-foreground">Email: hello@cleanda.co.uk</p>
               <p className="text-muted-foreground">Phone: 07757 188 197</p>
             </div>
           </section>

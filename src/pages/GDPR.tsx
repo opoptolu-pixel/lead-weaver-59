@@ -6,17 +6,17 @@ const GDPR = () => {
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    "@id": "https://deepcleanco.uk/gdpr#webpage",
-    "url": "https://deepcleanco.uk/gdpr",
-    "name": "GDPR Compliance | Deep Clean UK",
-    "description": "Learn about Deep Clean UK's GDPR compliance and your data rights.",
-    "isPartOf": { "@id": "https://deepcleanco.uk/#website" },
-    "about": { "@id": "https://deepcleanco.uk/#organization" },
+    "@id": "https://cleanda.co.uk/gdpr#webpage",
+    "url": "https://cleanda.co.uk/gdpr",
+    "name": "GDPR Compliance | Cleanda",
+    "description": "Learn about Cleanda's GDPR compliance and your data rights.",
+    "isPartOf": { "@id": "https://cleanda.co.uk/#website" },
+    "about": { "@id": "https://cleanda.co.uk/#organization" },
     "breadcrumb": {
       "@type": "BreadcrumbList",
       "itemListElement": [
-        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://deepcleanco.uk" },
-        { "@type": "ListItem", "position": 2, "name": "GDPR Compliance", "item": "https://deepcleanco.uk/gdpr" }
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://cleanda.co.uk" },
+        { "@type": "ListItem", "position": 2, "name": "GDPR Compliance", "item": "https://cleanda.co.uk/gdpr" }
       ]
     }
   };
@@ -24,9 +24,9 @@ const GDPR = () => {
   return (
     <div className="min-h-screen bg-background">
       <SEOHead
-        title="GDPR Compliance | Deep Clean UK"
-        description="Learn about Deep Clean UK's GDPR compliance, your data rights, and how we protect your personal information in accordance with UK data protection law."
-        canonical="https://deepcleanco.uk/gdpr"
+        title="GDPR Compliance | Cleanda"
+        description="Learn about Cleanda's GDPR compliance, your data rights, and how we protect your personal information in accordance with UK data protection law."
+        canonical="https://cleanda.co.uk/gdpr"
         structuredData={structuredData}
       />
       <Header />
@@ -37,7 +37,7 @@ const GDPR = () => {
         <div className="prose prose-lg max-w-none space-y-8 text-foreground">
           <section className="p-4 bg-muted rounded-lg mb-8">
             <p className="text-muted-foreground text-sm">
-              Deep Clean UK is a trading name of <strong>Orbit Shade Ltd</strong> (Company No. 15337705), registered in England and Wales. 
+              Cleanda is a trading name of <strong>Orbit Shade Ltd</strong> (Company No. 15337705), registered in England and Wales. 
               Registered address: 128 City Road, London, EC1V 2NX, United Kingdom.
             </p>
           </section>
@@ -45,19 +45,19 @@ const GDPR = () => {
           <section>
             <h2 className="text-2xl font-semibold mb-4">1. Our Commitment to GDPR</h2>
             <p className="text-muted-foreground leading-relaxed">
-              Deep Clean UK is fully committed to complying with the UK General Data Protection Regulation (UK GDPR) and the Data Protection Act 2018. We take the protection of your personal data seriously and have implemented robust measures to ensure your rights are protected.
+              Cleanda is fully committed to complying with the UK General Data Protection Regulation (UK GDPR) and the Data Protection Act 2018. We take the protection of your personal data seriously and have implemented robust measures to ensure your rights are protected. Cleanda is a platform that connects customers with independent cleaning businesses. We do not provide cleaning services directly.
             </p>
           </section>
 
           <section>
             <h2 className="text-2xl font-semibold mb-4">2. Data Controller</h2>
             <p className="text-muted-foreground leading-relaxed">
-              Deep Clean UK acts as the Data Controller for the personal data we collect and process. We determine the purposes and means of processing personal data on our platform.
+              Cleanda acts as the Data Controller for the personal data we collect and process. We determine the purposes and means of processing personal data on our platform.
             </p>
             <div className="mt-4 p-4 bg-muted rounded-lg">
               <p className="text-foreground font-medium">Data Controller Contact:</p>
-              <p className="text-muted-foreground">Deep Clean UK</p>
-              <p className="text-muted-foreground">Email: hello@deepcleanco.uk</p>
+              <p className="text-muted-foreground">Cleanda</p>
+              <p className="text-muted-foreground">Email: hello@cleanda.co.uk</p>
               <p className="text-muted-foreground">Phone: 07757 188 197</p>
             </div>
           </section>
@@ -69,7 +69,7 @@ const GDPR = () => {
             <div className="space-y-4">
               <div className="p-4 border border-border rounded-lg">
                 <h4 className="font-medium text-foreground">Contract Performance</h4>
-                <p className="text-muted-foreground text-sm mt-1">Processing necessary to provide our lead generation services and manage your account.</p>
+                <p className="text-muted-foreground text-sm mt-1">Processing necessary to provide our platform services and manage your account.</p>
               </div>
               
               <div className="p-4 border border-border rounded-lg">
@@ -172,7 +172,7 @@ const GDPR = () => {
               To exercise any of your rights, please contact us using one of the following methods:
             </p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Email us: hello@deepcleanco.uk</li>
+              <li>Email us: hello@cleanda.co.uk</li>
               <li>Call us: 07757 188 197</li>
               <li>Use the data request form in your account settings</li>
             </ul>
@@ -273,8 +273,8 @@ const GDPR = () => {
             </p>
             <div className="mt-4 p-4 bg-muted rounded-lg">
               <p className="text-foreground font-medium">Data Protection Contact</p>
-              <p className="text-muted-foreground">Deep Clean UK</p>
-              <p className="text-muted-foreground">Email: hello@deepcleanco.uk</p>
+              <p className="text-muted-foreground">Cleanda</p>
+              <p className="text-muted-foreground">Email: hello@cleanda.co.uk</p>
               <p className="text-muted-foreground">Phone: 07757 188 197</p>
               <p className="text-muted-foreground">Response time: Within 5 business days</p>
             </div>

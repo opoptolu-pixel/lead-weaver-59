@@ -20,7 +20,7 @@ export const Logo = forwardRef<HTMLImageElement, LogoProps>(
       <img 
         ref={ref}
         src={logo} 
-        alt="Deep Clean UK" 
+        alt="Cleanda" 
         className={`${sizeClasses[size]} w-auto ${className}`}
       />
     );

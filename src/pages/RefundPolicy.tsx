@@ -6,17 +6,17 @@ const RefundPolicy = () => {
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    "@id": "https://deepcleanco.uk/refund-policy#webpage",
-    "url": "https://deepcleanco.uk/refund-policy",
-    "name": "Refund Policy | Deep Clean UK",
-    "description": "Understand Deep Clean UK's refund policy for lead credits.",
-    "isPartOf": { "@id": "https://deepcleanco.uk/#website" },
-    "about": { "@id": "https://deepcleanco.uk/#organization" },
+    "@id": "https://cleanda.co.uk/refund-policy#webpage",
+    "url": "https://cleanda.co.uk/refund-policy",
+    "name": "Refund Policy | Cleanda",
+    "description": "Understand Cleanda's refund policy for lead credits.",
+    "isPartOf": { "@id": "https://cleanda.co.uk/#website" },
+    "about": { "@id": "https://cleanda.co.uk/#organization" },
     "breadcrumb": {
       "@type": "BreadcrumbList",
       "itemListElement": [
-        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://deepcleanco.uk" },
-        { "@type": "ListItem", "position": 2, "name": "Refund Policy", "item": "https://deepcleanco.uk/refund-policy" }
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://cleanda.co.uk" },
+        { "@type": "ListItem", "position": 2, "name": "Refund Policy", "item": "https://cleanda.co.uk/refund-policy" }
       ]
     }
   };
@@ -24,9 +24,9 @@ const RefundPolicy = () => {
   return (
     <div className="min-h-screen bg-background">
       <SEOHead
-        title="Refund Policy | Deep Clean UK"
-        description="Understand Deep Clean UK's refund policy for lead credits. Learn about eligible refund situations, the dispute process, and how to request a refund."
-        canonical="https://deepcleanco.uk/refund-policy"
+        title="Refund Policy | Cleanda"
+        description="Understand Cleanda's refund policy for lead credits. Learn about eligible refund situations, the dispute process, and how to request a refund."
+        canonical="https://cleanda.co.uk/refund-policy"
         structuredData={structuredData}
       />
       <Header />
@@ -37,7 +37,7 @@ const RefundPolicy = () => {
         <div className="prose prose-lg max-w-none space-y-8 text-foreground">
           <section className="p-4 bg-muted rounded-lg mb-8">
             <p className="text-muted-foreground text-sm">
-              Deep Clean UK is a trading name of <strong>Orbit Shade Ltd</strong> (Company No. 15337705), registered in England and Wales. 
+              Cleanda is a trading name of <strong>Orbit Shade Ltd</strong> (Company No. 15337705), registered in England and Wales. 
               Registered address: 128 City Road, London, EC1V 2NX, United Kingdom.
             </p>
           </section>
@@ -45,7 +45,7 @@ const RefundPolicy = () => {
           <section>
             <h2 className="text-2xl font-semibold mb-4">1. Overview</h2>
             <p className="text-muted-foreground leading-relaxed">
-              At Deep Clean UK, we are committed to providing high-quality leads to our cleaning business partners. We understand that not every lead will result in a successful job, which is why we have established a fair and transparent refund policy.
+              At Cleanda, we are committed to providing high-quality leads to our cleaning business partners. We understand that not every lead will result in a successful job, which is why we have established a fair and transparent refund policy. Cleanda is a platform that connects customers with independent cleaning businesses. We do not provide cleaning services directly.
             </p>
           </section>
 
@@ -105,7 +105,7 @@ const RefundPolicy = () => {
           <section>
             <h2 className="text-2xl font-semibold mb-4">6. How Refunds Are Processed</h2>
             <div className="space-y-4 text-muted-foreground">
-              <p><strong>Lead Credit Refunds:</strong> Credits are returned directly to your Deep Clean UK account balance within 24 hours of approval.</p>
+              <p><strong>Lead Credit Refunds:</strong> Credits are returned directly to your Cleanda account balance within 24 hours of approval.</p>
               <p><strong>Monetary Refunds:</strong> If eligible, refunds are processed to your original payment method within 5-10 business days.</p>
             </div>
           </section>
@@ -135,8 +135,8 @@ const RefundPolicy = () => {
               For refund requests or questions about this policy:
             </p>
             <div className="mt-4 p-4 bg-muted rounded-lg">
-              <p className="text-foreground">Deep Clean UK Support</p>
-              <p className="text-muted-foreground">Email: hello@deepcleanco.uk</p>
+              <p className="text-foreground">Cleanda Support</p>
+              <p className="text-muted-foreground">Email: hello@cleanda.co.uk</p>
               <p className="text-muted-foreground">Phone: 07757 188 197</p>
               <p className="text-muted-foreground mt-2">Support hours: Monday - Friday, 9am - 5pm GMT</p>
             </div>
