@@ -1,7 +1,5 @@
 import { forwardRef } from "react";
 import { Link } from "react-router-dom";
-import logoDark from "@/assets/cleanda-logo-dark.png";
-import logoWhite from "@/assets/cleanda-logo-white.png";
 
 interface LogoProps {
   size?: "sm" | "md" | "lg";
@@ -10,23 +8,26 @@ interface LogoProps {
   className?: string;
 }
 
-export const Logo = forwardRef<HTMLImageElement, LogoProps>(
+export const Logo = forwardRef<HTMLSpanElement, LogoProps>(
   ({ size = "md", variant = "dark", linkTo = "/", className = "" }, ref) => {
     const sizeClasses = {
-      sm: "h-7",
-      md: "h-9",
-      lg: "h-11",
+      sm: "text-xl",
+      md: "text-2xl",
+      lg: "text-3xl",
     };
 
-    const logoSrc = variant === "white" ? logoWhite : logoDark;
+    const colorClasses = variant === "white" 
+      ? "text-white" 
+      : "text-[#0f2a4a]";
 
     const logoElement = (
-      <img 
+      <span 
         ref={ref}
-        src={logoSrc} 
-        alt="Cleanda" 
-        className={`${sizeClasses[size]} w-auto ${className}`}
-      />
+        className={`font-bold tracking-tight ${sizeClasses[size]} ${colorClasses} ${className}`}
+        style={{ fontFamily: "'SF Pro Display', 'Segoe UI', system-ui, -apple-system, sans-serif" }}
+      >
+        Cleanda
+      </span>
     );
 
     if (linkTo) {
