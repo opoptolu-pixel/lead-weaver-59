@@ -21,6 +21,9 @@ import {
   Coins,
   Building2,
   User,
+  Clock,
+  Globe,
+  Monitor,
 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -88,6 +91,14 @@ interface PurchaseHistory {
   postcode: string;
   unlocked_at: string;
   value: number;
+  customer_name: string;
+  customer_email: string;
+  customer_phone: string;
+  customer_address: string;
+  date: string;
+  property_type: string | null;
+  bedrooms: string | null;
+  frequency: string | null;
 }
 
 interface VerificationDocument {
@@ -98,6 +109,15 @@ interface VerificationDocument {
   admin_notes: string | null;
   created_at: string;
   updated_at: string;
+}
+
+interface LoginHistoryEntry {
+  id: string;
+  login_at: string;
+  ip_address: string | null;
+  user_agent: string | null;
+  country: string | null;
+  city: string | null;
 }
 
 type StatusFilter = "all" | "active" | "suspended" | "unverified";
@@ -116,6 +136,10 @@ export default function AdminBusinesses() {
   const [loadingDocs, setLoadingDocs] = useState(false);
   const [viewingDocUrl, setViewingDocUrl] = useState<string | null>(null);
   const [isDocViewerOpen, setIsDocViewerOpen] = useState(false);
+  const [loginHistory, setLoginHistory] = useState<LoginHistoryEntry[]>([]);
+  const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
+  const [selectedLead, setSelectedLead] = useState<PurchaseHistory | null>(null);
+  const [isLeadDetailsOpen, setIsLeadDetailsOpen] = useState(false);
   
   // Add credits dialog
   const [isAddCreditsOpen, setIsAddCreditsOpen] = useState(false);
@@ -227,11 +251,12 @@ export default function AdminBusinesses() {
     setSelectedBusiness(business);
     setIsProfileOpen(true);
     setLoadingHistory(true);
+    setLoadingLoginHistory(true);
 
-    // Fetch purchase history
+    // Fetch purchase history with full lead details
     const { data, error } = await supabase
       .from("leads")
-      .select("id, job_type, postcode, unlocked_at, value")
+      .select("id, job_type, postcode, unlocked_at, value, customer_name, customer_email, customer_phone, customer_address, date, property_type, bedrooms, frequency")
       .eq("unlocked_by", business.user_id)
       .order("unlocked_at", { ascending: false });
 
@@ -239,6 +264,19 @@ export default function AdminBusinesses() {
       setPurchaseHistory(data);
     }
     setLoadingHistory(false);
+
+    // Fetch login history
+    const { data: loginData, error: loginError } = await supabase
+      .from("login_history")
+      .select("*")
+      .eq("user_id", business.user_id)
+      .order("login_at", { ascending: false })
+      .limit(20);
+
+    if (!loginError && loginData) {
+      setLoginHistory(loginData);
+    }
+    setLoadingLoginHistory(false);
 
     // Fetch verification documents
     fetchVerificationDocs(business.user_id);
@@ -787,13 +825,17 @@ export default function AdminBusinesses() {
 
           {selectedBusiness && (
             <Tabs defaultValue="details" className="mt-4">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="details">Details</TabsTrigger>
                 <TabsTrigger value="documents" className="flex items-center gap-1">
                   <FileText className="w-3 h-3" />
                   Documents
                 </TabsTrigger>
                 <TabsTrigger value="purchases">Purchases</TabsTrigger>
+                <TabsTrigger value="logins" className="flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  Logins
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="details" className="space-y-4 mt-4">
@@ -1032,7 +1074,11 @@ export default function AdminBusinesses() {
                     {purchaseHistory.map((purchase) => (
                       <div
                         key={purchase.id}
-                        className="flex items-center justify-between p-3 bg-muted/30 rounded-lg"
+                        className="flex items-center justify-between p-3 bg-muted/30 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+                        onClick={() => {
+                          setSelectedLead(purchase);
+                          setIsLeadDetailsOpen(true);
+                        }}
                       >
                         <div>
                           <p className="font-medium">{purchase.job_type}</p>
@@ -1040,13 +1086,67 @@ export default function AdminBusinesses() {
                             {purchase.postcode}
                           </p>
                         </div>
+                        <div className="text-right flex items-center gap-3">
+                          <div>
+                            <p className="font-medium">£{(purchase.value / 100).toFixed(2)}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {purchase.unlocked_at
+                                ? format(new Date(purchase.unlocked_at), "d MMM yyyy")
+                                : "N/A"}
+                            </p>
+                          </div>
+                          <Eye className="w-4 h-4 text-muted-foreground" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="logins" className="mt-4">
+                {loadingLoginHistory ? (
+                  <div className="p-8 text-center">
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto" />
+                  </div>
+                ) : loginHistory.length === 0 ? (
+                  <div className="p-8 text-center text-muted-foreground">
+                    <Clock className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>No login history recorded</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                    {loginHistory.map((login) => (
+                      <div
+                        key={login.id}
+                        className="flex items-center justify-between p-3 bg-muted/30 rounded-lg"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                            <Monitor className="w-4 h-4 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">
+                              {format(new Date(login.login_at), "d MMM yyyy HH:mm")}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate max-w-[200px]">
+                              {login.user_agent?.split(' ').slice(0, 3).join(' ') || "Unknown device"}
+                            </p>
+                          </div>
+                        </div>
                         <div className="text-right">
-                          <p className="font-medium">£{(purchase.value / 100).toFixed(2)}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {purchase.unlocked_at
-                              ? format(new Date(purchase.unlocked_at), "d MMM yyyy")
-                              : "N/A"}
-                          </p>
+                          {login.city || login.country ? (
+                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                              <Globe className="w-3 h-3" />
+                              {[login.city, login.country].filter(Boolean).join(", ")}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">Location unknown</span>
+                          )}
+                          {login.ip_address && (
+                            <p className="text-xs text-muted-foreground font-mono">
+                              {login.ip_address}
+                            </p>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -1214,6 +1314,92 @@ export default function AdminBusinesses() {
             </Button>
             <Button variant="destructive" onClick={handleSuspend}>
               Suspend Business
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Lead Details Dialog */}
+      <Dialog open={isLeadDetailsOpen} onOpenChange={setIsLeadDetailsOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <User className="w-5 h-5" />
+              Customer Details
+            </DialogTitle>
+            <DialogDescription>
+              Full details for this lead
+            </DialogDescription>
+          </DialogHeader>
+          {selectedLead && (
+            <div className="space-y-4 mt-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label className="text-muted-foreground text-xs">Job Type</Label>
+                  <p className="font-medium">{selectedLead.job_type}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-muted-foreground text-xs">Value</Label>
+                  <p className="font-medium">£{(selectedLead.value / 100).toFixed(2)}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-muted-foreground text-xs">Customer Name</Label>
+                  <p className="font-medium">{selectedLead.customer_name}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-muted-foreground text-xs">Phone</Label>
+                  <p className="font-medium">{selectedLead.customer_phone}</p>
+                </div>
+                <div className="col-span-2 space-y-1">
+                  <Label className="text-muted-foreground text-xs">Email</Label>
+                  <p className="font-medium">{selectedLead.customer_email}</p>
+                </div>
+                <div className="col-span-2 space-y-1">
+                  <Label className="text-muted-foreground text-xs">Address</Label>
+                  <p className="font-medium">{selectedLead.customer_address}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-muted-foreground text-xs">Postcode</Label>
+                  <p className="font-medium">{selectedLead.postcode}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-muted-foreground text-xs">Service Date</Label>
+                  <p className="font-medium">
+                    {selectedLead.date ? format(new Date(selectedLead.date), "d MMM yyyy") : "Not set"}
+                  </p>
+                </div>
+                {selectedLead.property_type && (
+                  <div className="space-y-1">
+                    <Label className="text-muted-foreground text-xs">Property Type</Label>
+                    <p className="font-medium capitalize">{selectedLead.property_type}</p>
+                  </div>
+                )}
+                {selectedLead.bedrooms && (
+                  <div className="space-y-1">
+                    <Label className="text-muted-foreground text-xs">Bedrooms</Label>
+                    <p className="font-medium">{selectedLead.bedrooms}</p>
+                  </div>
+                )}
+                {selectedLead.frequency && (
+                  <div className="space-y-1">
+                    <Label className="text-muted-foreground text-xs">Frequency</Label>
+                    <p className="font-medium capitalize">{selectedLead.frequency}</p>
+                  </div>
+                )}
+                <div className="col-span-2 space-y-1">
+                  <Label className="text-muted-foreground text-xs">Purchased</Label>
+                  <p className="font-medium">
+                    {selectedLead.unlocked_at 
+                      ? format(new Date(selectedLead.unlocked_at), "d MMM yyyy HH:mm") 
+                      : "N/A"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsLeadDetailsOpen(false)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

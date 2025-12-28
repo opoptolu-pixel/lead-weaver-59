@@ -115,12 +115,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     
-    // Update last_login timestamp on successful login
+    // Update last_login and track login history on successful login
     if (!error && data.user) {
+      const now = new Date().toISOString();
+      
+      // Update last_login on profile
       await supabase
         .from("profiles")
-        .update({ last_login: new Date().toISOString() })
+        .update({ last_login: now })
         .eq("user_id", data.user.id);
+      
+      // Insert login history record
+      await supabase
+        .from("login_history")
+        .insert({
+          user_id: data.user.id,
+          user_agent: navigator.userAgent,
+          login_at: now,
+        });
     }
     
     return { error: error ? new Error(error.message) : null };
