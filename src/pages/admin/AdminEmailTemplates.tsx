@@ -1954,11 +1954,11 @@ export default function AdminEmailTemplates() {
     }
   };
 
-  // Helper function to strip emojis from text
+  // Helper function to strip ALL emojis from text - comprehensive removal
   const stripEmojis = (text: string): string => {
-    // Remove common emojis that might appear in email templates
     return text
-      .replace(/[\u{1F300}-\u{1F9FF}]/gu, '') // Misc symbols, emoticons, etc
+      // Remove all emoji Unicode ranges
+      .replace(/[\u{1F300}-\u{1F9FF}]/gu, '') // Misc symbols, emoticons, dingbats, etc
       .replace(/[\u{2600}-\u{26FF}]/gu, '') // Misc symbols
       .replace(/[\u{2700}-\u{27BF}]/gu, '') // Dingbats
       .replace(/[\u{FE00}-\u{FE0F}]/gu, '') // Variation selectors
@@ -1966,9 +1966,83 @@ export default function AdminEmailTemplates() {
       .replace(/[\u{1F0A0}-\u{1F0FF}]/gu, '') // Playing cards
       .replace(/[\u{200D}]/gu, '') // Zero-width joiner
       .replace(/[\u{20E3}]/gu, '') // Combining enclosing keycap
-      .replace(/[\u{FE0F}]/gu, '') // Variation selector-16
-      .replace(/[\u2714\u2716\u2728\u274C\u274E\u2705\u2611\u2612\u26A0\u2139\u2795\u2796\u2797\u27A1\u2B05\u2B06\u2B07\u2B50\u2B55\u3030\u303D\u3297\u3299]/gu, '') // Additional symbols
-      .replace(/✨|🧹|🏷️|🧽|📅|📍|🔥|🎉|👤|💰|📞|✉️|💡|🔐|⏰|🛡️|⚠️|⚠|💳|✅|📋|🎊|✓|→/g, ''); // Explicit emoji removal
+      .replace(/[\u{1F1E0}-\u{1F1FF}]/gu, '') // Regional indicator symbols (flags)
+      .replace(/[\u{1FA00}-\u{1FA6F}]/gu, '') // Chess symbols and extended-A
+      .replace(/[\u{1FA70}-\u{1FAFF}]/gu, '') // Symbols and pictographs extended-A
+      .replace(/[\u{231A}-\u{231B}]/gu, '') // Watch, hourglass
+      .replace(/[\u{23E9}-\u{23F3}]/gu, '') // Media controls
+      .replace(/[\u{23F8}-\u{23FA}]/gu, '') // More media controls
+      .replace(/[\u{25AA}-\u{25AB}]/gu, '') // Squares
+      .replace(/[\u{25B6}]/gu, '') // Play button
+      .replace(/[\u{25C0}]/gu, '') // Reverse button
+      .replace(/[\u{25FB}-\u{25FE}]/gu, '') // Squares
+      .replace(/[\u{2614}-\u{2615}]/gu, '') // Umbrella, hot beverage
+      .replace(/[\u{2648}-\u{2653}]/gu, '') // Zodiac signs
+      .replace(/[\u{267F}]/gu, '') // Wheelchair
+      .replace(/[\u{2693}]/gu, '') // Anchor
+      .replace(/[\u{26A1}]/gu, '') // High voltage
+      .replace(/[\u{26AA}-\u{26AB}]/gu, '') // Circles
+      .replace(/[\u{26BD}-\u{26BE}]/gu, '') // Sports
+      .replace(/[\u{26C4}-\u{26C5}]/gu, '') // Weather
+      .replace(/[\u{26CE}]/gu, '') // Ophiuchus
+      .replace(/[\u{26D4}]/gu, '') // No entry
+      .replace(/[\u{26EA}]/gu, '') // Church
+      .replace(/[\u{26F2}-\u{26F3}]/gu, '') // Fountain, golf
+      .replace(/[\u{26F5}]/gu, '') // Sailboat
+      .replace(/[\u{26FA}]/gu, '') // Tent
+      .replace(/[\u{26FD}]/gu, '') // Fuel pump
+      .replace(/[\u{2702}]/gu, '') // Scissors
+      .replace(/[\u{2705}]/gu, '') // White heavy check mark (✅)
+      .replace(/[\u{2708}-\u{270D}]/gu, '') // Airplane to writing hand
+      .replace(/[\u{270F}]/gu, '') // Pencil
+      .replace(/[\u{2712}]/gu, '') // Black nib
+      .replace(/[\u{2714}]/gu, '') // Heavy check mark
+      .replace(/[\u{2716}]/gu, '') // Heavy multiplication X
+      .replace(/[\u{271D}]/gu, '') // Latin cross
+      .replace(/[\u{2721}]/gu, '') // Star of David
+      .replace(/[\u{2728}]/gu, '') // Sparkles
+      .replace(/[\u{2733}-\u{2734}]/gu, '') // Eight spoked asterisks
+      .replace(/[\u{2744}]/gu, '') // Snowflake
+      .replace(/[\u{2747}]/gu, '') // Sparkle
+      .replace(/[\u{274C}]/gu, '') // Cross mark
+      .replace(/[\u{274E}]/gu, '') // Cross mark (negative squared)
+      .replace(/[\u{2753}-\u{2755}]/gu, '') // Question marks
+      .replace(/[\u{2757}]/gu, '') // Heavy exclamation mark
+      .replace(/[\u{2763}-\u{2764}]/gu, '') // Heart exclamation, heart
+      .replace(/[\u{2795}-\u{2797}]/gu, '') // Plus, minus, division
+      .replace(/[\u{27A1}]/gu, '') // Right arrow
+      .replace(/[\u{27B0}]/gu, '') // Curly loop
+      .replace(/[\u{27BF}]/gu, '') // Double curly loop
+      .replace(/[\u{2934}-\u{2935}]/gu, '') // Arrows
+      .replace(/[\u{2B05}-\u{2B07}]/gu, '') // Arrows
+      .replace(/[\u{2B1B}-\u{2B1C}]/gu, '') // Squares
+      .replace(/[\u{2B50}]/gu, '') // Star
+      .replace(/[\u{2B55}]/gu, '') // Circle
+      .replace(/[\u{3030}]/gu, '') // Wavy dash
+      .replace(/[\u{303D}]/gu, '') // Part alternation mark
+      .replace(/[\u{3297}]/gu, '') // Circled ideograph congratulation
+      .replace(/[\u{3299}]/gu, '') // Circled ideograph secret
+      .replace(/[\u{00A9}]/gu, '') // Copyright
+      .replace(/[\u{00AE}]/gu, '') // Registered
+      .replace(/[\u{2122}]/gu, '') // Trademark
+      .replace(/[\u{23CF}]/gu, '') // Eject
+      .replace(/[\u{24C2}]/gu, '') // Circled M
+      .replace(/[\u{25AA}]/gu, '') // Black small square
+      .replace(/[\u{25AB}]/gu, '') // White small square
+      .replace(/[\u{25B6}]/gu, '') // Black right-pointing triangle
+      .replace(/[\u{25C0}]/gu, '') // Black left-pointing triangle
+      .replace(/[\u{2611}]/gu, '') // Ballot box with check
+      .replace(/[\u{2612}]/gu, '') // Ballot box with X
+      .replace(/[\u{26A0}]/gu, '') // Warning sign (⚠)
+      .replace(/[\u{2139}]/gu, '') // Information source
+      // Clean up any remaining common emoji literals
+      .replace(/✨|🧹|🏷️|🧽|📅|📍|🔥|🎉|👤|💰|📞|✉️|💡|🔐|⏰|🛡️|⚠️|⚠|💳|✅|📋|🎊|✓|→|🔒|📄|📝|🏠|📦|🔔|☑️|❌|❗|❓|⭐|🌟|💫|🎯|💪|👍|👎|🙌|👏|🤝|📧|📨|📩|📬|📭|📮|🗓️|📆|🗓|📊|📈|📉|🎁|🏆|🥇|🥈|🥉|🏅|🎖️|🏵️|🎗️|🎫|🎟️|🎪/g, '')
+      // Remove any stray variation selectors or zero-width characters
+      .replace(/\uFE0F/g, '')
+      .replace(/\u200D/g, '')
+      // Clean up multiple spaces that might result from emoji removal
+      .replace(/\s{2,}/g, ' ')
+      .trim();
   };
 
   const seedDefaultTemplates = async () => {
