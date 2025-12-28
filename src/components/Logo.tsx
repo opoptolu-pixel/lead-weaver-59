@@ -4,13 +4,13 @@ import { Sparkles } from "lucide-react";
 
 interface LogoProps {
   size?: "sm" | "md" | "lg";
-  variant?: "dark" | "white";
+  variant?: "dark" | "white" | "auto";
   linkTo?: string;
   className?: string;
 }
 
 export const Logo = forwardRef<HTMLSpanElement, LogoProps>(
-  ({ size = "md", variant = "dark", linkTo = "/", className = "" }, ref) => {
+  ({ size = "md", variant = "auto", linkTo = "/", className = "" }, ref) => {
     const sizeClasses = {
       sm: "text-2xl",
       md: "text-3xl",
@@ -25,7 +25,9 @@ export const Logo = forwardRef<HTMLSpanElement, LogoProps>(
 
     const colorClasses = variant === "white" 
       ? "text-white" 
-      : "text-[#0f2a4a]";
+      : variant === "dark"
+      ? "text-primary-foreground"
+      : "text-foreground";
 
     const logoElement = (
       <span 
