@@ -6,8 +6,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Use noreply for automated/marketing emails - hello@ is for actual support inquiries
-const FROM_EMAIL = "Cleanda <noreply@cleanda.co.uk>";
+// Use hello@ for all emails - more trustworthy to spam filters than noreply@
+const FROM_EMAIL = "Cleanda <hello@cleanda.co.uk>";
 const RESEND_API_URL = "https://api.resend.com/emails";
 const UNSUBSCRIBE_EMAIL = "unsubscribe@cleanda.co.uk";
 const SUPABASE_PROJECT_URL = "https://jqyhiekqqcffiwpctzsi.supabase.co";
