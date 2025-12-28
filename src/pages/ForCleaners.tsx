@@ -134,7 +134,7 @@ const ForCleaners = () => {
         <RegistrationForm />
         <FAQ />
       </main>
-      <Footer />
+      <Footer hideCta />
     </div>
   );
 };
