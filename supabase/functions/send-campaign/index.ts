@@ -82,8 +82,11 @@ serve(async (req: Request) => {
         subject: `[TEST] ${subject}`,
         html: htmlWithUnsubscribe,
         headers: {
-          "List-Unsubscribe": `<mailto:${UNSUBSCRIBE_EMAIL}?subject=Unsubscribe>, <${unsubscribeUrl}>`,
+          "List-Unsubscribe": `<${unsubscribeUrl}>, <mailto:${UNSUBSCRIBE_EMAIL}?subject=Unsubscribe>`,
           "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+          "Precedence": "bulk",
+          "Feedback-ID": "campaign:cleanda:subscribers:marketing",
+          "Organization": "Cleanda Ltd",
         },
       });
 
@@ -149,8 +152,11 @@ serve(async (req: Request) => {
             subject: subject,
             html: htmlWithUnsubscribe,
             headers: {
-              "List-Unsubscribe": `<mailto:${UNSUBSCRIBE_EMAIL}?subject=Unsubscribe>, <${unsubscribeUrl}>`,
+              "List-Unsubscribe": `<${unsubscribeUrl}>, <mailto:${UNSUBSCRIBE_EMAIL}?subject=Unsubscribe>`,
               "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+              "Precedence": "bulk",
+              "Feedback-ID": "campaign:cleanda:subscribers:marketing",
+              "Organization": "Cleanda Ltd",
             },
           });
 

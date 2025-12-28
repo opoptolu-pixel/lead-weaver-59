@@ -9,6 +9,13 @@ const corsHeaders = {
 const FROM_EMAIL = "Cleanda <hello@cleanda.co.uk>";
 const RESEND_API_URL = "https://api.resend.com/emails";
 const UNSUBSCRIBE_EMAIL = "unsubscribe@cleanda.co.uk";
+const SUPABASE_PROJECT_URL = "https://jqyhiekqqcffiwpctzsi.supabase.co";
+
+// Generate unsubscribe URL with token for one-click unsubscribe
+const generateUnsubscribeUrl = (email: string): string => {
+  const token = btoa(email); // Simple token - email encoded
+  return `${SUPABASE_PROJECT_URL}/functions/v1/unsubscribe?email=${encodeURIComponent(email)}&token=${token}`;
+};
 
 interface EmailRequest {
   to: string;
@@ -72,15 +79,24 @@ serve(async (req) => {
 
     logStep("Sending email", { to, subject, isTest });
 
+    const unsubscribeUrl = generateUnsubscribeUrl(to);
+    
     const emailPayload: any = {
       from: FROM_EMAIL,
       to: [to],
       subject: subject,
       html: html,
-      reply_to: replyTo || "hello@cleanda.co.uk", // Always set reply-to
+      reply_to: replyTo || "hello@cleanda.co.uk",
       headers: {
-        "List-Unsubscribe": `<mailto:${UNSUBSCRIBE_EMAIL}?subject=Unsubscribe%20${encodeURIComponent(to)}>`,
+        // RFC 8058 one-click unsubscribe (required by Gmail for bulk senders)
+        "List-Unsubscribe": `<${unsubscribeUrl}>, <mailto:${UNSUBSCRIBE_EMAIL}?subject=Unsubscribe%20${encodeURIComponent(to)}>`,
         "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+        // Identifies as subscription-based email
+        "Precedence": "bulk",
+        // Feedback ID for Google Postmaster Tools tracking (campaign:sender:list:mailtype)
+        "Feedback-ID": `${templateName || 'transactional'}:cleanda:subscribers:marketing`,
+        // Organization header
+        "Organization": "Cleanda Ltd",
       },
     };
 
