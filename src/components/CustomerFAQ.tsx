@@ -81,7 +81,7 @@ export const CustomerFAQ = () => {
           <div className="text-center mt-12">
             <p className="text-muted-foreground">
               Still have questions?{" "}
-              <a href="mailto:hello@deepcleanco.uk" className="text-secondary font-medium hover:underline">
+              <a href="mailto:hello@cleanda.co.uk" className="text-secondary font-medium hover:underline">
                 Get in touch
               </a>
             </p>

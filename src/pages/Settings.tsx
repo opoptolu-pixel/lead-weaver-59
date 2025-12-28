@@ -381,7 +381,7 @@ export default function Settings() {
             <p className="text-muted-foreground text-sm mb-4">
               Need to delete your account? Contact our support team and we'll help you.
             </p>
-            <a href="mailto:support@deepcleanco.uk">
+            <a href="mailto:hello@cleanda.co.uk">
               <Button variant="outline" size="sm">
                 Contact Support
               </Button>
