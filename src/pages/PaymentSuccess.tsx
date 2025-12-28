@@ -118,7 +118,7 @@ export default function PaymentSuccess() {
       <header className="bg-primary border-b border-border">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-20">
-            <Logo size="md" />
+            <Logo size="md" variant="white" />
           </div>
         </div>
       </header>

@@ -153,7 +153,7 @@ export default function Onboarding() {
     <div className="min-h-screen bg-gradient-to-b from-primary to-primary/90 flex flex-col">
       {/* Header */}
       <header className="container mx-auto px-4 py-6">
-        <Logo size="md" />
+        <Logo size="md" variant="white" />
       </header>
 
       {/* Main content */}

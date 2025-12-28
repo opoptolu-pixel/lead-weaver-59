@@ -53,6 +53,8 @@ interface LeadsScrollContainerProps {
   isSearchActive?: boolean;
 }
 
+const INITIAL_VISIBLE_COUNT = 10;
+
 const LeadsScrollContainer = ({
   leads,
   userCredits,
@@ -66,6 +68,13 @@ const LeadsScrollContainer = ({
   loadMoreRef,
   isSearchActive = false,
 }: LeadsScrollContainerProps) => {
+  const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_COUNT);
+  
+  // Reset visible count when leads change (new search)
+  useEffect(() => {
+    setVisibleCount(INITIAL_VISIBLE_COUNT);
+  }, [leads.length, isSearchActive]);
+
   // Auto-scroll for desktop (slower speed for leads page)
   const desktopScroll = useAutoScroll({ speed: 20, pauseOnHover: true, pauseOnTouch: true });
   // Auto-scroll for mobile  
@@ -74,8 +83,16 @@ const LeadsScrollContainer = ({
   // Only enable auto-scroll if we have enough leads AND no active search
   const enableAutoScroll = leads.length >= 6 && !isSearchActive;
 
-  // Duplicate leads for seamless scrolling effect
-  const displayLeads = enableAutoScroll ? [...leads, ...leads] : leads;
+  // For search results, limit displayed leads; for auto-scroll, duplicate for seamless effect
+  const displayLeads = enableAutoScroll 
+    ? [...leads, ...leads] 
+    : leads.slice(0, visibleCount);
+  
+  const hasMoreToShow = isSearchActive && visibleCount < leads.length;
+
+  const handleLoadMore = () => {
+    setVisibleCount(prev => prev + INITIAL_VISIBLE_COUNT);
+  };
 
   return (
     <>
@@ -232,12 +249,26 @@ const LeadsScrollContainer = ({
         )}
       </div>
 
-      {/* Load more trigger */}
-      <div ref={loadMoreRef} className="py-8 flex justify-center">
-        {loadingMore && (
+      {/* Load more section */}
+      <div ref={loadMoreRef} className="py-8 flex flex-col items-center gap-4">
+        {/* Load More button for search results */}
+        {hasMoreToShow && (
+          <Button 
+            variant="outline" 
+            onClick={handleLoadMore}
+            className="gap-2"
+          >
+            Load More ({leads.length - visibleCount} remaining)
+          </Button>
+        )}
+        
+        {/* Infinite scroll loading indicator (when not in search mode) */}
+        {!isSearchActive && loadingMore && (
           <Loader2 className="w-6 h-6 animate-spin text-secondary" />
         )}
-        {!hasMore && leads.length > 0 && (
+        
+        {/* End of results message */}
+        {!hasMoreToShow && !hasMore && leads.length > 0 && (
           <p className="text-muted-foreground text-sm">You've seen all available leads</p>
         )}
       </div>
@@ -659,7 +690,7 @@ export default function Leads() {
       <header className="bg-primary border-b border-border">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-20">
-            <Logo size="md" />
+            <Logo size="md" variant="white" />
             <div className="flex items-center gap-4">
               {user ? (
                 <Link to="/dashboard">
