@@ -6,10 +6,13 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const FROM_EMAIL = "Cleanda <hello@cleanda.co.uk>";
+// Use noreply for automated/marketing emails - hello@ is for actual support inquiries
+const FROM_EMAIL = "Cleanda <noreply@cleanda.co.uk>";
 const RESEND_API_URL = "https://api.resend.com/emails";
 const UNSUBSCRIBE_EMAIL = "unsubscribe@cleanda.co.uk";
 const SUPABASE_PROJECT_URL = "https://jqyhiekqqcffiwpctzsi.supabase.co";
+// Support email for users who want to contact us
+const SUPPORT_EMAIL = "hello@cleanda.co.uk";
 
 // Generate unsubscribe URL with token for one-click unsubscribe
 const generateUnsubscribeUrl = (email: string): string => {
@@ -81,24 +84,37 @@ serve(async (req) => {
 
     const unsubscribeUrl = generateUnsubscribeUrl(to);
     
+    // Determine if this is a transactional email (confirmations, receipts) vs marketing
+    const isTransactional = templateName?.includes('confirmation') || 
+                            templateName?.includes('receipt') || 
+                            templateName?.includes('verification') ||
+                            templateName?.includes('password');
+
     const emailPayload: any = {
       from: FROM_EMAIL,
       to: [to],
       subject: subject,
       html: html,
-      reply_to: replyTo || "hello@cleanda.co.uk",
+      // Don't set reply-to for automated emails - we don't monitor noreply
+      // Users should visit our website/contact form for support
       headers: {
         // RFC 8058 one-click unsubscribe (required by Gmail for bulk senders)
         "List-Unsubscribe": `<${unsubscribeUrl}>, <mailto:${UNSUBSCRIBE_EMAIL}?subject=Unsubscribe%20${encodeURIComponent(to)}>`,
         "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-        // Identifies as subscription-based email
-        "Precedence": "bulk",
-        // Feedback ID for Google Postmaster Tools tracking (campaign:sender:list:mailtype)
-        "Feedback-ID": `${templateName || 'transactional'}:cleanda:subscribers:marketing`,
         // Organization header
         "Organization": "Cleanda Ltd",
+        // X-Mailer helps with deliverability
+        "X-Mailer": "Cleanda Mailer",
+        // Message-ID helps with threading
+        "X-Entity-Ref-ID": `cleanda-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       },
     };
+
+    // Only add marketing-specific headers for non-transactional emails
+    if (!isTransactional) {
+      // Feedback ID for Google Postmaster Tools - format: identifier:identifier:identifier:identifier
+      emailPayload.headers["Feedback-ID"] = `${templateName || 'notification'}:cleanda:leads:service`;
+    }
 
     const response = await fetch(RESEND_API_URL, {
       method: "POST",
