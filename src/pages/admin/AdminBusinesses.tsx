@@ -15,6 +15,12 @@ import {
   Mail,
   PlusCircle,
   CreditCard,
+  FileText,
+  AlertTriangle,
+  ExternalLink,
+  Coins,
+  Building2,
+  User,
 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -52,6 +58,7 @@ import { useAdmin } from "@/contexts/AdminContext";
 import { usePagination } from "@/hooks/usePagination";
 import { PaginationControls } from "@/components/admin/PaginationControls";
 import { exportToCsv } from "@/lib/exportCsv";
+import { Textarea } from "@/components/ui/textarea";
 
 interface Business {
   id: string;
@@ -66,6 +73,10 @@ interface Business {
   credits: number;
   risk_score: number;
   is_suspended: boolean;
+  suspension_reason: string | null;
+  phone_verified: boolean;
+  address_verified: boolean;
+  whatsapp_optin: boolean;
   created_at: string;
   last_login: string | null;
   email?: string | null;
@@ -76,17 +87,35 @@ interface PurchaseHistory {
   job_type: string;
   postcode: string;
   unlocked_at: string;
+  value: number;
 }
+
+interface VerificationDocument {
+  id: string;
+  document_type: string;
+  file_path: string;
+  status: string;
+  admin_notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+type StatusFilter = "all" | "active" | "suspended" | "unverified";
 
 export default function AdminBusinesses() {
   const { getDateFilter, dateRange } = useAdmin();
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [purchaseHistory, setPurchaseHistory] = useState<PurchaseHistory[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [verificationDocs, setVerificationDocs] = useState<VerificationDocument[]>([]);
+  const [loadingDocs, setLoadingDocs] = useState(false);
+  const [viewingDocUrl, setViewingDocUrl] = useState<string | null>(null);
+  const [isDocViewerOpen, setIsDocViewerOpen] = useState(false);
   
   // Add credits dialog
   const [isAddCreditsOpen, setIsAddCreditsOpen] = useState(false);
@@ -159,14 +188,50 @@ export default function AdminBusinesses() {
     setLoading(false);
   };
 
+  const fetchVerificationDocs = async (userId: string) => {
+    setLoadingDocs(true);
+    const { data, error } = await supabase
+      .from("verification_documents")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+
+    if (!error && data) {
+      setVerificationDocs(data);
+    } else {
+      setVerificationDocs([]);
+    }
+    setLoadingDocs(false);
+  };
+
+  const viewDocument = async (filePath: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke("get-signed-url", {
+        body: { filePath },
+      });
+      
+      if (error || !data?.signedUrl) {
+        toast.error("Failed to load document");
+        return;
+      }
+      
+      setViewingDocUrl(data.signedUrl);
+      setIsDocViewerOpen(true);
+    } catch (err) {
+      console.error("Error getting signed URL:", err);
+      toast.error("Failed to load document");
+    }
+  };
+
   const viewProfile = async (business: Business) => {
     setSelectedBusiness(business);
     setIsProfileOpen(true);
     setLoadingHistory(true);
 
+    // Fetch purchase history
     const { data, error } = await supabase
       .from("leads")
-      .select("id, job_type, postcode, unlocked_at")
+      .select("id, job_type, postcode, unlocked_at, value")
       .eq("unlocked_by", business.user_id)
       .order("unlocked_at", { ascending: false });
 
@@ -174,6 +239,9 @@ export default function AdminBusinesses() {
       setPurchaseHistory(data);
     }
     setLoadingHistory(false);
+
+    // Fetch verification documents
+    fetchVerificationDocs(business.user_id);
   };
 
   const openSuspendDialog = (business: Business) => {
@@ -394,7 +462,22 @@ export default function AdminBusinesses() {
     }
   };
 
-  const filteredBusinesses = businesses.filter(
+  // Filter by status first
+  const statusFilteredBusinesses = businesses.filter((b) => {
+    switch (statusFilter) {
+      case "active":
+        return !b.is_suspended && b.is_verified;
+      case "suspended":
+        return b.is_suspended;
+      case "unverified":
+        return !b.is_verified && !b.is_suspended;
+      default:
+        return true;
+    }
+  });
+
+  // Then filter by search
+  const filteredBusinesses = statusFilteredBusinesses.filter(
     (b) =>
       (b.business_name?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
       (b.contact_name?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
@@ -416,6 +499,7 @@ export default function AdminBusinesses() {
       { key: "credits", label: "Credits" },
       { key: "risk_score", label: "Risk Score" },
       { key: "is_suspended", label: "Suspended" },
+      { key: "suspension_reason", label: "Suspension Reason" },
       { key: "created_at", label: "Created At" },
     ]);
     toast.success("Export started");
@@ -444,6 +528,36 @@ export default function AdminBusinesses() {
     return <Badge className="bg-green-500/20 text-green-500">Low</Badge>;
   };
 
+  const getDocumentTypeName = (type: string) => {
+    const names: Record<string, string> = {
+      business_license: "Business License",
+      address_proof: "Address Proof",
+      id_document: "ID Document",
+      insurance: "Insurance Certificate",
+    };
+    return names[type] || type;
+  };
+
+  const getDocStatusBadge = (status: string) => {
+    switch (status) {
+      case "approved":
+        return <Badge className="bg-green-500/20 text-green-500">Approved</Badge>;
+      case "rejected":
+        return <Badge variant="destructive">Rejected</Badge>;
+      default:
+        return <Badge variant="secondary">Pending</Badge>;
+    }
+  };
+
+  // Calculate stats
+  const stats = {
+    total: businesses.length,
+    verified: businesses.filter((b) => b.is_verified).length,
+    unverified: businesses.filter((b) => !b.is_verified && !b.is_suspended).length,
+    suspended: businesses.filter((b) => b.is_suspended).length,
+    totalCredits: businesses.reduce((sum, b) => sum + (b.credits || 0), 0),
+  };
+
   return (
     <AdminLayout title="Businesses">
       {/* Search & Export */}
@@ -467,29 +581,52 @@ export default function AdminBusinesses() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
         <div className="bg-card rounded-xl border border-border p-4">
           <p className="text-sm text-muted-foreground">Total Businesses</p>
-          <p className="text-2xl font-bold text-foreground">{filteredBusinesses.length}</p>
+          <p className="text-2xl font-bold text-foreground">{stats.total}</p>
         </div>
         <div className="bg-card rounded-xl border border-border p-4">
           <p className="text-sm text-muted-foreground">Verified</p>
-          <p className="text-2xl font-bold text-green-500">
-            {filteredBusinesses.filter((b) => b.is_verified).length}
-          </p>
+          <p className="text-2xl font-bold text-green-500">{stats.verified}</p>
         </div>
         <div className="bg-card rounded-xl border border-border p-4">
           <p className="text-sm text-muted-foreground">Pending Verification</p>
-          <p className="text-2xl font-bold text-amber-500">
-            {filteredBusinesses.filter((b) => !b.is_verified && !b.is_suspended).length}
-          </p>
+          <p className="text-2xl font-bold text-amber-500">{stats.unverified}</p>
         </div>
         <div className="bg-card rounded-xl border border-border p-4">
           <p className="text-sm text-muted-foreground">Suspended</p>
-          <p className="text-2xl font-bold text-destructive">
-            {filteredBusinesses.filter((b) => b.is_suspended).length}
-          </p>
+          <p className="text-2xl font-bold text-destructive">{stats.suspended}</p>
         </div>
+        <div className="bg-card rounded-xl border border-border p-4">
+          <p className="text-sm text-muted-foreground flex items-center gap-1">
+            <Coins className="w-4 h-4" /> Total Credits
+          </p>
+          <p className="text-2xl font-bold text-foreground">{stats.totalCredits}</p>
+        </div>
+      </div>
+
+      {/* Status Filter Tabs */}
+      <div className="mb-4">
+        <Tabs value={statusFilter} onValueChange={(v) => {
+          setStatusFilter(v as StatusFilter);
+          pagination.resetPage();
+        }}>
+          <TabsList>
+            <TabsTrigger value="all">
+              All ({businesses.length})
+            </TabsTrigger>
+            <TabsTrigger value="active">
+              Active ({businesses.filter(b => !b.is_suspended && b.is_verified).length})
+            </TabsTrigger>
+            <TabsTrigger value="unverified">
+              Unverified ({businesses.filter(b => !b.is_verified && !b.is_suspended).length})
+            </TabsTrigger>
+            <TabsTrigger value="suspended" className="text-destructive">
+              Suspended ({businesses.filter(b => b.is_suspended).length})
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
       {/* Table */}
@@ -512,6 +649,7 @@ export default function AdminBusinesses() {
                     <th className="text-left p-4 font-medium text-muted-foreground">Email</th>
                     <th className="text-left p-4 font-medium text-muted-foreground">Status</th>
                     <th className="text-left p-4 font-medium text-muted-foreground">Risk</th>
+                    <th className="text-left p-4 font-medium text-muted-foreground">Credits</th>
                     <th className="text-left p-4 font-medium text-muted-foreground">Leads</th>
                     <th className="text-left p-4 font-medium text-muted-foreground">Joined</th>
                     <th className="text-right p-4 font-medium text-muted-foreground">Actions</th>
@@ -521,13 +659,16 @@ export default function AdminBusinesses() {
                   {pagination.paginatedData.map((business) => (
                     <tr 
                       key={business.id} 
-                      className="hover:bg-muted/30 cursor-pointer"
+                      className={`hover:bg-muted/30 cursor-pointer ${business.is_suspended ? 'bg-destructive/5' : ''}`}
                       onClick={() => viewProfile(business)}
                     >
                       <td className="p-4">
                         <div>
-                          <p className="font-medium text-foreground">
+                          <p className="font-medium text-foreground flex items-center gap-2">
                             {business.business_name || business.contact_name || "Unnamed"}
+                            {business.is_suspended && (
+                              <AlertTriangle className="w-4 h-4 text-destructive" />
+                            )}
                           </p>
                           <p className="text-sm text-muted-foreground">
                             {business.postcode || "No postcode"} • {business.phone || "No phone"}
@@ -541,6 +682,14 @@ export default function AdminBusinesses() {
                       </td>
                       <td className="p-4">{getVerificationBadge(business)}</td>
                       <td className="p-4">{getRiskBadge(business.risk_score || 0)}</td>
+                      <td className="p-4">
+                        <div className="flex items-center gap-1">
+                          <Coins className="w-4 h-4 text-amber-500" />
+                          <span className={`font-semibold ${business.credits > 0 ? 'text-foreground' : 'text-muted-foreground'}`}>
+                            {business.credits}
+                          </span>
+                        </div>
+                      </td>
                       <td className="p-4">
                         <p className="text-foreground">{business.leads_purchased}</p>
                         <p className="text-xs text-muted-foreground">£{business.leads_purchased * 20} spent</p>
@@ -624,32 +773,55 @@ export default function AdminBusinesses() {
 
       {/* Business Profile Dialog */}
       <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
+              <Building2 className="w-5 h-5" />
               {selectedBusiness?.business_name || selectedBusiness?.contact_name || "Business Profile"}
               {selectedBusiness && getVerificationBadge(selectedBusiness)}
             </DialogTitle>
             <DialogDescription>
-              Business details and purchase history
+              Business details, verification documents and purchase history
             </DialogDescription>
           </DialogHeader>
 
           {selectedBusiness && (
             <Tabs defaultValue="details" className="mt-4">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="details">Details</TabsTrigger>
-                <TabsTrigger value="purchases">Purchase History</TabsTrigger>
+                <TabsTrigger value="documents" className="flex items-center gap-1">
+                  <FileText className="w-3 h-3" />
+                  Documents
+                </TabsTrigger>
+                <TabsTrigger value="purchases">Purchases</TabsTrigger>
               </TabsList>
 
               <TabsContent value="details" className="space-y-4 mt-4">
+                {/* Suspended Warning */}
+                {selectedBusiness.is_suspended && (
+                  <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-destructive">Account Suspended</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {selectedBusiness.suspension_reason || "No reason provided"}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Basic Details */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <Label className="text-muted-foreground text-xs">Business Name</Label>
+                    <Label className="text-muted-foreground text-xs flex items-center gap-1">
+                      <Building2 className="w-3 h-3" /> Business Name
+                    </Label>
                     <p className="font-medium">{selectedBusiness.business_name || "Not set"}</p>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-muted-foreground text-xs">Contact Name</Label>
+                    <Label className="text-muted-foreground text-xs flex items-center gap-1">
+                      <User className="w-3 h-3" /> Contact Name
+                    </Label>
                     <p className="font-medium">{selectedBusiness.contact_name || "Not set"}</p>
                   </div>
                   <div className="space-y-1">
@@ -662,19 +834,33 @@ export default function AdminBusinesses() {
                     <Label className="text-muted-foreground text-xs flex items-center gap-1">
                       <Phone className="w-3 h-3" /> Phone
                     </Label>
-                    <p className="font-medium">{selectedBusiness.phone || "Not set"}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium">{selectedBusiness.phone || "Not set"}</p>
+                      {selectedBusiness.phone_verified && (
+                        <Badge className="bg-green-500/20 text-green-500 text-xs">Verified</Badge>
+                      )}
+                    </div>
                   </div>
                   <div className="space-y-1">
                     <Label className="text-muted-foreground text-xs flex items-center gap-1">
                       <MapPin className="w-3 h-3" /> Postcode
                     </Label>
-                    <p className="font-medium">{selectedBusiness.postcode || "Not set"}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium">{selectedBusiness.postcode || "Not set"}</p>
+                      {selectedBusiness.address_verified && (
+                        <Badge className="bg-green-500/20 text-green-500 text-xs">Verified</Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-muted-foreground text-xs">WhatsApp Opt-in</Label>
+                    <p className="font-medium">{selectedBusiness.whatsapp_optin ? "Yes" : "No"}</p>
                   </div>
                   <div className="space-y-1">
                     <Label className="text-muted-foreground text-xs flex items-center gap-1">
                       <Calendar className="w-3 h-3" /> Joined
                     </Label>
-                    <p className="font-medium">{format(new Date(selectedBusiness.created_at), "d MMM yyyy")}</p>
+                    <p className="font-medium">{format(new Date(selectedBusiness.created_at), "d MMM yyyy HH:mm")}</p>
                   </div>
                   <div className="space-y-1">
                     <Label className="text-muted-foreground text-xs flex items-center gap-1">
@@ -688,6 +874,27 @@ export default function AdminBusinesses() {
                   </div>
                 </div>
 
+                {/* Risk & Verification Status */}
+                <div className="border-t border-border pt-4 mt-4">
+                  <h4 className="font-medium mb-3">Verification & Risk</h4>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="bg-muted/50 rounded-lg p-3 text-center">
+                      <p className="text-sm text-muted-foreground">Status</p>
+                      <div className="mt-1">{getVerificationBadge(selectedBusiness)}</div>
+                    </div>
+                    <div className="bg-muted/50 rounded-lg p-3 text-center">
+                      <p className="text-sm text-muted-foreground">Risk Score</p>
+                      <div className="mt-1">{getRiskBadge(selectedBusiness.risk_score || 0)}</div>
+                      <p className="text-xs text-muted-foreground mt-1">{selectedBusiness.risk_score || 0}/100</p>
+                    </div>
+                    <div className="bg-muted/50 rounded-lg p-3 text-center">
+                      <p className="text-sm text-muted-foreground">User ID</p>
+                      <p className="text-xs font-mono mt-1 truncate">{selectedBusiness.user_id}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Account Summary */}
                 <div className="border-t border-border pt-4 mt-4">
                   <h4 className="font-medium mb-3">Account Summary</h4>
                   <div className="grid grid-cols-3 gap-4">
@@ -699,8 +906,11 @@ export default function AdminBusinesses() {
                       <p className="text-2xl font-bold text-foreground">£{selectedBusiness.leads_purchased * 20}</p>
                       <p className="text-xs text-muted-foreground">Total Spend</p>
                     </div>
-                    <div className="bg-muted/50 rounded-lg p-3 text-center">
-                      <p className="text-2xl font-bold text-foreground">{selectedBusiness.credits}</p>
+                    <div className="bg-amber-500/10 rounded-lg p-3 text-center border border-amber-500/20">
+                      <div className="flex items-center justify-center gap-1">
+                        <Coins className="w-5 h-5 text-amber-500" />
+                        <p className="text-2xl font-bold text-foreground">{selectedBusiness.credits}</p>
+                      </div>
                       <p className="text-xs text-muted-foreground">Credits Balance</p>
                     </div>
                   </div>
@@ -738,8 +948,74 @@ export default function AdminBusinesses() {
                         Verify Business
                       </Button>
                     )}
+                    {selectedBusiness.is_suspended ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-green-500 border-green-500/30"
+                        onClick={() => handleUnsuspend(selectedBusiness)}
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Unsuspend
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-destructive border-destructive/30"
+                        onClick={() => openSuspendDialog(selectedBusiness)}
+                      >
+                        <Ban className="w-4 h-4 mr-2" />
+                        Suspend
+                      </Button>
+                    )}
                   </div>
                 </div>
+              </TabsContent>
+
+              <TabsContent value="documents" className="mt-4">
+                {loadingDocs ? (
+                  <div className="p-8 text-center">
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto" />
+                  </div>
+                ) : verificationDocs.length === 0 ? (
+                  <div className="p-8 text-center text-muted-foreground">
+                    <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>No verification documents uploaded</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {verificationDocs.map((doc) => (
+                      <div
+                        key={doc.id}
+                        className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border border-border"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                            <FileText className="w-5 h-5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-medium">{getDocumentTypeName(doc.document_type)}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Uploaded {format(new Date(doc.created_at), "d MMM yyyy HH:mm")}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {getDocStatusBadge(doc.status)}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => viewDocument(doc.file_path)}
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
+                            View
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="purchases" className="mt-4">
@@ -764,17 +1040,55 @@ export default function AdminBusinesses() {
                             {purchase.postcode}
                           </p>
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          {purchase.unlocked_at
-                            ? format(new Date(purchase.unlocked_at), "d MMM yyyy")
-                            : "N/A"}
-                        </p>
+                        <div className="text-right">
+                          <p className="font-medium">£{purchase.value}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {purchase.unlocked_at
+                              ? format(new Date(purchase.unlocked_at), "d MMM yyyy")
+                              : "N/A"}
+                          </p>
+                        </div>
                       </div>
                     ))}
                   </div>
                 )}
               </TabsContent>
             </Tabs>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Document Viewer Dialog */}
+      <Dialog open={isDocViewerOpen} onOpenChange={setIsDocViewerOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>Document Viewer</DialogTitle>
+          </DialogHeader>
+          {viewingDocUrl && (
+            <div className="mt-4">
+              {viewingDocUrl.includes('.pdf') ? (
+                <iframe
+                  src={viewingDocUrl}
+                  className="w-full h-[70vh] rounded-lg border"
+                  title="Document Viewer"
+                />
+              ) : (
+                <img
+                  src={viewingDocUrl}
+                  alt="Document"
+                  className="max-w-full max-h-[70vh] mx-auto rounded-lg"
+                />
+              )}
+              <div className="mt-4 flex justify-end">
+                <Button
+                  variant="outline"
+                  onClick={() => window.open(viewingDocUrl, '_blank')}
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Open in New Tab
+                </Button>
+              </div>
+            </div>
           )}
         </DialogContent>
       </Dialog>
@@ -844,9 +1158,9 @@ export default function AdminBusinesses() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="email-body">Message</Label>
-              <textarea
+              <Textarea
                 id="email-body"
-                className="w-full min-h-[150px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="min-h-[150px]"
                 placeholder="Enter your message..."
                 value={emailBody}
                 onChange={(e) => setEmailBody(e.target.value)}
@@ -877,21 +1191,20 @@ export default function AdminBusinesses() {
               Suspend Business
             </DialogTitle>
             <DialogDescription>
-              Suspend {suspendingBusiness?.business_name || suspendingBusiness?.contact_name}'s account. They will be notified via email.
+              Suspending {suspendingBusiness?.business_name || suspendingBusiness?.contact_name} will prevent them from purchasing leads.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="suspension-reason">Reason for Suspension</Label>
-              <textarea
+              <Label htmlFor="suspension-reason">Suspension Reason</Label>
+              <Textarea
                 id="suspension-reason"
-                className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                placeholder="Enter the reason for suspension (will be included in the email)..."
+                placeholder="Enter reason for suspension..."
                 value={suspensionReason}
                 onChange={(e) => setSuspensionReason(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                If left empty, a default reason will be used.
+                This reason will be recorded and visible in the business profile.
               </p>
             </div>
           </div>
@@ -899,12 +1212,8 @@ export default function AdminBusinesses() {
             <Button variant="outline" onClick={() => setIsSuspendDialogOpen(false)}>
               Cancel
             </Button>
-            <Button 
-              variant="destructive"
-              onClick={handleSuspend}
-            >
-              <Ban className="w-4 h-4 mr-2" />
-              Suspend Account
+            <Button variant="destructive" onClick={handleSuspend}>
+              Suspend Business
             </Button>
           </DialogFooter>
         </DialogContent>
