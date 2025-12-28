@@ -565,7 +565,7 @@ export default function Dashboard() {
               )}
             </div>
           ) : (
-            <div className="divide-y divide-border">
+            <div className="divide-y divide-border max-h-[600px] overflow-y-auto">
               {pendingLeads.map((lead) => (
                 <div key={lead.id} className={`p-6 hover:bg-muted/30 transition-colors ${lead.is_access_expired ? 'bg-muted/20' : ''}`}>
                   {/* Access expiration warning */}
@@ -799,7 +799,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="divide-y divide-border">
+            <div className="divide-y divide-border max-h-[400px] overflow-y-auto">
               {completedLeads.map((lead) => (
                 <div key={lead.id} className="p-6 hover:bg-muted/30 transition-colors bg-green-50/30 dark:bg-green-950/10">
                   <div className="flex flex-col lg:flex-row lg:items-start gap-6">
