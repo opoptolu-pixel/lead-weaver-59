@@ -113,7 +113,7 @@ serve(async (req) => {
           const emailSubject = "Welcome to Cleanda - Access Your Account";
           
           const emailResponse = await resend.emails.send({
-            from: "Cleanda <noreply@cleanda.co.uk>",
+            from: "Cleanda <hello@cleanda.co.uk>",
             to: [customerEmail],
             subject: emailSubject,
             html: `
