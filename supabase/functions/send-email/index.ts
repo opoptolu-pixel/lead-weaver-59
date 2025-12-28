@@ -24,11 +24,34 @@ interface EmailRequest {
   to: string;
   subject: string;
   html: string;
+  text?: string; // Plain text version for better deliverability
   replyTo?: string;
   templateId?: string;
   templateName?: string;
   isTest?: boolean;
 }
+
+// Strip HTML to plain text for better deliverability
+const htmlToPlainText = (html: string): string => {
+  return html
+    .replace(/<style[^>]*>.*?<\/style>/gis, '') // Remove style tags
+    .replace(/<script[^>]*>.*?<\/script>/gis, '') // Remove script tags
+    .replace(/<br\s*\/?>/gi, '\n') // Convert br to newline
+    .replace(/<\/p>/gi, '\n\n') // Convert closing p to double newline
+    .replace(/<\/div>/gi, '\n') // Convert closing div to newline
+    .replace(/<\/tr>/gi, '\n') // Convert closing tr to newline
+    .replace(/<\/h[1-6]>/gi, '\n\n') // Convert closing headers
+    .replace(/<a[^>]*href="([^"]*)"[^>]*>([^<]*)<\/a>/gi, '$2 ($1)') // Convert links
+    .replace(/<[^>]+>/g, '') // Remove remaining tags
+    .replace(/&nbsp;/g, ' ') // Convert nbsp
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/\n{3,}/g, '\n\n') // Max 2 consecutive newlines
+    .trim();
+};
 
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -53,11 +76,14 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { to, subject, html, replyTo, templateId, templateName, isTest }: EmailRequest = await req.json();
+    const { to, subject, html, text, replyTo, templateId, templateName, isTest }: EmailRequest = await req.json();
 
     if (!to || !subject || !html) {
       throw new Error("Missing required fields: to, subject, html");
     }
+
+    // Generate plain text version if not provided
+    const plainText = text || htmlToPlainText(html);
 
     // Check if recipient has unsubscribed (skip for test emails)
     if (!isTest) {
@@ -95,17 +121,13 @@ serve(async (req) => {
       to: [to],
       subject: subject,
       html: html,
-      // Don't set reply-to for automated emails - we don't monitor noreply
-      // Users should visit our website/contact form for support
+      text: plainText, // Plain text version improves deliverability
       headers: {
         // RFC 8058 one-click unsubscribe (required by Gmail for bulk senders)
         "List-Unsubscribe": `<${unsubscribeUrl}>, <mailto:${UNSUBSCRIBE_EMAIL}?subject=Unsubscribe%20${encodeURIComponent(to)}>`,
         "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-        // Organization header
         "Organization": "Cleanda Ltd",
-        // X-Mailer helps with deliverability
         "X-Mailer": "Cleanda Mailer",
-        // Message-ID helps with threading
         "X-Entity-Ref-ID": `cleanda-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       },
     };
