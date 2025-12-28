@@ -214,14 +214,14 @@ export default function AdminInquiries() {
       await supabase.functions.invoke("send-email", {
         body: {
           to: selectedInquiry.email,
-          subject: "Welcome to Deep Clean UK - Your Account is Ready!",
+          subject: "Welcome to Cleanda - Your Account is Ready!",
           html: `
             <h2>Welcome ${selectedInquiry.contact_name}!</h2>
             <p>Great news! Your business application for <strong>${selectedInquiry.business_name}</strong> has been approved.</p>
             <p>You can now create your account and start receiving leads in your area (${selectedInquiry.postcode}).</p>
             <p><a href="${window.location.origin}/auth?signup=true&email=${encodeURIComponent(selectedInquiry.email)}" style="background-color: #0B3D2E; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin: 16px 0;">Create Your Account</a></p>
             <p>As a welcome bonus, you'll receive <strong>${initialCredits} free credits</strong> to get started!</p>
-            <p>Best regards,<br>The Deep Clean UK Team</p>
+            <p>Best regards,<br>The Cleanda Team</p>
           `,
         },
       });
@@ -420,7 +420,7 @@ export default function AdminInquiries() {
                                   onClick={() => {
                                     setSelectedInquiry(inquiry);
                                     setEmailSubject(`Following up on your inquiry - ${inquiry.business_name}`);
-                                    setEmailBody(`Hi ${inquiry.contact_name},\n\nThank you for your interest in joining Deep Clean UK.\n\nI wanted to follow up on your application for ${inquiry.business_name}.\n\nBest regards,\nThe Deep Clean UK Team`);
+                                    setEmailBody(`Hi ${inquiry.contact_name},\n\nThank you for your interest in joining Cleanda.\n\nI wanted to follow up on your application for ${inquiry.business_name}.\n\nBest regards,\nThe Cleanda Team`);
                                     setIsEmailDialogOpen(true);
                                   }}
                                 >
@@ -552,7 +552,7 @@ export default function AdminInquiries() {
                     size="sm"
                     onClick={() => {
                       setEmailSubject(`Following up on your inquiry - ${selectedInquiry.business_name}`);
-                      setEmailBody(`Hi ${selectedInquiry.contact_name},\n\nThank you for your interest in joining Deep Clean UK.\n\nI wanted to follow up on your application for ${selectedInquiry.business_name}.\n\nBest regards,\nThe Deep Clean UK Team`);
+                      setEmailBody(`Hi ${selectedInquiry.contact_name},\n\nThank you for your interest in joining Cleanda.\n\nI wanted to follow up on your application for ${selectedInquiry.business_name}.\n\nBest regards,\nThe Cleanda Team`);
                       setIsEmailDialogOpen(true);
                     }}
                     disabled={updating}

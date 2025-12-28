@@ -1874,7 +1874,7 @@ export default function AdminAccounting() {
               <div className="space-y-8 print:space-y-6">
                 {/* Header */}
                 <div className="text-center border-b pb-6">
-                  <h1 className="text-3xl font-bold">Deep Clean UK</h1>
+                  <h1 className="text-3xl font-bold">Cleanda</h1>
                   <h2 className="text-xl text-muted-foreground mt-2">Financial Report</h2>
                   <p className="text-sm text-muted-foreground mt-2">
                     {dateRange.from && dateRange.to && (
@@ -2051,7 +2051,7 @@ export default function AdminAccounting() {
 
                 {/* Footer */}
                 <div className="text-center text-xs text-muted-foreground border-t pt-4 mt-8">
-                  <p>This report was generated automatically by Deep Clean UK Admin System</p>
+                  <p>This report was generated automatically by Cleanda Admin System</p>
                   <p>Confidential - For internal use only</p>
                 </div>
               </div>

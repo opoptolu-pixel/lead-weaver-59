@@ -283,11 +283,11 @@ export const JobBoard = () => {
               size="lg"
               className="shadow-glow"
               onClick={() => {
-                trackCTAClick("Join Deep Clean UK Today", "job_board_section");
+                trackCTAClick("Join Cleanda Today", "job_board_section");
                 document.getElementById("registration")?.scrollIntoView({ behavior: "smooth" });
               }}
             >
-              Join Deep Clean UK Today
+              Join Cleanda Today
             </Button>
           </div>
         </ScrollReveal>

@@ -836,7 +836,7 @@ export default function RequestCleaning() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="font-heading text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              Why Customers Choose <span className="text-primary">Deep Clean UK</span>
+              Why Customers Choose <span className="text-primary">Cleanda</span>
             </h2>
             <p className="text-gray-600 text-lg max-w-2xl mx-auto">
               Finding a reliable cleaner shouldn't be stressful. We've solved the biggest pain points.

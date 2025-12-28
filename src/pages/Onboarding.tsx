@@ -131,7 +131,7 @@ export default function Onboarding() {
       if (error) throw error;
 
       await refreshProfile();
-      toast.success("Welcome to Deep Clean UK! Your profile is set up.");
+      toast.success("Welcome to Cleanda! Your profile is set up.");
       navigate("/dashboard");
     } catch (error) {
       console.error("Error saving profile:", error);

@@ -216,8 +216,8 @@ export default function Auth() {
     <div className="min-h-screen bg-background flex flex-col">
       <SEOHead
         title={mode === "login" ? "Sign In" : mode === "signup" ? "Create Account" : "Reset Password"}
-        description="Sign in to Deep Clean UK to access exclusive cleaning leads in your area. Manage your leads and grow your cleaning business."
-        canonical="https://deepcleanco.uk/auth"
+        description="Sign in to Cleanda to access exclusive cleaning leads in your area. Manage your leads and grow your cleaning business."
+        canonical="https://cleanda.co.uk/auth"
         noIndex={true}
       />
       {/* Header */}
