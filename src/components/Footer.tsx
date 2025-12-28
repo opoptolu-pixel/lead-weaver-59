@@ -4,7 +4,11 @@ import { Link } from "react-router-dom";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 
-export const Footer = forwardRef<HTMLElement>((_, ref) => {
+interface FooterProps {
+  hideCta?: boolean;
+}
+
+export const Footer = forwardRef<HTMLElement, FooterProps>(({ hideCta = false }, ref) => {
   const currentYear = new Date().getFullYear();
 
   return (
@@ -15,25 +19,27 @@ export const Footer = forwardRef<HTMLElement>((_, ref) => {
         <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-secondary/10 rounded-full blur-3xl translate-y-1/2" />
       </div>
 
-      {/* CTA Section */}
-      <div className="relative border-b border-white/10">
-        <div className="container mx-auto px-4 py-16">
-          <div className="max-w-4xl mx-auto text-center">
-            <h2 className="font-heading text-3xl md:text-4xl font-bold text-primary-foreground mb-4">
-              Ready for a Sparkling Clean Home?
-            </h2>
-            <p className="text-primary-foreground/70 text-lg mb-8 max-w-xl mx-auto">
-              Get matched with a verified local cleaner today. It's free, fast, and hassle-free.
-            </p>
-            <Link to="/request-cleaning">
-              <Button variant="cta" size="lg" className="shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-0.5">
-                Get Your Free Quote
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-            </Link>
+      {/* CTA Section - only show on customer-facing pages */}
+      {!hideCta && (
+        <div className="relative border-b border-white/10">
+          <div className="container mx-auto px-4 py-16">
+            <div className="max-w-4xl mx-auto text-center">
+              <h2 className="font-heading text-3xl md:text-4xl font-bold text-primary-foreground mb-4">
+                Ready for a Sparkling Clean Home?
+              </h2>
+              <p className="text-primary-foreground/70 text-lg mb-8 max-w-xl mx-auto">
+                Get matched with a verified local cleaner today. It's free, fast, and hassle-free.
+              </p>
+              <Link to="/request-cleaning">
+                <Button variant="cta" size="lg" className="shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-0.5">
+                  Get Your Free Quote
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Main Footer */}
       <div className="container mx-auto px-4 py-16 relative">
