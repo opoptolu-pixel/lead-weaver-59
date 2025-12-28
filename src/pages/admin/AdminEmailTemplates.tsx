@@ -52,6 +52,7 @@ import {
 import { format } from "date-fns";
 import { VariableAutocompleteTextarea } from "@/components/admin/VariableAutocompleteTextarea";
 import { EmailLogsPanel } from "@/components/admin/EmailLogsPanel";
+import { EmailDeliverabilityDashboard } from "@/components/admin/EmailDeliverabilityDashboard";
 import { ScheduledEmailsPanel } from "@/components/admin/ScheduledEmailsPanel";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -2233,7 +2234,8 @@ export default function AdminEmailTemplates() {
             <ScheduledEmailsPanel />
           </TabsContent>
 
-          <TabsContent value="logs">
+          <TabsContent value="logs" className="space-y-6">
+            <EmailDeliverabilityDashboard />
             <EmailLogsPanel />
           </TabsContent>
         </Tabs>
