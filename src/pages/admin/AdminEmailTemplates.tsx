@@ -1789,12 +1789,10 @@ export default function AdminEmailTemplates() {
             </p>
           </div>
           <div className="flex gap-2">
-            {templates.length === 0 && (
-              <Button variant="outline" onClick={seedDefaultTemplates} disabled={saving}>
-                {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                Add Default Templates
-              </Button>
-            )}
+            <Button variant="outline" onClick={seedDefaultTemplates} disabled={saving}>
+              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              {templates.length === 0 ? "Add Default Templates" : "Sync Cleanda Branding"}
+            </Button>
             <Button onClick={handleCreate}>
               <Plus className="w-4 h-4 mr-2" />
               New Template
