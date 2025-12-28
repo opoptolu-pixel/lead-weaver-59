@@ -1313,6 +1313,122 @@ const DEFAULT_TEMPLATES = [
 </body>
 </html>`,
   },
+  {
+    name: "account_suspended",
+    subject: "⚠️ Important: Your Cleanda Account Has Been Suspended",
+    description: "Sent when a business account is suspended",
+    variables: ["business_name", "contact_name", "suspension_reason", "support_email", "current_year"],
+    body: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f0f4f3; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f0f4f3; padding: 40px 20px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(11, 61, 46, 0.08);">
+          
+          <!-- Header -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #0B3D2E 0%, #145A44 100%); padding: 35px 40px; text-align: center;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700;">✨ Cleanda</h1>
+              <p style="color: #7DD3A8; margin: 6px 0 0 0; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">Partner Network</p>
+            </td>
+          </tr>
+          
+          <!-- Alert Banner -->
+          <tr>
+            <td style="padding: 0;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: linear-gradient(90deg, #EF5350 0%, #E53935 100%);">
+                <tr>
+                  <td style="padding: 16px 40px; text-align: center;">
+                    <span style="color: #ffffff; font-size: 15px; font-weight: 600;">⚠️ Account Suspended</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          
+          <!-- Main Content -->
+          <tr>
+            <td style="padding: 40px;">
+              <p style="color: #333333; font-size: 17px; line-height: 1.6; margin: 0 0 25px 0;">
+                Hi <strong>{{contact_name}}</strong>,
+              </p>
+              <p style="color: #555555; font-size: 16px; line-height: 1.7; margin: 0 0 28px 0;">
+                We regret to inform you that your Cleanda partner account for <strong>{{business_name}}</strong> has been suspended.
+              </p>
+              
+              <!-- Reason Box -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%); border-radius: 12px; border-left: 4px solid #EF5350; margin-bottom: 30px;">
+                <tr>
+                  <td style="padding: 24px;">
+                    <table role="presentation" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td width="36" valign="top">
+                          <div style="width: 32px; height: 32px; background-color: #EF5350; border-radius: 50%; text-align: center; line-height: 32px; font-size: 16px; color: white;">!</div>
+                        </td>
+                        <td style="padding-left: 12px;">
+                          <p style="color: #C62828; font-size: 14px; font-weight: 700; margin: 0 0 8px 0;">Reason for Suspension</p>
+                          <p style="color: #555555; font-size: 15px; margin: 0; line-height: 1.6;">{{suspension_reason}}</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              
+              <!-- What This Means -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f8faf9; border-radius: 12px; border: 1px solid #e8ebe9; margin-bottom: 28px;">
+                <tr>
+                  <td style="padding: 20px 24px;">
+                    <p style="color: #0B3D2E; font-size: 14px; font-weight: 600; margin: 0 0 10px 0;">What this means</p>
+                    <ul style="color: #666666; font-size: 14px; margin: 0; padding-left: 20px; line-height: 1.8;">
+                      <li>You cannot unlock or purchase new leads</li>
+                      <li>Your account dashboard is temporarily inaccessible</li>
+                      <li>Any pending leads have been released</li>
+                    </ul>
+                  </td>
+                </tr>
+              </table>
+              
+              <p style="color: #555555; font-size: 15px; line-height: 1.7; margin: 0 0 10px 0;">
+                If you believe this suspension was made in error or would like to discuss reinstatement, please contact our support team.
+              </p>
+              
+              <p style="color: #888888; font-size: 13px; margin: 25px 0 0 0; line-height: 1.5;">
+                Contact us at <a href="mailto:{{support_email}}" style="color: #0B3D2E; font-weight: 600;">{{support_email}}</a>
+              </p>
+            </td>
+          </tr>
+          
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f5f5f5; padding: 25px 40px; border-top: 1px solid #e8e8e8;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center">
+                    <p style="color: #888888; font-size: 12px; margin: 0 0 8px 0;">
+                      © {{current_year}} Cleanda · A trading name of Orbit Shade Ltd (Company No. 15337705)
+                    </p>
+                    <p style="color: #aaaaaa; font-size: 11px; margin: 0;">
+                      128 City Road, London, EC1V 2NX
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
+  },
 ];
 
 import { useAdmin } from "@/contexts/AdminContext";
@@ -1433,6 +1549,8 @@ export default function AdminEmailTemplates() {
         rejection_reason: "Document was unclear or expired. Please upload a clearer copy.",
         admin_notes: "All documents verified successfully.",
         verification_url: window.location.origin + "/verification",
+        suspension_reason: "Multiple customer complaints and policy violations.",
+        support_email: "support@cleanda.co.uk",
       };
       Object.entries(sampleData).forEach(([key, value]) => {
         subject = subject.replace(new RegExp(`\\{\\{${key}\\}\\}`, "g"), value);
@@ -1495,6 +1613,8 @@ export default function AdminEmailTemplates() {
         rejection_reason: "Document was unclear or expired. Please upload a clearer copy.",
         admin_notes: "All documents verified successfully.",
         verification_url: window.location.origin + "/verification",
+        suspension_reason: "Multiple customer complaints and policy violations.",
+        support_email: "support@cleanda.co.uk",
       };
       Object.entries(sampleData).forEach(([key, value]) => {
         subject = subject.replace(new RegExp(`\\{\\{${key}\\}\\}`, "g"), value);
@@ -1593,7 +1713,20 @@ export default function AdminEmailTemplates() {
           .eq("name", template.name)
           .maybeSingle();
 
-        if (!existing) {
+        if (existing) {
+          // Update existing template with latest branding/content
+          const { error } = await supabase
+            .from("email_templates")
+            .update({
+              subject: template.subject,
+              body: template.body,
+              description: template.description,
+              variables: template.variables,
+            })
+            .eq("id", existing.id);
+
+          if (error) throw error;
+        } else {
           const { error } = await supabase
             .from("email_templates")
             .insert(template);
@@ -1601,11 +1734,11 @@ export default function AdminEmailTemplates() {
           if (error) throw error;
         }
       }
-      toast.success("Default templates added successfully");
+      toast.success("Templates updated with latest branding");
       fetchTemplates();
     } catch (error) {
       console.error("Error seeding templates:", error);
-      toast.error("Failed to add default templates");
+      toast.error("Failed to update templates");
     } finally {
       setSaving(false);
     }
@@ -1633,6 +1766,8 @@ export default function AdminEmailTemplates() {
       rejection_reason: "Document was unclear or expired. Please upload a clearer copy.",
       admin_notes: "All documents verified successfully.",
       verification_url: "#",
+      suspension_reason: "Multiple customer complaints and policy violations.",
+      support_email: "support@cleanda.co.uk",
     };
 
     let html = template.body;
