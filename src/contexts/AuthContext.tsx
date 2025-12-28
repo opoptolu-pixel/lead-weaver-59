@@ -125,13 +125,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .update({ last_login: now })
         .eq("user_id", data.user.id);
       
-      // Insert login history record
+      // Fetch IP and geolocation data
+      let ipAddress: string | null = null;
+      let city: string | null = null;
+      let country: string | null = null;
+      
+      try {
+        const geoResponse = await fetch('https://ipapi.co/json/');
+        if (geoResponse.ok) {
+          const geoData = await geoResponse.json();
+          ipAddress = geoData.ip || null;
+          city = geoData.city || null;
+          country = geoData.country_name || null;
+        }
+      } catch (geoError) {
+        console.error("Error fetching geolocation:", geoError);
+      }
+      
+      // Insert login history record with geolocation
       await supabase
         .from("login_history")
         .insert({
           user_id: data.user.id,
           user_agent: navigator.userAgent,
           login_at: now,
+          ip_address: ipAddress,
+          city: city,
+          country: country,
         });
     }
     
