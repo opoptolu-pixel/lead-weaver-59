@@ -118,12 +118,12 @@ export default function TwoFactorSetup({ onComplete }: TwoFactorSetupProps) {
   };
 
   const downloadCodes = () => {
-    const codesText = `DeepClean 2FA Recovery Codes\n${"=".repeat(30)}\n\nKeep these codes in a safe place. Each code can only be used once.\n\n${recoveryCodes.join("\n")}\n\nGenerated: ${new Date().toLocaleString()}`;
+    const codesText = `Cleanda 2FA Recovery Codes\n${"=".repeat(30)}\n\nKeep these codes in a safe place. Each code can only be used once.\n\n${recoveryCodes.join("\n")}\n\nGenerated: ${new Date().toLocaleString()}`;
     const blob = new Blob([codesText], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "deepclean-recovery-codes.txt";
+    a.download = "cleanda-recovery-codes.txt";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
