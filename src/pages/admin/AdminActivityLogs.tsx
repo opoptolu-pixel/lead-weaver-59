@@ -611,7 +611,7 @@ export default function AdminActivityLogs() {
                       <div className="flex items-center gap-3">
                         <div className="flex items-center gap-2 bg-background rounded-lg px-3 py-2 border">
                           <Shield className="w-4 h-4 text-primary" />
-                          <span className="font-medium">Deep Clean UK</span>
+                          <span className="font-medium">Cleanda</span>
                         </div>
                         <div className="flex items-center gap-1 text-muted-foreground">
                           <ArrowRight className="w-4 h-4" />
@@ -645,7 +645,7 @@ export default function AdminActivityLogs() {
                         </div>
                         <div className="flex items-center gap-2 bg-background rounded-lg px-3 py-2 border">
                           <Shield className="w-4 h-4 text-primary" />
-                          <span className="font-medium">Deep Clean UK</span>
+                          <span className="font-medium">Cleanda</span>
                         </div>
                       </div>
                     )}

@@ -8,7 +8,7 @@ import {
 const faqs = [
   {
     question: "Are leads shared between multiple cleaners?",
-    answer: "No — every lead on Deep Clean UK is 100% exclusive. Once you unlock a lead, it's yours and yours alone. You'll never compete for a job you've paid for.",
+    answer: "No — every lead on Cleanda is 100% exclusive. Once you unlock a lead, it's yours and yours alone. You'll never compete for a job you've paid for.",
   },
   {
     question: "What happens if the lead doesn't respond?",
@@ -28,7 +28,7 @@ const faqs = [
   },
   {
     question: "Is there a monthly fee or contract?",
-    answer: "Absolutely not. Deep Clean UK is 100% pay-per-lead. No monthly subscriptions, no contracts, no hidden fees. You only pay when you choose to unlock a lead.",
+    answer: "Absolutely not. Cleanda is 100% pay-per-lead. No monthly subscriptions, no contracts, no hidden fees. You only pay when you choose to unlock a lead.",
   },
 ];
 
@@ -44,7 +44,7 @@ export const FAQ = () => {
             Frequently Asked Questions
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Everything you need to know about Deep Clean UK
+            Everything you need to know about Cleanda
           </p>
         </div>
 
