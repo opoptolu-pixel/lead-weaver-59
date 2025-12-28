@@ -48,8 +48,8 @@ export default function AdminSettings() {
 
   // Site settings state
   const [siteSettings, setSiteSettings] = useState({
-    siteName: "Deep Clean UK",
-    supportEmail: "support@deepcleanco.uk",
+    siteName: "Cleanda",
+    supportEmail: "support@cleanda.co.uk",
     leadPrice: "5",
     creditPackSmall: "10",
     creditPackMedium: "25",

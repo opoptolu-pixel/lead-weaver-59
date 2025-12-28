@@ -111,7 +111,7 @@ While DIY deep cleaning is rewarding, some tasks benefit from professional exper
 Professional cleaners have commercial-grade equipment and products that can achieve results difficult to match at home.
     `,
     category: "deep-cleaning",
-    author: "Deep Clean UK",
+    author: "Cleanda",
     publishedAt: "2025-01-15",
     readingTime: 8,
     metaDescription: "Complete guide to deep cleaning your home room by room. Learn professional techniques, essential tools, and when to hire experts for the best results.",
@@ -205,7 +205,7 @@ Professional carpet cleaners use hot water extraction and commercial-grade produ
 - Schedule regular professional cleaning every 12-18 months
     `,
     category: "carpet-care",
-    author: "Deep Clean UK",
+    author: "Cleanda",
     publishedAt: "2025-01-10",
     readingTime: 6,
     metaDescription: "Learn how to remove red wine, coffee, pet stains and more from carpets. Expert tips for DIY stain removal and when to call professional carpet cleaners.",
@@ -330,7 +330,7 @@ Most tenancy agreements require you to return the property in the same condition
 5. **Attend the check-out**: Be present to discuss any concerns
     `,
     category: "end-of-tenancy",
-    author: "Deep Clean UK",
+    author: "Cleanda",
     publishedAt: "2025-01-05",
     readingTime: 7,
     metaDescription: "Complete end of tenancy cleaning checklist to help you get your deposit back. Room-by-room guide with landlord expectations and professional tips.",
@@ -446,7 +446,7 @@ Professional upholstery cleaning is recommended:
 Professional cleaners use hot water extraction and specialised products that achieve deeper cleaning than home methods.
     `,
     category: "upholstery",
-    author: "Deep Clean UK",
+    author: "Cleanda",
     publishedAt: "2024-12-28",
     readingTime: 6,
     metaDescription: "Learn how to clean fabric and leather sofas at home. Professional upholstery cleaning tips, stain removal methods, and maintenance advice.",
@@ -576,7 +576,7 @@ Consider booking professionals for the big tasks and focus your energy on organi
 Download our printable checklist covering every room in your home, or use our quote system to find a professional cleaner in your area.
     `,
     category: "tips-tricks",
-    author: "Deep Clean UK",
+    author: "Cleanda",
     publishedAt: "2024-12-20",
     readingTime: 5,
     metaDescription: "10 essential spring cleaning tips for UK homes. Practical advice for tackling every room, from decluttering to deep cleaning, tailored for British weather.",
@@ -713,7 +713,7 @@ Document your requirements:
 A clear specification helps cleaners meet your expectations and provides a basis for monitoring performance.
     `,
     category: "commercial",
-    author: "Deep Clean UK",
+    author: "Cleanda",
     publishedAt: "2024-12-15",
     readingTime: 7,
     metaDescription: "Office cleaning best practices for UK businesses. Daily, weekly and monthly cleaning schedules, health and safety compliance, and hiring commercial cleaners.",
@@ -797,7 +797,7 @@ Even with regular cleaning, mattresses don't last forever:
 - Worsening allergies or sleep quality
     `,
     category: "tips-tricks",
-    author: "Deep Clean UK",
+    author: "Cleanda",
     publishedAt: "2024-12-10",
     readingTime: 5,
     featuredImageAlt: "Professional mattress cleaning with vacuum cleaner showing dust removal",
@@ -881,7 +881,7 @@ Spend 5 minutes each week checking expiry dates and wiping shelves. Prevents the
 - Descale kettle
     `,
     category: "tips-tricks",
-    author: "Deep Clean UK",
+    author: "Cleanda",
     publishedAt: "2024-12-05",
     readingTime: 6,
     featuredImageAlt: "Sparkling clean modern kitchen with professional cleaning supplies",
@@ -1011,7 +1011,7 @@ Many professional cleaners now offer green cleaning services using:
 Ask about eco-friendly options when booking professional cleaning services.
     `,
     category: "tips-tricks",
-    author: "Deep Clean UK",
+    author: "Cleanda",
     publishedAt: "2024-11-28",
     readingTime: 7,
     featuredImageAlt: "Natural eco-friendly cleaning products including vinegar lemon and bicarbonate of soda",
@@ -1142,7 +1142,7 @@ Post-construction cleaning prices depend on:
 - Plan to vacuum multiple times over several days
     `,
     category: "deep-cleaning",
-    author: "Deep Clean UK",
+    author: "Cleanda",
     publishedAt: "2024-11-20",
     readingTime: 8,
     featuredImageAlt: "Professional post-construction cleaning team removing dust from newly renovated room",
@@ -1262,7 +1262,7 @@ Consider professional oven cleaning for:
 Professionals use industrial-strength products and can achieve results difficult to match at home.
     `,
     category: "tips-tricks",
-    author: "Deep Clean UK",
+    author: "Cleanda",
     publishedAt: "2024-11-15",
     readingTime: 6,
     featuredImageAlt: "Natural oven cleaning with bicarbonate of soda paste applied inside oven",
@@ -1428,7 +1428,7 @@ For reliable Airbnb cleaning:
 5. Communicate clear expectations
     `,
     category: "commercial",
-    author: "Deep Clean UK",
+    author: "Cleanda",
     publishedAt: "2024-11-10",
     readingTime: 7,
     featuredImageAlt: "Professionally cleaned Airbnb bedroom with fresh white linens and welcoming atmosphere",
@@ -1552,7 +1552,7 @@ Professional cleaners have:
 - Experience with difficult odour problems
     `,
     category: "tips-tricks",
-    author: "Deep Clean UK",
+    author: "Cleanda",
     publishedAt: "2024-11-05",
     readingTime: 7,
     featuredImageAlt: "Pet owner cleaning carpet to remove dog odour with enzyme cleaner spray",
@@ -1685,7 +1685,7 @@ Professional mould removal includes:
 - Recommendations to prevent recurrence
     `,
     category: "tips-tricks",
-    author: "Deep Clean UK",
+    author: "Cleanda",
     publishedAt: "2024-10-28",
     readingTime: 7,
     featuredImageAlt: "Person removing bathroom mould from tile grout wearing protective gloves",
@@ -1812,7 +1812,7 @@ They have:
 - Experience for fast, consistent results
     `,
     category: "tips-tricks",
-    author: "Deep Clean UK",
+    author: "Cleanda",
     publishedAt: "2024-10-20",
     readingTime: 6,
     featuredImageAlt: "Professional window cleaner using squeegee for streak-free glass results",
@@ -1956,7 +1956,7 @@ Professional end of tenancy cleaning:
 - Gives peace of mind for both parties
     `,
     category: "end-of-tenancy",
-    author: "Deep Clean UK",
+    author: "Cleanda",
     publishedAt: "2024-10-15",
     readingTime: 8,
     featuredImageAlt: "Landlord and property manager inspecting clean rental property before new tenancy",
@@ -2103,7 +2103,7 @@ Consider a professional service clean or repair when:
 - Strange noises during operation
     `,
     category: "tips-tricks",
-    author: "Deep Clean UK",
+    author: "Cleanda",
     publishedAt: "2024-10-10",
     readingTime: 6,
     featuredImageAlt: "Open washing machine door showing clean drum interior and rubber seal",
@@ -2267,7 +2267,7 @@ A good cleaning arrangement means:
 - A trusted helper in your home
     `,
     category: "tips-tricks",
-    author: "Deep Clean UK",
+    author: "Cleanda",
     publishedAt: "2024-10-05",
     readingTime: 7,
     featuredImageAlt: "Professional cleaner with supplies ready to clean a modern home",
@@ -2445,7 +2445,7 @@ Worth it for:
 Split the cost between housemates for an affordable solution.
     `,
     category: "tips-tricks",
-    author: "Deep Clean UK",
+    author: "Cleanda",
     publishedAt: "2024-09-28",
     readingTime: 7,
     featuredImageAlt: "Students cleaning shared kitchen in university house with cleaning supplies",
@@ -2638,7 +2638,7 @@ Even with regular cleaning, deep cleaning every few months tackles what daily cl
 - Note any sensitive items or surfaces
     `,
     category: "deep-cleaning",
-    author: "Deep Clean UK",
+    author: "Cleanda",
     publishedAt: "2024-09-20",
     readingTime: 7,
     featuredImageAlt: "Professional cleaner deep cleaning kitchen oven with detailed attention",

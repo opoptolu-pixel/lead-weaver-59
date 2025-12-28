@@ -14,8 +14,8 @@ const NotFound = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <SEOHead
-        title="Page Not Found | Deep Clean UK"
-        description="The page you're looking for doesn't exist. Return to Deep Clean UK homepage to find trusted cleaners near you."
+        title="Page Not Found | Cleanda"
+        description="The page you're looking for doesn't exist. Return to Cleanda homepage to find trusted cleaners near you."
         noIndex={true}
       />
       <div className="flex-1 flex items-center justify-center px-4">

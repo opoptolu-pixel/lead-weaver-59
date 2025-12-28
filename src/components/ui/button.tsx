@@ -15,7 +15,7 @@ const buttonVariants = cva(
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-sm",
         ghost: "hover:bg-muted hover:text-foreground",
         link: "text-secondary underline-offset-4 hover:underline",
-        // Custom variants for Deep Clean UK
+        // Custom variants for Cleanda
         cta: "bg-cta-gradient text-secondary-foreground hover:opacity-90 shadow-md hover:shadow-lg hover:shadow-green/20 animate-pulse-glow",
         hero: "bg-cta-gradient text-secondary-foreground hover:opacity-90 shadow-lg hover:shadow-xl hover:shadow-green/25 text-base font-bold",
         outlineHero: "border-2 border-secondary/30 bg-transparent text-secondary-foreground hover:bg-secondary/10 hover:border-secondary/50",

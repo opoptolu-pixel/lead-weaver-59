@@ -94,7 +94,7 @@ const DEFAULT_TEMPLATES = [
                     <div style="width: 60px; height: 60px; background-color: rgba(255,255,255,0.15); border-radius: 12px; margin-bottom: 16px; display: inline-block; line-height: 60px;">
                       <span style="font-size: 28px;">🧹</span>
                     </div>
-                    <h1 style="color: #ffffff; margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.5px;">Deep Clean UK</h1>
+                    <h1 style="color: #ffffff; margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.5px;">✨ Cleanda</h1>
                     <p style="color: #7DD3A8; margin: 6px 0 0 0; font-size: 13px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">Professional Cleaning Network</p>
                   </td>
                 </tr>
@@ -123,7 +123,7 @@ const DEFAULT_TEMPLATES = [
                 Hi <strong>{{customer_name}}</strong>,
               </p>
               <p style="color: #555555; font-size: 16px; line-height: 1.7; margin: 0 0 30px 0;">
-                Thank you for choosing Deep Clean UK! Your cleaning request has been received and we are now matching you with a trusted, verified cleaner in your area.
+                Thank you for choosing Cleanda! Your cleaning request has been received and we are now matching you with a trusted, verified cleaner in your area.
               </p>
               
               <!-- Booking Details Card -->
@@ -248,7 +248,7 @@ const DEFAULT_TEMPLATES = [
                   <td align="center">
                     <p style="color: #7DD3A8; font-size: 14px; margin: 0 0 8px 0;">Questions? Just reply to this email.</p>
                     <p style="color: rgba(255,255,255,0.5); font-size: 12px; margin: 0;">
-                      © {{current_year}} Deep Clean UK · All rights reserved
+                      © {{current_year}} Cleanda · All rights reserved
                     </p>
                   </td>
                 </tr>
@@ -283,7 +283,7 @@ const DEFAULT_TEMPLATES = [
           <!-- Header -->
           <tr>
             <td style="background: linear-gradient(135deg, #0B3D2E 0%, #145A44 100%); padding: 35px 40px; text-align: center;">
-              <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700;">Deep Clean UK</h1>
+              <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700;">✨ Cleanda</h1>
               <p style="color: #7DD3A8; margin: 6px 0 0 0; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">Partner Network</p>
             </td>
           </tr>
@@ -369,8 +369,8 @@ const DEFAULT_TEMPLATES = [
                 <tr>
                   <td align="center">
                     <p style="color: rgba(255,255,255,0.6); font-size: 12px; margin: 0;">
-                      You are receiving this because you are a registered Deep Clean UK partner.<br>
-                      © {{current_year}} Deep Clean UK
+                      You are receiving this because you are a registered Cleanda partner.<br>
+                      © {{current_year}} Cleanda
                     </p>
                   </td>
                 </tr>
@@ -387,7 +387,7 @@ const DEFAULT_TEMPLATES = [
   },
   {
     name: "welcome_business",
-    subject: "Welcome to Deep Clean UK, {{business_name}}! 🎉",
+    subject: "Welcome to Cleanda, {{business_name}}! 🎉",
     description: "Sent to new businesses when they sign up",
     variables: ["business_name", "contact_name", "dashboard_url", "current_year"],
     body: `<!DOCTYPE html>
@@ -406,7 +406,7 @@ const DEFAULT_TEMPLATES = [
           <tr>
             <td style="background: linear-gradient(135deg, #0B3D2E 0%, #145A44 100%); padding: 50px 40px; text-align: center;">
               <div style="font-size: 48px; margin-bottom: 16px;">🎉</div>
-              <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 700;">Welcome to Deep Clean UK!</h1>
+              <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 700;">Welcome to Cleanda!</h1>
               <p style="color: #7DD3A8; margin: 10px 0 0 0; font-size: 16px;">You are now part of our trusted cleaner network</p>
             </td>
           </tr>
@@ -509,7 +509,7 @@ const DEFAULT_TEMPLATES = [
                   <td align="center">
                     <p style="color: #7DD3A8; font-size: 14px; margin: 0 0 8px 0;">Need help? Reply to this email anytime.</p>
                     <p style="color: rgba(255,255,255,0.5); font-size: 12px; margin: 0;">
-                      © {{current_year}} Deep Clean UK · All rights reserved
+                      © {{current_year}} Cleanda · All rights reserved
                     </p>
                   </td>
                 </tr>
@@ -544,7 +544,7 @@ const DEFAULT_TEMPLATES = [
           <!-- Header -->
           <tr>
             <td style="background: linear-gradient(135deg, #0B3D2E 0%, #145A44 100%); padding: 35px 40px; text-align: center;">
-              <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700;">Deep Clean UK</h1>
+              <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700;">✨ Cleanda</h1>
               <p style="color: #7DD3A8; margin: 6px 0 0 0; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">Partner Network</p>
             </td>
           </tr>
@@ -664,8 +664,8 @@ const DEFAULT_TEMPLATES = [
                 <tr>
                   <td align="center">
                     <p style="color: rgba(255,255,255,0.6); font-size: 12px; margin: 0;">
-                      You are receiving this because you are a registered Deep Clean UK partner.<br>
-                      © {{current_year}} Deep Clean UK
+                      You are receiving this because you are a registered Cleanda partner.<br>
+                      © {{current_year}} Cleanda
                     </p>
                   </td>
                 </tr>
@@ -682,7 +682,7 @@ const DEFAULT_TEMPLATES = [
   },
   {
     name: "password_reset",
-    subject: "🔐 Reset Your Deep Clean UK Password",
+    subject: "🔐 Reset Your Cleanda Password",
     description: "Sent when a user requests a password reset",
     variables: ["user_name", "reset_link", "expiry_hours", "current_year"],
     body: `<!DOCTYPE html>
@@ -715,7 +715,7 @@ const DEFAULT_TEMPLATES = [
                 Hi <strong>{{user_name}}</strong>,
               </p>
               <p style="color: #555555; font-size: 16px; line-height: 1.7; margin: 0 0 30px 0;">
-                We received a request to reset your password for your Deep Clean UK account. Click the button below to create a new, secure password.
+                We received a request to reset your password for your Cleanda account. Click the button below to create a new, secure password.
               </p>
               
               <!-- CTA Button -->
@@ -767,8 +767,8 @@ const DEFAULT_TEMPLATES = [
                 <tr>
                   <td align="center">
                     <p style="color: rgba(255,255,255,0.6); font-size: 12px; margin: 0;">
-                      This is an automated security email from Deep Clean UK.<br>
-                      © {{current_year}} Deep Clean UK
+                      This is an automated security email from Cleanda.<br>
+                      © {{current_year}} Cleanda
                     </p>
                   </td>
                 </tr>
@@ -918,7 +918,7 @@ const DEFAULT_TEMPLATES = [
                   <td align="center">
                     <p style="color: #7DD3A8; font-size: 14px; margin: 0 0 8px 0;">Need help? Reply to this email anytime.</p>
                     <p style="color: rgba(255,255,255,0.5); font-size: 12px; margin: 0;">
-                      © {{current_year}} Deep Clean UK · All rights reserved
+                      © {{current_year}} Cleanda · All rights reserved
                     </p>
                   </td>
                 </tr>
@@ -953,7 +953,7 @@ const DEFAULT_TEMPLATES = [
           <!-- Header -->
           <tr>
             <td style="background: linear-gradient(135deg, #0B3D2E 0%, #145A44 100%); padding: 35px 40px; text-align: center;">
-              <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700;">Deep Clean UK</h1>
+              <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700;">✨ Cleanda</h1>
               <p style="color: #7DD3A8; margin: 6px 0 0 0; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">Partner Network</p>
             </td>
           </tr>
@@ -1076,7 +1076,7 @@ const DEFAULT_TEMPLATES = [
                   <td align="center">
                     <p style="color: rgba(255,255,255,0.6); font-size: 12px; margin: 0;">
                       You are receiving this because you submitted a verification request.<br>
-                      © {{current_year}} Deep Clean UK
+                      © {{current_year}} Cleanda
                     </p>
                   </td>
                 </tr>
@@ -1111,7 +1111,7 @@ const DEFAULT_TEMPLATES = [
           <!-- Header -->
           <tr>
             <td style="background: linear-gradient(135deg, #0B3D2E 0%, #145A44 100%); padding: 35px 40px; text-align: center;">
-              <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700;">Deep Clean UK</h1>
+              <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700;">✨ Cleanda</h1>
               <p style="color: #7DD3A8; margin: 6px 0 0 0; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">Partner Network</p>
             </td>
           </tr>
@@ -1159,7 +1159,7 @@ const DEFAULT_TEMPLATES = [
               </table>
               
               <p style="color: #555555; font-size: 16px; line-height: 1.7; margin: 0 0 28px 0;">
-                You're one step closer to becoming a fully verified business on Deep Clean UK. Continue with any remaining verification steps in your dashboard.
+                You're one step closer to becoming a fully verified business on Cleanda. Continue with any remaining verification steps in your dashboard.
               </p>
               
               <!-- CTA Button -->
@@ -1181,7 +1181,7 @@ const DEFAULT_TEMPLATES = [
                   <td align="center">
                     <p style="color: #7DD3A8; font-size: 14px; margin: 0 0 8px 0;">Questions? Reply to this email.</p>
                     <p style="color: rgba(255,255,255,0.5); font-size: 12px; margin: 0;">
-                      © {{current_year}} Deep Clean UK · All rights reserved
+                      © {{current_year}} Cleanda · All rights reserved
                     </p>
                   </td>
                 </tr>
@@ -1216,7 +1216,7 @@ const DEFAULT_TEMPLATES = [
           <!-- Header -->
           <tr>
             <td style="background: linear-gradient(135deg, #0B3D2E 0%, #145A44 100%); padding: 35px 40px; text-align: center;">
-              <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700;">Deep Clean UK</h1>
+              <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700;">✨ Cleanda</h1>
               <p style="color: #7DD3A8; margin: 6px 0 0 0; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">Partner Network</p>
             </td>
           </tr>
@@ -1298,7 +1298,7 @@ const DEFAULT_TEMPLATES = [
                   <td align="center">
                     <p style="color: rgba(255,255,255,0.6); font-size: 12px; margin: 0;">
                       You are receiving this because you submitted a verification document.<br>
-                      © {{current_year}} Deep Clean UK
+                      © {{current_year}} Cleanda
                     </p>
                   </td>
                 </tr>

@@ -273,9 +273,9 @@ export default function AdminVerifications() {
                     <p>Dear ${businessName},</p>
                     <p>Great news! Your <strong>${documentType}</strong> has been reviewed and approved.</p>
                     ${adminNotes ? `<p><strong>Notes from reviewer:</strong> ${adminNotes}</p>` : ""}
-                    <p>You're one step closer to becoming a fully verified business on Deep Clean UK.</p>
+                    <p>You're one step closer to becoming a fully verified business on Cleanda.</p>
                     <p>If you have any questions, please don't hesitate to contact us.</p>
-                    <p>Best regards,<br>The Deep Clean UK Team</p>
+                    <p>Best regards,<br>The Cleanda Team</p>
                   </div>
                 `,
                 templateName: "document_approved",
@@ -333,8 +333,8 @@ export default function AdminVerifications() {
             contact_name: contactName,
             document_type: documentType,
             rejection_reason: adminNotes,
-            dashboard_url: "https://deepcleanco.uk/dashboard",
-            verification_url: "https://deepcleanco.uk/settings/verification",
+            dashboard_url: "https://cleanda.co.uk/dashboard",
+            verification_url: "https://cleanda.co.uk/settings/verification",
             current_year: currentYear,
           });
 
@@ -360,9 +360,9 @@ export default function AdminVerifications() {
                     <p>We've reviewed your <strong>${documentType}</strong> and unfortunately we were unable to approve it at this time.</p>
                     <p><strong>Reason:</strong> ${adminNotes}</p>
                     <p>Please log in to your account and upload a new document that addresses the issue mentioned above.</p>
-                    <p><a href="https://deepcleanco.uk/settings/verification" style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 16px;">Upload New Document</a></p>
+                    <p><a href="https://cleanda.co.uk/settings/verification" style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 16px;">Upload New Document</a></p>
                     <p>If you have any questions about why your document was rejected, please contact our support team.</p>
-                    <p>Best regards,<br>The Deep Clean UK Team</p>
+                    <p>Best regards,<br>The Cleanda Team</p>
                   </div>
                 `,
                 templateName: "document_rejected",
