@@ -1954,10 +1954,31 @@ export default function AdminEmailTemplates() {
     }
   };
 
+  // Helper function to strip emojis from text
+  const stripEmojis = (text: string): string => {
+    // Remove common emojis that might appear in email templates
+    return text
+      .replace(/[\u{1F300}-\u{1F9FF}]/gu, '') // Misc symbols, emoticons, etc
+      .replace(/[\u{2600}-\u{26FF}]/gu, '') // Misc symbols
+      .replace(/[\u{2700}-\u{27BF}]/gu, '') // Dingbats
+      .replace(/[\u{FE00}-\u{FE0F}]/gu, '') // Variation selectors
+      .replace(/[\u{1F000}-\u{1F02F}]/gu, '') // Mahjong tiles
+      .replace(/[\u{1F0A0}-\u{1F0FF}]/gu, '') // Playing cards
+      .replace(/[\u{200D}]/gu, '') // Zero-width joiner
+      .replace(/[\u{20E3}]/gu, '') // Combining enclosing keycap
+      .replace(/[\u{FE0F}]/gu, '') // Variation selector-16
+      .replace(/[\u2714\u2716\u2728\u274C\u274E\u2705\u2611\u2612\u26A0\u2139\u2795\u2796\u2797\u27A1\u2B05\u2B06\u2B07\u2B50\u2B55\u3030\u303D\u3297\u3299]/gu, '') // Additional symbols
+      .replace(/✨|🧹|🏷️|🧽|📅|📍|🔥|🎉|👤|💰|📞|✉️|💡|🔐|⏰|🛡️|⚠️|⚠|💳|✅|📋|🎊|✓|→/g, ''); // Explicit emoji removal
+  };
+
   const seedDefaultTemplates = async () => {
     setSaving(true);
     try {
       for (const template of DEFAULT_TEMPLATES) {
+        // Strip emojis from subject and body
+        const cleanSubject = stripEmojis(template.subject);
+        const cleanBody = stripEmojis(template.body);
+
         const { data: existing } = await supabase
           .from("email_templates")
           .select("id")
@@ -1969,8 +1990,8 @@ export default function AdminEmailTemplates() {
           const { error } = await supabase
             .from("email_templates")
             .update({
-              subject: template.subject,
-              body: template.body,
+              subject: cleanSubject,
+              body: cleanBody,
               description: template.description,
               variables: template.variables,
             })
@@ -1980,7 +2001,11 @@ export default function AdminEmailTemplates() {
         } else {
           const { error } = await supabase
             .from("email_templates")
-            .insert(template);
+            .insert({
+              ...template,
+              subject: cleanSubject,
+              body: cleanBody,
+            });
 
           if (error) throw error;
         }
