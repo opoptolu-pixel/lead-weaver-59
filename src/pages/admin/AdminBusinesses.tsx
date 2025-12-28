@@ -1134,18 +1134,18 @@ export default function AdminBusinesses() {
                           </div>
                         </div>
                         <div className="text-right">
-                          {login.city || login.country ? (
-                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                              <Globe className="w-3 h-3" />
-                              {[login.city, login.country].filter(Boolean).join(", ")}
-                            </div>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">Location unknown</span>
-                          )}
                           {login.ip_address && (
                             <p className="text-xs text-muted-foreground font-mono">
-                              {login.ip_address}
+                              IP: {login.ip_address}
                             </p>
+                          )}
+                          {login.city || login.country ? (
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground" title="Location is estimated based on IP address and may not be accurate">
+                              <Globe className="w-3 h-3" />
+                              <span className="italic">~{[login.city, login.country].filter(Boolean).join(", ")}</span>
+                            </div>
+                          ) : !login.ip_address && (
+                            <span className="text-xs text-muted-foreground">No location data</span>
                           )}
                         </div>
                       </div>
