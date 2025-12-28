@@ -183,13 +183,15 @@ export function useVisitorPresence() {
     };
   }, [visitorId, location.pathname, user, getSessionDuration, geolocation]);
 
-  // Subscribe and track initial presence
+  // Subscribe and track initial presence - only run once on mount
   useEffect(() => {
+    const initialPath = location.pathname;
+    
     const callback = () => {
       // On first sync, track our presence
       if (!isSubscribedRef.current) {
         isSubscribedRef.current = true;
-        trackPageVisit(location.pathname, null);
+        trackPageVisit(initialPath, null);
         channelManager.track(getVisitorData());
       }
     };
@@ -200,7 +202,8 @@ export function useVisitorPresence() {
       isSubscribedRef.current = false;
       unsubscribe();
     };
-  }, [location.pathname, trackPageVisit, getVisitorData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only subscribe once on mount
 
   // Update presence when page changes or geolocation is fetched
   useEffect(() => {
