@@ -247,8 +247,8 @@ export default function AdminVerifications() {
             contact_name: contactName,
             document_type: documentType,
             admin_notes: adminNotes || "",
-            dashboard_url: "https://deepcleanco.uk/dashboard",
-            verification_url: "https://deepcleanco.uk/settings/verification",
+            dashboard_url: "https://cleanda.co.uk/dashboard",
+            verification_url: "https://cleanda.co.uk/settings/verification",
             current_year: currentYear,
           });
 
