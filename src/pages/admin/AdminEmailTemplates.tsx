@@ -1459,6 +1459,224 @@ const DEFAULT_TEMPLATES = [
 </body>
 </html>`,
   },
+  {
+    name: "account_unsuspended",
+    subject: "✅ Great News! Your Cleanda Account Has Been Reactivated",
+    description: "Sent when a business account suspension is lifted",
+    variables: ["business_name", "contact_name", "dashboard_url", "support_email", "current_year", "unsubscribe_url"],
+    body: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f0f4f3; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f0f4f3; padding: 40px 20px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(11, 61, 46, 0.08);">
+          
+          <!-- Header -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #0B3D2E 0%, #145A44 100%); padding: 35px 40px; text-align: center;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700;">✨ Cleanda</h1>
+              <p style="color: #7DD3A8; margin: 6px 0 0 0; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">Partner Network</p>
+            </td>
+          </tr>
+          
+          <!-- Success Banner -->
+          <tr>
+            <td style="padding: 0;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: linear-gradient(90deg, #4CAF50 0%, #43A047 100%);">
+                <tr>
+                  <td style="padding: 16px 40px; text-align: center;">
+                    <span style="color: #ffffff; font-size: 15px; font-weight: 600;">✅ Account Reactivated</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          
+          <!-- Main Content -->
+          <tr>
+            <td style="padding: 40px;">
+              <p style="color: #333333; font-size: 17px; line-height: 1.6; margin: 0 0 25px 0;">
+                Hi <strong>{{contact_name}}</strong>,
+              </p>
+              <p style="color: #555555; font-size: 16px; line-height: 1.7; margin: 0 0 28px 0;">
+                Great news! Your Cleanda partner account for <strong>{{business_name}}</strong> has been reactivated. You now have full access to all platform features again.
+              </p>
+              
+              <!-- What You Can Do Now -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%); border-radius: 12px; border-left: 4px solid #4CAF50; margin-bottom: 30px;">
+                <tr>
+                  <td style="padding: 24px;">
+                    <p style="color: #2E7D32; font-size: 14px; font-weight: 700; margin: 0 0 12px 0;">What you can do now</p>
+                    <ul style="color: #555555; font-size: 14px; margin: 0; padding-left: 20px; line-height: 1.8;">
+                      <li>Browse and unlock new cleaning leads</li>
+                      <li>Access your full dashboard and history</li>
+                      <li>Purchase credits and grow your business</li>
+                    </ul>
+                  </td>
+                </tr>
+              </table>
+              
+              <!-- CTA Button -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin: 30px 0;">
+                <tr>
+                  <td align="center">
+                    <a href="{{dashboard_url}}" style="display: inline-block; background: linear-gradient(135deg, #0B3D2E 0%, #145A44 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 15px; font-weight: 600;">Go to Dashboard</a>
+                  </td>
+                </tr>
+              </table>
+              
+              <p style="color: #888888; font-size: 13px; margin: 25px 0 0 0; line-height: 1.5;">
+                Questions? Contact us at <a href="mailto:{{support_email}}" style="color: #0B3D2E; font-weight: 600;">{{support_email}}</a>
+              </p>
+            </td>
+          </tr>
+          
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #0B3D2E; padding: 30px 40px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center">
+                    <p style="color: #7DD3A8; font-size: 14px; margin: 0 0 8px 0;">Welcome back to Cleanda!</p>
+                    <p style="color: rgba(255,255,255,0.5); font-size: 12px; margin: 0 0 12px 0;">
+                      © {{current_year}} Cleanda · All rights reserved
+                    </p>
+                    <p style="margin: 0;">
+                      <a href="{{unsubscribe_url}}" style="color: rgba(255,255,255,0.4); font-size: 11px; text-decoration: underline;">Unsubscribe from emails</a>
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
+  },
+  {
+    name: "dispute_rejected",
+    subject: "Dispute Resolution Update - Case #{{dispute_id}}",
+    description: "Sent when a dispute/refund request is rejected",
+    variables: ["business_name", "contact_name", "dispute_id", "lead_id", "resolution_notes", "support_email", "current_year", "unsubscribe_url"],
+    body: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f0f4f3; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f0f4f3; padding: 40px 20px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(11, 61, 46, 0.08);">
+          
+          <!-- Header -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #0B3D2E 0%, #145A44 100%); padding: 35px 40px; text-align: center;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700;">✨ Cleanda</h1>
+              <p style="color: #7DD3A8; margin: 6px 0 0 0; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">Partner Network</p>
+            </td>
+          </tr>
+          
+          <!-- Main Content -->
+          <tr>
+            <td style="padding: 40px;">
+              <h2 style="color: #0B3D2E; margin: 0 0 20px 0; font-size: 22px;">Dispute Resolution Update</h2>
+              
+              <p style="color: #333333; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                Dear {{contact_name}},
+              </p>
+              
+              <p style="color: #333333; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                Thank you for your patience while we reviewed your dispute. After careful consideration of all the information provided, we regret to inform you that we are unable to approve your refund request at this time.
+              </p>
+              
+              <!-- Dispute Details Box -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #FEF2F2; border-radius: 12px; margin: 25px 0; border-left: 4px solid #DC2626;">
+                <tr>
+                  <td style="padding: 20px;">
+                    <h3 style="color: #DC2626; margin: 0 0 15px 0; font-size: 16px;">Dispute Details</h3>
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td style="padding: 5px 0;">
+                          <span style="color: #444444; font-size: 14px;">Case Reference:</span>
+                          <span style="color: #333333; font-size: 14px; font-weight: 600; float: right;">#{{dispute_id}}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 5px 0;">
+                          <span style="color: #444444; font-size: 14px;">Lead Reference:</span>
+                          <span style="color: #333333; font-size: 14px; float: right;">#{{lead_id}}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 5px 0;">
+                          <span style="color: #444444; font-size: 14px;">Decision:</span>
+                          <span style="color: #DC2626; font-size: 14px; font-weight: 600; float: right;">Not Approved</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              
+              <!-- Resolution Notes -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f8faf9; border-radius: 12px; border: 1px solid #e8ebe9; margin: 25px 0;">
+                <tr>
+                  <td style="padding: 20px;">
+                    <h3 style="color: #0B3D2E; margin: 0 0 10px 0; font-size: 16px;">Resolution Notes</h3>
+                    <p style="color: #444444; font-size: 14px; line-height: 1.6; margin: 0;">
+                      {{resolution_notes}}
+                    </p>
+                  </td>
+                </tr>
+              </table>
+              
+              <p style="color: #333333; font-size: 16px; line-height: 1.6; margin: 20px 0;">
+                We understand this may not be the outcome you were hoping for. If you believe there is additional information that was not considered, please reply to this email within 7 days with any supporting documentation.
+              </p>
+              
+              <p style="color: #888888; font-size: 13px; margin: 25px 0 0 0; line-height: 1.5;">
+                Questions? Contact us at <a href="mailto:{{support_email}}" style="color: #0B3D2E; font-weight: 600;">{{support_email}}</a>
+              </p>
+            </td>
+          </tr>
+          
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #0B3D2E; padding: 30px 40px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center">
+                    <p style="color: #7DD3A8; font-size: 14px; margin: 0 0 8px 0;">Thank you for being a Cleanda partner.</p>
+                    <p style="color: rgba(255,255,255,0.5); font-size: 12px; margin: 0 0 12px 0;">
+                      © {{current_year}} Cleanda · All rights reserved
+                    </p>
+                    <p style="margin: 0;">
+                      <a href="{{unsubscribe_url}}" style="color: rgba(255,255,255,0.4); font-size: 11px; text-decoration: underline;">Unsubscribe from emails</a>
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
+  },
 ];
 
 import { useAdmin } from "@/contexts/AdminContext";
@@ -1801,6 +2019,9 @@ export default function AdminEmailTemplates() {
       suspension_reason: "Multiple customer complaints and policy violations.",
       support_email: "support@cleanda.co.uk",
       unsubscribe_url: "#",
+      resolution_notes: "After reviewing the evidence, the lead was valid and the customer confirmed they received contact from your business.",
+      dispute_id: "DSP-12345",
+      lead_id: "LEAD-67890",
     };
 
     let html = template.body;
