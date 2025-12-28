@@ -13,6 +13,28 @@ const FROM_EMAIL = "hello@cleanda.co.uk";
 const UNSUBSCRIBE_EMAIL = "unsubscribe@cleanda.co.uk";
 const BATCH_SIZE = 50;
 
+// Strip HTML to plain text for better deliverability
+const htmlToPlainText = (html: string): string => {
+  return html
+    .replace(/<style[^>]*>.*?<\/style>/gis, '')
+    .replace(/<script[^>]*>.*?<\/script>/gis, '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<\/div>/gi, '\n')
+    .replace(/<\/tr>/gi, '\n')
+    .replace(/<\/h[1-6]>/gi, '\n\n')
+    .replace(/<a[^>]*href="([^"]*)"[^>]*>([^<]*)<\/a>/gi, '$2 ($1)')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+};
+
 interface CampaignRequest {
   subject: string;
   html_body: string;
@@ -75,12 +97,14 @@ serve(async (req: Request) => {
     if (test_email) {
       const unsubscribeUrl = generateUnsubscribeUrl(test_email);
       const htmlWithUnsubscribe = appendUnsubscribeLink(html_body, unsubscribeUrl);
+      const plainText = htmlToPlainText(htmlWithUnsubscribe);
       
       const { error: sendError } = await resend.emails.send({
         from: `Cleanda <${FROM_EMAIL}>`,
         to: [test_email],
         subject: `[TEST] ${subject}`,
         html: htmlWithUnsubscribe,
+        text: plainText, // Plain text version for deliverability
         headers: {
           "List-Unsubscribe": `<${unsubscribeUrl}>, <mailto:${UNSUBSCRIBE_EMAIL}?subject=Unsubscribe>`,
           "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
@@ -145,12 +169,14 @@ serve(async (req: Request) => {
         try {
           const unsubscribeUrl = generateUnsubscribeUrl(subscriber.email);
           const htmlWithUnsubscribe = appendUnsubscribeLink(html_body, unsubscribeUrl);
+          const plainText = htmlToPlainText(htmlWithUnsubscribe);
           
           const { error: sendError } = await resend.emails.send({
             from: `Cleanda <${FROM_EMAIL}>`,
             to: [subscriber.email],
             subject: subject,
             html: htmlWithUnsubscribe,
+            text: plainText, // Plain text version for deliverability
             headers: {
               "List-Unsubscribe": `<${unsubscribeUrl}>, <mailto:${UNSUBSCRIBE_EMAIL}?subject=Unsubscribe>`,
               "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
