@@ -68,7 +68,7 @@ serve(async (req: Request) => {
     return new Response(
       generateHtmlPage(
         "Unsubscribed Successfully",
-        `You have been successfully unsubscribed from our mailing list. You will no longer receive marketing emails from Deep Clean UK.`,
+        `You have been successfully unsubscribed from our mailing list. You will no longer receive marketing emails from Cleanda.`,
         true
       ),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "text/html" } }
@@ -88,7 +88,7 @@ function generateHtmlPage(title: string, message: string, success = false): stri
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${title} - Deep Clean UK</title>
+  <title>${title} - Cleanda</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -169,7 +169,7 @@ function generateHtmlPage(title: string, message: string, success = false): stri
 <body>
   <div class="container">
     <div class="header">
-      <h1>Deep Clean UK</h1>
+      <h1>✨ Cleanda</h1>
       <p>Professional Cleaning Network</p>
     </div>
     <div class="content">
@@ -180,7 +180,7 @@ function generateHtmlPage(title: string, message: string, success = false): stri
       <p class="message">${message}</p>
     </div>
     <div class="footer">
-      <a href="https://deepcleanco.uk">Return to Deep Clean UK</a>
+      <a href="https://cleanda.co.uk">Return to Cleanda</a>
     </div>
   </div>
 </body>

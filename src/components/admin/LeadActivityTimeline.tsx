@@ -262,7 +262,7 @@ export default function LeadActivityTimeline({ leadId, open, onOpenChange }: Lea
         <div className="flex items-center gap-2 mt-2 text-xs">
           <div className="flex items-center gap-1 bg-background rounded px-2 py-1 border">
             <Shield className="w-3 h-3 text-primary" />
-            <span>Deep Clean UK</span>
+            <span>Cleanda</span>
           </div>
           <ArrowRight className="w-3 h-3 text-muted-foreground" />
           {details?.method === "whatsapp" ? (
@@ -292,7 +292,7 @@ export default function LeadActivityTimeline({ leadId, open, onOpenChange }: Lea
           <ArrowRight className="w-3 h-3 text-muted-foreground" />
           <div className="flex items-center gap-1 bg-background rounded px-2 py-1 border">
             <Shield className="w-3 h-3 text-primary" />
-            <span>Deep Clean UK</span>
+            <span>Cleanda</span>
           </div>
         </div>
       );

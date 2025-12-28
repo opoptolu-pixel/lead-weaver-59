@@ -100,7 +100,7 @@ serve(async (req) => {
           `📍 Area: ${lead.postcode}\n` +
           `🏠 Type: ${lead.job_type}\n` +
           `💰 Value: ${lead.display_value}\n\n` +
-          `Log in to Deep Clean UK to view and unlock this lead before it's gone!`;
+          `Log in to Cleanda to view and unlock this lead before it's gone!`;
 
         try {
           await sendWhatsAppMessage(profile.phone, message);

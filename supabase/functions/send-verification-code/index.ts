@@ -149,7 +149,7 @@ serve(async (req) => {
       const smsFormData = new URLSearchParams();
       smsFormData.append("To", phone);
       smsFormData.append("From", twilioSmsFrom);
-      smsFormData.append("Body", `Your Deep Clean UK verification code is: ${code}. Valid for 10 minutes. Do not share this code.`);
+      smsFormData.append("Body", `Your Cleanda verification code is: ${code}. Valid for 10 minutes. Do not share this code.`);
 
       logStep("Attempting SMS delivery", { from: twilioSmsFrom, to: phone });
 
@@ -178,7 +178,7 @@ serve(async (req) => {
       whatsappFormData.append("To", `whatsapp:${phone}`);
       const fromNumber = twilioWhatsAppFrom.startsWith("whatsapp:") ? twilioWhatsAppFrom : `whatsapp:${twilioWhatsAppFrom}`;
       whatsappFormData.append("From", fromNumber);
-      whatsappFormData.append("Body", `Your Deep Clean UK verification code is: ${code}. Valid for 10 minutes. Do not share this code with anyone.`);
+      whatsappFormData.append("Body", `Your Cleanda verification code is: ${code}. Valid for 10 minutes. Do not share this code with anyone.`);
 
       logStep("Attempting WhatsApp delivery", { from: fromNumber, to: `whatsapp:${phone}` });
 
