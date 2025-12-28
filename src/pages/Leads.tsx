@@ -722,7 +722,7 @@ export default function Leads() {
                 
                 {/* Search Results Dropdown */}
                 {showSuggestions && (isSearching || ukLocations.length > 0 || searchLeadResults.length > 0 || searchQuery.length >= 2) && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-background border border-border rounded-xl shadow-xl z-50 overflow-hidden max-h-96 overflow-y-auto">
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-background border border-border rounded-xl shadow-xl z-50 overflow-hidden">
                     {isSearching ? (
                       <div className="p-4 flex items-center justify-center gap-2 text-muted-foreground">
                         <Loader2 className="w-4 h-4 animate-spin" />
