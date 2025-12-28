@@ -71,7 +71,8 @@ const validatePostcode = (postcode: string): boolean => {
   return UK_POSTCODE_REGEX.test(cleaned);
 };
 
-// Generate confirmation email HTML
+// Generate simplified confirmation email HTML for better deliverability
+// Minimal styling, high text-to-code ratio, no complex tables
 const generateConfirmationEmail = (
   customerName: string,
   jobType: string,
@@ -85,109 +86,43 @@ const generateConfirmationEmail = (
     month: 'long',
     day: 'numeric'
   });
+  const currentYear = new Date().getFullYear();
 
-  return `
-<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Booking Confirmation</title>
 </head>
-<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f4f4f4; padding: 20px 0;">
-    <tr>
-      <td align="center">
-        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-          <tr>
-            <td style="background-color: #0B3D2E; padding: 30px 40px; text-align: center;">
-              <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 700;">Cleanda</h1>
-              <p style="color: #7DD3A8; margin: 8px 0 0 0; font-size: 14px;">Professional Cleaning Services</p>
-            </td>
-          </tr>
-          
-          <!-- Success Icon -->
-          <tr>
-            <td style="padding: 40px 40px 20px 40px; text-align: center;">
-              <div style="width: 70px; height: 70px; background-color: #E8F5E9; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;">
-                <span style="font-size: 36px;">✓</span>
-              </div>
-            </td>
-          </tr>
-          
-          <!-- Main Content -->
-          <tr>
-            <td style="padding: 0 40px 30px 40px;">
-              <h2 style="color: #0B3D2E; margin: 0 0 10px 0; font-size: 24px; text-align: center;">Request Received!</h2>
-              <p style="color: #666666; font-size: 16px; line-height: 1.6; text-align: center; margin: 0 0 30px 0;">
-                Hi ${customerName}, thank you for choosing Cleanda. We've received your cleaning request and will connect you with a trusted local cleaner soon.
-              </p>
-              
-              <!-- Booking Details Box -->
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f8f9fa; border-radius: 8px; padding: 25px; margin-bottom: 25px;">
-                <tr>
-                  <td>
-                    <h3 style="color: #0B3D2E; margin: 0 0 20px 0; font-size: 18px;">Your Request Details</h3>
-                    
-                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-                      <tr>
-                        <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;">
-                          <span style="color: #888888; font-size: 14px;">Reference Number</span><br>
-                          <span style="color: #0B3D2E; font-size: 16px; font-weight: 600;">#${referenceId}</span>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;">
-                          <span style="color: #888888; font-size: 14px;">Service Type</span><br>
-                          <span style="color: #333333; font-size: 16px;">${jobType}</span>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;">
-                          <span style="color: #888888; font-size: 14px;">Preferred Date</span><br>
-                          <span style="color: #333333; font-size: 16px;">${formattedDate}</span>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style="padding: 8px 0;">
-                          <span style="color: #888888; font-size: 14px;">Location</span><br>
-                          <span style="color: #333333; font-size: 16px;">${postcode}</span>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-              </table>
-              
-              <!-- What's Next -->
-              <h3 style="color: #0B3D2E; margin: 0 0 15px 0; font-size: 18px;">What Happens Next?</h3>
-              <ol style="color: #666666; font-size: 15px; line-height: 1.8; padding-left: 20px; margin: 0 0 25px 0;">
-                <li>A verified local cleaner will review your request</li>
-                <li>They'll contact you within 24 hours to confirm details</li>
-                <li>You'll agree on the final price and schedule</li>
-                <li>Enjoy your sparkling clean space!</li>
-              </ol>
-            </td>
-          </tr>
-          
-          <!-- Footer -->
-          <tr>
-            <td style="background-color: #f8f9fa; padding: 25px 40px; text-align: center; border-top: 1px solid #e0e0e0;">
-              <p style="color: #888888; font-size: 14px; margin: 0 0 10px 0;">
-                Questions? Reply to this email or visit our website.
-              </p>
-              <p style="color: #aaaaaa; font-size: 12px; margin: 0;">
-                © ${new Date().getFullYear()} Cleanda. All rights reserved.
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
+<body style="margin: 0; padding: 20px; font-family: Arial, sans-serif; background-color: #ffffff; color: #333333; line-height: 1.6;">
+  <div style="max-width: 600px; margin: 0 auto;">
+    <h2 style="color: #0B3D2E; margin-bottom: 20px;">Cleanda - Request Received</h2>
+    
+    <p>Hi ${customerName},</p>
+    
+    <p>Thank you for choosing Cleanda. Your cleaning request has been received and we are now matching you with a trusted cleaner in your area.</p>
+    
+    <div style="margin: 20px 0; padding: 15px; background-color: #f5f5f5; border-left: 4px solid #0B3D2E;">
+      <strong>Your Booking Details:</strong><br>
+      Reference: #${referenceId}<br>
+      Service: ${jobType}<br>
+      Preferred Date: ${formattedDate}<br>
+      Location: ${postcode}
+    </div>
+    
+    <p><strong>What happens next?</strong></p>
+    <p>1. We are finding the best cleaner for your job<br>
+    2. A cleaner will contact you within 24 hours<br>
+    3. Enjoy a sparkling clean space</p>
+    
+    <p>Questions? Just reply to this email.</p>
+    
+    <p style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #888888;">
+      Cleanda Ltd ${currentYear}
+    </p>
+  </div>
 </body>
-</html>
-  `;
+</html>`;
 };
 
 // Replace template variables with actual values
