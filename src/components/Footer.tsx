@@ -33,7 +33,7 @@ export const Footer = forwardRef<HTMLElement, FooterProps>(({ hideCta = false, v
                   <p className="text-primary-foreground/70 text-lg mb-8 max-w-xl mx-auto">
                     Join Cleanda today and start receiving quality leads in your area. No upfront fees—pay only for the leads you want.
                   </p>
-                  <Link to="/for-cleaners#register">
+                  <Link to="/for-cleaners#learn-more">
                     <Button variant="cta" size="lg" className="shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-0.5">
                       Register Your Business
                       <ArrowRight className="w-5 h-5 ml-2" />
