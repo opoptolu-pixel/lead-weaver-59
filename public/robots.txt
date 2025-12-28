@@ -40,12 +40,17 @@ Allow: /gdpr
 User-agent: Googlebot-Image
 Allow: /
 
-# Bingbot
-User-agent: Bingbot
+# Bingbot (lowercase is correct)
+User-agent: bingbot
 Allow: /
 Allow: /for-cleaners
 Allow: /request-cleaning
 Allow: /blog
+Allow: /contact
+Allow: /privacy-policy
+Allow: /terms-of-use
+Allow: /refund-policy
+Allow: /gdpr
 
 # Social media bots
 User-agent: Twitterbot
