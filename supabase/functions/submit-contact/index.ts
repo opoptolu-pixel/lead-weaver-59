@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+const SUPABASE_PROJECT_URL = "https://jqyhiekqqcffiwpctzsi.supabase.co";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,6 +17,12 @@ interface ContactRequest {
   subject: string;
   message: string;
 }
+
+// Generate unsubscribe URL with token for one-click unsubscribe
+const generateUnsubscribeUrl = (email: string): string => {
+  const token = btoa(email);
+  return `${SUPABASE_PROJECT_URL}/functions/v1/unsubscribe?email=${encodeURIComponent(email)}&token=${token}`;
+};
 
 const handler = async (req: Request): Promise<Response> => {
   console.log("Submit contact function called");
@@ -166,10 +173,19 @@ const handler = async (req: Request): Promise<Response> => {
     // Send confirmation email to user
     try {
       const userSubject = "We've received your message - Cleanda";
+      const unsubscribeUrl = generateUnsubscribeUrl(email);
+      
       const userEmailResponse = await resend.emails.send({
         from: "Cleanda <hello@cleanda.co.uk>",
         to: [email],
         subject: userSubject,
+        headers: {
+          "List-Unsubscribe": `<${unsubscribeUrl}>, <mailto:unsubscribe@cleanda.co.uk?subject=Unsubscribe>`,
+          "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+          "Precedence": "bulk",
+          "Feedback-ID": "contact_confirmation:cleanda:subscribers:transactional",
+          "Organization": "Cleanda Ltd",
+        },
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <div style="background: linear-gradient(135deg, #0B3D2E 0%, #145A44 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
@@ -195,10 +211,11 @@ const handler = async (req: Request): Promise<Response> => {
               <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;" />
               
               <p style="color: #666; font-size: 12px; text-align: center;">
+                You're receiving this email because you contacted us at Cleanda.<br>
                 © ${new Date().getFullYear()} Cleanda · All rights reserved<br>
                 A trading name of Orbit Shade Ltd (Company No. 15337705)<br>
                 128 City Road, London, EC1V 2NX<br><br>
-                <a href="mailto:unsubscribe@cleanda.co.uk?subject=Unsubscribe" style="color: #888;">Unsubscribe</a>
+                <a href="${unsubscribeUrl}" style="color: #888;">Unsubscribe</a>
               </p>
             </div>
           </div>
