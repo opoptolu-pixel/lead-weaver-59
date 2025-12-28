@@ -1041,7 +1041,7 @@ export default function AdminBusinesses() {
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="font-medium">£{purchase.value}</p>
+                          <p className="font-medium">£{(purchase.value / 100).toFixed(2)}</p>
                           <p className="text-sm text-muted-foreground">
                             {purchase.unlocked_at
                               ? format(new Date(purchase.unlocked_at), "d MMM yyyy")
