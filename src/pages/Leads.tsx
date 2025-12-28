@@ -50,6 +50,7 @@ interface LeadsScrollContainerProps {
   hasMore: boolean;
   loadingMore: boolean;
   loadMoreRef: React.RefObject<HTMLDivElement>;
+  isSearchActive?: boolean;
 }
 
 const LeadsScrollContainer = ({
@@ -63,14 +64,15 @@ const LeadsScrollContainer = ({
   hasMore,
   loadingMore,
   loadMoreRef,
+  isSearchActive = false,
 }: LeadsScrollContainerProps) => {
   // Auto-scroll for desktop (slower speed for leads page)
   const desktopScroll = useAutoScroll({ speed: 20, pauseOnHover: true, pauseOnTouch: true });
   // Auto-scroll for mobile  
   const mobileScroll = useAutoScroll({ speed: 20, pauseOnHover: true, pauseOnTouch: true });
 
-  // Only enable auto-scroll if we have enough leads
-  const enableAutoScroll = leads.length >= 6;
+  // Only enable auto-scroll if we have enough leads AND no active search
+  const enableAutoScroll = leads.length >= 6 && !isSearchActive;
 
   // Duplicate leads for seamless scrolling effect
   const displayLeads = enableAutoScroll ? [...leads, ...leads] : leads;
@@ -907,6 +909,7 @@ export default function Leads() {
             hasMore={hasMore}
             loadingMore={loadingMore}
             loadMoreRef={loadMoreRef}
+            isSearchActive={!!activeFilter || activePrefixes.length > 0}
           />
         )}
 
