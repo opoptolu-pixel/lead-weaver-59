@@ -35,7 +35,7 @@ export const Logo = forwardRef<HTMLSpanElement, LogoProps>(
         className={`font-extrabold tracking-tight flex items-center gap-1 ${sizeClasses[size]} ${colorClasses} ${className}`}
         style={{ fontFamily: "'SF Pro Display', 'Segoe UI', system-ui, -apple-system, sans-serif" }}
       >
-        <Sparkles className={`${iconSizeClasses[size]} ${variant === "white" ? "text-secondary" : "text-primary"}`} />
+        <Sparkles className={`${iconSizeClasses[size]} text-secondary`} />
         Cleanda
       </span>
     );
