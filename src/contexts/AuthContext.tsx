@@ -125,18 +125,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .update({ last_login: now })
         .eq("user_id", data.user.id);
       
-      // Fetch IP and geolocation data
+      // Fetch IP and geolocation data via backend edge function for better accuracy
       let ipAddress: string | null = null;
       let city: string | null = null;
       let country: string | null = null;
       
       try {
-        const geoResponse = await fetch('https://ipapi.co/json/');
-        if (geoResponse.ok) {
-          const geoData = await geoResponse.json();
+        const { data: geoData, error: geoError } = await supabase.functions.invoke('geolocate-ip');
+        if (!geoError && geoData) {
           ipAddress = geoData.ip || null;
           city = geoData.city || null;
-          country = geoData.country_name || null;
+          country = geoData.country || null;
+          // Log accuracy info for debugging
+          if (geoData.accuracy === 'low') {
+            console.log("Geolocation note:", geoData.accuracy_note);
+          }
         }
       } catch (geoError) {
         console.error("Error fetching geolocation:", geoError);
