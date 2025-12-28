@@ -72,7 +72,7 @@ const DEFAULT_TEMPLATES = [
     name: "cleaning_request_confirmation",
     subject: "Your Cleaning Request is Confirmed ✓ Ref #{{reference_id}}",
     description: "Sent to customers when they submit a cleaning request",
-    variables: ["customer_name", "job_type", "preferred_date", "postcode", "reference_id", "current_year"],
+    variables: ["customer_name", "job_type", "preferred_date", "postcode", "reference_id", "current_year", "unsubscribe_url"],
     body: `<!DOCTYPE html>
 <html>
 <head>
@@ -247,8 +247,11 @@ const DEFAULT_TEMPLATES = [
                 <tr>
                   <td align="center">
                     <p style="color: #7DD3A8; font-size: 14px; margin: 0 0 8px 0;">Questions? Just reply to this email.</p>
-                    <p style="color: rgba(255,255,255,0.5); font-size: 12px; margin: 0;">
+                    <p style="color: rgba(255,255,255,0.5); font-size: 12px; margin: 0 0 12px 0;">
                       © {{current_year}} Cleanda · All rights reserved
+                    </p>
+                    <p style="margin: 0;">
+                      <a href="{{unsubscribe_url}}" style="color: rgba(255,255,255,0.4); font-size: 11px; text-decoration: underline;">Unsubscribe from emails</a>
                     </p>
                   </td>
                 </tr>
@@ -267,7 +270,7 @@ const DEFAULT_TEMPLATES = [
     name: "lead_available_notification",
     subject: "🔔 New {{job_type}} Lead in {{postcode_area}} — Act Fast!",
     description: "Sent to businesses when a new lead matches their area",
-    variables: ["business_name", "contact_name", "job_type", "postcode_area", "display_value", "lead_date", "dashboard_url", "current_year"],
+    variables: ["business_name", "contact_name", "job_type", "postcode_area", "display_value", "lead_date", "dashboard_url", "current_year", "unsubscribe_url"],
     body: `<!DOCTYPE html>
 <html>
 <head>
@@ -368,9 +371,12 @@ const DEFAULT_TEMPLATES = [
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
                 <tr>
                   <td align="center">
-                    <p style="color: rgba(255,255,255,0.6); font-size: 12px; margin: 0;">
+                    <p style="color: rgba(255,255,255,0.6); font-size: 12px; margin: 0 0 12px 0;">
                       You are receiving this because you are a registered Cleanda partner.<br>
                       © {{current_year}} Cleanda
+                    </p>
+                    <p style="margin: 0;">
+                      <a href="{{unsubscribe_url}}" style="color: rgba(255,255,255,0.4); font-size: 11px; text-decoration: underline;">Unsubscribe from emails</a>
                     </p>
                   </td>
                 </tr>
@@ -389,7 +395,7 @@ const DEFAULT_TEMPLATES = [
     name: "welcome_business",
     subject: "Welcome to Cleanda, {{business_name}}! 🎉",
     description: "Sent to new businesses when they sign up",
-    variables: ["business_name", "contact_name", "dashboard_url", "current_year"],
+    variables: ["business_name", "contact_name", "dashboard_url", "current_year", "unsubscribe_url"],
     body: `<!DOCTYPE html>
 <html>
 <head>
@@ -508,8 +514,11 @@ const DEFAULT_TEMPLATES = [
                 <tr>
                   <td align="center">
                     <p style="color: #7DD3A8; font-size: 14px; margin: 0 0 8px 0;">Need help? Reply to this email anytime.</p>
-                    <p style="color: rgba(255,255,255,0.5); font-size: 12px; margin: 0;">
+                    <p style="color: rgba(255,255,255,0.5); font-size: 12px; margin: 0 0 12px 0;">
                       © {{current_year}} Cleanda · All rights reserved
+                    </p>
+                    <p style="margin: 0;">
+                      <a href="{{unsubscribe_url}}" style="color: rgba(255,255,255,0.4); font-size: 11px; text-decoration: underline;">Unsubscribe from emails</a>
                     </p>
                   </td>
                 </tr>
@@ -528,7 +537,7 @@ const DEFAULT_TEMPLATES = [
     name: "lead_unlocked",
     subject: "🎉 Lead Unlocked — Customer Details for {{job_type}} in {{postcode}}",
     description: "Sent to businesses when they unlock a lead",
-    variables: ["business_name", "contact_name", "job_type", "customer_name", "customer_phone", "customer_email", "customer_address", "postcode", "preferred_date", "display_value", "dashboard_url", "current_year"],
+    variables: ["business_name", "contact_name", "job_type", "customer_name", "customer_phone", "customer_email", "customer_address", "postcode", "preferred_date", "display_value", "dashboard_url", "current_year", "unsubscribe_url"],
     body: `<!DOCTYPE html>
 <html>
 <head>
@@ -663,9 +672,12 @@ const DEFAULT_TEMPLATES = [
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
                 <tr>
                   <td align="center">
-                    <p style="color: rgba(255,255,255,0.6); font-size: 12px; margin: 0;">
+                    <p style="color: rgba(255,255,255,0.6); font-size: 12px; margin: 0 0 12px 0;">
                       You are receiving this because you are a registered Cleanda partner.<br>
                       © {{current_year}} Cleanda
+                    </p>
+                    <p style="margin: 0;">
+                      <a href="{{unsubscribe_url}}" style="color: rgba(255,255,255,0.4); font-size: 11px; text-decoration: underline;">Unsubscribe from emails</a>
                     </p>
                   </td>
                 </tr>
@@ -684,7 +696,7 @@ const DEFAULT_TEMPLATES = [
     name: "password_reset",
     subject: "🔐 Reset Your Cleanda Password",
     description: "Sent when a user requests a password reset",
-    variables: ["user_name", "reset_link", "expiry_hours", "current_year"],
+    variables: ["user_name", "reset_link", "expiry_hours", "current_year", "unsubscribe_url"],
     body: `<!DOCTYPE html>
 <html>
 <head>
@@ -766,9 +778,12 @@ const DEFAULT_TEMPLATES = [
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
                 <tr>
                   <td align="center">
-                    <p style="color: rgba(255,255,255,0.6); font-size: 12px; margin: 0;">
+                    <p style="color: rgba(255,255,255,0.6); font-size: 12px; margin: 0 0 12px 0;">
                       This is an automated security email from Cleanda.<br>
                       © {{current_year}} Cleanda
+                    </p>
+                    <p style="margin: 0;">
+                      <a href="{{unsubscribe_url}}" style="color: rgba(255,255,255,0.4); font-size: 11px; text-decoration: underline;">Unsubscribe from emails</a>
                     </p>
                   </td>
                 </tr>
@@ -787,7 +802,7 @@ const DEFAULT_TEMPLATES = [
     name: "verification_approved",
     subject: "🎉 Congratulations! {{business_name}} is Now Verified",
     description: "Sent when a business verification is approved",
-    variables: ["business_name", "contact_name", "dashboard_url", "current_year"],
+    variables: ["business_name", "contact_name", "dashboard_url", "current_year", "unsubscribe_url"],
     body: `<!DOCTYPE html>
 <html>
 <head>
@@ -917,8 +932,11 @@ const DEFAULT_TEMPLATES = [
                 <tr>
                   <td align="center">
                     <p style="color: #7DD3A8; font-size: 14px; margin: 0 0 8px 0;">Need help? Reply to this email anytime.</p>
-                    <p style="color: rgba(255,255,255,0.5); font-size: 12px; margin: 0;">
+                    <p style="color: rgba(255,255,255,0.5); font-size: 12px; margin: 0 0 12px 0;">
                       © {{current_year}} Cleanda · All rights reserved
+                    </p>
+                    <p style="margin: 0;">
+                      <a href="{{unsubscribe_url}}" style="color: rgba(255,255,255,0.4); font-size: 11px; text-decoration: underline;">Unsubscribe from emails</a>
                     </p>
                   </td>
                 </tr>
@@ -937,7 +955,7 @@ const DEFAULT_TEMPLATES = [
     name: "verification_rejected",
     subject: "⚠️ Action Required: Verification Update for {{business_name}}",
     description: "Sent when a business verification is rejected",
-    variables: ["business_name", "contact_name", "rejection_reason", "dashboard_url", "current_year"],
+    variables: ["business_name", "contact_name", "rejection_reason", "dashboard_url", "current_year", "unsubscribe_url"],
     body: `<!DOCTYPE html>
 <html>
 <head>
@@ -1074,9 +1092,12 @@ const DEFAULT_TEMPLATES = [
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
                 <tr>
                   <td align="center">
-                    <p style="color: rgba(255,255,255,0.6); font-size: 12px; margin: 0;">
+                    <p style="color: rgba(255,255,255,0.6); font-size: 12px; margin: 0 0 12px 0;">
                       You are receiving this because you submitted a verification request.<br>
                       © {{current_year}} Cleanda
+                    </p>
+                    <p style="margin: 0;">
+                      <a href="{{unsubscribe_url}}" style="color: rgba(255,255,255,0.4); font-size: 11px; text-decoration: underline;">Unsubscribe from emails</a>
                     </p>
                   </td>
                 </tr>
@@ -1095,7 +1116,7 @@ const DEFAULT_TEMPLATES = [
     name: "document_approved",
     subject: "✓ Your {{document_type}} has been approved",
     description: "Sent when a specific verification document is approved",
-    variables: ["business_name", "contact_name", "document_type", "admin_notes", "verification_url", "current_year"],
+    variables: ["business_name", "contact_name", "document_type", "admin_notes", "verification_url", "current_year", "unsubscribe_url"],
     body: `<!DOCTYPE html>
 <html>
 <head>
@@ -1180,8 +1201,11 @@ const DEFAULT_TEMPLATES = [
                 <tr>
                   <td align="center">
                     <p style="color: #7DD3A8; font-size: 14px; margin: 0 0 8px 0;">Questions? Reply to this email.</p>
-                    <p style="color: rgba(255,255,255,0.5); font-size: 12px; margin: 0;">
+                    <p style="color: rgba(255,255,255,0.5); font-size: 12px; margin: 0 0 12px 0;">
                       © {{current_year}} Cleanda · All rights reserved
+                    </p>
+                    <p style="margin: 0;">
+                      <a href="{{unsubscribe_url}}" style="color: rgba(255,255,255,0.4); font-size: 11px; text-decoration: underline;">Unsubscribe from emails</a>
                     </p>
                   </td>
                 </tr>
@@ -1200,7 +1224,7 @@ const DEFAULT_TEMPLATES = [
     name: "document_rejected",
     subject: "⚠️ Action Required: Your {{document_type}} needs attention",
     description: "Sent when a specific verification document is rejected",
-    variables: ["business_name", "contact_name", "document_type", "rejection_reason", "verification_url", "current_year"],
+    variables: ["business_name", "contact_name", "document_type", "rejection_reason", "verification_url", "current_year", "unsubscribe_url"],
     body: `<!DOCTYPE html>
 <html>
 <head>
@@ -1296,9 +1320,12 @@ const DEFAULT_TEMPLATES = [
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
                 <tr>
                   <td align="center">
-                    <p style="color: rgba(255,255,255,0.6); font-size: 12px; margin: 0;">
+                    <p style="color: rgba(255,255,255,0.6); font-size: 12px; margin: 0 0 12px 0;">
                       You are receiving this because you submitted a verification document.<br>
                       © {{current_year}} Cleanda
+                    </p>
+                    <p style="margin: 0;">
+                      <a href="{{unsubscribe_url}}" style="color: rgba(255,255,255,0.4); font-size: 11px; text-decoration: underline;">Unsubscribe from emails</a>
                     </p>
                   </td>
                 </tr>
@@ -1317,7 +1344,7 @@ const DEFAULT_TEMPLATES = [
     name: "account_suspended",
     subject: "⚠️ Important: Your Cleanda Account Has Been Suspended",
     description: "Sent when a business account is suspended",
-    variables: ["business_name", "contact_name", "suspension_reason", "support_email", "current_year"],
+    variables: ["business_name", "contact_name", "suspension_reason", "support_email", "current_year", "unsubscribe_url"],
     body: `<!DOCTYPE html>
 <html>
 <head>
@@ -1413,8 +1440,11 @@ const DEFAULT_TEMPLATES = [
                     <p style="color: #888888; font-size: 12px; margin: 0 0 8px 0;">
                       © {{current_year}} Cleanda · A trading name of Orbit Shade Ltd (Company No. 15337705)
                     </p>
-                    <p style="color: #aaaaaa; font-size: 11px; margin: 0;">
+                    <p style="color: #aaaaaa; font-size: 11px; margin: 0 0 12px 0;">
                       128 City Road, London, EC1V 2NX
+                    </p>
+                    <p style="margin: 0;">
+                      <a href="{{unsubscribe_url}}" style="color: #aaaaaa; font-size: 11px; text-decoration: underline;">Unsubscribe from emails</a>
                     </p>
                   </td>
                 </tr>
@@ -1551,6 +1581,7 @@ export default function AdminEmailTemplates() {
         verification_url: window.location.origin + "/verification",
         suspension_reason: "Multiple customer complaints and policy violations.",
         support_email: "support@cleanda.co.uk",
+        unsubscribe_url: window.location.origin + "/unsubscribe?email=test@example.com",
       };
       Object.entries(sampleData).forEach(([key, value]) => {
         subject = subject.replace(new RegExp(`\\{\\{${key}\\}\\}`, "g"), value);
@@ -1615,6 +1646,7 @@ export default function AdminEmailTemplates() {
         verification_url: window.location.origin + "/verification",
         suspension_reason: "Multiple customer complaints and policy violations.",
         support_email: "support@cleanda.co.uk",
+        unsubscribe_url: window.location.origin + "/unsubscribe?email=test@example.com",
       };
       Object.entries(sampleData).forEach(([key, value]) => {
         subject = subject.replace(new RegExp(`\\{\\{${key}\\}\\}`, "g"), value);
@@ -1768,6 +1800,7 @@ export default function AdminEmailTemplates() {
       verification_url: "#",
       suspension_reason: "Multiple customer complaints and policy violations.",
       support_email: "support@cleanda.co.uk",
+      unsubscribe_url: "#",
     };
 
     let html = template.body;
