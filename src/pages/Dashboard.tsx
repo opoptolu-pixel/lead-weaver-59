@@ -193,6 +193,13 @@ export default function Dashboard() {
 
       if (error) throw error;
 
+      // Fetch fresh business name to ensure accurate logging
+      const { data: freshProfile } = await supabase
+        .from("profiles")
+        .select("business_name, contact_name")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
       // Log the job status change activity
       await supabase.from("activity_logs").insert({
         user_id: user.id,
@@ -202,8 +209,8 @@ export default function Dashboard() {
         details: {
           previous_status: previousStatus,
           new_status: newStatus,
-          business_name: profile?.business_name || "Unknown Business",
-          contact_name: profile?.contact_name || user.email,
+          business_name: freshProfile?.business_name || profile?.business_name || "Unknown Business",
+          contact_name: freshProfile?.contact_name || profile?.contact_name || user.email,
           notes: notes || null,
         },
       });
