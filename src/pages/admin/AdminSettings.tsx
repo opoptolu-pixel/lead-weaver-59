@@ -60,7 +60,7 @@ export default function AdminSettings() {
   // Site settings state
   const [siteSettings, setSiteSettings] = useState({
     siteName: "Cleanda",
-    supportEmail: "support@cleanda.co.uk",
+    supportEmail: "hello@cleanda.co.uk",
     leadPrice: "5",
     creditPackSmall: "10",
     creditPackMedium: "25",
