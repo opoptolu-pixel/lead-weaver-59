@@ -54,7 +54,7 @@ export default function AdminSettings() {
     email: "",
     name: "",
     password: "",
-    role: "admin" as "admin" | "super_admin",
+    role: "user" as "user" | "admin" | "super_admin",
   });
 
   // Site settings state
@@ -285,9 +285,9 @@ export default function AdminSettings() {
         throw new Error(response.data.error);
       }
 
-      toast.success(`Admin user ${newAdmin.email} created successfully`);
+      toast.success(`User ${newAdmin.email} created successfully`);
       setIsCreateAdminOpen(false);
-      setNewAdmin({ email: "", name: "", password: "", role: "admin" });
+      setNewAdmin({ email: "", name: "", password: "", role: "user" });
       fetchUsers();
     } catch (error: any) {
       console.error("Error creating admin:", error);
@@ -641,7 +641,7 @@ export default function AdminSettings() {
               </div>
               <Button onClick={() => setIsCreateAdminOpen(true)}>
                 <UserPlus className="w-4 h-4 mr-2" />
-                Add Admin User
+                Add User
               </Button>
             </CardHeader>
             <CardContent>
@@ -944,9 +944,9 @@ export default function AdminSettings() {
       <Dialog open={isCreateAdminOpen} onOpenChange={setIsCreateAdminOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Add Admin User</DialogTitle>
+            <DialogTitle>Add User</DialogTitle>
             <DialogDescription>
-              Create a new admin user account. This user will have access to the admin dashboard.
+              Create a new user account and assign a role.
             </DialogDescription>
           </DialogHeader>
 
@@ -955,7 +955,7 @@ export default function AdminSettings() {
               <Label htmlFor="adminName">Name</Label>
               <Input
                 id="adminName"
-                placeholder="Admin name"
+                placeholder="Full name"
                 value={newAdmin.name}
                 onChange={(e) => setNewAdmin({ ...newAdmin, name: e.target.value })}
               />
@@ -1009,18 +1009,19 @@ export default function AdminSettings() {
               <Label htmlFor="adminRole">Role</Label>
               <Select
                 value={newAdmin.role}
-                onValueChange={(value: "admin" | "super_admin") => setNewAdmin({ ...newAdmin, role: value })}
+                onValueChange={(value: "user" | "admin" | "super_admin") => setNewAdmin({ ...newAdmin, role: value })}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="user">User</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="super_admin">Super Admin</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Super Admins can create and manage other admin users.
+                Admins can access the admin dashboard. Super Admins can also manage other users.
               </p>
             </div>
 
@@ -1030,7 +1031,7 @@ export default function AdminSettings() {
               </Button>
               <Button onClick={handleCreateAdmin} disabled={createAdminLoading}>
                 {createAdminLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <UserPlus className="w-4 h-4 mr-2" />}
-                Create Admin
+                Create User
               </Button>
             </div>
           </div>
