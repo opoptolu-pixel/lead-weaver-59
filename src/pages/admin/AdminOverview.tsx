@@ -15,6 +15,7 @@ import {
   ArrowUp,
   ArrowDown,
   Calculator,
+  Zap,
 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import KPICard from "@/components/admin/KPICard";
@@ -24,6 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAdmin } from "@/contexts/AdminContext";
 import { exportToCsv } from "@/lib/exportCsv";
 import { toast } from "sonner";
+import { useCheckoutActivity } from "@/hooks/useCheckoutActivity";
 import {
   LineChart,
   Line,
@@ -81,6 +83,7 @@ const VALUE_BAND_COLORS = {
 
 export default function AdminOverview() {
   const { getDateFilter, dateRange } = useAdmin();
+  const { checkoutCount, activeCheckouts } = useCheckoutActivity();
   const [stats, setStats] = useState({
     leadsReceived: 0,
     leadsPublished: 0,
@@ -657,6 +660,23 @@ export default function AdminOverview() {
           <div className="text-center p-3 bg-muted/30 rounded-lg">
             <p className="text-2xl font-bold text-secondary">{todayAccounting.outstandingCredits}</p>
             <p className="text-xs text-muted-foreground">Outstanding Credits</p>
+          </div>
+          <div className="text-center p-3 bg-muted/30 rounded-lg relative overflow-hidden">
+            {checkoutCount > 0 && (
+              <div className="absolute top-1 right-1">
+                <span className="flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                </span>
+              </div>
+            )}
+            <div className="flex items-center justify-center gap-1.5">
+              <Zap className={`w-5 h-5 ${checkoutCount > 0 ? "text-green-500" : "text-muted-foreground"}`} />
+              <p className={`text-2xl font-bold ${checkoutCount > 0 ? "text-green-500" : "text-muted-foreground"}`}>
+                {checkoutCount}
+              </p>
+            </div>
+            <p className="text-xs text-muted-foreground">Live Checkouts</p>
           </div>
         </div>
       </div>
