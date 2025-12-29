@@ -28,9 +28,11 @@ serve(async (req) => {
     // Get authorization header to identify user
     const authHeader = req.headers.get("Authorization");
     
-    const { leadId } = await req.json();
+    // Parse request body once
+    const requestBody = await req.json();
+    const { leadId, visitorId } = requestBody;
     if (!leadId) throw new Error("Lead ID is required");
-    logStep("Lead ID received", { leadId });
+    logStep("Request parsed", { leadId, visitorId });
 
     // Initialize Stripe
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
@@ -80,10 +82,6 @@ serve(async (req) => {
       }
     }
 
-    // Get visitor ID from request body
-    const requestBody = await req.clone().json();
-    const visitorId = requestBody.visitorId;
-    
     // Verify the lead exists and is not already unlocked
     const { data: lead, error: leadError } = await supabaseClient
       .from("leads")
