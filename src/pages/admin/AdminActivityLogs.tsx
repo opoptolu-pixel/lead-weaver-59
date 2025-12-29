@@ -53,6 +53,7 @@ import { usePagination } from "@/hooks/usePagination";
 import { PaginationControls } from "@/components/admin/PaginationControls";
 import { exportToCsv } from "@/lib/exportCsv";
 import LeadActivityTimeline from "@/components/admin/LeadActivityTimeline";
+import BusinessActivityTimeline from "@/components/admin/BusinessActivityTimeline";
 interface ActivityLog {
   id: string;
   user_id: string;
@@ -135,6 +136,7 @@ export default function AdminActivityLogs() {
   const [actionFilter, setActionFilter] = useState<string>("all");
   const [selectedLog, setSelectedLog] = useState<ActivityLog | null>(null);
   const [timelineLeadId, setTimelineLeadId] = useState<string | null>(null);
+  const [timelineBusinessUserId, setTimelineBusinessUserId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchLogs();
@@ -612,20 +614,34 @@ export default function AdminActivityLogs() {
                       {format(new Date(selectedLog.created_at), "d MMMM yyyy 'at' HH:mm:ss")}
                     </p>
                   </div>
-                  {selectedLog.entity_type === "lead" && selectedLog.entity_id && (
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => {
-                        setSelectedLog(null);
-                        setTimelineLeadId(selectedLog.entity_id);
-                      }}
-                      className="flex-shrink-0"
-                    >
-                      <History className="w-4 h-4 mr-2" />
-                      View Timeline
-                    </Button>
-                  )}
+                  <div className="flex gap-2 flex-shrink-0">
+                    {selectedLog.entity_type === "lead" && selectedLog.entity_id && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          setSelectedLog(null);
+                          setTimelineLeadId(selectedLog.entity_id);
+                        }}
+                      >
+                        <History className="w-4 h-4 mr-2" />
+                        Lead Timeline
+                      </Button>
+                    )}
+                    {selectedLog.entity_type === "business" && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          setSelectedLog(null);
+                          setTimelineBusinessUserId(selectedLog.user_id);
+                        }}
+                      >
+                        <History className="w-4 h-4 mr-2" />
+                        Business Timeline
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -803,6 +819,13 @@ export default function AdminActivityLogs() {
         leadId={timelineLeadId || ""}
         open={!!timelineLeadId}
         onOpenChange={(open) => !open && setTimelineLeadId(null)}
+      />
+
+      {/* Business Activity Timeline */}
+      <BusinessActivityTimeline
+        userId={timelineBusinessUserId || ""}
+        open={!!timelineBusinessUserId}
+        onOpenChange={(open) => !open && setTimelineBusinessUserId(null)}
       />
     </AdminLayout>
   );
