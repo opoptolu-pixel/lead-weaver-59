@@ -20,6 +20,7 @@ import {
 import AdminLayout from "@/components/admin/AdminLayout";
 import KPICard from "@/components/admin/KPICard";
 import QueueWidget from "@/components/admin/QueueWidget";
+import LiveCheckoutsPanel from "@/components/admin/LiveCheckoutsPanel";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdmin } from "@/contexts/AdminContext";
@@ -714,6 +715,11 @@ export default function AdminOverview() {
           icon={<AlertTriangle className="w-5 h-5 text-amber-500" />}
           href="/admin/disputes"
         />
+      </div>
+
+      {/* Live Checkouts Panel */}
+      <div className="mb-8">
+        <LiveCheckoutsPanel activeCheckouts={activeCheckouts} checkoutCount={checkoutCount} />
       </div>
 
       {/* Charts Row 1 */}
