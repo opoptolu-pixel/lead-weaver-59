@@ -156,6 +156,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           city: city,
           country: country,
         });
+
+      // Fetch business profile for activity log
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("business_name, contact_name")
+        .eq("user_id", data.user.id)
+        .maybeSingle();
+
+      // Log business login activity
+      await supabase.from("activity_logs").insert({
+        user_id: data.user.id,
+        entity_type: "business",
+        entity_id: data.user.id,
+        action: "login",
+        details: {
+          business_name: profile?.business_name || "Unknown Business",
+          contact_name: profile?.contact_name || email,
+          ip_address: ipAddress,
+          city: city,
+          country: country,
+        },
+        ip_address: ipAddress,
+      });
     }
     
     return { error: error ? new Error(error.message) : null };

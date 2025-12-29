@@ -73,6 +73,30 @@ serve(async (req) => {
 
     logStep("Credits updated successfully", { currentCredits, creditsToAdd, newCredits });
 
+    // Fetch business profile for activity logging
+    const { data: businessProfile } = await supabaseClient
+      .from("profiles")
+      .select("business_name, contact_name")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    // Log credit purchase activity
+    await supabaseClient.from("activity_logs").insert({
+      user_id: userId,
+      entity_type: "business",
+      entity_id: userId,
+      action: "credits_purchased",
+      details: {
+        credits_added: creditsToAdd,
+        credits_total: newCredits,
+        payment_method: "stripe",
+        stripe_session_id: sessionId,
+        business_name: businessProfile?.business_name || "Unknown Business",
+        contact_name: businessProfile?.contact_name || null,
+      },
+    });
+    logStep("Credit purchase activity logged");
+
     return new Response(JSON.stringify({
       success: true,
       creditsAdded: creditsToAdd,
