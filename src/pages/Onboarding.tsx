@@ -117,6 +117,8 @@ export default function Onboarding() {
     
     setSaving(true);
     try {
+      const isNewBusiness = !profile?.business_name;
+      
       const { error } = await supabase
         .from("profiles")
         .update({
@@ -129,6 +131,20 @@ export default function Onboarding() {
         .eq("user_id", user.id);
 
       if (error) throw error;
+
+      // Log business signup/onboarding activity
+      await supabase.from("activity_logs").insert({
+        user_id: user.id,
+        entity_type: "business",
+        entity_id: user.id,
+        action: isNewBusiness ? "signup" : "profile_update",
+        details: {
+          business_name: data.businessName.trim(),
+          contact_name: data.contactName.trim(),
+          postcode: data.postcode.trim().toUpperCase(),
+          whatsapp_optin: data.whatsappOptin,
+        },
+      });
 
       await refreshProfile();
       toast.success("Welcome to Cleanda! Your profile is set up.");

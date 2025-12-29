@@ -78,6 +78,7 @@ const ACTION_ICONS: Record<string, any> = {
   refund: RefreshCcw,
   update: FileText,
   credits_added: CreditCard,
+  credits_purchased: CreditCard,
   verification_approved: CheckCircle,
   verification_rejected: XCircle,
   document_uploaded: Upload,
@@ -88,6 +89,8 @@ const ACTION_ICONS: Record<string, any> = {
   status_change: RefreshCcw,
   job_status_change: CheckCircle,
   lead_created: FileText,
+  signup: User,
+  profile_update: User,
 };
 
 const ACTION_LABELS: Record<string, string> = {
@@ -96,7 +99,8 @@ const ACTION_LABELS: Record<string, string> = {
   purchase: "Lead Purchased",
   refund: "Refund Issued",
   update: "Record Updated",
-  credits_added: "Credits Added",
+  credits_added: "Credits Added (Admin)",
+  credits_purchased: "Credits Purchased",
   verification_approved: "Verification Approved",
   verification_rejected: "Verification Rejected",
   document_uploaded: "Document Uploaded",
@@ -107,11 +111,14 @@ const ACTION_LABELS: Record<string, string> = {
   status_change: "Status Changed",
   job_status_change: "Job Status Updated",
   lead_created: "Lead Submitted",
+  signup: "Business Signup",
+  profile_update: "Profile Updated",
 };
 
 const ENTITY_LABELS: Record<string, string> = {
   lead: "Lead",
   profile: "User Profile",
+  business: "Business",
   credits: "Credits",
   verification: "Verification",
   document: "Document",
@@ -233,6 +240,7 @@ export default function AdminActivityLogs() {
       refund: "bg-amber-500/20 text-amber-500",
       update: "bg-purple-500/20 text-purple-500",
       credits_added: "bg-green-500/20 text-green-500",
+      credits_purchased: "bg-emerald-500/20 text-emerald-500",
       verification_approved: "bg-green-500/20 text-green-500",
       verification_rejected: "bg-red-500/20 text-red-500",
       document_uploaded: "bg-blue-500/20 text-blue-500",
@@ -242,6 +250,8 @@ export default function AdminActivityLogs() {
       auto_published: "bg-amber-500/20 text-amber-500",
       status_change: "bg-purple-500/20 text-purple-500",
       job_status_change: "bg-cyan-500/20 text-cyan-500",
+      signup: "bg-indigo-500/20 text-indigo-500",
+      profile_update: "bg-violet-500/20 text-violet-500",
     };
     return variants[action] || "bg-muted text-muted-foreground";
   };
@@ -373,7 +383,11 @@ export default function AdminActivityLogs() {
       return `${businessName}: ${prevStatus} → ${newStatus}`;
     }
     if (log.action === "credits_added" && details) {
-      return `Added ${details.credits || details.amount || "?"} credits`;
+      return `Admin added ${details.credits || details.amount || "?"} credits to ${details.business_name || log.user_name || "business"}`;
+    }
+    if (log.action === "credits_purchased" && details) {
+      const businessName = details?.business_name || log.user_name || "Business";
+      return `${businessName} purchased ${details.credits_added || "?"} credits via Stripe`;
     }
     if (log.action === "refund" && details) {
       return `Refunded lead: ${details.reason || "No reason provided"}`;
@@ -385,7 +399,20 @@ export default function AdminActivityLogs() {
       return `Rejected ${details?.document_type || "verification"} document`;
     }
     if (log.action === "login") {
-      return "User logged into the system";
+      const businessName = details?.business_name || log.user_name || "User";
+      const location = details?.city && details?.country 
+        ? ` from ${details.city}, ${details.country}` 
+        : "";
+      return `${businessName} logged in${location}`;
+    }
+    if (log.action === "signup") {
+      const businessName = details?.business_name || log.user_name || "New Business";
+      const postcode = details?.postcode ? ` (${details.postcode})` : "";
+      return `${businessName} completed signup${postcode}`;
+    }
+    if (log.action === "profile_update") {
+      const businessName = details?.business_name || log.user_name || "Business";
+      return `${businessName} updated their profile`;
     }
     if (log.action === "status_change" && details) {
       return `Status: ${details.previous_status} → ${details.new_status}`;
