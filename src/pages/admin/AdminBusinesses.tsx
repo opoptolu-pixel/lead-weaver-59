@@ -24,6 +24,7 @@ import {
   Clock,
   Globe,
   Monitor,
+  History,
 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -62,6 +63,7 @@ import { usePagination } from "@/hooks/usePagination";
 import { PaginationControls } from "@/components/admin/PaginationControls";
 import { exportToCsv } from "@/lib/exportCsv";
 import { Textarea } from "@/components/ui/textarea";
+import BusinessActivityTimeline from "@/components/admin/BusinessActivityTimeline";
 
 interface Business {
   id: string;
@@ -156,6 +158,10 @@ export default function AdminBusinesses() {
   const [isSuspendDialogOpen, setIsSuspendDialogOpen] = useState(false);
   const [suspensionReason, setSuspensionReason] = useState("");
   const [suspendingBusiness, setSuspendingBusiness] = useState<Business | null>(null);
+  
+  // Activity timeline
+  const [isActivityTimelineOpen, setIsActivityTimelineOpen] = useState(false);
+  const [activityTimelineUserId, setActivityTimelineUserId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchBusinesses();
@@ -825,8 +831,12 @@ export default function AdminBusinesses() {
 
           {selectedBusiness && (
             <Tabs defaultValue="details" className="mt-4">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="details">Details</TabsTrigger>
+                <TabsTrigger value="activity" className="flex items-center gap-1">
+                  <History className="w-3 h-3" />
+                  Activity
+                </TabsTrigger>
                 <TabsTrigger value="documents" className="flex items-center gap-1">
                   <FileText className="w-3 h-3" />
                   Documents
@@ -1012,6 +1022,24 @@ export default function AdminBusinesses() {
                       </Button>
                     )}
                   </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="activity" className="mt-4">
+                <div className="text-center py-4">
+                  <Button
+                    onClick={() => {
+                      setActivityTimelineUserId(selectedBusiness.user_id);
+                      setIsActivityTimelineOpen(true);
+                    }}
+                    className="w-full"
+                  >
+                    <History className="w-4 h-4 mr-2" />
+                    View Full Activity Timeline
+                  </Button>
+                  <p className="text-sm text-muted-foreground mt-3">
+                    See all signups, logins, purchases, and profile changes in a chronological timeline.
+                  </p>
                 </div>
               </TabsContent>
 
@@ -1404,6 +1432,16 @@ export default function AdminBusinesses() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Business Activity Timeline */}
+      <BusinessActivityTimeline
+        userId={activityTimelineUserId || ""}
+        open={isActivityTimelineOpen}
+        onOpenChange={(open) => {
+          setIsActivityTimelineOpen(open);
+          if (!open) setActivityTimelineUserId(null);
+        }}
+      />
     </AdminLayout>
   );
 }
