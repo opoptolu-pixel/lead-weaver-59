@@ -1,20 +1,16 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import type { RealtimeChannel } from "@supabase/supabase-js";
 
 interface LeadReservation {
   leadId: string;
-  visitorId: string;
-  startedAt: string;
+  expiresAt: string;
+  reservedByMe: boolean;
 }
 
-const RESERVATION_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
-
-// Generate a stable visitor ID that persists across renders
+// Generate a stable visitor ID that persists across page loads
 const getOrCreateVisitorId = (userId?: string): string => {
   if (userId) return `user-${userId}`;
   
-  // Check sessionStorage for existing visitor ID
   const storageKey = 'lead-reservation-visitor-id';
   let storedId = sessionStorage.getItem(storageKey);
   
@@ -29,163 +25,132 @@ const getOrCreateVisitorId = (userId?: string): string => {
 export const useLeadReservations = (userId?: string) => {
   const [reservedLeads, setReservedLeads] = useState<Map<string, LeadReservation>>(new Map());
   const [myReservedLeadId, setMyReservedLeadId] = useState<string | null>(null);
-  const channelRef = useRef<RealtimeChannel | null>(null);
-  const myVisitorIdRef = useRef<string>(getOrCreateVisitorId(userId));
-  const timeoutCheckRef = useRef<NodeJS.Timeout | null>(null);
+  const visitorIdRef = useRef<string>(getOrCreateVisitorId(userId));
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Filter out expired reservations (older than 5 minutes)
-  const filterExpiredReservations = useCallback((reservations: Map<string, LeadReservation>) => {
-    const now = Date.now();
-    const filtered = new Map<string, LeadReservation>();
+  // Fetch all active reservations from database
+  const fetchReservations = useCallback(async (leadIds: string[]) => {
+    if (leadIds.length === 0) return;
     
-    reservations.forEach((reservation, leadId) => {
-      const reservationTime = new Date(reservation.startedAt).getTime();
-      if (now - reservationTime < RESERVATION_TIMEOUT_MS) {
-        filtered.set(leadId, reservation);
+    const visitorId = visitorIdRef.current;
+    const newReservedLeads = new Map<string, LeadReservation>();
+    
+    // Check each lead for active reservations
+    for (const leadId of leadIds) {
+      try {
+        const { data, error } = await supabase.rpc('check_lead_reservation', {
+          p_lead_id: leadId,
+          p_visitor_id: visitorId
+        });
+        
+        if (error) {
+          console.error('[LeadReservations] Error checking reservation:', error);
+          continue;
+        }
+        
+        const result = data?.[0];
+        if (result?.is_reserved && !result?.reserved_by_me) {
+          newReservedLeads.set(leadId, {
+            leadId,
+            expiresAt: result.expires_at,
+            reservedByMe: false
+          });
+        }
+      } catch (err) {
+        console.error('[LeadReservations] Error:', err);
       }
-    });
+    }
     
-    return filtered;
+    setReservedLeads(newReservedLeads);
   }, []);
 
-  useEffect(() => {
-    const myVisitorId = myVisitorIdRef.current;
-    console.log('[LeadReservations] Initializing with visitorId:', myVisitorId);
+  // Reserve a lead when user starts checkout
+  const reserveLead = useCallback(async (leadId: string): Promise<{ success: boolean; message: string }> => {
+    const visitorId = visitorIdRef.current;
     
-    const reservationChannel = supabase.channel("lead-reservations", {
-      config: {
-        presence: {
-          key: myVisitorId,
-        },
-      },
-    });
-
-    reservationChannel
-      .on("presence", { event: "sync" }, () => {
-        const state = reservationChannel.presenceState();
-        console.log('[LeadReservations] Presence sync, full state:', JSON.stringify(state));
-        const newReservedLeads = new Map<string, LeadReservation>();
-        
-        // Aggregate all reservations from all users (excluding self)
-        Object.entries(state).forEach(([key, presences]) => {
-          (presences as any[]).forEach((presence) => {
-            console.log('[LeadReservations] Processing presence:', presence, 'myVisitorId:', myVisitorId);
-            // Skip current user's reservations - they shouldn't see their own as "reserved"
-            if (presence.visitorId && presence.visitorId !== myVisitorId && presence.leadId) {
-              console.log('[LeadReservations] Adding reservation for lead:', presence.leadId);
-              newReservedLeads.set(presence.leadId, {
-                leadId: presence.leadId,
-                visitorId: presence.visitorId,
-                startedAt: presence.startedAt,
-              });
-            }
-          });
-        });
-        
-        console.log('[LeadReservations] Reserved leads after sync:', newReservedLeads.size);
-        // Filter out expired reservations
-        setReservedLeads(filterExpiredReservations(newReservedLeads));
-      })
-      .on("presence", { event: "join" }, ({ key, newPresences }) => {
-        console.log('[LeadReservations] Presence join:', key, newPresences);
-        setReservedLeads((prev) => {
-          const updated = new Map(prev);
-          (newPresences as any[]).forEach((presence) => {
-            if (presence.visitorId && presence.visitorId !== myVisitorId && presence.leadId) {
-              updated.set(presence.leadId, {
-                leadId: presence.leadId,
-                visitorId: presence.visitorId,
-                startedAt: presence.startedAt,
-              });
-            }
-          });
-          return filterExpiredReservations(updated);
-        });
-      })
-      .on("presence", { event: "leave" }, ({ key, leftPresences }) => {
-        console.log('[LeadReservations] Presence leave:', key, leftPresences);
-        setReservedLeads((prev) => {
-          const updated = new Map(prev);
-          (leftPresences as any[]).forEach((presence) => {
-            if (presence.leadId) {
-              updated.delete(presence.leadId);
-            }
-          });
-          return updated;
-        });
-      })
-      .subscribe((status) => {
-        console.log('[LeadReservations] Channel subscription status:', status);
-      });
-
-    channelRef.current = reservationChannel;
-
-    // Set up periodic check to filter expired reservations
-    timeoutCheckRef.current = setInterval(() => {
-      setReservedLeads(prev => filterExpiredReservations(prev));
-    }, 30000); // Check every 30 seconds
-
-    return () => {
-      console.log('[LeadReservations] Cleaning up channel');
-      supabase.removeChannel(reservationChannel);
-      if (timeoutCheckRef.current) {
-        clearInterval(timeoutCheckRef.current);
-      }
-    };
-  }, [userId, filterExpiredReservations]);
-
-  // Reserve a lead when user starts checkout - use consistent visitor ID
-  const reserveLead = useCallback(
-    async (leadId: string) => {
-      const channel = channelRef.current;
-      if (!channel) {
-        console.log('[LeadReservations] No channel available for reserving lead');
-        return;
-      }
-      
-      const myVisitorId = myVisitorIdRef.current;
-      console.log('[LeadReservations] Reserving lead:', leadId, 'with visitorId:', myVisitorId);
-      
-      const trackResult = await channel.track({
-        leadId,
-        visitorId: myVisitorId,
-        startedAt: new Date().toISOString(),
+    try {
+      const { data, error } = await supabase.rpc('reserve_lead', {
+        p_lead_id: leadId,
+        p_visitor_id: visitorId
       });
       
-      console.log('[LeadReservations] Track result:', trackResult);
+      if (error) {
+        console.error('[LeadReservations] Reserve error:', error);
+        return { success: false, message: error.message };
+      }
+      
+      const result = data?.[0];
+      if (!result?.success) {
+        return { success: false, message: result?.message || 'Failed to reserve lead' };
+      }
       
       setMyReservedLeadId(leadId);
-      
-      // Auto-release after 5 minutes
-      setTimeout(() => {
-        console.log('[LeadReservations] Auto-releasing lead after timeout');
-        releaseLead();
-      }, RESERVATION_TIMEOUT_MS);
-    },
-    []
-  );
-
-  // Release reservation when checkout completes or is cancelled
-  const releaseLead = useCallback(async () => {
-    const channel = channelRef.current;
-    if (!channel) {
-      console.log('[LeadReservations] No channel available for releasing lead');
-      return;
+      return { success: true, message: result.message };
+    } catch (err) {
+      console.error('[LeadReservations] Reserve exception:', err);
+      return { success: false, message: 'Failed to reserve lead' };
     }
-    console.log('[LeadReservations] Releasing lead reservation');
-    await channel.untrack();
+  }, []);
+
+  // Release reservation (mark as expired)
+  const releaseLead = useCallback(async () => {
     setMyReservedLeadId(null);
   }, []);
 
   // Check if a specific lead is reserved by someone else
-  const isLeadReserved = useCallback(
-    (leadId: string): boolean => {
-      const reserved = reservedLeads.has(leadId);
-      console.log('[LeadReservations] isLeadReserved check:', leadId, reserved, 'reservedLeads size:', reservedLeads.size);
-      return reserved;
-    },
-    [reservedLeads]
-  );
+  const isLeadReserved = useCallback((leadId: string): boolean => {
+    return reservedLeads.has(leadId);
+  }, [reservedLeads]);
+
+  // Check single lead reservation status
+  const checkLeadReservation = useCallback(async (leadId: string): Promise<{ isReserved: boolean; reservedByMe: boolean; expiresAt?: string }> => {
+    const visitorId = visitorIdRef.current;
+    
+    try {
+      const { data, error } = await supabase.rpc('check_lead_reservation', {
+        p_lead_id: leadId,
+        p_visitor_id: visitorId
+      });
+      
+      if (error) {
+        console.error('[LeadReservations] Check error:', error);
+        return { isReserved: false, reservedByMe: false };
+      }
+      
+      const result = data?.[0];
+      return {
+        isReserved: result?.is_reserved || false,
+        reservedByMe: result?.reserved_by_me || false,
+        expiresAt: result?.expires_at
+      };
+    } catch (err) {
+      console.error('[LeadReservations] Check exception:', err);
+      return { isReserved: false, reservedByMe: false };
+    }
+  }, []);
+
+  // Set up periodic refresh to update reservation status
+  useEffect(() => {
+    // Refresh every 10 seconds to check for expired reservations
+    refreshIntervalRef.current = setInterval(() => {
+      setReservedLeads(prev => {
+        const now = new Date();
+        const filtered = new Map<string, LeadReservation>();
+        prev.forEach((reservation, leadId) => {
+          if (new Date(reservation.expiresAt) > now) {
+            filtered.set(leadId, reservation);
+          }
+        });
+        return filtered;
+      });
+    }, 10000);
+
+    return () => {
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+      }
+    };
+  }, []);
 
   return {
     reservedLeads,
@@ -193,6 +158,9 @@ export const useLeadReservations = (userId?: string) => {
     releaseLead,
     isLeadReserved,
     myReservedLeadId,
+    fetchReservations,
+    checkLeadReservation,
+    visitorId: visitorIdRef.current,
   };
 };
 

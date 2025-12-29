@@ -245,6 +245,10 @@ serve(async (req) => {
     }
     
     logStep("Lead unlocked successfully", { leadId, userId });
+    
+    // Complete the reservation (mark as completed, not expired)
+    await supabaseClient.rpc('complete_lead_reservation', { p_lead_id: leadId });
+    logStep("Lead reservation completed");
 
     // Fetch the business profile for activity logging
     const { data: profile } = await supabaseClient

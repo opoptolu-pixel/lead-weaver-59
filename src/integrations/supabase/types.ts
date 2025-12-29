@@ -398,6 +398,44 @@ export type Database = {
           },
         ]
       }
+      lead_reservations: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          lead_id: string
+          reserved_at: string
+          status: string
+          visitor_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          lead_id: string
+          reserved_at?: string
+          status?: string
+          visitor_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          lead_id?: string
+          reserved_at?: string
+          status?: string
+          visitor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_reservations_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           admin_notes: string | null
@@ -822,6 +860,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_lead_reservation: {
+        Args: { p_lead_id: string; p_visitor_id: string }
+        Returns: {
+          expires_at: string
+          is_reserved: boolean
+          reserved_by_me: boolean
+        }[]
+      }
       check_rate_limit: {
         Args: {
           p_action: string
@@ -834,6 +880,10 @@ export type Database = {
           current_count: number
           reset_at: string
         }[]
+      }
+      complete_lead_reservation: {
+        Args: { p_lead_id: string }
+        Returns: undefined
       }
       deduct_credit_atomic: {
         Args: { p_lead_id: string; p_user_id: string }
@@ -894,6 +944,15 @@ export type Database = {
       is_lead_access_expired: {
         Args: { unlocked_at_param: string }
         Returns: boolean
+      }
+      reserve_lead: {
+        Args: { p_lead_id: string; p_visitor_id: string }
+        Returns: {
+          expires_at: string
+          message: string
+          reservation_id: string
+          success: boolean
+        }[]
       }
     }
     Enums: {

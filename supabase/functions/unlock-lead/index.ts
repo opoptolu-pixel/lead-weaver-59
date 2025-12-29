@@ -80,6 +80,10 @@ serve(async (req) => {
       }
     }
 
+    // Get visitor ID from request body
+    const requestBody = await req.clone().json();
+    const visitorId = requestBody.visitorId;
+    
     // Verify the lead exists and is not already unlocked
     const { data: lead, error: leadError } = await supabaseClient
       .from("leads")
@@ -91,6 +95,37 @@ serve(async (req) => {
     if (!lead) throw new Error("Lead not found");
     if (lead.is_unlocked) throw new Error("This lead has already been unlocked");
     logStep("Lead verified", { postcode: lead.postcode, jobType: lead.job_type });
+    
+    // Check if this lead is reserved by someone else
+    if (visitorId) {
+      const { data: reservationCheck, error: reservationError } = await supabaseClient
+        .rpc('check_lead_reservation', {
+          p_lead_id: leadId,
+          p_visitor_id: visitorId
+        });
+      
+      if (!reservationError && reservationCheck?.[0]) {
+        const reservation = reservationCheck[0];
+        if (reservation.is_reserved && !reservation.reserved_by_me) {
+          throw new Error("This lead is currently being checked out by another user. Please try again in a few minutes.");
+        }
+      }
+      
+      // Create/update reservation for this checkout
+      const { data: reserveResult, error: reserveError } = await supabaseClient
+        .rpc('reserve_lead', {
+          p_lead_id: leadId,
+          p_visitor_id: visitorId
+        });
+      
+      if (reserveError) {
+        logStep("Warning: Could not create reservation", { error: reserveError.message });
+      } else if (reserveResult?.[0] && !reserveResult[0].success) {
+        throw new Error(reserveResult[0].message || "Failed to reserve lead");
+      } else {
+        logStep("Lead reserved", { reservationId: reserveResult?.[0]?.reservation_id });
+      }
+    }
 
     const origin = req.headers.get("origin") || "https://lovableproject.com";
 
