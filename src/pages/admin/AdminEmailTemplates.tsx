@@ -1799,7 +1799,7 @@ export default function AdminEmailTemplates() {
         admin_notes: "All documents verified successfully.",
         verification_url: window.location.origin + "/verification",
         suspension_reason: "Multiple customer complaints and policy violations.",
-        support_email: "support@cleanda.co.uk",
+        support_email: "hello@cleanda.co.uk",
         unsubscribe_url: window.location.origin + "/unsubscribe?email=test@example.com",
       };
       Object.entries(sampleData).forEach(([key, value]) => {
@@ -1864,7 +1864,7 @@ export default function AdminEmailTemplates() {
         admin_notes: "All documents verified successfully.",
         verification_url: window.location.origin + "/verification",
         suspension_reason: "Multiple customer complaints and policy violations.",
-        support_email: "support@cleanda.co.uk",
+        support_email: "hello@cleanda.co.uk",
         unsubscribe_url: window.location.origin + "/unsubscribe?email=test@example.com",
       };
       Object.entries(sampleData).forEach(([key, value]) => {
@@ -2117,7 +2117,7 @@ export default function AdminEmailTemplates() {
       admin_notes: "All documents verified successfully.",
       verification_url: "#",
       suspension_reason: "Multiple customer complaints and policy violations.",
-      support_email: "support@cleanda.co.uk",
+      support_email: "hello@cleanda.co.uk",
       unsubscribe_url: "#",
       resolution_notes: "After reviewing the evidence, the lead was valid and the customer confirmed they received contact from your business.",
       dispute_id: "DSP-12345",
