@@ -16,6 +16,7 @@ import { MobileBottomNav } from "@/components/MobileBottomNav";
 import Index from "./pages/Index";
 import Leads from "./pages/Leads";
 import Auth from "./pages/Auth";
+import AdminAuth from "./pages/AdminAuth";
 import Dashboard from "./pages/Dashboard";
 import Onboarding from "./pages/Onboarding";
 import Settings from "./pages/Settings";
@@ -94,6 +95,7 @@ const App = () => (
                 <Route path="/terms-of-use" element={<TermsOfUse />} />
                 <Route path="/contact" element={<Contact />} />
                 {/* Admin Routes */}
+                <Route path="/admin-login" element={<AdminAuth />} />
                 <Route path="/admin" element={<AdminOverview />} />
                 <Route path="/admin/live" element={<AdminLiveData />} />
                 <Route path="/admin/inquiries" element={<AdminInquiries />} />
