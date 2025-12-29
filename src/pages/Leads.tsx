@@ -588,6 +588,9 @@ export default function Leads() {
 
     setUsingCreditLeadId(leadId);
     
+    // Reserve the lead so other users see it's being checked out
+    await reserveLead(leadId);
+    
     const result = await executeUseCredit(async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -605,6 +608,8 @@ export default function Leads() {
     });
 
     if (!result.success) {
+      // Release reservation on error
+      await releaseLead();
       // Show user-friendly error message
       const errorMessage = result.error || "Failed to unlock lead";
       if (errorMessage.toLowerCase().includes("suspend")) {
@@ -621,8 +626,9 @@ export default function Leads() {
       setUsingCreditLeadId(null);
       return;
     }
-    // Remove the lead from the list
+    // Remove the lead from the list and release reservation
     setLeads(prev => prev.filter(l => l.id !== leadId));
+    await releaseLead();
     await refreshProfile();
     
     toast.success("Lead unlocked! Check your dashboard for details.");
