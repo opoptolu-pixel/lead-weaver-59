@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Save, Users, Shield, Globe, Bell, Loader2, Mail, Edit, X, Check, Lock, Plus, Trash2, Copy } from "lucide-react";
+import { Save, Users, Shield, Globe, Bell, Loader2, Mail, Edit, X, Check, Lock, Plus, Trash2, Copy, UserPlus, Eye, EyeOff } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -45,6 +45,17 @@ export default function AdminSettings() {
   const [loadingTemplates, setLoadingTemplates] = useState(true);
   const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
+
+  // Create admin user state
+  const [isCreateAdminOpen, setIsCreateAdminOpen] = useState(false);
+  const [createAdminLoading, setCreateAdminLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [newAdmin, setNewAdmin] = useState({
+    email: "",
+    name: "",
+    password: "",
+    role: "admin" as "admin" | "super_admin",
+  });
 
   // Site settings state
   const [siteSettings, setSiteSettings] = useState({
@@ -230,6 +241,59 @@ export default function AdminSettings() {
       toast.error("Failed to save preferences");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const generatePassword = () => {
+    const chars = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%";
+    let password = "";
+    for (let i = 0; i < 12; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setNewAdmin({ ...newAdmin, password });
+  };
+
+  const handleCreateAdmin = async () => {
+    if (!newAdmin.email || !newAdmin.password || !newAdmin.name) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    if (newAdmin.password.length < 8) {
+      toast.error("Password must be at least 8 characters");
+      return;
+    }
+
+    setCreateAdminLoading(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      
+      const response = await supabase.functions.invoke("create-admin-user", {
+        body: {
+          email: newAdmin.email,
+          password: newAdmin.password,
+          name: newAdmin.name,
+          role: newAdmin.role,
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || "Failed to create admin user");
+      }
+
+      if (response.data?.error) {
+        throw new Error(response.data.error);
+      }
+
+      toast.success(`Admin user ${newAdmin.email} created successfully`);
+      setIsCreateAdminOpen(false);
+      setNewAdmin({ email: "", name: "", password: "", role: "admin" });
+      fetchUsers();
+    } catch (error: any) {
+      console.error("Error creating admin:", error);
+      toast.error(error.message || "Failed to create admin user");
+    } finally {
+      setCreateAdminLoading(false);
     }
   };
 
@@ -570,9 +634,15 @@ export default function AdminSettings() {
 
         <TabsContent value="users" className="space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle>User Management</CardTitle>
-              <CardDescription>Manage user accounts and their roles</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>User Management</CardTitle>
+                <CardDescription>Manage user accounts and their roles</CardDescription>
+              </div>
+              <Button onClick={() => setIsCreateAdminOpen(true)}>
+                <UserPlus className="w-4 h-4 mr-2" />
+                Add Admin User
+              </Button>
             </CardHeader>
             <CardContent>
               {loadingUsers ? (
@@ -867,6 +937,103 @@ export default function AdminSettings() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Admin User Dialog */}
+      <Dialog open={isCreateAdminOpen} onOpenChange={setIsCreateAdminOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Admin User</DialogTitle>
+            <DialogDescription>
+              Create a new admin user account. This user will have access to the admin dashboard.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="adminName">Name</Label>
+              <Input
+                id="adminName"
+                placeholder="Admin name"
+                value={newAdmin.name}
+                onChange={(e) => setNewAdmin({ ...newAdmin, name: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="adminEmail">Email</Label>
+              <Input
+                id="adminEmail"
+                type="email"
+                placeholder="admin@example.com"
+                value={newAdmin.email}
+                onChange={(e) => setNewAdmin({ ...newAdmin, email: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="adminPassword">Password</Label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Input
+                    id="adminPassword"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Minimum 8 characters"
+                    value={newAdmin.password}
+                    onChange={(e) => setNewAdmin({ ...newAdmin, password: e.target.value })}
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </Button>
+                </div>
+                <Button type="button" variant="outline" onClick={generatePassword}>
+                  Generate
+                </Button>
+              </div>
+              {newAdmin.password && (
+                <p className="text-xs text-muted-foreground">
+                  Make sure to save this password - it won't be shown again.
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="adminRole">Role</Label>
+              <Select
+                value={newAdmin.role}
+                onValueChange={(value: "admin" | "super_admin") => setNewAdmin({ ...newAdmin, role: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="super_admin">Super Admin</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Super Admins can create and manage other admin users.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4 border-t">
+              <Button variant="outline" onClick={() => setIsCreateAdminOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleCreateAdmin} disabled={createAdminLoading}>
+                {createAdminLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <UserPlus className="w-4 h-4 mr-2" />}
+                Create Admin
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </AdminLayout>
