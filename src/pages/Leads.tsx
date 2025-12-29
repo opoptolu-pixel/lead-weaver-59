@@ -15,6 +15,7 @@ import { useRateLimit, RATE_LIMIT_PRESETS } from "@/hooks/useRateLimit";
 import { LeadFilters, LeadFilter } from "@/components/LeadFilters";
 import { useLeadReservations } from "@/hooks/useLeadReservations";
 import { Badge } from "@/components/ui/badge";
+import { CheckoutCountdown } from "@/components/CheckoutCountdown";
 interface Lead {
   id: string;
   postcode: string;
@@ -326,7 +327,7 @@ export default function Leads() {
   const loadMoreRef = useRef<HTMLDivElement>(null);
   
   // Database-backed lead reservation tracking
-  const { reserveLead, releaseLead, isLeadReserved, checkLeadReservation, visitorId } = useLeadReservations(user?.id);
+  const { reserveLead, releaseLead, isLeadReserved, checkLeadReservation, visitorId, myActiveCheckout } = useLeadReservations(user?.id);
 
   // Get unique job types from leads for filter dropdown
   const jobTypes = useMemo(() => {
@@ -537,6 +538,9 @@ export default function Leads() {
   const { executeWithRateLimit: executeUseCredit } = useRateLimit("use_credit", RATE_LIMIT_PRESETS.unlockLead);
 
   const handleUnlock = async (leadId: string) => {
+    // Get lead details for the countdown
+    const lead = leads.find(l => l.id === leadId);
+    
     setUnlockingLeadId(leadId);
     
     // First check if the lead is reserved by someone else
@@ -547,8 +551,8 @@ export default function Leads() {
       return;
     }
     
-    // Reserve the lead before proceeding
-    const reserveResult = await reserveLead(leadId);
+    // Reserve the lead before proceeding (pass lead info for countdown)
+    const reserveResult = await reserveLead(leadId, lead?.postcode, lead?.job_type);
     if (!reserveResult.success) {
       toast.error(reserveResult.message || "Unable to reserve this lead. Please try again.");
       setUnlockingLeadId(null);
@@ -598,6 +602,9 @@ export default function Leads() {
       return;
     }
 
+    // Get lead details for the countdown
+    const lead = leads.find(l => l.id === leadId);
+    
     setUsingCreditLeadId(leadId);
     
     // First check if the lead is reserved by someone else
@@ -608,8 +615,8 @@ export default function Leads() {
       return;
     }
     
-    // Reserve the lead before proceeding
-    const reserveResult = await reserveLead(leadId);
+    // Reserve the lead before proceeding (pass lead info for countdown)
+    const reserveResult = await reserveLead(leadId, lead?.postcode, lead?.job_type);
     if (!reserveResult.success) {
       toast.error(reserveResult.message || "Unable to reserve this lead. Please try again.");
       setUsingCreditLeadId(null);
@@ -1016,6 +1023,25 @@ export default function Leads() {
           </div>
         )}
       </main>
+      
+      {/* Checkout countdown timer */}
+      {myActiveCheckout && (
+        <CheckoutCountdown
+          expiresAt={myActiveCheckout.expiresAt}
+          leadId={myActiveCheckout.leadId}
+          postcode={myActiveCheckout.postcode}
+          jobType={myActiveCheckout.jobType}
+          onCancel={() => {
+            releaseLead();
+            toast.info("Checkout cancelled");
+          }}
+          onExpired={() => {
+            releaseLead();
+            toast.error("Your checkout session has expired. Please try again.");
+          }}
+        />
+      )}
+      
       <Footer />
     </div>
   );

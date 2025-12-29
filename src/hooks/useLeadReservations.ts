@@ -7,6 +7,13 @@ interface LeadReservation {
   reservedByMe: boolean;
 }
 
+interface MyActiveCheckout {
+  leadId: string;
+  postcode: string;
+  jobType: string;
+  expiresAt: string;
+}
+
 // Generate a stable visitor ID that persists across page loads
 const getOrCreateVisitorId = (userId?: string): string => {
   if (userId) return `user-${userId}`;
@@ -24,7 +31,7 @@ const getOrCreateVisitorId = (userId?: string): string => {
 
 export const useLeadReservations = (userId?: string) => {
   const [reservedLeads, setReservedLeads] = useState<Map<string, LeadReservation>>(new Map());
-  const [myReservedLeadId, setMyReservedLeadId] = useState<string | null>(null);
+  const [myActiveCheckout, setMyActiveCheckout] = useState<MyActiveCheckout | null>(null);
   const visitorIdRef = useRef<string>(getOrCreateVisitorId(userId));
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -65,7 +72,7 @@ export const useLeadReservations = (userId?: string) => {
   }, []);
 
   // Reserve a lead when user starts checkout
-  const reserveLead = useCallback(async (leadId: string): Promise<{ success: boolean; message: string }> => {
+  const reserveLead = useCallback(async (leadId: string, postcode?: string, jobType?: string): Promise<{ success: boolean; message: string; expiresAt?: string }> => {
     const visitorId = visitorIdRef.current;
     
     try {
@@ -84,17 +91,24 @@ export const useLeadReservations = (userId?: string) => {
         return { success: false, message: result?.message || 'Failed to reserve lead' };
       }
       
-      setMyReservedLeadId(leadId);
-      return { success: true, message: result.message };
+      // Set active checkout with countdown info
+      setMyActiveCheckout({
+        leadId,
+        postcode: postcode || '',
+        jobType: jobType || '',
+        expiresAt: result.expires_at
+      });
+      
+      return { success: true, message: result.message, expiresAt: result.expires_at };
     } catch (err) {
       console.error('[LeadReservations] Reserve exception:', err);
       return { success: false, message: 'Failed to reserve lead' };
     }
   }, []);
 
-  // Release reservation (mark as expired)
+  // Release reservation (clear local state)
   const releaseLead = useCallback(async () => {
-    setMyReservedLeadId(null);
+    setMyActiveCheckout(null);
   }, []);
 
   // Check if a specific lead is reserved by someone else
@@ -129,6 +143,22 @@ export const useLeadReservations = (userId?: string) => {
     }
   }, []);
 
+  // Check if my active checkout has expired
+  useEffect(() => {
+    if (!myActiveCheckout) return;
+
+    const checkExpiry = () => {
+      const now = new Date().getTime();
+      const expiry = new Date(myActiveCheckout.expiresAt).getTime();
+      if (now >= expiry) {
+        setMyActiveCheckout(null);
+      }
+    };
+
+    const interval = setInterval(checkExpiry, 1000);
+    return () => clearInterval(interval);
+  }, [myActiveCheckout]);
+
   // Set up periodic refresh to update reservation status
   useEffect(() => {
     // Refresh every 10 seconds to check for expired reservations
@@ -157,7 +187,7 @@ export const useLeadReservations = (userId?: string) => {
     reserveLead,
     releaseLead,
     isLeadReserved,
-    myReservedLeadId,
+    myActiveCheckout,
     fetchReservations,
     checkLeadReservation,
     visitorId: visitorIdRef.current,
