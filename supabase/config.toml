@@ -1,5 +1,8 @@
 project_id = "jqyhiekqqcffiwpctzsi"
 
+[functions.sync-data-integrity]
+verify_jwt = false
+
 [functions.geolocate-ip]
 verify_jwt = false
 

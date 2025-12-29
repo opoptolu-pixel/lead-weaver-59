@@ -104,6 +104,11 @@ interface BuyerDetail {
   purchases: number;
   spend: number;
   refundRate: number;
+  conversionRate: number;
+  avgResponseTime: number;
+  jobCompletionRate: number;
+  bookedJobs: number;
+  completedJobs: number;
 }
 
 export default function AdminAnalytics() {
@@ -395,24 +400,51 @@ export default function AdminAnalytics() {
     }
 
     // Top buyers - count actual purchases from leads table with date filtering
+    // Include job_status for conversion metrics
     const { data: purchasedLeadsData } = await supabase
       .from("leads")
-      .select("unlocked_by, refunded_at")
+      .select("unlocked_by, refunded_at, job_status, created_at, unlocked_at")
       .eq("is_unlocked", true)
       .gte("unlocked_at", startISO)
       .lte("unlocked_at", endISO);
 
     if (purchasedLeadsData) {
-      // Aggregate purchases by user
-      const buyerPurchaseMap = new Map<string, { purchases: number; refunds: number }>();
+      // Aggregate purchases by user with enhanced metrics
+      const buyerPurchaseMap = new Map<string, { 
+        purchases: number; 
+        refunds: number; 
+        booked: number;
+        completed: number;
+        totalResponseTime: number;
+        responseCount: number;
+      }>();
+      
       purchasedLeadsData.forEach(lead => {
         if (!lead.unlocked_by) return;
         if (!buyerPurchaseMap.has(lead.unlocked_by)) {
-          buyerPurchaseMap.set(lead.unlocked_by, { purchases: 0, refunds: 0 });
+          buyerPurchaseMap.set(lead.unlocked_by, { 
+            purchases: 0, 
+            refunds: 0,
+            booked: 0,
+            completed: 0,
+            totalResponseTime: 0,
+            responseCount: 0
+          });
         }
         const stats = buyerPurchaseMap.get(lead.unlocked_by)!;
         stats.purchases++;
         if (lead.refunded_at) stats.refunds++;
+        if (lead.job_status === 'booked' || lead.job_status === 'completed') stats.booked++;
+        if (lead.job_status === 'completed') stats.completed++;
+        
+        // Calculate response time (time from lead creation to purchase)
+        if (lead.created_at && lead.unlocked_at) {
+          const createdAt = new Date(lead.created_at).getTime();
+          const unlockedAt = new Date(lead.unlocked_at).getTime();
+          const responseTimeHours = (unlockedAt - createdAt) / (1000 * 60 * 60);
+          stats.totalResponseTime += responseTimeHours;
+          stats.responseCount++;
+        }
       });
 
       // Get buyer profiles for those with purchases in period
@@ -428,15 +460,34 @@ export default function AdminAnalytics() {
           // City-based buyer stats
           const buyerCityMap = new Map<string, BuyerCityStats>();
           
-          const buyersWithStats = profiles.map(profile => {
-            const purchaseData = buyerPurchaseMap.get(profile.user_id) || { purchases: 0, refunds: 0 };
+          const buyersWithStats: BuyerDetail[] = profiles.map(profile => {
+            const purchaseData = buyerPurchaseMap.get(profile.user_id) || { 
+              purchases: 0, 
+              refunds: 0,
+              booked: 0,
+              completed: 0,
+              totalResponseTime: 0,
+              responseCount: 0
+            };
             
-            const buyerData = {
+            const netPurchases = purchaseData.purchases - purchaseData.refunds;
+            const conversionRate = netPurchases > 0 ? Math.round((purchaseData.booked / netPurchases) * 100) : 0;
+            const jobCompletionRate = purchaseData.booked > 0 ? Math.round((purchaseData.completed / purchaseData.booked) * 100) : 0;
+            const avgResponseTime = purchaseData.responseCount > 0 
+              ? Math.round((purchaseData.totalResponseTime / purchaseData.responseCount) * 10) / 10 
+              : 0;
+            
+            const buyerData: BuyerDetail = {
               name: profile.business_name || "Unnamed Business",
               postcode: profile.postcode || "Unknown",
               purchases: purchaseData.purchases,
               spend: purchaseData.purchases * 20,
               refundRate: purchaseData.purchases > 0 ? Math.round((purchaseData.refunds / purchaseData.purchases) * 100) : 0,
+              conversionRate,
+              avgResponseTime,
+              jobCompletionRate,
+              bookedJobs: purchaseData.booked,
+              completedJobs: purchaseData.completed,
             };
             
             // Add to city map
@@ -1029,10 +1080,67 @@ export default function AdminAnalytics() {
                   <Download className="h-4 w-4 mr-2" />Export CSV
                 </Button>
               </div>
+
+              {/* Buyer Performance Summary Cards */}
+              <div className="grid gap-4 md:grid-cols-4">
+                <Card className="bg-gradient-to-br from-secondary/10 to-secondary/5 border-secondary/20">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 text-secondary mb-2">
+                      <Users className="w-4 h-4" />
+                      <span className="text-xs font-medium uppercase">Active Buyers</span>
+                    </div>
+                    <p className="text-2xl font-bold">{topBuyers.length}</p>
+                    <p className="text-sm text-muted-foreground">in selected period</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 text-green-600 mb-2">
+                      <Target className="w-4 h-4" />
+                      <span className="text-xs font-medium uppercase">Avg Conversion</span>
+                    </div>
+                    <p className="text-2xl font-bold">
+                      {topBuyers.length > 0 
+                        ? Math.round(topBuyers.reduce((sum, b) => sum + b.conversionRate, 0) / topBuyers.length)
+                        : 0}%
+                    </p>
+                    <p className="text-sm text-muted-foreground">leads → booked jobs</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 text-purple-600 mb-2">
+                      <Sparkles className="w-4 h-4" />
+                      <span className="text-xs font-medium uppercase">Avg Completion</span>
+                    </div>
+                    <p className="text-2xl font-bold">
+                      {topBuyers.filter(b => b.bookedJobs > 0).length > 0 
+                        ? Math.round(topBuyers.filter(b => b.bookedJobs > 0).reduce((sum, b) => sum + b.jobCompletionRate, 0) / topBuyers.filter(b => b.bookedJobs > 0).length)
+                        : 0}%
+                    </p>
+                    <p className="text-sm text-muted-foreground">booked → completed</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 text-amber-600 mb-2">
+                      <TrendingUp className="w-4 h-4" />
+                      <span className="text-xs font-medium uppercase">Avg Response</span>
+                    </div>
+                    <p className="text-2xl font-bold">
+                      {topBuyers.filter(b => b.avgResponseTime > 0).length > 0 
+                        ? Math.round(topBuyers.filter(b => b.avgResponseTime > 0).reduce((sum, b) => sum + b.avgResponseTime, 0) / topBuyers.filter(b => b.avgResponseTime > 0).length * 10) / 10
+                        : 0} hrs
+                    </p>
+                    <p className="text-sm text-muted-foreground">time to purchase</p>
+                  </CardContent>
+                </Card>
+              </div>
+
               <Card>
                 <CardHeader>
-                  <CardTitle>Top Buyers</CardTitle>
-                  <CardDescription>Highest spending businesses in the selected period</CardDescription>
+                  <CardTitle>Detailed Buyer Performance</CardTitle>
+                  <CardDescription>Conversion rates, response times, and job completion metrics</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Table>
@@ -1041,7 +1149,9 @@ export default function AdminAnalytics() {
                         <TableHead>Business</TableHead>
                         <TableHead>Location</TableHead>
                         <TableHead className="text-right">Purchases</TableHead>
-                        <TableHead className="text-right">Total Spend</TableHead>
+                        <TableHead className="text-right">Conversion</TableHead>
+                        <TableHead className="text-right">Completion</TableHead>
+                        <TableHead className="text-right">Avg Response</TableHead>
                         <TableHead className="text-right">Refund Rate</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -1053,14 +1163,34 @@ export default function AdminAnalytics() {
                               <Badge variant="outline" className="w-6 h-6 rounded-full flex items-center justify-center p-0">
                                 {index + 1}
                               </Badge>
-                              <span className="font-medium">{buyer.name}</span>
+                              <div>
+                                <span className="font-medium">{buyer.name}</span>
+                                <p className="text-xs text-muted-foreground">£{buyer.spend} spent</p>
+                              </div>
                             </div>
                           </TableCell>
                           <TableCell className="text-muted-foreground">
                             {extractCityFromPostcode(buyer.postcode).city}
                           </TableCell>
-                          <TableCell className="text-right">{buyer.purchases}</TableCell>
-                          <TableCell className="text-right font-medium">£{buyer.spend}</TableCell>
+                          <TableCell className="text-right">
+                            <div>
+                              <span className="font-medium">{buyer.purchases}</span>
+                              <p className="text-xs text-muted-foreground">{buyer.bookedJobs} booked</p>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Badge variant={buyer.conversionRate >= 50 ? "default" : buyer.conversionRate >= 25 ? "secondary" : "outline"}>
+                              {buyer.conversionRate}%
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Badge variant={buyer.jobCompletionRate >= 80 ? "default" : buyer.jobCompletionRate >= 50 ? "secondary" : "outline"} className={buyer.jobCompletionRate >= 80 ? "bg-green-500" : ""}>
+                              {buyer.jobCompletionRate}%
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right text-muted-foreground">
+                            {buyer.avgResponseTime > 0 ? `${buyer.avgResponseTime}h` : '-'}
+                          </TableCell>
                           <TableCell className="text-right">
                             <Badge variant={buyer.refundRate > 5 ? "destructive" : "default"}>
                               {buyer.refundRate}%
