@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { Lock, MapPin, Calendar, PoundSterling, Loader2, Coins, User, Search, X, Briefcase, AlertCircle } from "lucide-react";
+import { Lock, MapPin, Calendar, PoundSterling, Loader2, Coins, User, Search, X, Briefcase, AlertCircle, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,7 +13,8 @@ import { useAutoScroll } from "@/hooks/useAutoScroll";
 import { LeadsSkeleton } from "@/components/skeletons/LeadsSkeleton";
 import { useRateLimit, RATE_LIMIT_PRESETS } from "@/hooks/useRateLimit";
 import { LeadFilters, LeadFilter } from "@/components/LeadFilters";
-
+import { useLeadReservations } from "@/hooks/useLeadReservations";
+import { Badge } from "@/components/ui/badge";
 interface Lead {
   id: string;
   postcode: string;
@@ -51,6 +52,7 @@ interface LeadsScrollContainerProps {
   loadingMore: boolean;
   loadMoreRef: React.RefObject<HTMLDivElement>;
   isSearchActive?: boolean;
+  isLeadReserved: (leadId: string) => boolean;
 }
 
 const INITIAL_VISIBLE_COUNT = 10;
@@ -67,6 +69,7 @@ const LeadsScrollContainer = ({
   loadingMore,
   loadMoreRef,
   isSearchActive = false,
+  isLeadReserved,
 }: LeadsScrollContainerProps) => {
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_COUNT);
   
@@ -137,8 +140,13 @@ const LeadsScrollContainer = ({
                 <div className="text-foreground font-medium">{lead.job_type}</div>
                 <div className="text-secondary font-bold text-lg">{lead.display_value}</div>
                 <div className="text-muted-foreground">{formatDate(lead.date)}</div>
-                <div className="text-center flex gap-2 justify-center">
-                  {userCredits > 0 ? (
+                <div className="text-center flex gap-2 justify-center items-center">
+                  {isLeadReserved(lead.id) ? (
+                    <Badge variant="secondary" className="gap-1.5 bg-amber-500/10 text-amber-600 border-amber-500/20 animate-pulse">
+                      <Users className="w-3 h-3" />
+                      Someone is checking out
+                    </Badge>
+                  ) : userCredits > 0 ? (
                     <Button 
                       variant="cta" 
                       size="sm" 
@@ -208,7 +216,14 @@ const LeadsScrollContainer = ({
                   <p className="text-muted-foreground text-sm">{formatDate(lead.date)}</p>
                 </div>
               </div>
-              {userCredits > 0 ? (
+              {isLeadReserved(lead.id) ? (
+                <div className="w-full flex justify-center">
+                  <Badge variant="secondary" className="gap-1.5 bg-amber-500/10 text-amber-600 border-amber-500/20 animate-pulse py-2">
+                    <Users className="w-3 h-3" />
+                    Someone is checking out
+                  </Badge>
+                </div>
+              ) : userCredits > 0 ? (
                 <Button 
                   variant="cta" 
                   className="w-full gap-2"
@@ -307,6 +322,9 @@ export default function Leads() {
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  
+  // Real-time lead reservation tracking
+  const { reserveLead, releaseLead, isLeadReserved } = useLeadReservations(user?.id);
 
   // Get unique job types from leads for filter dropdown
   const jobTypes = useMemo(() => {
@@ -519,6 +537,9 @@ export default function Leads() {
   const handleUnlock = async (leadId: string) => {
     setUnlockingLeadId(leadId);
     
+    // Reserve the lead so other users see it's being checked out
+    await reserveLead(leadId);
+    
     const result = await executeUnlock(async () => {
       const { data, error } = await supabase.functions.invoke("unlock-lead", {
         body: { leadId },
@@ -531,6 +552,9 @@ export default function Leads() {
     });
 
     if (!result.success) {
+      // Release reservation on error
+      await releaseLead();
+      
       // Show user-friendly error message
       const errorMessage = result.error || "Failed to start checkout";
       if (errorMessage.toLowerCase().includes("suspend")) {
@@ -546,7 +570,7 @@ export default function Leads() {
       return;
     }
 
-    // Redirect to Stripe Checkout
+    // Redirect to Stripe Checkout - reservation will be released when user leaves page
     if (result.data?.url) {
       window.location.href = result.data.url;
     }
@@ -941,6 +965,7 @@ export default function Leads() {
             loadingMore={loadingMore}
             loadMoreRef={loadMoreRef}
             isSearchActive={!!activeFilter || activePrefixes.length > 0}
+            isLeadReserved={isLeadReserved}
           />
         )}
 
