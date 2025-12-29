@@ -126,8 +126,8 @@ serve(async (req) => {
       ? `+${phone}` 
       : `+44${phone.startsWith("0") ? phone.slice(1) : phone}`;
 
-    // Create confirmation message
-    const message = `Hi ${lead.customer_name}! 👋\n\n` +
+    // Create confirmation message - no emojis for better deliverability
+    const message = `Hi ${lead.customer_name},\n\n` +
       `We've received your cleaning request for ${lead.job_type} at ${lead.postcode}.\n\n` +
       `Reply YES to confirm and get matched with local cleaning professionals.\n\n` +
       `Reply NO to cancel this request.\n\n` +
