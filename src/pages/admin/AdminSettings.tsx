@@ -102,32 +102,46 @@ export default function AdminSettings() {
   const fetchUsers = async () => {
     setLoadingUsers(true);
     try {
-      // Fetch profiles with their roles
-      const { data: profiles, error: profilesError } = await supabase
-        .from("profiles")
-        .select("user_id, business_name, contact_name, created_at")
-        .order("created_at", { ascending: false })
-        .limit(50);
-
-      if (profilesError) throw profilesError;
-
-      // Fetch roles for these users
+      // Fetch only admin users from user_roles
       const { data: roles, error: rolesError } = await supabase
         .from("user_roles")
-        .select("user_id, role");
+        .select("user_id, role, created_at")
+        .in("role", ["admin", "super_admin"])
+        .order("created_at", { ascending: false });
 
       if (rolesError) throw rolesError;
 
-      // Create a map of roles
-      const roleMap = new Map(roles?.map((r) => [r.user_id, r.role]) || []);
+      if (!roles || roles.length === 0) {
+        setUsers([]);
+        return;
+      }
 
-      // Combine the data
-      const usersWithRoles: UserWithRole[] = (profiles || []).map((p) => ({
-        id: p.user_id,
-        email: p.contact_name || p.business_name || "Unknown User",
-        created_at: p.created_at,
-        role: roleMap.get(p.user_id) || null,
-      }));
+      // Get user IDs
+      const userIds = roles.map(r => r.user_id);
+
+      // Fetch profiles for these admin users
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("user_id, business_name, contact_name")
+        .in("user_id", userIds);
+
+      if (profilesError) throw profilesError;
+
+      // Create a map of profiles
+      const profileMap = new Map(
+        (profiles || []).map(p => [p.user_id, p])
+      );
+
+      // Combine the data - use role data as primary source
+      const usersWithRoles: UserWithRole[] = roles.map((r) => {
+        const profile = profileMap.get(r.user_id);
+        return {
+          id: r.user_id,
+          email: profile?.contact_name || profile?.business_name || "Admin User",
+          created_at: r.created_at,
+          role: r.role,
+        };
+      });
 
       setUsers(usersWithRoles);
     } catch (error) {
@@ -636,8 +650,8 @@ export default function AdminSettings() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>User Management</CardTitle>
-                <CardDescription>Manage user accounts and their roles</CardDescription>
+                <CardTitle>Admin Users</CardTitle>
+                <CardDescription>Manage administrator accounts and permissions</CardDescription>
               </div>
               <Button onClick={() => setIsCreateAdminOpen(true)}>
                 <UserPlus className="w-4 h-4 mr-2" />
@@ -653,8 +667,8 @@ export default function AdminSettings() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>User</TableHead>
-                      <TableHead>Joined</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Added</TableHead>
                       <TableHead>Current Role</TableHead>
                       <TableHead>Change Role</TableHead>
                     </TableRow>
@@ -669,14 +683,13 @@ export default function AdminSettings() {
                         <TableCell>{getRoleBadge(user.role)}</TableCell>
                         <TableCell>
                           <Select
-                            value={user.role || "none"}
+                            value={user.role || "admin"}
                             onValueChange={(value) => handleRoleChange(user.id, value)}
                           >
                             <SelectTrigger className="w-32">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="none">User</SelectItem>
                               <SelectItem value="admin">Admin</SelectItem>
                               <SelectItem value="super_admin">Super Admin</SelectItem>
                             </SelectContent>
@@ -687,7 +700,7 @@ export default function AdminSettings() {
                     {users.length === 0 && (
                       <TableRow>
                         <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                          No users found
+                          No admin users found
                         </TableCell>
                       </TableRow>
                     )}
