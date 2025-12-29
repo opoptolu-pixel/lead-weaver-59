@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Save, Users, Shield, Globe, Bell, Loader2, Mail, Edit, X, Check, Lock, Plus, Trash2, Copy, UserPlus, Eye, EyeOff } from "lucide-react";
+import { Save, Users, Shield, Globe, Bell, Loader2, Mail, Edit, X, Check, Lock, Plus, Trash2, Copy, UserPlus, Eye, EyeOff, RefreshCw, Database } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -875,6 +875,59 @@ export default function AdminSettings() {
                   Save Preferences
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Data Integrity Check */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Database className="w-5 h-5" />
+                Data Integrity
+              </CardTitle>
+              <CardDescription>
+                Sync database counters and fix data inconsistencies
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                This will check and fix:
+              </p>
+              <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
+                <li>Sync leads_purchased counter with actual lead counts</li>
+                <li>Fix outcome_status for unpurchased leads</li>
+                <li>Ensure refunded leads have correct status</li>
+                <li>Identify leads missing timestamps</li>
+              </ul>
+              <Button 
+                variant="outline" 
+                onClick={async () => {
+                  setLoading(true);
+                  try {
+                    const { data, error } = await supabase.functions.invoke("sync-data-integrity");
+                    if (error) throw error;
+                    if (data?.success) {
+                      const corrections = data.corrections || [];
+                      if (corrections.length === 0) {
+                        toast.success("Data integrity check complete - no issues found");
+                      } else {
+                        toast.success(`Data integrity check complete - ${corrections.length} corrections made`);
+                      }
+                    } else {
+                      throw new Error(data?.error || "Unknown error");
+                    }
+                  } catch (error: any) {
+                    console.error("Error running data integrity check:", error);
+                    toast.error(error.message || "Failed to run data integrity check");
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                disabled={loading}
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+                Run Data Integrity Check
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>
