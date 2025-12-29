@@ -190,6 +190,21 @@ const sendConfirmationEmail = async (
       console.log("[SUBMIT-CLEANING] Using fallback template (no database template found)");
     }
 
+    // Generate plain text version for better deliverability
+    const plainText = html
+      .replace(/<style[^>]*>.*?<\/style>/gis, '')
+      .replace(/<script[^>]*>.*?<\/script>/gis, '')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p>/gi, '\n\n')
+      .replace(/<\/div>/gi, '\n')
+      .replace(/<\/h[1-6]>/gi, '\n\n')
+      .replace(/<a[^>]*href="([^"]*)"[^>]*>([^<]*)<\/a>/gi, '$2 ($1)')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+
     const response = await fetch(RESEND_API_URL, {
       method: "POST",
       headers: {
@@ -201,6 +216,10 @@ const sendConfirmationEmail = async (
         to: [customerEmail],
         subject: subject,
         html: html,
+        text: plainText,
+        headers: {
+          "Organization": "Cleanda Ltd",
+        },
       }),
     });
 

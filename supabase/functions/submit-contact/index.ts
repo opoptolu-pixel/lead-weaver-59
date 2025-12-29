@@ -124,32 +124,36 @@ const handler = async (req: Request): Promise<Response> => {
     // Send notification email to admin
     try {
       const adminSubject = `New Contact Form Submission: ${subject}`;
+      const adminHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #0B3D2E;">New Contact Form Submission</h2>
+          <p>You have received a new contact form submission from your website.</p>
+          
+          <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <p><strong>Name:</strong> ${name}</p>
+            <p><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
+            ${phone ? `<p><strong>Phone:</strong> <a href="tel:${phone}">${phone}</a></p>` : ""}
+            <p><strong>Subject:</strong> ${subject}</p>
+          </div>
+          
+          <div style="background: #fff; border: 1px solid #ddd; padding: 20px; border-radius: 8px;">
+            <p><strong>Message:</strong></p>
+            <p style="white-space: pre-wrap;">${message}</p>
+          </div>
+          
+          <p style="color: #666; font-size: 12px; margin-top: 20px;">
+            Submitted at: ${new Date().toLocaleString("en-GB", { timeZone: "Europe/London" })}
+          </p>
+        </div>
+      `;
+      const adminPlainText = `New Contact Form Submission\n\nName: ${name}\nEmail: ${email}${phone ? `\nPhone: ${phone}` : ""}\nSubject: ${subject}\n\nMessage:\n${message}\n\nSubmitted at: ${new Date().toLocaleString("en-GB", { timeZone: "Europe/London" })}`;
+      
       const adminEmailResponse = await resend.emails.send({
         from: "Cleanda <hello@cleanda.co.uk>",
         to: ["hello@cleanda.co.uk"],
         subject: adminSubject,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #0B3D2E;">New Contact Form Submission</h2>
-            <p>You have received a new contact form submission from your website.</p>
-            
-            <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <p><strong>Name:</strong> ${name}</p>
-              <p><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
-              ${phone ? `<p><strong>Phone:</strong> <a href="tel:${phone}">${phone}</a></p>` : ""}
-              <p><strong>Subject:</strong> ${subject}</p>
-            </div>
-            
-            <div style="background: #fff; border: 1px solid #ddd; padding: 20px; border-radius: 8px;">
-              <p><strong>Message:</strong></p>
-              <p style="white-space: pre-wrap;">${message}</p>
-            </div>
-            
-            <p style="color: #666; font-size: 12px; margin-top: 20px;">
-              Submitted at: ${new Date().toLocaleString("en-GB", { timeZone: "Europe/London" })}
-            </p>
-          </div>
-        `,
+        html: adminHtml,
+        text: adminPlainText,
       });
 
       // Log admin notification email
@@ -175,51 +179,51 @@ const handler = async (req: Request): Promise<Response> => {
       const userSubject = "We've received your message - Cleanda";
       const unsubscribeUrl = generateUnsubscribeUrl(email);
       
+      const userHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 20px; font-family: Arial, sans-serif; background-color: #ffffff; color: #333333; line-height: 1.6;">
+  <div style="max-width: 600px; margin: 0 auto;">
+    <h2 style="color: #0B3D2E; margin-bottom: 20px;">Thank You, ${name}!</h2>
+    
+    <p>We have received your message and will get back to you within 1-2 business days.</p>
+    
+    <div style="margin: 20px 0; padding: 15px; background-color: #f5f5f5; border-left: 4px solid #0B3D2E;">
+      <strong>Your message summary:</strong><br>
+      Subject: ${subject}<br><br>
+      ${message.substring(0, 200)}${message.length > 200 ? "..." : ""}
+    </div>
+    
+    <p>If your inquiry is urgent, please call us at 07757 188 197.</p>
+    
+    <p>Best regards,<br>The Cleanda Team</p>
+    
+    <p style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #888888;">
+      Cleanda Ltd ${new Date().getFullYear()}<br>
+      A trading name of Orbit Shade Ltd (Company No. 15337705)<br>
+      128 City Road, London, EC1V 2NX<br>
+      <a href="${unsubscribeUrl}" style="color: #888888;">Unsubscribe</a>
+    </p>
+  </div>
+</body>
+</html>`;
+      
+      const userPlainText = `Thank You, ${name}!\n\nWe have received your message and will get back to you within 1-2 business days.\n\nYour message summary:\nSubject: ${subject}\n${message.substring(0, 200)}${message.length > 200 ? "..." : ""}\n\nIf your inquiry is urgent, please call us at 07757 188 197.\n\nBest regards,\nThe Cleanda Team\n\nCleanda Ltd ${new Date().getFullYear()}\nUnsubscribe: ${unsubscribeUrl}`;
+      
       const userEmailResponse = await resend.emails.send({
         from: "Cleanda <hello@cleanda.co.uk>",
         to: [email],
         subject: userSubject,
+        html: userHtml,
+        text: userPlainText,
         headers: {
           "List-Unsubscribe": `<${unsubscribeUrl}>, <mailto:unsubscribe@cleanda.co.uk?subject=Unsubscribe>`,
           "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-          "Precedence": "bulk",
-          "Feedback-ID": "contact_confirmation:cleanda:subscribers:transactional",
           "Organization": "Cleanda Ltd",
         },
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <div style="background: linear-gradient(135deg, #0B3D2E 0%, #145A44 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
-              <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Thank You, ${name}!</h1>
-            </div>
-            
-            <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e5e5; border-top: none; border-radius: 0 0 12px 12px;">
-              <p>We have received your message and will get back to you within 1-2 business days.</p>
-              
-              <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                <p><strong>Your message summary:</strong></p>
-                <p><strong>Subject:</strong> ${subject}</p>
-                <p style="white-space: pre-wrap;">${message.substring(0, 200)}${message.length > 200 ? "..." : ""}</p>
-              </div>
-              
-              <p>If your inquiry is urgent, please call us at <strong>07757 188 197</strong>.</p>
-              
-              <p style="margin-top: 30px;">
-                Best regards,<br>
-                <strong>The Cleanda Team</strong>
-              </p>
-              
-              <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;" />
-              
-              <p style="color: #666; font-size: 12px; text-align: center;">
-                You're receiving this email because you contacted us at Cleanda.<br>
-                © ${new Date().getFullYear()} Cleanda · All rights reserved<br>
-                A trading name of Orbit Shade Ltd (Company No. 15337705)<br>
-                128 City Road, London, EC1V 2NX<br><br>
-                <a href="${unsubscribeUrl}" style="color: #888;">Unsubscribe</a>
-              </p>
-            </div>
-          </div>
-        `,
       });
 
       // Log user confirmation email
