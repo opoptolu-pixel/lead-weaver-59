@@ -394,71 +394,94 @@ export default function AdminAnalytics() {
       });
     }
 
-    // Top buyers with city data
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("id, user_id, business_name, leads_purchased, postcode")
-      .order("leads_purchased", { ascending: false })
-      .limit(50);
+    // Top buyers - count actual purchases from leads table with date filtering
+    const { data: purchasedLeadsData } = await supabase
+      .from("leads")
+      .select("unlocked_by, refunded_at")
+      .eq("is_unlocked", true)
+      .gte("unlocked_at", startISO)
+      .lte("unlocked_at", endISO);
 
-    if (profiles) {
-      // City-based buyer stats
-      const buyerCityMap = new Map<string, BuyerCityStats>();
+    if (purchasedLeadsData) {
+      // Aggregate purchases by user
+      const buyerPurchaseMap = new Map<string, { purchases: number; refunds: number }>();
+      purchasedLeadsData.forEach(lead => {
+        if (!lead.unlocked_by) return;
+        if (!buyerPurchaseMap.has(lead.unlocked_by)) {
+          buyerPurchaseMap.set(lead.unlocked_by, { purchases: 0, refunds: 0 });
+        }
+        const stats = buyerPurchaseMap.get(lead.unlocked_by)!;
+        stats.purchases++;
+        if (lead.refunded_at) stats.refunds++;
+      });
+
+      // Get buyer profiles for those with purchases in period
+      const buyerUserIds = Array.from(buyerPurchaseMap.keys());
       
-      const buyersWithStats = await Promise.all(
-        profiles.filter(p => p.leads_purchased > 0).map(async (profile) => {
-          const { count: refundCount } = await supabase
-            .from("leads")
-            .select("*", { count: "exact", head: true })
-            .eq("unlocked_by", profile.user_id)
-            .not("refunded_at", "is", null);
+      if (buyerUserIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, user_id, business_name, postcode")
+          .in("user_id", buyerUserIds);
 
-          const buyerData = {
-            name: profile.business_name || "Unnamed Business",
-            postcode: profile.postcode || "Unknown",
-            purchases: profile.leads_purchased,
-            spend: profile.leads_purchased * 20,
-            refundRate: profile.leads_purchased > 0 ? Math.round(((refundCount || 0) / profile.leads_purchased) * 100) : 0,
-          };
+        if (profiles) {
+          // City-based buyer stats
+          const buyerCityMap = new Map<string, BuyerCityStats>();
           
-          // Add to city map
-          if (profile.postcode) {
-            const { city, region } = extractCityFromPostcode(profile.postcode);
-            const key = `${city}-${region}`;
+          const buyersWithStats = profiles.map(profile => {
+            const purchaseData = buyerPurchaseMap.get(profile.user_id) || { purchases: 0, refunds: 0 };
             
-            if (!buyerCityMap.has(key)) {
-              buyerCityMap.set(key, {
-                city,
-                region,
-                buyers: 0,
-                totalPurchases: 0,
-                totalSpend: 0,
-                avgPurchases: 0
-              });
+            const buyerData = {
+              name: profile.business_name || "Unnamed Business",
+              postcode: profile.postcode || "Unknown",
+              purchases: purchaseData.purchases,
+              spend: purchaseData.purchases * 20,
+              refundRate: purchaseData.purchases > 0 ? Math.round((purchaseData.refunds / purchaseData.purchases) * 100) : 0,
+            };
+            
+            // Add to city map
+            if (profile.postcode) {
+              const { city, region } = extractCityFromPostcode(profile.postcode);
+              const key = `${city}-${region}`;
+              
+              if (!buyerCityMap.has(key)) {
+                buyerCityMap.set(key, {
+                  city,
+                  region,
+                  buyers: 0,
+                  totalPurchases: 0,
+                  totalSpend: 0,
+                  avgPurchases: 0
+                });
+              }
+              
+              const stats = buyerCityMap.get(key)!;
+              stats.buyers++;
+              stats.totalPurchases += purchaseData.purchases;
+              stats.totalSpend += purchaseData.purchases * 20;
             }
             
-            const stats = buyerCityMap.get(key)!;
-            stats.buyers++;
-            stats.totalPurchases += profile.leads_purchased;
-            stats.totalSpend += profile.leads_purchased * 20;
-          }
+            return buyerData;
+          }).sort((a, b) => b.purchases - a.purchases);
           
-          return buyerData;
-        })
-      );
-      
-      setAllBuyers(buyersWithStats);
-      setTopBuyers(buyersWithStats.slice(0, 10));
-      
-      // Calculate averages and sort
-      const buyerCityData = Array.from(buyerCityMap.values())
-        .map(stat => ({
-          ...stat,
-          avgPurchases: stat.buyers > 0 ? Math.round(stat.totalPurchases / stat.buyers) : 0
-        }))
-        .sort((a, b) => b.totalPurchases - a.totalPurchases);
-      
-      setBuyerCityStats(buyerCityData);
+          setAllBuyers(buyersWithStats);
+          setTopBuyers(buyersWithStats.slice(0, 10));
+          
+          // Calculate averages and sort
+          const buyerCityData = Array.from(buyerCityMap.values())
+            .map(stat => ({
+              ...stat,
+              avgPurchases: stat.buyers > 0 ? Math.round(stat.totalPurchases / stat.buyers) : 0
+            }))
+            .sort((a, b) => b.totalPurchases - a.totalPurchases);
+          
+          setBuyerCityStats(buyerCityData);
+        }
+      } else {
+        setAllBuyers([]);
+        setTopBuyers([]);
+        setBuyerCityStats([]);
+      }
     }
 
     setLoading(false);
