@@ -50,6 +50,7 @@ export const useLeadReservations = (userId?: string) => {
 
   useEffect(() => {
     const myVisitorId = myVisitorIdRef.current;
+    console.log('[LeadReservations] Initializing with visitorId:', myVisitorId);
     
     const reservationChannel = supabase.channel("lead-reservations", {
       config: {
@@ -62,13 +63,16 @@ export const useLeadReservations = (userId?: string) => {
     reservationChannel
       .on("presence", { event: "sync" }, () => {
         const state = reservationChannel.presenceState();
+        console.log('[LeadReservations] Presence sync, full state:', JSON.stringify(state));
         const newReservedLeads = new Map<string, LeadReservation>();
         
         // Aggregate all reservations from all users (excluding self)
         Object.entries(state).forEach(([key, presences]) => {
           (presences as any[]).forEach((presence) => {
+            console.log('[LeadReservations] Processing presence:', presence, 'myVisitorId:', myVisitorId);
             // Skip current user's reservations - they shouldn't see their own as "reserved"
             if (presence.visitorId && presence.visitorId !== myVisitorId && presence.leadId) {
+              console.log('[LeadReservations] Adding reservation for lead:', presence.leadId);
               newReservedLeads.set(presence.leadId, {
                 leadId: presence.leadId,
                 visitorId: presence.visitorId,
@@ -78,10 +82,12 @@ export const useLeadReservations = (userId?: string) => {
           });
         });
         
+        console.log('[LeadReservations] Reserved leads after sync:', newReservedLeads.size);
         // Filter out expired reservations
         setReservedLeads(filterExpiredReservations(newReservedLeads));
       })
       .on("presence", { event: "join" }, ({ key, newPresences }) => {
+        console.log('[LeadReservations] Presence join:', key, newPresences);
         setReservedLeads((prev) => {
           const updated = new Map(prev);
           (newPresences as any[]).forEach((presence) => {
@@ -97,6 +103,7 @@ export const useLeadReservations = (userId?: string) => {
         });
       })
       .on("presence", { event: "leave" }, ({ key, leftPresences }) => {
+        console.log('[LeadReservations] Presence leave:', key, leftPresences);
         setReservedLeads((prev) => {
           const updated = new Map(prev);
           (leftPresences as any[]).forEach((presence) => {
@@ -107,7 +114,9 @@ export const useLeadReservations = (userId?: string) => {
           return updated;
         });
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[LeadReservations] Channel subscription status:', status);
+      });
 
     channelRef.current = reservationChannel;
 
@@ -117,6 +126,7 @@ export const useLeadReservations = (userId?: string) => {
     }, 30000); // Check every 30 seconds
 
     return () => {
+      console.log('[LeadReservations] Cleaning up channel');
       supabase.removeChannel(reservationChannel);
       if (timeoutCheckRef.current) {
         clearInterval(timeoutCheckRef.current);
@@ -128,20 +138,27 @@ export const useLeadReservations = (userId?: string) => {
   const reserveLead = useCallback(
     async (leadId: string) => {
       const channel = channelRef.current;
-      if (!channel) return;
+      if (!channel) {
+        console.log('[LeadReservations] No channel available for reserving lead');
+        return;
+      }
       
       const myVisitorId = myVisitorIdRef.current;
+      console.log('[LeadReservations] Reserving lead:', leadId, 'with visitorId:', myVisitorId);
       
-      await channel.track({
+      const trackResult = await channel.track({
         leadId,
         visitorId: myVisitorId,
         startedAt: new Date().toISOString(),
       });
       
+      console.log('[LeadReservations] Track result:', trackResult);
+      
       setMyReservedLeadId(leadId);
       
       // Auto-release after 5 minutes
       setTimeout(() => {
+        console.log('[LeadReservations] Auto-releasing lead after timeout');
         releaseLead();
       }, RESERVATION_TIMEOUT_MS);
     },
@@ -151,7 +168,11 @@ export const useLeadReservations = (userId?: string) => {
   // Release reservation when checkout completes or is cancelled
   const releaseLead = useCallback(async () => {
     const channel = channelRef.current;
-    if (!channel) return;
+    if (!channel) {
+      console.log('[LeadReservations] No channel available for releasing lead');
+      return;
+    }
+    console.log('[LeadReservations] Releasing lead reservation');
     await channel.untrack();
     setMyReservedLeadId(null);
   }, []);
@@ -159,7 +180,9 @@ export const useLeadReservations = (userId?: string) => {
   // Check if a specific lead is reserved by someone else
   const isLeadReserved = useCallback(
     (leadId: string): boolean => {
-      return reservedLeads.has(leadId);
+      const reserved = reservedLeads.has(leadId);
+      console.log('[LeadReservations] isLeadReserved check:', leadId, reserved, 'reservedLeads size:', reservedLeads.size);
+      return reserved;
     },
     [reservedLeads]
   );
