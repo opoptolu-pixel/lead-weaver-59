@@ -202,17 +202,44 @@ serve(async (req) => {
       
       // Get the payment intent to refund
       const paymentIntent = session.payment_intent as Stripe.PaymentIntent | null;
+      let refundSuccess = false;
+      let refundId: string | null = null;
+      let refundError: string | null = null;
+      
       if (paymentIntent?.id) {
         try {
-          await stripe.refunds.create({
+          const refund = await stripe.refunds.create({
             payment_intent: paymentIntent.id,
             reason: "duplicate",
           });
-          logStep("Refund issued successfully", { paymentIntentId: paymentIntent.id });
-        } catch (refundError: any) {
-          logStep("Refund failed - manual intervention required", { error: refundError.message });
+          refundSuccess = true;
+          refundId = refund.id;
+          logStep("Refund issued successfully", { paymentIntentId: paymentIntent.id, refundId });
+        } catch (err: any) {
+          refundError = err.message;
+          logStep("Refund failed - manual intervention required", { error: refundError });
         }
       }
+      
+      // Log refund event to activity_logs for admin visibility
+      await supabaseClient.from("activity_logs").insert({
+        user_id: userId,
+        entity_type: "refund",
+        entity_id: leadId,
+        action: "auto_refund_duplicate",
+        details: {
+          reason: "duplicate_lead_purchase",
+          lead_id: leadId,
+          session_id: sessionId,
+          payment_intent_id: paymentIntent?.id || null,
+          refund_id: refundId,
+          refund_success: refundSuccess,
+          refund_error: refundError,
+          amount: "£20",
+          customer_email: customerEmail,
+        },
+      });
+      logStep("Refund event logged to activity_logs");
       
       throw new Error("This lead was just purchased by another user. Your payment has been refunded.");
     }
