@@ -178,8 +178,9 @@ serve(async (req) => {
       }
     }
 
-    // Update the lead as unlocked
-    const { error: updateError } = await supabaseClient
+    // ATOMIC: Check and update the lead in one operation to prevent race conditions
+    // Only update if is_unlocked is still false (prevents two people buying same lead)
+    const { data: updatedLead, error: updateError } = await supabaseClient
       .from("leads")
       .update({
         is_unlocked: true,
@@ -188,9 +189,34 @@ serve(async (req) => {
         lead_status: "purchased",
         outcome_status: "purchased",
       })
-      .eq("id", leadId);
+      .eq("id", leadId)
+      .eq("is_unlocked", false) // Critical: Only update if NOT already unlocked
+      .select("id")
+      .maybeSingle();
 
     if (updateError) throw new Error(`Failed to unlock lead: ${updateError.message}`);
+    
+    // If no row was updated, the lead was already purchased by someone else
+    if (!updatedLead) {
+      logStep("Lead already purchased by another user - initiating refund", { leadId, userId });
+      
+      // Get the payment intent to refund
+      const paymentIntent = session.payment_intent as Stripe.PaymentIntent | null;
+      if (paymentIntent?.id) {
+        try {
+          await stripe.refunds.create({
+            payment_intent: paymentIntent.id,
+            reason: "duplicate",
+          });
+          logStep("Refund issued successfully", { paymentIntentId: paymentIntent.id });
+        } catch (refundError: any) {
+          logStep("Refund failed - manual intervention required", { error: refundError.message });
+        }
+      }
+      
+      throw new Error("This lead was just purchased by another user. Your payment has been refunded.");
+    }
+    
     logStep("Lead unlocked successfully", { leadId, userId });
 
     // Fetch the business profile for activity logging
