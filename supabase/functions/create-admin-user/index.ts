@@ -10,7 +10,7 @@ interface CreateAdminRequest {
   email: string;
   password: string;
   name: string;
-  role: "admin" | "super_admin";
+  role: "user" | "admin" | "super_admin";
 }
 
 serve(async (req) => {
@@ -91,9 +91,9 @@ serve(async (req) => {
       );
     }
 
-    if (!["admin", "super_admin"].includes(role)) {
+    if (!["user", "admin", "super_admin"].includes(role)) {
       return new Response(
-        JSON.stringify({ error: "Role must be admin or super_admin" }),
+        JSON.stringify({ error: "Role must be user, admin, or super_admin" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -134,10 +134,13 @@ serve(async (req) => {
     console.log("User created successfully:", newUser.user.id);
 
     // The profile will be created automatically by the trigger
-    // Update the profile with the admin name
+    // Update the profile with the name
     const { error: profileError } = await adminClient
       .from("profiles")
-      .update({ contact_name: name, business_name: `Admin: ${name}` })
+      .update({ 
+        contact_name: name, 
+        business_name: role === "user" ? null : `Admin: ${name}` 
+      })
       .eq("user_id", newUser.user.id);
 
     if (profileError) {
@@ -145,22 +148,24 @@ serve(async (req) => {
       // Don't fail - profile might not exist yet due to trigger timing
     }
 
-    // Add the admin role
-    const { error: roleInsertError } = await adminClient
-      .from("user_roles")
-      .insert({ user_id: newUser.user.id, role });
+    // Only add role if not "user" (users don't need a role entry)
+    if (role !== "user") {
+      const { error: roleInsertError } = await adminClient
+        .from("user_roles")
+        .insert({ user_id: newUser.user.id, role });
 
-    if (roleInsertError) {
-      console.error("Error adding role:", roleInsertError);
-      // Try to clean up the user
-      await adminClient.auth.admin.deleteUser(newUser.user.id);
-      return new Response(
-        JSON.stringify({ error: "Failed to assign admin role" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      if (roleInsertError) {
+        console.error("Error adding role:", roleInsertError);
+        // Try to clean up the user
+        await adminClient.auth.admin.deleteUser(newUser.user.id);
+        return new Response(
+          JSON.stringify({ error: "Failed to assign role" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
-    console.log("Admin user created successfully:", { email, role });
+    console.log("User created successfully:", { email, role });
 
     return new Response(
       JSON.stringify({
