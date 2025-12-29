@@ -78,9 +78,40 @@ serve(async (req) => {
       });
     }
 
-    const { leadId } = await req.json();
+    const { leadId, visitorId } = await req.json();
     if (!leadId) throw new Error("Lead ID is required");
-    logStep("Lead ID received", { leadId });
+    logStep("Lead ID received", { leadId, visitorId });
+    
+    // Check if this lead is reserved by someone else
+    if (visitorId) {
+      const { data: reservationCheck, error: reservationError } = await supabaseClient
+        .rpc('check_lead_reservation', {
+          p_lead_id: leadId,
+          p_visitor_id: visitorId
+        });
+      
+      if (!reservationError && reservationCheck?.[0]) {
+        const reservation = reservationCheck[0];
+        if (reservation.is_reserved && !reservation.reserved_by_me) {
+          throw new Error("This lead is currently being checked out by another user. Please try again in a few minutes.");
+        }
+      }
+      
+      // Create/update reservation for this checkout
+      const { data: reserveResult, error: reserveError } = await supabaseClient
+        .rpc('reserve_lead', {
+          p_lead_id: leadId,
+          p_visitor_id: visitorId
+        });
+      
+      if (reserveError) {
+        logStep("Warning: Could not create reservation", { error: reserveError.message });
+      } else if (reserveResult?.[0] && !reserveResult[0].success) {
+        throw new Error(reserveResult[0].message || "Failed to reserve lead");
+      } else {
+        logStep("Lead reserved", { reservationId: reserveResult?.[0]?.reservation_id });
+      }
+    }
 
     // Use atomic database function with row-level locking to prevent race conditions
     // This function locks the profile and lead rows, validates all conditions,
@@ -142,6 +173,10 @@ serve(async (req) => {
     if (leadError) {
       logStep("Warning: Could not fetch lead details", { error: leadError.message });
     }
+    
+    // Complete the reservation (mark as completed, not expired)
+    await supabaseClient.rpc('complete_lead_reservation', { p_lead_id: leadId });
+    logStep("Lead reservation completed");
 
     logStep("Lead unlocked successfully");
 

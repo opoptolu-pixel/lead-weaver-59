@@ -325,8 +325,8 @@ export default function Leads() {
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   
-  // Real-time lead reservation tracking
-  const { reserveLead, releaseLead, isLeadReserved } = useLeadReservations(user?.id);
+  // Database-backed lead reservation tracking
+  const { reserveLead, releaseLead, isLeadReserved, checkLeadReservation, visitorId } = useLeadReservations(user?.id);
 
   // Get unique job types from leads for filter dropdown
   const jobTypes = useMemo(() => {
@@ -539,12 +539,25 @@ export default function Leads() {
   const handleUnlock = async (leadId: string) => {
     setUnlockingLeadId(leadId);
     
-    // Reserve the lead so other users see it's being checked out
-    await reserveLead(leadId);
+    // First check if the lead is reserved by someone else
+    const reservationStatus = await checkLeadReservation(leadId);
+    if (reservationStatus.isReserved && !reservationStatus.reservedByMe) {
+      toast.error("This lead is currently being checked out by another user. Please try again in a few minutes.");
+      setUnlockingLeadId(null);
+      return;
+    }
+    
+    // Reserve the lead before proceeding
+    const reserveResult = await reserveLead(leadId);
+    if (!reserveResult.success) {
+      toast.error(reserveResult.message || "Unable to reserve this lead. Please try again.");
+      setUnlockingLeadId(null);
+      return;
+    }
     
     const result = await executeUnlock(async () => {
       const { data, error } = await supabase.functions.invoke("unlock-lead", {
-        body: { leadId },
+        body: { leadId, visitorId },
       });
 
       if (error) throw error;
@@ -554,9 +567,6 @@ export default function Leads() {
     });
 
     if (!result.success) {
-      // Release reservation on error
-      await releaseLead();
-      
       // Show user-friendly error message
       const errorMessage = result.error || "Failed to start checkout";
       if (errorMessage.toLowerCase().includes("suspend")) {
@@ -565,6 +575,8 @@ export default function Leads() {
         });
       } else if (errorMessage.toLowerCase().includes("verification") || errorMessage.toLowerCase().includes("verified")) {
         toast.error(errorMessage, { duration: 6000 });
+      } else if (errorMessage.toLowerCase().includes("being checked out")) {
+        toast.error(errorMessage, { duration: 5000 });
       } else {
         toast.error(errorMessage);
       }
@@ -572,7 +584,7 @@ export default function Leads() {
       return;
     }
 
-    // Redirect to Stripe Checkout - reservation will be released when user leaves page
+    // Redirect to Stripe Checkout - reservation stays active for 5 minutes
     if (result.data?.url) {
       window.location.href = result.data.url;
     }
@@ -588,8 +600,21 @@ export default function Leads() {
 
     setUsingCreditLeadId(leadId);
     
-    // Reserve the lead so other users see it's being checked out
-    await reserveLead(leadId);
+    // First check if the lead is reserved by someone else
+    const reservationStatus = await checkLeadReservation(leadId);
+    if (reservationStatus.isReserved && !reservationStatus.reservedByMe) {
+      toast.error("This lead is currently being checked out by another user. Please try again in a few minutes.");
+      setUsingCreditLeadId(null);
+      return;
+    }
+    
+    // Reserve the lead before proceeding
+    const reserveResult = await reserveLead(leadId);
+    if (!reserveResult.success) {
+      toast.error(reserveResult.message || "Unable to reserve this lead. Please try again.");
+      setUsingCreditLeadId(null);
+      return;
+    }
     
     const result = await executeUseCredit(async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -598,7 +623,7 @@ export default function Leads() {
       }
 
       const { data, error } = await supabase.functions.invoke("use-credit", {
-        body: { leadId },
+        body: { leadId, visitorId },
       });
 
       if (error) throw error;
@@ -608,8 +633,6 @@ export default function Leads() {
     });
 
     if (!result.success) {
-      // Release reservation on error
-      await releaseLead();
       // Show user-friendly error message
       const errorMessage = result.error || "Failed to unlock lead";
       if (errorMessage.toLowerCase().includes("suspend")) {
@@ -620,15 +643,17 @@ export default function Leads() {
         toast.error(errorMessage, { duration: 6000 });
       } else if (errorMessage.toLowerCase().includes("credit")) {
         toast.error(errorMessage, { duration: 5000 });
+      } else if (errorMessage.toLowerCase().includes("being checked out")) {
+        toast.error(errorMessage, { duration: 5000 });
       } else {
         toast.error(errorMessage);
       }
       setUsingCreditLeadId(null);
       return;
     }
-    // Remove the lead from the list and release reservation
+    
+    // Remove the lead from the list (it's now purchased)
     setLeads(prev => prev.filter(l => l.id !== leadId));
-    await releaseLead();
     await refreshProfile();
     
     toast.success("Lead unlocked! Check your dashboard for details.");
