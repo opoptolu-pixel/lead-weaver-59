@@ -140,19 +140,20 @@ const LeadsScrollContainer = ({
                 <div className="text-foreground font-medium">{lead.job_type}</div>
                 <div className="text-secondary font-bold text-lg">{lead.display_value}</div>
                 <div className="text-muted-foreground">{formatDate(lead.date)}</div>
-                <div className="text-center flex gap-2 justify-center items-center">
-                  {isLeadReserved(lead.id) ? (
+                <div className="text-center flex flex-col gap-2 justify-center items-center">
+                  {isLeadReserved(lead.id) && (
                     <Badge variant="secondary" className="gap-1.5 bg-amber-500/10 text-amber-600 border-amber-500/20 animate-pulse">
                       <Users className="w-3 h-3" />
                       Someone is checking out
                     </Badge>
-                  ) : userCredits > 0 ? (
+                  )}
+                  {userCredits > 0 ? (
                     <Button 
                       variant="cta" 
                       size="sm" 
                       className="gap-2"
                       onClick={() => onUseCredit(lead.id)}
-                      disabled={usingCreditLeadId === lead.id}
+                      disabled={usingCreditLeadId === lead.id || isLeadReserved(lead.id)}
                     >
                       {usingCreditLeadId === lead.id ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -167,7 +168,7 @@ const LeadsScrollContainer = ({
                       size="sm" 
                       className="gap-2"
                       onClick={() => onUnlock(lead.id)}
-                      disabled={unlockingLeadId === lead.id}
+                      disabled={unlockingLeadId === lead.id || isLeadReserved(lead.id)}
                     >
                       {unlockingLeadId === lead.id ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -216,19 +217,20 @@ const LeadsScrollContainer = ({
                   <p className="text-muted-foreground text-sm">{formatDate(lead.date)}</p>
                 </div>
               </div>
-              {isLeadReserved(lead.id) ? (
-                <div className="w-full flex justify-center">
+              {isLeadReserved(lead.id) && (
+                <div className="w-full flex justify-center mb-2">
                   <Badge variant="secondary" className="gap-1.5 bg-amber-500/10 text-amber-600 border-amber-500/20 animate-pulse py-2">
                     <Users className="w-3 h-3" />
                     Someone is checking out
                   </Badge>
                 </div>
-              ) : userCredits > 0 ? (
+              )}
+              {userCredits > 0 ? (
                 <Button 
                   variant="cta" 
                   className="w-full gap-2"
                   onClick={() => onUseCredit(lead.id)}
-                  disabled={usingCreditLeadId === lead.id}
+                  disabled={usingCreditLeadId === lead.id || isLeadReserved(lead.id)}
                 >
                   {usingCreditLeadId === lead.id ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -242,7 +244,7 @@ const LeadsScrollContainer = ({
                   variant="unlock" 
                   className="w-full gap-2"
                   onClick={() => onUnlock(lead.id)}
-                  disabled={unlockingLeadId === lead.id}
+                  disabled={unlockingLeadId === lead.id || isLeadReserved(lead.id)}
                 >
                   {unlockingLeadId === lead.id ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
