@@ -80,3 +80,6 @@ verify_jwt = false
 
 [functions.test-whatsapp]
 verify_jwt = false
+
+[functions.sync-google-ads]
+verify_jwt = false
