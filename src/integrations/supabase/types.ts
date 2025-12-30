@@ -827,6 +827,7 @@ export type Database = {
           admin_notes: string | null
           created_at: string
           document_type: string
+          expiry_date: string | null
           file_path: string
           id: string
           status: string
@@ -837,6 +838,7 @@ export type Database = {
           admin_notes?: string | null
           created_at?: string
           document_type: string
+          expiry_date?: string | null
           file_path: string
           id?: string
           status?: string
@@ -847,6 +849,7 @@ export type Database = {
           admin_notes?: string | null
           created_at?: string
           document_type?: string
+          expiry_date?: string | null
           file_path?: string
           id?: string
           status?: string

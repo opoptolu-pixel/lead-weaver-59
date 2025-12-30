@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Check, X, Eye, FileText, Clock, Loader2, Download } from "lucide-react";
+import { Check, X, Eye, FileText, Clock, Loader2, Download, Calendar, AlertTriangle } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -82,6 +84,7 @@ interface VerificationDoc {
   status: string;
   admin_notes: string | null;
   created_at: string;
+  expiry_date: string | null;
   profile?: {
     business_name: string | null;
     contact_name: string | null;
@@ -98,6 +101,7 @@ export default function AdminVerifications() {
   const [selectedReason, setSelectedReason] = useState<string>("");
   const [processing, setProcessing] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [expiryDate, setExpiryDate] = useState<string>("");
 
   useEffect(() => {
     fetchDocuments();
@@ -186,13 +190,21 @@ export default function AdminVerifications() {
   const handleApprove = async (doc: VerificationDoc) => {
     setProcessing(true);
     try {
+      // Build update object
+      const updateData: any = {
+        status: "approved",
+        admin_notes: adminNotes || null,
+      };
+
+      // Add expiry date for insurance documents
+      if (doc.document_type === "insurance" && expiryDate) {
+        updateData.expiry_date = expiryDate;
+      }
+
       // Update document status
       const { error: docError } = await supabase
         .from("verification_documents")
-        .update({
-          status: "approved",
-          admin_notes: adminNotes || null,
-        })
+        .update(updateData)
         .eq("id", doc.id);
 
       if (docError) throw docError;
@@ -539,10 +551,27 @@ export default function AdminVerifications() {
                     <p className="font-medium text-foreground">
                       {doc.profile?.business_name || doc.profile?.contact_name || "Unknown User"}
                     </p>
-                    <p className="text-sm text-muted-foreground">
-                      {getDocumentTypeLabel(doc.document_type)} •{" "}
-                      {format(new Date(doc.created_at), "d MMM yyyy")}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm text-muted-foreground">
+                        {getDocumentTypeLabel(doc.document_type)} •{" "}
+                        {format(new Date(doc.created_at), "d MMM yyyy")}
+                      </p>
+                      {doc.document_type === "insurance" && doc.expiry_date && (
+                        <span className={`text-xs flex items-center gap-1 ${
+                          new Date(doc.expiry_date) < new Date() 
+                            ? "text-destructive" 
+                            : new Date(doc.expiry_date) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+                              ? "text-amber-500"
+                              : "text-muted-foreground"
+                        }`}>
+                          <Calendar className="w-3 h-3" />
+                          Expires: {format(new Date(doc.expiry_date), "d MMM yyyy")}
+                          {new Date(doc.expiry_date) < new Date() && (
+                            <AlertTriangle className="w-3 h-3 text-destructive" />
+                          )}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -601,6 +630,7 @@ export default function AdminVerifications() {
           setSelectedDoc(null);
           setAdminNotes("");
           setSelectedReason("");
+          setExpiryDate("");
         }
       }}>
         <DialogContent className="max-w-lg">
@@ -633,6 +663,26 @@ export default function AdminVerifications() {
               <Eye className="w-4 h-4 mr-2" />
               View Document
             </Button>
+
+            {/* Insurance Expiry Date Field */}
+            {selectedDoc?.document_type === "insurance" && (
+              <div className="border-t border-border pt-4">
+                <Label htmlFor="expiry-date" className="text-sm font-medium text-foreground">
+                  Insurance Expiry Date
+                </Label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Set the expiry date to receive automatic renewal reminders
+                </p>
+                <Input
+                  id="expiry-date"
+                  type="date"
+                  value={expiryDate}
+                  onChange={(e) => setExpiryDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="w-full"
+                />
+              </div>
+            )}
 
             <div className="border-t border-border pt-4">
               <p className="text-sm font-medium text-foreground mb-3">Quick Rejection Reasons</p>
