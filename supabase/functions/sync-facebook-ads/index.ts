@@ -112,18 +112,24 @@ Deno.serve(async (req) => {
     let startDate: string
     let endDate: string
     
+    // Default to last 30 days
+    const defaultEnd = new Date()
+    const defaultStart = new Date()
+    defaultStart.setDate(defaultStart.getDate() - 30)
+    
+    startDate = defaultStart.toISOString().split('T')[0]
+    endDate = defaultEnd.toISOString().split('T')[0]
+    
     try {
       const body = await req.json()
-      startDate = body.startDate
-      endDate = body.endDate
+      if (body.startDate) startDate = body.startDate
+      if (body.endDate) endDate = body.endDate
     } catch {
-      // Default to last 30 days if no body provided
-      const end = new Date()
-      const start = new Date()
-      start.setDate(start.getDate() - 30)
-      startDate = start.toISOString().split('T')[0]
-      endDate = end.toISOString().split('T')[0]
+      // Use defaults if no body or invalid JSON
+      console.log('[FACEBOOK-ADS-SYNC] Using default date range')
     }
+    
+    console.log(`[FACEBOOK-ADS-SYNC] Date range: ${startDate} to ${endDate}`)
 
     console.log(`Syncing Facebook Ads data from ${startDate} to ${endDate}`)
 
