@@ -278,8 +278,15 @@ export default function Verification() {
     );
   }
 
-  const hasBusinessDoc = documents.some(d => d.document_type === "business_license" || d.document_type === "insurance");
+  const hasBusinessDoc = documents.some(d => d.document_type === "business_license");
+  const hasInsuranceDoc = documents.some(d => d.document_type === "insurance");
   const hasAddressDoc = documents.some(d => d.document_type === "address_proof");
+  
+  const getDocStatus = (docType: string) => {
+    const doc = documents.find(d => d.document_type === docType);
+    if (!doc) return "not_uploaded";
+    return doc.status;
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -348,7 +355,7 @@ export default function Verification() {
               <Shield className="w-5 h-5 text-secondary" />
               Verification Status
             </h2>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className={`p-4 rounded-xl text-center ${profile?.phone_verified ? 'bg-secondary/10 border border-secondary/30' : 'bg-muted'}`}>
                 <Phone className={`w-6 h-6 mx-auto mb-2 ${profile?.phone_verified ? 'text-secondary' : 'text-muted-foreground'}`} />
                 <p className="text-sm font-medium">{profile?.phone_verified ? 'Verified' : 'Pending'}</p>
@@ -357,7 +364,12 @@ export default function Verification() {
               <div className={`p-4 rounded-xl text-center ${hasBusinessDoc ? 'bg-secondary/10 border border-secondary/30' : 'bg-muted'}`}>
                 <FileText className={`w-6 h-6 mx-auto mb-2 ${hasBusinessDoc ? 'text-secondary' : 'text-muted-foreground'}`} />
                 <p className="text-sm font-medium">{hasBusinessDoc ? 'Uploaded' : 'Pending'}</p>
-                <p className="text-xs text-muted-foreground">Documents</p>
+                <p className="text-xs text-muted-foreground">Business Doc</p>
+              </div>
+              <div className={`p-4 rounded-xl text-center ${hasInsuranceDoc ? 'bg-secondary/10 border border-secondary/30' : 'bg-muted'}`}>
+                <Shield className={`w-6 h-6 mx-auto mb-2 ${hasInsuranceDoc ? 'text-secondary' : 'text-muted-foreground'}`} />
+                <p className="text-sm font-medium">{hasInsuranceDoc ? 'Uploaded' : 'Pending'}</p>
+                <p className="text-xs text-muted-foreground">Insurance</p>
               </div>
               <div className={`p-4 rounded-xl text-center ${profile?.address_verified ? 'bg-secondary/10 border border-secondary/30' : 'bg-muted'}`}>
                 <MapPin className={`w-6 h-6 mx-auto mb-2 ${profile?.address_verified ? 'text-secondary' : 'text-muted-foreground'}`} />
@@ -459,7 +471,7 @@ export default function Verification() {
             </h2>
 
             <p className="text-muted-foreground text-sm mb-4">
-              Upload one of the following: Business license, insurance certificate, or company registration.
+              Upload your business license, company registration, or similar document proving your business is registered.
             </p>
 
             <div className="space-y-4">
@@ -488,9 +500,9 @@ export default function Verification() {
                 </label>
               </div>
 
-              {documents.filter(d => d.document_type === "business_license" || d.document_type === "insurance").length > 0 && (
+              {documents.filter(d => d.document_type === "business_license").length > 0 && (
                 <div className="space-y-2">
-                  {documents.filter(d => d.document_type === "business_license" || d.document_type === "insurance").map((doc) => (
+                  {documents.filter(d => d.document_type === "business_license").map((doc) => (
                     <div key={doc.id} className="bg-muted rounded-lg p-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -556,6 +568,128 @@ export default function Verification() {
                                   <li>Make sure all corners of the document are visible</li>
                                   <li>Upload a recent document (within last 3 months if applicable)</li>
                                   <li>Verify the document shows your registered business name</li>
+                                </ul>
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-2">
+                                Click the "Re-upload" button above to submit a new document.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Insurance Document */}
+          <div className="bg-card rounded-2xl border border-border p-6 mb-6">
+            <h2 className="font-heading text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+              <Shield className="w-5 h-5 text-secondary" />
+              Insurance Certificate
+              {documents.some(d => d.document_type === "insurance" && d.status === "approved") && <CheckCircle className="w-5 h-5 text-secondary ml-auto" />}
+            </h2>
+
+            <p className="text-muted-foreground text-sm mb-4">
+              Upload your public liability insurance certificate. This is required for all cleaning businesses.
+            </p>
+
+            <div className="space-y-4">
+              <div className="border-2 border-dashed border-border rounded-xl p-6 text-center">
+                <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground mb-3">
+                  PDF, JPG or PNG up to 10MB
+                </p>
+                <input
+                  type="file"
+                  id="insurance-doc"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleDocumentUpload("insurance", file);
+                  }}
+                />
+                <label htmlFor="insurance-doc">
+                  <Button variant="outline" asChild disabled={uploading}>
+                    <span>
+                      {uploading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
+                      Upload Insurance Certificate
+                    </span>
+                  </Button>
+                </label>
+              </div>
+
+              {documents.filter(d => d.document_type === "insurance").length > 0 && (
+                <div className="space-y-2">
+                  {documents.filter(d => d.document_type === "insurance").map((doc) => (
+                    <div key={doc.id} className="bg-muted rounded-lg p-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Shield className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-sm">Insurance certificate</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handlePreviewDocument(doc)}
+                            title="Preview document"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          {doc.status === "rejected" && (
+                            <>
+                              <input
+                                type="file"
+                                id={`reupload-ins-${doc.id}`}
+                                accept=".pdf,.jpg,.jpeg,.png"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handleReupload(doc.id, doc.document_type, doc.file_path, file);
+                                }}
+                              />
+                              <label htmlFor={`reupload-ins-${doc.id}`}>
+                                <Button variant="outline" size="sm" asChild disabled={uploading}>
+                                  <span className="cursor-pointer">
+                                    {uploading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <RefreshCw className="w-3 h-3 mr-1" />}
+                                    Re-upload
+                                  </span>
+                                </Button>
+                              </label>
+                            </>
+                          )}
+                          <span className={`text-xs px-2 py-1 rounded ${
+                            doc.status === "approved" ? "bg-secondary/20 text-secondary" :
+                            doc.status === "rejected" ? "bg-destructive/20 text-destructive" :
+                            "bg-amber-500/20 text-amber-500"
+                          }`}>
+                            {doc.status === "pending" ? <Clock className="w-3 h-3 inline mr-1" /> : null}
+                            {doc.status}
+                          </span>
+                        </div>
+                      </div>
+                      {doc.status === "rejected" && (
+                        <div className="mt-3 p-4 bg-destructive/10 border border-destructive/30 rounded-lg">
+                          <div className="flex items-start gap-3">
+                            <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+                            <div className="space-y-2">
+                              <p className="font-medium text-destructive">Document Rejected</p>
+                              {doc.admin_notes && (
+                                <p className="text-sm text-destructive/90">
+                                  <strong>Reason:</strong> {doc.admin_notes}
+                                </p>
+                              )}
+                              <div className="text-sm text-muted-foreground space-y-1 mt-2">
+                                <p className="font-medium">How to fix:</p>
+                                <ul className="list-disc list-inside space-y-1 text-xs">
+                                  <li>Ensure the insurance certificate is clearly readable</li>
+                                  <li>Certificate must show your business name and coverage details</li>
+                                  <li>Make sure the policy is current and not expired</li>
+                                  <li>Include the full document showing policy number and dates</li>
                                 </ul>
                               </div>
                               <p className="text-xs text-muted-foreground mt-2">

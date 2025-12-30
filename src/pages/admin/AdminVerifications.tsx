@@ -398,6 +398,19 @@ export default function AdminVerifications() {
     }
   };
 
+  const getDocumentTypeLabel = (docType: string) => {
+    switch (docType) {
+      case "business_license":
+        return "Business License";
+      case "insurance":
+        return "Insurance Certificate";
+      case "address_proof":
+        return "Address Proof";
+      default:
+        return docType.replace("_", " ");
+    }
+  };
+
   const getDocumentUrl = async (filePath: string) => {
     try {
       const { data, error } = await supabase.functions.invoke("get-signed-url", {
@@ -527,7 +540,7 @@ export default function AdminVerifications() {
                       {doc.profile?.business_name || doc.profile?.contact_name || "Unknown User"}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {doc.document_type.replace("_", " ")} •{" "}
+                      {getDocumentTypeLabel(doc.document_type)} •{" "}
                       {format(new Date(doc.created_at), "d MMM yyyy")}
                     </p>
                   </div>
@@ -608,7 +621,7 @@ export default function AdminVerifications() {
             <div>
               <p className="text-sm text-muted-foreground">Document Type</p>
               <p className="font-medium">
-                {selectedDoc?.document_type.replace("_", " ")}
+                {selectedDoc ? getDocumentTypeLabel(selectedDoc.document_type) : ""}
               </p>
             </div>
 
