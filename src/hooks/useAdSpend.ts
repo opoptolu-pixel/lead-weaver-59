@@ -32,11 +32,13 @@ interface AdSpendMetrics {
   ctr: number; // Click-through rate
 }
 
-export function useAdSpend(startDate?: Date, endDate?: Date) {
+export type AdPlatform = "google_ads" | "facebook_ads" | "all";
+
+export function useAdSpend(startDate?: Date, endDate?: Date, platform: AdPlatform = "all") {
   const [adSpendData, setAdSpendData] = useState<AdSpendData[]>([]);
-  const [platformSettings, setPlatformSettings] = useState<AdPlatformSettings | null>(null);
+  const [platformSettings, setPlatformSettings] = useState<AdPlatformSettings[]>([]);
   const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState(false);
+  const [syncing, setSyncing] = useState<Record<string, boolean>>({});
 
   // Memoize date strings to prevent infinite re-renders
   const startDateStr = startDate?.toISOString().split("T")[0];
@@ -48,8 +50,12 @@ export function useAdSpend(startDate?: Date, endDate?: Date) {
       let query = supabase
         .from("ad_spend")
         .select("*")
-        .eq("platform", "google_ads")
         .order("date", { ascending: false });
+
+      // Filter by platform if not "all"
+      if (platform !== "all") {
+        query = query.eq("platform", platform);
+      }
 
       if (startDateStr) {
         query = query.gte("date", startDateStr);
@@ -66,27 +72,25 @@ export function useAdSpend(startDate?: Date, endDate?: Date) {
         setAdSpendData(data || []);
       }
 
-      // Fetch platform settings
+      // Fetch platform settings for all platforms
       const { data: settings } = await supabase
         .from("ad_platform_settings")
-        .select("*")
-        .eq("platform", "google_ads")
-        .maybeSingle();
+        .select("*");
 
-      setPlatformSettings(settings);
+      setPlatformSettings(settings || []);
     } catch (err) {
       console.error("Error in fetchAdSpend:", err);
     } finally {
       setLoading(false);
     }
-  }, [startDateStr, endDateStr]);
+  }, [startDateStr, endDateStr, platform]);
 
   useEffect(() => {
     fetchAdSpend();
   }, [fetchAdSpend]);
 
   const syncGoogleAds = useCallback(async (customStartDate?: string, customEndDate?: string) => {
-    setSyncing(true);
+    setSyncing(prev => ({ ...prev, google_ads: true }));
     try {
       const body: Record<string, string> = {};
       if (customStartDate) body.startDate = customStartDate;
@@ -97,29 +101,76 @@ export function useAdSpend(startDate?: Date, endDate?: Date) {
       });
 
       if (error) {
-        toast.error("Sync failed", { description: error.message });
+        toast.error("Google Ads sync failed", { description: error.message });
         return false;
       }
 
       if (data?.success) {
         toast.success("Google Ads synced", {
-          description: `${data.synced} records updated`,
+          description: `${data.recordsProcessed || data.synced || 0} records updated`,
         });
         await fetchAdSpend();
         return true;
       } else {
-        toast.error("Sync failed", { description: data?.error || "Unknown error" });
+        toast.error("Google Ads sync failed", { description: data?.error || "Unknown error" });
         return false;
       }
     } catch (err: any) {
-      toast.error("Sync failed", { description: err.message });
+      toast.error("Google Ads sync failed", { description: err.message });
       return false;
     } finally {
-      setSyncing(false);
+      setSyncing(prev => ({ ...prev, google_ads: false }));
     }
   }, [fetchAdSpend]);
 
-  // Calculate metrics from the data
+  const syncFacebookAds = useCallback(async (customStartDate?: string, customEndDate?: string) => {
+    setSyncing(prev => ({ ...prev, facebook_ads: true }));
+    try {
+      const body: Record<string, string> = {};
+      if (customStartDate) body.startDate = customStartDate;
+      if (customEndDate) body.endDate = customEndDate;
+
+      const { data, error } = await supabase.functions.invoke("sync-facebook-ads", {
+        body: Object.keys(body).length > 0 ? body : undefined,
+      });
+
+      if (error) {
+        toast.error("Facebook Ads sync failed", { description: error.message });
+        return false;
+      }
+
+      if (data?.success) {
+        toast.success("Facebook Ads synced", {
+          description: `${data.recordsProcessed || 0} records updated`,
+        });
+        await fetchAdSpend();
+        return true;
+      } else {
+        toast.error("Facebook Ads sync failed", { description: data?.error || "Unknown error" });
+        return false;
+      }
+    } catch (err: any) {
+      toast.error("Facebook Ads sync failed", { description: err.message });
+      return false;
+    } finally {
+      setSyncing(prev => ({ ...prev, facebook_ads: false }));
+    }
+  }, [fetchAdSpend]);
+
+  const syncAllPlatforms = useCallback(async (customStartDate?: string, customEndDate?: string) => {
+    const results = await Promise.all([
+      syncGoogleAds(customStartDate, customEndDate),
+      syncFacebookAds(customStartDate, customEndDate),
+    ]);
+    return results.every(r => r);
+  }, [syncGoogleAds, syncFacebookAds]);
+
+  // Get settings for a specific platform
+  const getPlatformSettings = useCallback((platformName: string): AdPlatformSettings | null => {
+    return platformSettings.find(s => s.platform === platformName) || null;
+  }, [platformSettings]);
+
+  // Calculate metrics from the data (combined or per-platform)
   const metrics: AdSpendMetrics = {
     totalSpend: adSpendData.reduce((sum, d) => sum + Number(d.spend_amount), 0),
     totalImpressions: adSpendData.reduce((sum, d) => sum + (d.impressions || 0), 0),
@@ -141,13 +192,53 @@ export function useAdSpend(startDate?: Date, endDate?: Date) {
     metrics.ctr = (metrics.totalClicks / metrics.totalImpressions) * 100;
   }
 
+  // Calculate metrics per platform
+  const googleAdsMetrics: AdSpendMetrics = (() => {
+    const googleData = adSpendData.filter(d => d.platform === "google_ads");
+    const m: AdSpendMetrics = {
+      totalSpend: googleData.reduce((sum, d) => sum + Number(d.spend_amount), 0),
+      totalImpressions: googleData.reduce((sum, d) => sum + (d.impressions || 0), 0),
+      totalClicks: googleData.reduce((sum, d) => sum + (d.clicks || 0), 0),
+      totalConversions: googleData.reduce((sum, d) => sum + (d.conversions || 0), 0),
+      costPerLead: 0,
+      costPerClick: 0,
+      ctr: 0,
+    };
+    if (m.totalConversions > 0) m.costPerLead = m.totalSpend / m.totalConversions;
+    if (m.totalClicks > 0) m.costPerClick = m.totalSpend / m.totalClicks;
+    if (m.totalImpressions > 0) m.ctr = (m.totalClicks / m.totalImpressions) * 100;
+    return m;
+  })();
+
+  const facebookAdsMetrics: AdSpendMetrics = (() => {
+    const fbData = adSpendData.filter(d => d.platform === "facebook_ads");
+    const m: AdSpendMetrics = {
+      totalSpend: fbData.reduce((sum, d) => sum + Number(d.spend_amount), 0),
+      totalImpressions: fbData.reduce((sum, d) => sum + (d.impressions || 0), 0),
+      totalClicks: fbData.reduce((sum, d) => sum + (d.clicks || 0), 0),
+      totalConversions: fbData.reduce((sum, d) => sum + (d.conversions || 0), 0),
+      costPerLead: 0,
+      costPerClick: 0,
+      ctr: 0,
+    };
+    if (m.totalConversions > 0) m.costPerLead = m.totalSpend / m.totalConversions;
+    if (m.totalClicks > 0) m.costPerClick = m.totalSpend / m.totalClicks;
+    if (m.totalImpressions > 0) m.ctr = (m.totalClicks / m.totalImpressions) * 100;
+    return m;
+  })();
+
   return {
     adSpendData,
     platformSettings,
+    getPlatformSettings,
     metrics,
+    googleAdsMetrics,
+    facebookAdsMetrics,
     loading,
     syncing,
     syncGoogleAds,
+    syncFacebookAds,
+    syncAllPlatforms,
     refetch: fetchAdSpend,
   };
 }

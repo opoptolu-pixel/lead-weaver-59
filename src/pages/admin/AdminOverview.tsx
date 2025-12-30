@@ -89,7 +89,9 @@ export default function AdminOverview() {
   const { getDateFilter, dateRange } = useAdmin();
   const { checkoutCount, activeCheckouts } = useCheckoutActivity();
   const { start, end } = getDateFilter();
-  const { metrics: adMetrics, syncing, syncGoogleAds, platformSettings } = useAdSpend(start, end);
+  const { metrics: adMetrics, syncing, syncGoogleAds, getPlatformSettings } = useAdSpend(start, end);
+  const googleAdsSettings = getPlatformSettings("google_ads");
+  const isSyncingGoogle = syncing.google_ads || false;
   const [stats, setStats] = useState({
     leadsReceived: 0,
     leadsPublished: 0,
@@ -641,10 +643,10 @@ export default function AdminOverview() {
             variant="outline" 
             size="sm" 
             onClick={() => syncGoogleAds()}
-            disabled={syncing}
+            disabled={isSyncingGoogle}
           >
-            <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
-            {syncing ? "Syncing..." : "Sync Ads"}
+            <RefreshCw className={`w-4 h-4 mr-2 ${isSyncingGoogle ? "animate-spin" : ""}`} />
+            {isSyncingGoogle ? "Syncing..." : "Sync Ads"}
           </Button>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
@@ -713,9 +715,9 @@ export default function AdminOverview() {
             <Megaphone className="w-5 h-5 text-secondary" />
             <h3 className="font-heading font-semibold text-foreground">Google Ads Performance</h3>
           </div>
-          {platformSettings?.last_sync_at && (
+          {googleAdsSettings?.last_sync_at && (
             <span className="text-xs text-muted-foreground">
-              Last sync: {new Date(platformSettings.last_sync_at).toLocaleString()}
+              Last sync: {new Date(googleAdsSettings.last_sync_at).toLocaleString()}
             </span>
           )}
         </div>

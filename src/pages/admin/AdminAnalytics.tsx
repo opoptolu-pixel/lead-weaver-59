@@ -126,9 +126,12 @@ export default function AdminAnalytics() {
     metrics: adMetrics, 
     syncing, 
     syncGoogleAds, 
-    platformSettings,
+    getPlatformSettings,
     loading: adLoading 
   } = useAdSpend(start, end);
+  
+  const googleAdsSettings = getPlatformSettings("google_ads");
+  const isSyncingGoogle = syncing.google_ads || false;
   
   const [activeTab, setActiveTab] = useState("geographic");
   const [loading, setLoading] = useState(true);
@@ -653,14 +656,14 @@ export default function AdminAnalytics() {
                 <div>
                   <h2 className="text-xl font-semibold">Google Ads Performance</h2>
                   <p className="text-sm text-muted-foreground">
-                    {platformSettings?.last_sync_at 
-                      ? `Last synced: ${new Date(platformSettings.last_sync_at).toLocaleString()}`
+                    {googleAdsSettings?.last_sync_at 
+                      ? `Last synced: ${new Date(googleAdsSettings.last_sync_at).toLocaleString()}`
                       : "Not synced yet"}
                   </p>
                 </div>
-                <Button onClick={() => syncGoogleAds()} disabled={syncing}>
-                  <RefreshCw className={cn("h-4 w-4 mr-2", syncing && "animate-spin")} />
-                  {syncing ? "Syncing..." : "Sync Now"}
+                <Button onClick={() => syncGoogleAds()} disabled={isSyncingGoogle}>
+                  <RefreshCw className={cn("h-4 w-4 mr-2", isSyncingGoogle && "animate-spin")} />
+                  {isSyncingGoogle ? "Syncing..." : "Sync Now"}
                 </Button>
               </div>
 
@@ -784,9 +787,9 @@ export default function AdminAnalytics() {
                   <Megaphone className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No Ad Data Available</h3>
                   <p className="text-muted-foreground mb-4">Click "Sync Now" to pull your Google Ads data</p>
-                  <Button onClick={() => syncGoogleAds()} disabled={syncing}>
-                    <RefreshCw className={cn("h-4 w-4 mr-2", syncing && "animate-spin")} />
-                    {syncing ? "Syncing..." : "Sync Google Ads"}
+                  <Button onClick={() => syncGoogleAds()} disabled={isSyncingGoogle}>
+                    <RefreshCw className={cn("h-4 w-4 mr-2", isSyncingGoogle && "animate-spin")} />
+                    {isSyncingGoogle ? "Syncing..." : "Sync Google Ads"}
                   </Button>
                 </Card>
               )}

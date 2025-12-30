@@ -91,10 +91,15 @@ export default function AdminAccounting() {
   }, [getDateFilter]);
 
   // Ad spend data
-  const { metrics: adMetrics, syncing, syncGoogleAds, platformSettings, adSpendData } = useAdSpend(
+  const { metrics: adMetrics, syncing, syncGoogleAds, syncFacebookAds, getPlatformSettings, adSpendData } = useAdSpend(
     dateRange.from,
     dateRange.to
   );
+  
+  const googleAdsSettings = getPlatformSettings("google_ads");
+  const facebookAdsSettings = getPlatformSettings("facebook_ads");
+  const isSyncingGoogle = syncing.google_ads || false;
+  const isSyncingFacebook = syncing.facebook_ads || false;
 
   // Calculate previous period range for comparison
 
@@ -820,8 +825,8 @@ export default function AdminAccounting() {
                     <>
                       <div className="text-2xl font-bold text-amber-500">£{kpis.adSpend.toFixed(2)}</div>
                       <div className="text-xs text-muted-foreground">
-                        {platformSettings?.last_sync_at 
-                          ? `Synced ${format(parseISO(platformSettings.last_sync_at), "MMM dd, HH:mm")}`
+                        {googleAdsSettings?.last_sync_at 
+                          ? `Synced ${format(parseISO(googleAdsSettings.last_sync_at), "MMM dd, HH:mm")}`
                           : "Not synced"
                         }
                       </div>
@@ -873,7 +878,7 @@ export default function AdminAccounting() {
             </div>
 
             {/* Ad Spend Sync Status */}
-            {(!platformSettings?.last_sync_at || adMetrics.totalSpend === 0) && (
+            {(!googleAdsSettings?.last_sync_at || adMetrics.totalSpend === 0) && (
               <Card className="border-amber-500/50 bg-amber-500/10">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
@@ -888,11 +893,11 @@ export default function AdminAccounting() {
                     </div>
                     <Button 
                       onClick={() => syncGoogleAds()} 
-                      disabled={syncing}
+                      disabled={isSyncingGoogle}
                       variant="outline"
                       size="sm"
                     >
-                      {syncing ? (
+                      {isSyncingGoogle ? (
                         <>
                           <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                           Syncing...
@@ -960,11 +965,11 @@ export default function AdminAccounting() {
                   </div>
                   <Button 
                     onClick={() => syncGoogleAds()} 
-                    disabled={syncing}
+                    disabled={isSyncingGoogle}
                     variant="outline"
                     size="sm"
                   >
-                    {syncing ? (
+                    {isSyncingGoogle ? (
                       <>
                         <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                         Syncing...
