@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import AdminSidebar from "./AdminSidebar";
 import AdminTopBar from "./AdminTopBar";
+import AdminMobileNav from "./AdminMobileNav";
 import TwoFactorSetup from "./TwoFactorSetup";
 
 interface AdminLayoutProps {
@@ -19,6 +20,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [mfaStatus, setMfaStatus] = useState<'loading' | 'enrolled' | 'not_enrolled'>('loading');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -97,13 +99,39 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   return (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
       <div className="h-screen bg-background flex w-full overflow-hidden">
-        <AdminSidebar />
-        <div className="flex-1 flex flex-col h-screen overflow-hidden">
-          <AdminTopBar title={title} />
-          <main className="flex-1 p-6 overflow-auto">
+        {/* Desktop sidebar - hidden on mobile */}
+        <div className="hidden md:block">
+          <AdminSidebar />
+        </div>
+        
+        {/* Mobile sidebar overlay */}
+        {sidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black/50 z-40 md:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+        
+        {/* Mobile sidebar drawer */}
+        <div className={`
+          fixed inset-y-0 left-0 z-50 md:hidden transform transition-transform duration-300 ease-in-out
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}>
+          <AdminSidebar onNavigate={() => setSidebarOpen(false)} />
+        </div>
+
+        <div className="flex-1 flex flex-col h-screen overflow-hidden w-full">
+          <AdminTopBar 
+            title={title} 
+            onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+          />
+          <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto pb-20 md:pb-6">
             {children}
           </main>
         </div>
+        
+        {/* Mobile bottom navigation */}
+        <AdminMobileNav />
       </div>
     </ThemeProvider>
   );
