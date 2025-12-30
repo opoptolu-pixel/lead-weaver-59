@@ -89,9 +89,12 @@ export default function AdminOverview() {
   const { getDateFilter, dateRange } = useAdmin();
   const { checkoutCount, activeCheckouts } = useCheckoutActivity();
   const { start, end } = getDateFilter();
-  const { metrics: adMetrics, syncing, syncGoogleAds, getPlatformSettings } = useAdSpend(start, end);
+  const { metrics: adMetrics, googleAdsMetrics, facebookAdsMetrics, syncing, syncGoogleAds, syncFacebookAds, syncAllPlatforms, getPlatformSettings } = useAdSpend(start, end);
   const googleAdsSettings = getPlatformSettings("google_ads");
+  const facebookAdsSettings = getPlatformSettings("facebook_ads");
   const isSyncingGoogle = syncing.google_ads || false;
+  const isSyncingFacebook = syncing.facebook_ads || false;
+  const isSyncingAny = isSyncingGoogle || isSyncingFacebook;
   const [stats, setStats] = useState({
     leadsReceived: 0,
     leadsPublished: 0,
@@ -642,11 +645,11 @@ export default function AdminOverview() {
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={() => syncGoogleAds()}
-            disabled={isSyncingGoogle}
+            onClick={() => syncAllPlatforms()}
+            disabled={isSyncingAny}
           >
-            <RefreshCw className={`w-4 h-4 mr-2 ${isSyncingGoogle ? "animate-spin" : ""}`} />
-            {isSyncingGoogle ? "Syncing..." : "Sync Ads"}
+            <RefreshCw className={`w-4 h-4 mr-2 ${isSyncingAny ? "animate-spin" : ""}`} />
+            {isSyncingAny ? "Syncing..." : "Sync All Ads"}
           </Button>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
@@ -708,20 +711,24 @@ export default function AdminOverview() {
         </div>
       </div>
 
-      {/* Ad Performance Widget */}
+      {/* Combined Ad Performance Widget */}
       <div className="bg-card rounded-xl border border-border p-6 mb-8">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Megaphone className="w-5 h-5 text-secondary" />
-            <h3 className="font-heading font-semibold text-foreground">Google Ads Performance</h3>
+            <h3 className="font-heading font-semibold text-foreground">Combined Ad Performance</h3>
           </div>
-          {googleAdsSettings?.last_sync_at && (
-            <span className="text-xs text-muted-foreground">
-              Last sync: {new Date(googleAdsSettings.last_sync_at).toLocaleString()}
-            </span>
-          )}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => syncAllPlatforms()}
+            disabled={isSyncingAny}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${isSyncingAny ? "animate-spin" : ""}`} />
+            {isSyncingAny ? "Syncing..." : "Sync All"}
+          </Button>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
           <div className="text-center p-3 bg-muted/30 rounded-lg">
             <p className="text-2xl font-bold text-foreground">{adMetrics.totalImpressions.toLocaleString()}</p>
             <p className="text-xs text-muted-foreground">Impressions</p>
@@ -745,6 +752,61 @@ export default function AdminOverview() {
           <div className="text-center p-3 bg-muted/30 rounded-lg">
             <p className="text-2xl font-bold text-secondary">£{adMetrics.costPerLead.toFixed(2)}</p>
             <p className="text-xs text-muted-foreground">Cost/Conversion</p>
+          </div>
+        </div>
+        
+        {/* Platform Breakdown */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Google Ads */}
+          <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-lg">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-medium text-blue-600">Google Ads</span>
+              {googleAdsSettings?.last_sync_at && (
+                <span className="text-xs text-muted-foreground">
+                  {new Date(googleAdsSettings.last_sync_at).toLocaleDateString()}
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div>
+                <p className="text-lg font-bold text-foreground">£{googleAdsMetrics.totalSpend.toFixed(0)}</p>
+                <p className="text-xs text-muted-foreground">Spend</p>
+              </div>
+              <div>
+                <p className="text-lg font-bold text-foreground">{googleAdsMetrics.totalClicks}</p>
+                <p className="text-xs text-muted-foreground">Clicks</p>
+              </div>
+              <div>
+                <p className="text-lg font-bold text-foreground">{googleAdsMetrics.totalConversions}</p>
+                <p className="text-xs text-muted-foreground">Conversions</p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Facebook Ads */}
+          <div className="p-4 bg-indigo-500/5 border border-indigo-500/20 rounded-lg">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-medium text-indigo-600">Facebook Ads</span>
+              {facebookAdsSettings?.last_sync_at && (
+                <span className="text-xs text-muted-foreground">
+                  {new Date(facebookAdsSettings.last_sync_at).toLocaleDateString()}
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div>
+                <p className="text-lg font-bold text-foreground">£{facebookAdsMetrics.totalSpend.toFixed(0)}</p>
+                <p className="text-xs text-muted-foreground">Spend</p>
+              </div>
+              <div>
+                <p className="text-lg font-bold text-foreground">{facebookAdsMetrics.totalClicks}</p>
+                <p className="text-xs text-muted-foreground">Clicks</p>
+              </div>
+              <div>
+                <p className="text-lg font-bold text-foreground">{facebookAdsMetrics.totalConversions}</p>
+                <p className="text-xs text-muted-foreground">Conversions</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
