@@ -47,6 +47,81 @@ export type Database = {
         }
         Relationships: []
       }
+      ad_platform_settings: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          is_enabled: boolean
+          last_sync_at: string | null
+          platform: string
+          sync_status: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          is_enabled?: boolean
+          last_sync_at?: string | null
+          platform: string
+          sync_status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          is_enabled?: boolean
+          last_sync_at?: string | null
+          platform?: string
+          sync_status?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ad_spend: {
+        Row: {
+          clicks: number | null
+          conversions: number | null
+          created_at: string
+          currency: string
+          date: string
+          id: string
+          impressions: number | null
+          platform: string
+          spend_amount: number
+          synced_at: string
+          updated_at: string
+        }
+        Insert: {
+          clicks?: number | null
+          conversions?: number | null
+          created_at?: string
+          currency?: string
+          date: string
+          id?: string
+          impressions?: number | null
+          platform: string
+          spend_amount?: number
+          synced_at?: string
+          updated_at?: string
+        }
+        Update: {
+          clicks?: number | null
+          conversions?: number | null
+          created_at?: string
+          currency?: string
+          date?: string
+          id?: string
+          impressions?: number | null
+          platform?: string
+          spend_amount?: number
+          synced_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       admin_settings: {
         Row: {
           created_at: string
