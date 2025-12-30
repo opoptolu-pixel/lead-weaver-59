@@ -78,6 +78,20 @@ serve(async (req) => {
       });
     }
 
+    // Additional stricter rate limiting for lead unlocking specifically
+    const { data: strictRateLimit, error: strictRateLimitError } = await supabaseClient
+      .rpc("enforce_lead_unlock_rate_limit", { p_user_id: user.id });
+
+    if (!strictRateLimitError && strictRateLimit?.[0] && !strictRateLimit[0].allowed) {
+      logStep("Strict rate limit hit", { message: strictRateLimit[0].message });
+      return new Response(JSON.stringify({ 
+        error: strictRateLimit[0].message,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 429,
+      });
+    }
+
     const { leadId, visitorId } = await req.json();
     if (!leadId) throw new Error("Lead ID is required");
     logStep("Lead ID received", { leadId, visitorId });

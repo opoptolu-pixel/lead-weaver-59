@@ -896,6 +896,13 @@ export type Database = {
           success: boolean
         }[]
       }
+      enforce_lead_unlock_rate_limit: {
+        Args: { p_user_id: string }
+        Returns: {
+          allowed: boolean
+          message: string
+        }[]
+      }
       get_available_leads: {
         Args: never
         Returns: {
