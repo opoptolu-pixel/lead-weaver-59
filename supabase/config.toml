@@ -77,3 +77,6 @@ verify_jwt = false
 
 [functions.insurance-expiry-reminder]
 verify_jwt = false
+
+[functions.test-whatsapp]
+verify_jwt = false
