@@ -30,6 +30,8 @@ import {
   PieChart,
   Pie,
   Cell,
+  LineChart,
+  Line,
 } from "recharts";
 import { 
   Download, 
@@ -46,11 +48,15 @@ import {
   Sparkles,
   ArrowUpRight,
   Crown,
-  Lightbulb
+  Lightbulb,
+  RefreshCw,
+  Megaphone,
+  PoundSterling
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdmin } from "@/contexts/AdminContext";
 import { useVisitorData, Visitor, GeoLocation } from "@/hooks/useVisitorData";
+import { useAdSpend } from "@/hooks/useAdSpend";
 import { exportToCsv } from "@/lib/exportCsv";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -114,6 +120,15 @@ interface BuyerDetail {
 export default function AdminAnalytics() {
   const { getDateFilter, dateRange } = useAdmin();
   const visitors = useVisitorData();
+  const { start, end } = getDateFilter();
+  const { 
+    adSpendData, 
+    metrics: adMetrics, 
+    syncing, 
+    syncGoogleAds, 
+    platformSettings,
+    loading: adLoading 
+  } = useAdSpend(start, end);
   
   const [activeTab, setActiveTab] = useState("geographic");
   const [loading, setLoading] = useState(true);
@@ -622,6 +637,7 @@ export default function AdminAnalytics() {
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="flex-wrap h-auto gap-1">
+              <TabsTrigger value="ads"><Megaphone className="h-4 w-4 mr-2" />Ad Performance</TabsTrigger>
               <TabsTrigger value="geographic"><MapPin className="h-4 w-4 mr-2" />Geographic</TabsTrigger>
               <TabsTrigger value="trends"><TrendingUp className="h-4 w-4 mr-2" />Trends</TabsTrigger>
               <TabsTrigger value="recommendations"><Lightbulb className="h-4 w-4 mr-2" />Recommendations</TabsTrigger>
@@ -630,6 +646,151 @@ export default function AdminAnalytics() {
               <TabsTrigger value="marketplace"><Target className="h-4 w-4 mr-2" />Marketplace</TabsTrigger>
               <TabsTrigger value="buyers"><Users className="h-4 w-4 mr-2" />Buyer Performance</TabsTrigger>
             </TabsList>
+
+            {/* ADS TAB */}
+            <TabsContent value="ads" className="space-y-6 mt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold">Google Ads Performance</h2>
+                  <p className="text-sm text-muted-foreground">
+                    {platformSettings?.last_sync_at 
+                      ? `Last synced: ${new Date(platformSettings.last_sync_at).toLocaleString()}`
+                      : "Not synced yet"}
+                  </p>
+                </div>
+                <Button onClick={() => syncGoogleAds()} disabled={syncing}>
+                  <RefreshCw className={cn("h-4 w-4 mr-2", syncing && "animate-spin")} />
+                  {syncing ? "Syncing..." : "Sync Now"}
+                </Button>
+              </div>
+
+              {/* Ad Metrics Overview */}
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">Total Ad Spend</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-3xl font-bold text-foreground">£{adMetrics.totalSpend.toFixed(2)}</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">Impressions</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-3xl font-bold text-foreground">{adMetrics.totalImpressions.toLocaleString()}</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">Clicks</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-3xl font-bold text-foreground">{adMetrics.totalClicks.toLocaleString()}</p>
+                    <p className="text-sm text-muted-foreground">CTR: {adMetrics.ctr.toFixed(2)}%</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">Conversions</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-3xl font-bold text-foreground">{adMetrics.totalConversions}</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Cost Metrics */}
+              <div className="grid gap-4 md:grid-cols-3">
+                <Card className="bg-gradient-to-br from-secondary/10 to-secondary/5 border-secondary/20">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-secondary">Cost Per Click</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-3xl font-bold text-secondary">£{adMetrics.costPerClick.toFixed(2)}</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-green-600">Cost Per Conversion</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-3xl font-bold text-green-600">£{adMetrics.costPerLead.toFixed(2)}</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-purple-600">ROAS (estimated)</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-3xl font-bold text-purple-600">
+                      {adMetrics.totalSpend > 0 
+                        ? ((adMetrics.totalConversions * 20) / adMetrics.totalSpend).toFixed(2) 
+                        : "0"}x
+                    </p>
+                    <p className="text-sm text-muted-foreground">Based on £20/lead revenue</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Daily Ad Spend Chart */}
+              {adSpendData.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Daily Ad Spend</CardTitle>
+                    <CardDescription>Spend and conversions over time</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[300px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={adSpendData.slice().reverse()}>
+                          <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                          <XAxis dataKey="date" className="text-xs" />
+                          <YAxis yAxisId="left" className="text-xs" tickFormatter={(v) => `£${v}`} />
+                          <YAxis yAxisId="right" orientation="right" className="text-xs" />
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: "hsl(var(--card))", 
+                              borderColor: "hsl(var(--border))",
+                              borderRadius: "8px"
+                            }}
+                          />
+                          <Line 
+                            yAxisId="left"
+                            type="monotone" 
+                            dataKey="spend_amount" 
+                            stroke="hsl(var(--secondary))" 
+                            strokeWidth={2}
+                            name="Spend"
+                          />
+                          <Line 
+                            yAxisId="right"
+                            type="monotone" 
+                            dataKey="conversions" 
+                            stroke="hsl(142, 76%, 36%)" 
+                            strokeWidth={2}
+                            name="Conversions"
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {adSpendData.length === 0 && !adLoading && (
+                <Card className="p-8 text-center">
+                  <Megaphone className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No Ad Data Available</h3>
+                  <p className="text-muted-foreground mb-4">Click "Sync Now" to pull your Google Ads data</p>
+                  <Button onClick={() => syncGoogleAds()} disabled={syncing}>
+                    <RefreshCw className={cn("h-4 w-4 mr-2", syncing && "animate-spin")} />
+                    {syncing ? "Syncing..." : "Sync Google Ads"}
+                  </Button>
+                </Card>
+              )}
+            </TabsContent>
 
             {/* GEOGRAPHIC TAB */}
             <TabsContent value="geographic" className="space-y-6 mt-6">

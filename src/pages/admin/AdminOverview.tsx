@@ -16,6 +16,8 @@ import {
   ArrowDown,
   Calculator,
   Zap,
+  Megaphone,
+  RefreshCw,
 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import KPICard from "@/components/admin/KPICard";
@@ -27,6 +29,7 @@ import { useAdmin } from "@/contexts/AdminContext";
 import { exportToCsv } from "@/lib/exportCsv";
 import { toast } from "sonner";
 import { useCheckoutActivity } from "@/hooks/useCheckoutActivity";
+import { useAdSpend } from "@/hooks/useAdSpend";
 import {
   LineChart,
   Line,
@@ -85,6 +88,8 @@ const VALUE_BAND_COLORS = {
 export default function AdminOverview() {
   const { getDateFilter, dateRange } = useAdmin();
   const { checkoutCount, activeCheckouts } = useCheckoutActivity();
+  const { start, end } = getDateFilter();
+  const { metrics: adMetrics, syncing, syncGoogleAds, platformSettings } = useAdSpend(start, end);
   const [stats, setStats] = useState({
     leadsReceived: 0,
     leadsPublished: 0,
@@ -118,7 +123,9 @@ export default function AdminOverview() {
     outstandingCredits: 0,
   });
 
-  const { start, end } = getDateFilter();
+  // Calculate net profit (revenue - refunds - ad spend)
+  const netProfit = stats.revenue - (stats.refundsIssued * 20) - adMetrics.totalSpend;
+  const costPerLead = stats.leadsPurchased > 0 ? adMetrics.totalSpend / stats.leadsPurchased : 0;
 
   useEffect(() => {
     fetchStats();
@@ -625,11 +632,22 @@ export default function AdminOverview() {
 
       {/* Today's Accounting Summary Widget */}
       <div className="bg-card rounded-xl border border-border p-6 mb-8">
-        <div className="flex items-center gap-2 mb-4">
-          <Calculator className="w-5 h-5 text-secondary" />
-          <h3 className="font-heading font-semibold text-foreground">Today's Accounting</h3>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Calculator className="w-5 h-5 text-secondary" />
+            <h3 className="font-heading font-semibold text-foreground">Today's Accounting</h3>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => syncGoogleAds()}
+            disabled={syncing}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
+            {syncing ? "Syncing..." : "Sync Ads"}
+          </Button>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
           <div className="text-center p-3 bg-muted/30 rounded-lg">
             <p className={`text-2xl font-bold ${todayAccounting.netRevenue >= 0 ? "text-green-500" : "text-red-500"}`}>
               £{todayAccounting.netRevenue}
@@ -655,12 +673,18 @@ export default function AdminOverview() {
             <p className="text-xs text-muted-foreground">MTD Revenue</p>
           </div>
           <div className="text-center p-3 bg-muted/30 rounded-lg">
-            <p className="text-2xl font-bold text-amber-500">£{todayAccounting.pendingDisputeValue}</p>
-            <p className="text-xs text-muted-foreground">At Risk (Disputes)</p>
+            <p className="text-2xl font-bold text-amber-500">£{adMetrics.totalSpend.toFixed(0)}</p>
+            <p className="text-xs text-muted-foreground">Ad Spend</p>
           </div>
           <div className="text-center p-3 bg-muted/30 rounded-lg">
-            <p className="text-2xl font-bold text-secondary">{todayAccounting.outstandingCredits}</p>
-            <p className="text-xs text-muted-foreground">Outstanding Credits</p>
+            <p className="text-2xl font-bold text-secondary">£{costPerLead.toFixed(2)}</p>
+            <p className="text-xs text-muted-foreground">Cost/Lead</p>
+          </div>
+          <div className="text-center p-3 bg-muted/30 rounded-lg">
+            <p className={`text-2xl font-bold ${netProfit >= 0 ? "text-green-500" : "text-red-500"}`}>
+              £{netProfit.toLocaleString()}
+            </p>
+            <p className="text-xs text-muted-foreground">Net Profit</p>
           </div>
           <div className="text-center p-3 bg-muted/30 rounded-lg relative overflow-hidden">
             {checkoutCount > 0 && (
@@ -678,6 +702,47 @@ export default function AdminOverview() {
               </p>
             </div>
             <p className="text-xs text-muted-foreground">Live Checkouts</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Ad Performance Widget */}
+      <div className="bg-card rounded-xl border border-border p-6 mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Megaphone className="w-5 h-5 text-secondary" />
+            <h3 className="font-heading font-semibold text-foreground">Google Ads Performance</h3>
+          </div>
+          {platformSettings?.last_sync_at && (
+            <span className="text-xs text-muted-foreground">
+              Last sync: {new Date(platformSettings.last_sync_at).toLocaleString()}
+            </span>
+          )}
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="text-center p-3 bg-muted/30 rounded-lg">
+            <p className="text-2xl font-bold text-foreground">{adMetrics.totalImpressions.toLocaleString()}</p>
+            <p className="text-xs text-muted-foreground">Impressions</p>
+          </div>
+          <div className="text-center p-3 bg-muted/30 rounded-lg">
+            <p className="text-2xl font-bold text-foreground">{adMetrics.totalClicks.toLocaleString()}</p>
+            <p className="text-xs text-muted-foreground">Clicks</p>
+          </div>
+          <div className="text-center p-3 bg-muted/30 rounded-lg">
+            <p className="text-2xl font-bold text-foreground">{adMetrics.ctr.toFixed(2)}%</p>
+            <p className="text-xs text-muted-foreground">CTR</p>
+          </div>
+          <div className="text-center p-3 bg-muted/30 rounded-lg">
+            <p className="text-2xl font-bold text-foreground">{adMetrics.totalConversions}</p>
+            <p className="text-xs text-muted-foreground">Conversions</p>
+          </div>
+          <div className="text-center p-3 bg-muted/30 rounded-lg">
+            <p className="text-2xl font-bold text-secondary">£{adMetrics.costPerClick.toFixed(2)}</p>
+            <p className="text-xs text-muted-foreground">Cost/Click</p>
+          </div>
+          <div className="text-center p-3 bg-muted/30 rounded-lg">
+            <p className="text-2xl font-bold text-secondary">£{adMetrics.costPerLead.toFixed(2)}</p>
+            <p className="text-xs text-muted-foreground">Cost/Conversion</p>
           </div>
         </div>
       </div>

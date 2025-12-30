@@ -23,13 +23,16 @@ import {
   Building2,
   Percent,
   Receipt,
-  Printer
+  Printer,
+  Megaphone,
+  Calculator
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, Legend } from "recharts";
 import { exportToCsv } from "@/lib/exportCsv";
 import { useToast } from "@/hooks/use-toast";
 import { useAdmin } from "@/contexts/AdminContext";
+import { useAdSpend } from "@/hooks/useAdSpend";
 
 const LEAD_PRICE = 20; // £20 per lead
 
@@ -86,6 +89,14 @@ export default function AdminAccounting() {
     const { start, end } = getDateFilter();
     return { from: start, to: end };
   }, [getDateFilter]);
+
+  // Ad spend data
+  const { metrics: adMetrics, syncing, syncGoogleAds, platformSettings } = useAdSpend(
+    dateRange.from,
+    dateRange.to
+  );
+
+  // Calculate previous period range for comparison
 
   // Calculate previous period range for comparison
   const previousDateRange = useMemo(() => {
@@ -250,6 +261,10 @@ export default function AdminAccounting() {
       : 1;
     const avgRevenuePerDay = netRevenue / days;
 
+    // Net profit = Net Revenue - Ad Spend
+    const netProfit = netRevenue - adMetrics.totalSpend;
+    const costPerLead = transactions.length > 0 ? adMetrics.totalSpend / transactions.length : 0;
+
     return {
       grossRevenue,
       totalLeadsSold: transactions.length,
@@ -258,8 +273,11 @@ export default function AdminAccounting() {
       netRevenue,
       refundRate,
       refundCount: refundedTxns.length,
+      adSpend: adMetrics.totalSpend,
+      netProfit,
+      costPerLead,
     };
-  }, [transactions, dateRange]);
+  }, [transactions, dateRange, adMetrics]);
 
   // Calculate previous period KPIs for comparison
   const previousKpis = useMemo(() => {
@@ -824,9 +842,25 @@ export default function AdminAccounting() {
                     <span className="text-muted-foreground">Less: Refunds ({kpis.refundCount})</span>
                     <span className="font-medium text-destructive">-£{kpis.refundsIssued.toLocaleString()}</span>
                   </div>
-                  <div className="flex items-center justify-between py-2 text-lg font-bold">
-                    <span>Net Revenue</span>
-                    <span className="text-primary">£{kpis.netRevenue.toLocaleString()}</span>
+                  <div className="flex items-center justify-between py-2 border-b">
+                    <span className="text-muted-foreground">Net Revenue</span>
+                    <span className="font-medium text-primary">£{kpis.netRevenue.toLocaleString()}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b">
+                    <span className="text-muted-foreground flex items-center gap-2">
+                      <Megaphone className="w-4 h-4" /> Ad Spend (Google Ads)
+                    </span>
+                    <span className="font-medium text-amber-500">-£{kpis.adSpend.toFixed(2)}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b">
+                    <span className="text-muted-foreground">Cost Per Lead</span>
+                    <span className="font-medium">£{kpis.costPerLead.toFixed(2)}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 text-lg font-bold bg-muted/30 px-3 rounded-lg">
+                    <span className="flex items-center gap-2"><Calculator className="w-5 h-5" /> Net Profit</span>
+                    <span className={kpis.netProfit >= 0 ? "text-green-500" : "text-destructive"}>
+                      £{kpis.netProfit.toFixed(2)}
+                    </span>
                   </div>
                 </div>
               </CardContent>
