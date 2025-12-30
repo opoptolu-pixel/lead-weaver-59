@@ -123,15 +123,22 @@ export default function AdminAnalytics() {
   const { start, end } = getDateFilter();
   const { 
     adSpendData, 
-    metrics: adMetrics, 
+    metrics: adMetrics,
+    googleAdsMetrics,
+    facebookAdsMetrics,
     syncing, 
-    syncGoogleAds, 
+    syncGoogleAds,
+    syncFacebookAds,
+    syncAllPlatforms,
     getPlatformSettings,
     loading: adLoading 
   } = useAdSpend(start, end);
   
   const googleAdsSettings = getPlatformSettings("google_ads");
+  const facebookAdsSettings = getPlatformSettings("facebook_ads");
   const isSyncingGoogle = syncing.google_ads || false;
+  const isSyncingFacebook = syncing.facebook_ads || false;
+  const isSyncingAny = isSyncingGoogle || isSyncingFacebook;
   
   const [activeTab, setActiveTab] = useState("geographic");
   const [loading, setLoading] = useState(true);
@@ -652,97 +659,187 @@ export default function AdminAnalytics() {
 
             {/* ADS TAB */}
             <TabsContent value="ads" className="space-y-6 mt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-semibold">Google Ads Performance</h2>
-                  <p className="text-sm text-muted-foreground">
-                    {googleAdsSettings?.last_sync_at 
-                      ? `Last synced: ${new Date(googleAdsSettings.last_sync_at).toLocaleString()}`
-                      : "Not synced yet"}
-                  </p>
-                </div>
-                <Button onClick={() => syncGoogleAds()} disabled={isSyncingGoogle}>
-                  <RefreshCw className={cn("h-4 w-4 mr-2", isSyncingGoogle && "animate-spin")} />
-                  {isSyncingGoogle ? "Syncing..." : "Sync Now"}
-                </Button>
-              </div>
+              {/* Combined Ad Performance Section */}
+              <Card className="border-2 border-secondary/30 bg-gradient-to-br from-secondary/5 to-transparent">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <Megaphone className="h-5 w-5 text-secondary" />
+                        Combined Ad Performance
+                      </CardTitle>
+                      <CardDescription>Total metrics across all advertising platforms</CardDescription>
+                    </div>
+                    <Button onClick={() => syncAllPlatforms()} disabled={isSyncingAny}>
+                      <RefreshCw className={cn("h-4 w-4 mr-2", isSyncingAny && "animate-spin")} />
+                      {isSyncingAny ? "Syncing..." : "Sync All Platforms"}
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">Total Ad Spend</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-3xl font-bold text-foreground">£{adMetrics.totalSpend.toFixed(2)}</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">Total Impressions</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-3xl font-bold text-foreground">{adMetrics.totalImpressions.toLocaleString()}</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">Total Clicks</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-3xl font-bold text-foreground">{adMetrics.totalClicks.toLocaleString()}</p>
+                        <p className="text-sm text-muted-foreground">CTR: {adMetrics.ctr.toFixed(2)}%</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">Total Conversions</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-3xl font-bold text-foreground">{adMetrics.totalConversions}</p>
+                      </CardContent>
+                    </Card>
+                  </div>
 
-              {/* Ad Metrics Overview */}
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">Total Ad Spend</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-3xl font-bold text-foreground">£{adMetrics.totalSpend.toFixed(2)}</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">Impressions</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-3xl font-bold text-foreground">{adMetrics.totalImpressions.toLocaleString()}</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">Clicks</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-3xl font-bold text-foreground">{adMetrics.totalClicks.toLocaleString()}</p>
-                    <p className="text-sm text-muted-foreground">CTR: {adMetrics.ctr.toFixed(2)}%</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">Conversions</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-3xl font-bold text-foreground">{adMetrics.totalConversions}</p>
-                  </CardContent>
-                </Card>
-              </div>
+                  {/* Combined Cost Metrics */}
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <Card className="bg-gradient-to-br from-secondary/10 to-secondary/5 border-secondary/20">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium text-secondary">Avg Cost Per Click</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-3xl font-bold text-secondary">£{adMetrics.costPerClick.toFixed(2)}</p>
+                      </CardContent>
+                    </Card>
+                    <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium text-green-600">Avg Cost Per Conversion</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-3xl font-bold text-green-600">£{adMetrics.costPerLead.toFixed(2)}</p>
+                      </CardContent>
+                    </Card>
+                    <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium text-purple-600">Combined ROAS</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-3xl font-bold text-purple-600">
+                          {adMetrics.totalSpend > 0 
+                            ? ((adMetrics.totalConversions * 20) / adMetrics.totalSpend).toFixed(2) 
+                            : "0"}x
+                        </p>
+                        <p className="text-sm text-muted-foreground">Based on £20/lead revenue</p>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </CardContent>
+              </Card>
 
-              {/* Cost Metrics */}
-              <div className="grid gap-4 md:grid-cols-3">
-                <Card className="bg-gradient-to-br from-secondary/10 to-secondary/5 border-secondary/20">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-secondary">Cost Per Click</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-3xl font-bold text-secondary">£{adMetrics.costPerClick.toFixed(2)}</p>
-                  </CardContent>
-                </Card>
-                <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-green-600">Cost Per Conversion</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-3xl font-bold text-green-600">£{adMetrics.costPerLead.toFixed(2)}</p>
-                  </CardContent>
-                </Card>
-                <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-purple-600">ROAS (estimated)</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-3xl font-bold text-purple-600">
-                      {adMetrics.totalSpend > 0 
-                        ? ((adMetrics.totalConversions * 20) / adMetrics.totalSpend).toFixed(2) 
-                        : "0"}x
-                    </p>
-                    <p className="text-sm text-muted-foreground">Based on £20/lead revenue</p>
-                  </CardContent>
-                </Card>
-              </div>
+              {/* Google Ads Section */}
+              <Card className="border-blue-500/30">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2 text-blue-600">
+                        <Megaphone className="h-5 w-5" />
+                        Google Ads
+                      </CardTitle>
+                      <CardDescription>
+                        {googleAdsSettings?.last_sync_at 
+                          ? `Last synced: ${new Date(googleAdsSettings.last_sync_at).toLocaleString()}`
+                          : "Not synced yet"}
+                      </CardDescription>
+                    </div>
+                    <Button variant="outline" onClick={() => syncGoogleAds()} disabled={isSyncingGoogle}>
+                      <RefreshCw className={cn("h-4 w-4 mr-2", isSyncingGoogle && "animate-spin")} />
+                      {isSyncingGoogle ? "Syncing..." : "Sync"}
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    <div className="text-center p-4 bg-blue-500/5 rounded-lg">
+                      <p className="text-2xl font-bold text-foreground">£{googleAdsMetrics.totalSpend.toFixed(2)}</p>
+                      <p className="text-xs text-muted-foreground">Spend</p>
+                    </div>
+                    <div className="text-center p-4 bg-blue-500/5 rounded-lg">
+                      <p className="text-2xl font-bold text-foreground">{googleAdsMetrics.totalImpressions.toLocaleString()}</p>
+                      <p className="text-xs text-muted-foreground">Impressions</p>
+                    </div>
+                    <div className="text-center p-4 bg-blue-500/5 rounded-lg">
+                      <p className="text-2xl font-bold text-foreground">{googleAdsMetrics.totalClicks.toLocaleString()}</p>
+                      <p className="text-xs text-muted-foreground">Clicks ({googleAdsMetrics.ctr.toFixed(2)}% CTR)</p>
+                    </div>
+                    <div className="text-center p-4 bg-blue-500/5 rounded-lg">
+                      <p className="text-2xl font-bold text-foreground">{googleAdsMetrics.totalConversions}</p>
+                      <p className="text-xs text-muted-foreground">Conversions (£{googleAdsMetrics.costPerLead.toFixed(2)}/conv)</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-              {/* Daily Ad Spend Chart */}
+              {/* Facebook Ads Section */}
+              <Card className="border-indigo-500/30">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2 text-indigo-600">
+                        <Megaphone className="h-5 w-5" />
+                        Facebook Ads
+                      </CardTitle>
+                      <CardDescription>
+                        {facebookAdsSettings?.last_sync_at 
+                          ? `Last synced: ${new Date(facebookAdsSettings.last_sync_at).toLocaleString()}`
+                          : "Not synced yet"}
+                      </CardDescription>
+                    </div>
+                    <Button variant="outline" onClick={() => syncFacebookAds()} disabled={isSyncingFacebook}>
+                      <RefreshCw className={cn("h-4 w-4 mr-2", isSyncingFacebook && "animate-spin")} />
+                      {isSyncingFacebook ? "Syncing..." : "Sync"}
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    <div className="text-center p-4 bg-indigo-500/5 rounded-lg">
+                      <p className="text-2xl font-bold text-foreground">£{facebookAdsMetrics.totalSpend.toFixed(2)}</p>
+                      <p className="text-xs text-muted-foreground">Spend</p>
+                    </div>
+                    <div className="text-center p-4 bg-indigo-500/5 rounded-lg">
+                      <p className="text-2xl font-bold text-foreground">{facebookAdsMetrics.totalImpressions.toLocaleString()}</p>
+                      <p className="text-xs text-muted-foreground">Impressions</p>
+                    </div>
+                    <div className="text-center p-4 bg-indigo-500/5 rounded-lg">
+                      <p className="text-2xl font-bold text-foreground">{facebookAdsMetrics.totalClicks.toLocaleString()}</p>
+                      <p className="text-xs text-muted-foreground">Clicks ({facebookAdsMetrics.ctr.toFixed(2)}% CTR)</p>
+                    </div>
+                    <div className="text-center p-4 bg-indigo-500/5 rounded-lg">
+                      <p className="text-2xl font-bold text-foreground">{facebookAdsMetrics.totalConversions}</p>
+                      <p className="text-xs text-muted-foreground">Conversions (£{facebookAdsMetrics.costPerLead.toFixed(2)}/conv)</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Daily Ad Spend Chart - Combined */}
               {adSpendData.length > 0 && (
                 <Card>
                   <CardHeader>
                     <CardTitle>Daily Ad Spend</CardTitle>
-                    <CardDescription>Spend and conversions over time</CardDescription>
+                    <CardDescription>Combined spend and conversions over time</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="h-[300px]">
@@ -786,10 +883,10 @@ export default function AdminAnalytics() {
                 <Card className="p-8 text-center">
                   <Megaphone className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No Ad Data Available</h3>
-                  <p className="text-muted-foreground mb-4">Click "Sync Now" to pull your Google Ads data</p>
-                  <Button onClick={() => syncGoogleAds()} disabled={isSyncingGoogle}>
-                    <RefreshCw className={cn("h-4 w-4 mr-2", isSyncingGoogle && "animate-spin")} />
-                    {isSyncingGoogle ? "Syncing..." : "Sync Google Ads"}
+                  <p className="text-muted-foreground mb-4">Click "Sync All Platforms" to pull your advertising data</p>
+                  <Button onClick={() => syncAllPlatforms()} disabled={isSyncingAny}>
+                    <RefreshCw className={cn("h-4 w-4 mr-2", isSyncingAny && "animate-spin")} />
+                    {isSyncingAny ? "Syncing..." : "Sync All Platforms"}
                   </Button>
                 </Card>
               )}

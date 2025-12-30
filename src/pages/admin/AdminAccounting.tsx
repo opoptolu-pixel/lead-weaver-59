@@ -91,7 +91,7 @@ export default function AdminAccounting() {
   }, [getDateFilter]);
 
   // Ad spend data
-  const { metrics: adMetrics, syncing, syncGoogleAds, syncFacebookAds, getPlatformSettings, adSpendData } = useAdSpend(
+  const { metrics: adMetrics, googleAdsMetrics, facebookAdsMetrics, syncing, syncGoogleAds, syncFacebookAds, syncAllPlatforms, getPlatformSettings, adSpendData } = useAdSpend(
     dateRange.from,
     dateRange.to
   );
@@ -100,6 +100,7 @@ export default function AdminAccounting() {
   const facebookAdsSettings = getPlatformSettings("facebook_ads");
   const isSyncingGoogle = syncing.google_ads || false;
   const isSyncingFacebook = syncing.facebook_ads || false;
+  const isSyncingAny = isSyncingGoogle || isSyncingFacebook;
 
   // Calculate previous period range for comparison
 
@@ -878,26 +879,26 @@ export default function AdminAccounting() {
             </div>
 
             {/* Ad Spend Sync Status */}
-            {(!googleAdsSettings?.last_sync_at || adMetrics.totalSpend === 0) && (
+            {adMetrics.totalSpend === 0 && (
               <Card className="border-amber-500/50 bg-amber-500/10">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <Megaphone className="h-5 w-5 text-amber-500" />
                       <div>
-                        <p className="font-medium">Google Ads data not synced</p>
+                        <p className="font-medium">Ad data not synced</p>
                         <p className="text-sm text-muted-foreground">
-                          Sync your Google Ads data to see accurate cost per lead and net profit calculations.
+                          Sync your Google Ads and Facebook Ads data to see accurate cost per lead and net profit calculations.
                         </p>
                       </div>
                     </div>
                     <Button 
-                      onClick={() => syncGoogleAds()} 
-                      disabled={isSyncingGoogle}
+                      onClick={() => syncAllPlatforms()} 
+                      disabled={isSyncingAny}
                       variant="outline"
                       size="sm"
                     >
-                      {isSyncingGoogle ? (
+                      {isSyncingAny ? (
                         <>
                           <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                           Syncing...
@@ -905,10 +906,77 @@ export default function AdminAccounting() {
                       ) : (
                         <>
                           <RefreshCw className="mr-2 h-4 w-4" />
-                          Sync Now
+                          Sync All Platforms
                         </>
                       )}
                     </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Ad Platform Breakdown */}
+            {adMetrics.totalSpend > 0 && (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <Megaphone className="h-5 w-5 text-secondary" />
+                        Ad Spend Breakdown
+                      </CardTitle>
+                      <CardDescription>Spend by advertising platform</CardDescription>
+                    </div>
+                    <Button 
+                      onClick={() => syncAllPlatforms()} 
+                      disabled={isSyncingAny}
+                      variant="outline"
+                      size="sm"
+                    >
+                      {isSyncingAny ? (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                          Syncing...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4" />
+                          Sync All
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-medium text-blue-600">Google Ads</span>
+                        {googleAdsSettings?.last_sync_at && (
+                          <span className="text-xs text-muted-foreground">
+                            {format(parseISO(googleAdsSettings.last_sync_at), "MMM dd")}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-2xl font-bold">£{googleAdsMetrics.totalSpend.toFixed(2)}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {googleAdsMetrics.totalConversions} conversions • £{googleAdsMetrics.costPerLead.toFixed(2)}/lead
+                      </p>
+                    </div>
+                    <div className="p-4 bg-indigo-500/5 border border-indigo-500/20 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-medium text-indigo-600">Facebook Ads</span>
+                        {facebookAdsSettings?.last_sync_at && (
+                          <span className="text-xs text-muted-foreground">
+                            {format(parseISO(facebookAdsSettings.last_sync_at), "MMM dd")}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-2xl font-bold">£{facebookAdsMetrics.totalSpend.toFixed(2)}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {facebookAdsMetrics.totalConversions} conversions • £{facebookAdsMetrics.costPerLead.toFixed(2)}/lead
+                      </p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
