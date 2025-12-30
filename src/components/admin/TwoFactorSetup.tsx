@@ -62,6 +62,11 @@ export default function TwoFactorSetup({ onComplete }: TwoFactorSetupProps) {
       // Filter for verified TOTP factors
       const totpFactors = data.totp.filter(f => f.status === 'verified');
       setFactors(totpFactors);
+      
+      // If MFA is already enabled, notify parent immediately
+      if (totpFactors.length > 0) {
+        onComplete?.();
+      }
     } catch (error) {
       console.error("Error fetching MFA factors:", error);
     } finally {
