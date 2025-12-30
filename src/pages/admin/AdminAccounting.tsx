@@ -419,6 +419,26 @@ export default function AdminAccounting() {
     });
   }, [dailyRevenueData]);
 
+  // Daily ad spend data for chart
+  const dailyAdSpendData = useMemo(() => {
+    if (!dateRange.from || !dateRange.to || adSpendData.length === 0) return [];
+    
+    const days = eachDayOfInterval({ start: dateRange.from, end: dateRange.to });
+    
+    return days.map(day => {
+      const dayStr = format(day, "yyyy-MM-dd");
+      const adData = adSpendData.find(d => d.date === dayStr);
+      
+      return {
+        date: format(day, "MMM dd"),
+        spend: adData ? Number(adData.spend_amount) : 0,
+        clicks: adData?.clicks || 0,
+        impressions: adData?.impressions || 0,
+        conversions: adData?.conversions || 0,
+      };
+    });
+  }, [adSpendData, dateRange]);
+
   // Revenue by week
   const weeklyRevenueData = useMemo(() => {
     if (!dateRange.from || !dateRange.to) return [];
@@ -924,6 +944,100 @@ export default function AdminAccounting() {
                     </ResponsiveContainer>
                   )}
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Daily Ad Spend Chart */}
+            <Card className="border-amber-500/20">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Megaphone className="h-5 w-5 text-amber-500" />
+                      Daily Ad Spend
+                    </CardTitle>
+                    <CardDescription>Google Ads spend breakdown by day</CardDescription>
+                  </div>
+                  <Button 
+                    onClick={() => syncGoogleAds()} 
+                    disabled={syncing}
+                    variant="outline"
+                    size="sm"
+                  >
+                    {syncing ? (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                        Syncing...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Sync
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px]">
+                  {loading ? (
+                    <Skeleton className="h-full w-full" />
+                  ) : dailyAdSpendData.length === 0 || dailyAdSpendData.every(d => d.spend === 0) ? (
+                    <div className="h-full flex flex-col items-center justify-center text-muted-foreground">
+                      <Megaphone className="h-12 w-12 mb-4 opacity-30" />
+                      <p className="text-sm">No ad spend data available</p>
+                      <p className="text-xs mt-1">Click "Sync" to pull data from Google Ads</p>
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={dailyAdSpendData}>
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <XAxis dataKey="date" className="text-xs" />
+                        <YAxis className="text-xs" tickFormatter={(v) => `£${v}`} />
+                        <Tooltip 
+                          formatter={(value: number, name: string) => {
+                            if (name === "spend") return [`£${value.toFixed(2)}`, "Ad Spend"];
+                            if (name === "clicks") return [value, "Clicks"];
+                            if (name === "conversions") return [value, "Conversions"];
+                            return [value, name];
+                          }}
+                          contentStyle={{ 
+                            backgroundColor: "hsl(var(--card))", 
+                            borderColor: "hsl(var(--border))",
+                            borderRadius: "8px"
+                          }}
+                        />
+                        <Legend />
+                        <Bar 
+                          dataKey="spend" 
+                          fill="hsl(40, 90%, 50%)" 
+                          name="Ad Spend"
+                          radius={[4, 4, 0, 0]}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </div>
+                {dailyAdSpendData.length > 0 && !dailyAdSpendData.every(d => d.spend === 0) && (
+                  <div className="mt-4 grid grid-cols-4 gap-4 pt-4 border-t">
+                    <div className="text-center">
+                      <p className="text-xs text-muted-foreground">Total Spend</p>
+                      <p className="text-lg font-bold text-amber-500">£{adMetrics.totalSpend.toFixed(2)}</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs text-muted-foreground">Impressions</p>
+                      <p className="text-lg font-bold">{adMetrics.totalImpressions.toLocaleString()}</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs text-muted-foreground">Clicks</p>
+                      <p className="text-lg font-bold">{adMetrics.totalClicks.toLocaleString()}</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs text-muted-foreground">CTR</p>
+                      <p className="text-lg font-bold">{adMetrics.ctr.toFixed(2)}%</p>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
