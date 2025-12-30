@@ -38,6 +38,10 @@ export function useAdSpend(startDate?: Date, endDate?: Date) {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
 
+  // Memoize date strings to prevent infinite re-renders
+  const startDateStr = startDate?.toISOString().split("T")[0];
+  const endDateStr = endDate?.toISOString().split("T")[0];
+
   const fetchAdSpend = useCallback(async () => {
     setLoading(true);
     try {
@@ -47,11 +51,11 @@ export function useAdSpend(startDate?: Date, endDate?: Date) {
         .eq("platform", "google_ads")
         .order("date", { ascending: false });
 
-      if (startDate) {
-        query = query.gte("date", startDate.toISOString().split("T")[0]);
+      if (startDateStr) {
+        query = query.gte("date", startDateStr);
       }
-      if (endDate) {
-        query = query.lte("date", endDate.toISOString().split("T")[0]);
+      if (endDateStr) {
+        query = query.lte("date", endDateStr);
       }
 
       const { data, error } = await query;
@@ -75,7 +79,7 @@ export function useAdSpend(startDate?: Date, endDate?: Date) {
     } finally {
       setLoading(false);
     }
-  }, [startDate, endDate]);
+  }, [startDateStr, endDateStr]);
 
   useEffect(() => {
     fetchAdSpend();
