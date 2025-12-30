@@ -91,7 +91,7 @@ export default function AdminAccounting() {
   }, [getDateFilter]);
 
   // Ad spend data
-  const { metrics: adMetrics, syncing, syncGoogleAds, platformSettings } = useAdSpend(
+  const { metrics: adMetrics, syncing, syncGoogleAds, platformSettings, adSpendData } = useAdSpend(
     dateRange.from,
     dateRange.to
   );
@@ -786,7 +786,108 @@ export default function AdminAccounting() {
                   )}
                 </CardContent>
               </Card>
+
+              {/* Ad Spend Card */}
+              <Card className="border-amber-500/30 bg-amber-500/5">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Ad Spend</CardTitle>
+                  <Megaphone className="h-4 w-4 text-amber-500" />
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <Skeleton className="h-8 w-20" />
+                  ) : (
+                    <>
+                      <div className="text-2xl font-bold text-amber-500">£{kpis.adSpend.toFixed(2)}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {platformSettings?.last_sync_at 
+                          ? `Synced ${format(parseISO(platformSettings.last_sync_at), "MMM dd, HH:mm")}`
+                          : "Not synced"
+                        }
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Cost Per Lead Card */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Cost/Lead</CardTitle>
+                  <Calculator className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <Skeleton className="h-8 w-16" />
+                  ) : (
+                    <>
+                      <div className="text-2xl font-bold">£{kpis.costPerLead.toFixed(2)}</div>
+                      <div className="text-xs text-muted-foreground">Ad spend / leads</div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Net Profit Card */}
+              <Card className={cn(
+                "border-2",
+                kpis.netProfit >= 0 ? "border-green-500/30 bg-green-500/5" : "border-destructive/30 bg-destructive/5"
+              )}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
+                  <TrendingUp className={cn("h-4 w-4", kpis.netProfit >= 0 ? "text-green-500" : "text-destructive")} />
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <Skeleton className="h-8 w-24" />
+                  ) : (
+                    <>
+                      <div className={cn("text-2xl font-bold", kpis.netProfit >= 0 ? "text-green-500" : "text-destructive")}>
+                        £{kpis.netProfit.toFixed(2)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">Revenue - Refunds - Ads</div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
             </div>
+
+            {/* Ad Spend Sync Status */}
+            {(!platformSettings?.last_sync_at || adMetrics.totalSpend === 0) && (
+              <Card className="border-amber-500/50 bg-amber-500/10">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Megaphone className="h-5 w-5 text-amber-500" />
+                      <div>
+                        <p className="font-medium">Google Ads data not synced</p>
+                        <p className="text-sm text-muted-foreground">
+                          Sync your Google Ads data to see accurate cost per lead and net profit calculations.
+                        </p>
+                      </div>
+                    </div>
+                    <Button 
+                      onClick={() => syncGoogleAds()} 
+                      disabled={syncing}
+                      variant="outline"
+                      size="sm"
+                    >
+                      {syncing ? (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                          Syncing...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4" />
+                          Sync Now
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Revenue Trend Chart */}
             <Card>
