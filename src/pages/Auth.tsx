@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/Logo";
 import TwoFactorVerify from "@/components/TwoFactorVerify";
 import { SEOHead } from "@/components/SEOHead";
+import { trackCleanerSignup } from "@/lib/analytics";
 
 const authSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -173,6 +174,10 @@ export default function Auth() {
           }
           return;
         }
+        
+        // Track signup conversion
+        trackCleanerSignup();
+        
         toast.success("Account created successfully!");
         navigate("/dashboard");
       }
