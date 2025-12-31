@@ -58,7 +58,7 @@ const RequestCleaningThankYou = () => {
           </div>
           
           <p className="text-gray-700 mb-4">
-            We've sent you a <span className="font-semibold text-emerald-600">text message</span> and <span className="font-semibold text-green-600">WhatsApp message</span>.
+            We've sent you a <span className="font-semibold text-emerald-600">text message</span>.
           </p>
           
           <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl p-4 border border-emerald-200">

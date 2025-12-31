@@ -126,88 +126,46 @@ serve(async (req) => {
     if (insertError) throw new Error(`Failed to store code: ${insertError.message}`);
     logStep("Code stored in database");
 
-    // Send via WhatsApp first, fallback to SMS if it fails
+    // Send via SMS only
     const twilioAccountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
     const twilioAuthToken = Deno.env.get("TWILIO_AUTH_TOKEN");
-    const twilioWhatsAppFrom = Deno.env.get("TWILIO_WHATSAPP_FROM");
     const twilioSmsFrom = Deno.env.get("TWILIO_SMS_FROM");
 
     if (!twilioAccountSid || !twilioAuthToken) {
       throw new Error("Twilio credentials not configured");
     }
 
-    if (!twilioWhatsAppFrom && !twilioSmsFrom) {
-      throw new Error("No Twilio sender configured (WhatsApp or SMS)");
+    if (!twilioSmsFrom) {
+      throw new Error("Twilio SMS sender not configured");
     }
 
     const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`;
-    let messageSent = false;
-    let deliveryMethod = "";
 
-    // Try SMS first (more reliable), fallback to WhatsApp
-    if (twilioSmsFrom) {
-      const smsFormData = new URLSearchParams();
-      smsFormData.append("To", phone);
-      smsFormData.append("From", twilioSmsFrom);
-      smsFormData.append("Body", `Your Cleanda verification code is: ${code}. Valid for 10 minutes. Do not share this code.`);
+    const smsFormData = new URLSearchParams();
+    smsFormData.append("To", phone);
+    smsFormData.append("From", twilioSmsFrom);
+    smsFormData.append("Body", `Your Cleanda verification code is: ${code}. Valid for 10 minutes. Do not share this code.`);
 
-      logStep("Attempting SMS delivery", { from: twilioSmsFrom, to: phone });
+    logStep("Sending SMS verification", { from: twilioSmsFrom, to: phone });
 
-      const smsResponse = await fetch(twilioUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          Authorization: `Basic ${btoa(`${twilioAccountSid}:${twilioAuthToken}`)}`,
-        },
-        body: smsFormData.toString(),
-      });
+    const smsResponse = await fetch(twilioUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Authorization: `Basic ${btoa(`${twilioAccountSid}:${twilioAuthToken}`)}`,
+      },
+      body: smsFormData.toString(),
+    });
 
-      if (smsResponse.ok) {
-        messageSent = true;
-        deliveryMethod = "SMS";
-        logStep("SMS verification message sent successfully");
-      } else {
-        const errorText = await smsResponse.text();
-        logStep("SMS failed, will try WhatsApp fallback", { status: smsResponse.status, error: errorText });
-      }
+    if (!smsResponse.ok) {
+      const errorText = await smsResponse.text();
+      logStep("SMS failed", { status: smsResponse.status, error: errorText });
+      throw new Error("Failed to send verification code via SMS");
     }
 
-    // Fallback to WhatsApp if SMS failed or not configured
-    if (!messageSent && twilioWhatsAppFrom) {
-      const whatsappFormData = new URLSearchParams();
-      whatsappFormData.append("To", `whatsapp:${phone}`);
-      const fromNumber = twilioWhatsAppFrom.startsWith("whatsapp:") ? twilioWhatsAppFrom : `whatsapp:${twilioWhatsAppFrom}`;
-      whatsappFormData.append("From", fromNumber);
-      whatsappFormData.append("Body", `Your Cleanda verification code is: ${code}. Valid for 10 minutes. Do not share this code with anyone.`);
+    logStep("SMS verification message sent successfully");
 
-      logStep("Attempting WhatsApp delivery", { from: fromNumber, to: `whatsapp:${phone}` });
-
-      const whatsappResponse = await fetch(twilioUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          Authorization: `Basic ${btoa(`${twilioAccountSid}:${twilioAuthToken}`)}`,
-        },
-        body: whatsappFormData.toString(),
-      });
-
-      if (whatsappResponse.ok) {
-        messageSent = true;
-        deliveryMethod = "WhatsApp";
-        logStep("WhatsApp verification message sent successfully");
-      } else {
-        const errorText = await whatsappResponse.text();
-        logStep("WhatsApp also failed", { status: whatsappResponse.status, error: errorText });
-      }
-    }
-
-    if (!messageSent) {
-      throw new Error("Failed to send verification code via SMS or WhatsApp");
-    }
-
-    logStep(`Verification code sent via ${deliveryMethod}`);
-
-    return new Response(JSON.stringify({ success: true, deliveryMethod }), {
+    return new Response(JSON.stringify({ success: true, deliveryMethod: "SMS" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
