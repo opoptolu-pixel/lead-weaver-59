@@ -153,6 +153,33 @@ serve(async (req) => {
 
     logStep("Lead updated", { leadId: matchingLead.id, newStatus });
 
+    // Trigger new lead SMS notification to opted-in cleaners when lead is published
+    if (newStatus === "published") {
+      try {
+        const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+        const notificationResponse = await fetch(`${supabaseUrl}/functions/v1/send-sms-notification`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${supabaseAnonKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            type: "new_lead",
+            leadId: matchingLead.id,
+          }),
+        });
+        
+        const notificationResult = await notificationResponse.json();
+        logStep("New lead SMS notification triggered", { 
+          leadId: matchingLead.id,
+          success: notificationResponse.ok,
+          result: notificationResult
+        });
+      } catch (notifyError: any) {
+        logStep("Failed to trigger new lead notification (non-blocking)", { error: notifyError.message });
+      }
+    }
+
     // Return TwiML response
     return new Response(
       `<?xml version="1.0" encoding="UTF-8"?>
