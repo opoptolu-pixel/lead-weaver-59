@@ -63,7 +63,7 @@ const RequestCleaningThankYou = () => {
           
           <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl p-4 border border-emerald-200">
             <p className="text-gray-800 font-medium text-center">
-              Simply reply <span className="inline-block bg-emerald-500 text-white px-3 py-1 rounded-full font-bold text-lg mx-1">"YES"</span> to either message
+              Simply reply <span className="inline-block bg-emerald-500 text-white px-3 py-1 rounded-full font-bold text-lg mx-1">"YES"</span> to confirm
             </p>
             <p className="text-gray-600 text-sm text-center mt-2">
               and your request will go live to local cleaners
