@@ -290,6 +290,26 @@ serve(async (req) => {
 
     if (leadError) throw new Error(`Failed to fetch lead details: ${leadError.message}`);
 
+    // Send SMS notification with lead details (fire and forget)
+    try {
+      const smsUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-sms-notification`;
+      fetch(smsUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        },
+        body: JSON.stringify({
+          type: "lead_unlocked",
+          leadId: leadId,
+          userId: userId,
+        }),
+      }).catch(err => logStep("SMS notification failed (non-blocking)", { error: err.message }));
+      logStep("SMS notification triggered");
+    } catch (smsError: any) {
+      logStep("SMS notification error (non-blocking)", { error: smsError.message });
+    }
+
     return new Response(JSON.stringify({
       success: true,
       isNewUser,
