@@ -78,28 +78,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (!isMounted) return;
-        // Only update if something actually changed
-        setSession(prevSession => {
-          if (prevSession?.access_token === session?.access_token) {
-            return prevSession;
-          }
-          return session;
-        });
-        setUser(prevUser => {
-          if (prevUser?.id === session?.user?.id) {
-            return prevUser;
-          }
-          return session?.user ?? null;
-        });
         
-        // Only fetch profile if user changed
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        // Fetch profile when user signs in or token refreshes
         if (session?.user) {
-          setUser(prevUser => {
-            if (prevUser?.id !== session.user.id) {
-              setTimeout(() => fetchProfile(session.user.id), 0);
+          // Use setTimeout to avoid potential auth deadlock
+          setTimeout(() => {
+            if (isMounted) {
+              fetchProfile(session.user.id);
             }
-            return session.user;
-          });
+          }, 0);
         } else {
           setProfile(null);
         }
