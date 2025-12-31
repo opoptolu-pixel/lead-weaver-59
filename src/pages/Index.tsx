@@ -7,8 +7,12 @@ import { TestimonialsSection, generateReviewSchema } from "@/components/Testimon
 import { CustomerFAQ } from "@/components/CustomerFAQ";
 import { Footer } from "@/components/Footer";
 import { SEOHead } from "@/components/SEOHead";
+import { useUtmTracking } from "@/hooks/useUtmTracking";
 
 const Index = () => {
+  // Capture UTM parameters on landing page (first-touch attribution)
+  useUtmTracking();
+  
   const reviewSchemas = generateReviewSchema();
 
   const structuredData = {
