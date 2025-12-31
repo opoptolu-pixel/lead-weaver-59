@@ -292,27 +292,27 @@ export default function Settings() {
                 </p>
               </div>
 
-              {/* WhatsApp opt-in */}
+              {/* SMS opt-in */}
               <div className="flex items-center justify-between rounded-lg border border-border p-4">
                 <div className="flex items-start gap-3">
                   <MessageSquare className="w-5 h-5 text-secondary mt-0.5" />
                   <div>
-                    <Label htmlFor="whatsapp" className="text-foreground font-medium">
-                      WhatsApp Notifications
+                    <Label htmlFor="sms" className="text-foreground font-medium">
+                      SMS Notifications
                     </Label>
                     <p className="text-muted-foreground text-sm">
-                      Get instant alerts when new leads match your area
+                      Get instant SMS alerts when new leads match your area
                     </p>
                   </div>
                 </div>
                 <Switch
-                  id="whatsapp"
+                  id="sms"
                   checked={whatsappOptin}
                   onCheckedChange={setWhatsappOptin}
                 />
               </div>
 
-              {/* Test WhatsApp button */}
+              {/* Test SMS button */}
               {whatsappOptin && phone && (
                 <Button
                   variant="outline"
@@ -326,7 +326,7 @@ export default function Settings() {
                   ) : (
                     <Send className="w-4 h-4" />
                   )}
-                  Send Test WhatsApp Message
+                  Send Test SMS
                 </Button>
               )}
 
