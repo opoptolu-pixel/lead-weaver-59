@@ -106,18 +106,42 @@ serve(async (req) => {
       logStep("Found opted-in users", { count: profiles?.length || 0 });
 
       // Template variables for cleanda_new_lead:
-      // {{1}} = postcode (e.g., SW1A 1AA)
+      // {{1}} = outward postcode only (e.g., SW1A)
       // {{2}} = job type (e.g., Regular Cleaning)
-      // {{3}} = value (e.g., £120)
+      // {{3}} = value without "from" prefix (e.g., £120)
+      
+      // Extract outward code from postcode (first part before space, or remove last 3 chars if no space)
+      const getOutwardCode = (postcode: string): string => {
+        if (!postcode) return "Unknown";
+        const trimmed = postcode.trim().toUpperCase();
+        if (trimmed.includes(" ")) {
+          return trimmed.split(" ")[0];
+        }
+        // If no space and length > 4, remove last 3 characters (inward code)
+        if (trimmed.length > 4) {
+          return trimmed.slice(0, -3);
+        }
+        return trimmed;
+      };
+      
+      // Extract value without "from" prefix
+      const extractValue = (displayValue: string): string => {
+        if (!displayValue) return "Contact for quote";
+        // Remove "from " prefix (case insensitive)
+        return displayValue.replace(/^from\s+/i, "").trim();
+      };
+      
+      const outwardPostcode = getOutwardCode(lead.postcode);
+      const cleanValue = extractValue(lead.display_value);
       
       const messages = [];
       for (const profile of profiles || []) {
         if (!profile.phone) continue;
 
         const contentVariables = {
-          "1": lead.postcode || "Unknown",
+          "1": outwardPostcode,
           "2": lead.job_type || "Cleaning",
-          "3": lead.display_value || "Contact for quote",
+          "3": cleanValue,
         };
 
         try {
