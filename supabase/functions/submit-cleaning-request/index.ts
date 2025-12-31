@@ -429,27 +429,13 @@ serve(async (req) => {
       referenceId
     );
 
-    // Trigger both WhatsApp and SMS confirmation for customer to confirm the lead
+    // Trigger SMS confirmation for customer to confirm the lead
     try {
       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
       const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
       
-      // Send WhatsApp confirmation
-      const whatsappPromise = fetch(`${supabaseUrl}/functions/v1/customer-confirmation`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${supabaseAnonKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          leadId: data.id,
-          method: "whatsapp",
-          autoPublishHours: 24,
-        }),
-      });
-
       // Send SMS confirmation
-      const smsPromise = fetch(`${supabaseUrl}/functions/v1/customer-confirmation`, {
+      const smsResponse = await fetch(`${supabaseUrl}/functions/v1/customer-confirmation`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${supabaseAnonKey}`,
@@ -457,29 +443,21 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           leadId: data.id,
-          method: "sms",
           autoPublishHours: 24,
         }),
       });
 
-      // Execute both in parallel
-      const [whatsappResponse, smsResponse] = await Promise.all([whatsappPromise, smsPromise]);
-      
-      const whatsappResult = await whatsappResponse.json();
       const smsResult = await smsResponse.json();
-      
-      const whatsappOk = whatsappResponse.ok;
       const smsOk = smsResponse.ok;
       
-      console.log("[SUBMIT-CLEANING] Confirmation messages triggered:", { 
+      console.log("[SUBMIT-CLEANING] Confirmation SMS triggered:", { 
         leadId: data.id, 
-        whatsapp: whatsappOk ? "sent" : whatsappResult.error,
         sms: smsOk ? "sent" : smsResult.error,
       });
       
-      // If BOTH confirmations failed, update lead status to confirmation_failed
-      if (!whatsappOk && !smsOk) {
-        console.error("[SUBMIT-CLEANING] Both confirmations failed, marking lead as confirmation_failed");
+      // If SMS confirmation failed, update lead status to confirmation_failed
+      if (!smsOk) {
+        console.error("[SUBMIT-CLEANING] SMS confirmation failed, marking lead as confirmation_failed");
         await supabase
           .from("leads")
           .update({ lead_status: "confirmation_failed" })

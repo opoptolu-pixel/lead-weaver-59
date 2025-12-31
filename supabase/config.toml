@@ -21,13 +21,7 @@ verify_jwt = false
 [functions.use-credit]
 verify_jwt = false
 
-[functions.send-whatsapp]
-verify_jwt = false
-
 [functions.send-verification-code]
-verify_jwt = false
-
-[functions.verify-phone-code]
 verify_jwt = false
 
 [functions.search-uk-locations]
@@ -76,9 +70,6 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.insurance-expiry-reminder]
-verify_jwt = false
-
-[functions.test-whatsapp]
 verify_jwt = false
 
 [functions.sync-google-ads]

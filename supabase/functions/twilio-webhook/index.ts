@@ -29,14 +29,14 @@ serve(async (req) => {
     const body = formData.get("Body") as string;
     const messageSid = formData.get("MessageSid") as string;
 
-    logStep("Received webhook", { from, body, messageSid });
+    logStep("Received SMS webhook", { from, body, messageSid });
 
     if (!from || !body) {
       throw new Error("Missing required fields: From or Body");
     }
 
-    // Normalize phone number (remove whatsapp: prefix and +)
-    const normalizedPhone = from.replace("whatsapp:", "").replace("+", "");
+    // Normalize phone number (remove + sign)
+    const normalizedPhone = from.replace("+", "");
     
     // Find lead with this phone number that's pending confirmation
     const { data: leads, error: searchError } = await supabase
@@ -147,6 +147,7 @@ serve(async (req) => {
         new_status: newStatus,
         customer_response: body,
         is_positive: isPositive,
+        method: "sms",
       },
     });
 
