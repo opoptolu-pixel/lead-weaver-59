@@ -16,6 +16,51 @@ interface SMSNotificationRequest {
   userId?: string;
 }
 
+interface PostcodeCoords {
+  latitude: number;
+  longitude: number;
+}
+
+const MAX_DISTANCE_MILES = 30;
+
+// Get coordinates for a UK postcode using postcodes.io
+async function getPostcodeCoords(postcode: string): Promise<PostcodeCoords | null> {
+  try {
+    const cleanPostcode = postcode.replace(/\s+/g, "").toUpperCase();
+    const response = await fetch(`https://api.postcodes.io/postcodes/${encodeURIComponent(cleanPostcode)}`);
+    
+    if (!response.ok) {
+      logStep("Postcode lookup failed", { postcode, status: response.status });
+      return null;
+    }
+    
+    const data = await response.json();
+    if (data.status === 200 && data.result) {
+      return {
+        latitude: data.result.latitude,
+        longitude: data.result.longitude,
+      };
+    }
+    return null;
+  } catch (err: any) {
+    logStep("Postcode lookup error", { postcode, error: err.message });
+    return null;
+  }
+}
+
+// Calculate distance between two coordinates using Haversine formula (returns miles)
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 3959; // Earth's radius in miles
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 async function sendSMS(to: string, body: string) {
   const accountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
   const authToken = Deno.env.get("TWILIO_AUTH_TOKEN");
@@ -116,18 +161,26 @@ serve(async (req) => {
     logStep("Lead found", { jobType: lead.job_type, postcode: lead.postcode });
 
     if (type === "new_lead") {
-      // Send to all opted-in users
+      // Get lead coordinates for distance filtering
+      const leadCoords = await getPostcodeCoords(lead.postcode);
+      
+      if (!leadCoords) {
+        logStep("Could not get lead coordinates, skipping location filter", { postcode: lead.postcode });
+      }
+
+      // Send to all opted-in users within distance
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select("*")
-        .eq("whatsapp_optin", true) // Using same opt-in field for SMS
-        .not("phone", "is", null);
+        .eq("whatsapp_optin", true)
+        .not("phone", "is", null)
+        .not("postcode", "is", null);
 
       if (profilesError) {
         throw new Error(`Error fetching profiles: ${profilesError.message}`);
       }
 
-      logStep("Found opted-in users", { count: profiles?.length || 0 });
+      logStep("Found opted-in users with postcodes", { count: profiles?.length || 0 });
 
       const outwardPostcode = getOutwardCode(lead.postcode);
       const cleanValue = extractValue(lead.display_value);
@@ -141,7 +194,35 @@ serve(async (req) => {
 
       const results = [];
       for (const profile of profiles || []) {
-        if (!profile.phone) continue;
+        if (!profile.phone || !profile.postcode) continue;
+
+        // Check distance if we have lead coordinates
+        if (leadCoords) {
+          const cleanerCoords = await getPostcodeCoords(profile.postcode);
+          
+          if (!cleanerCoords) {
+            logStep("Could not get cleaner coordinates, skipping", { userId: profile.user_id, postcode: profile.postcode });
+            results.push({ userId: profile.user_id, status: "skipped", reason: "invalid_postcode" });
+            continue;
+          }
+          
+          const distance = calculateDistance(
+            leadCoords.latitude, leadCoords.longitude,
+            cleanerCoords.latitude, cleanerCoords.longitude
+          );
+          
+          logStep("Distance calculated", { 
+            userId: profile.user_id, 
+            cleanerPostcode: profile.postcode,
+            leadPostcode: lead.postcode,
+            distanceMiles: distance.toFixed(1)
+          });
+          
+          if (distance > MAX_DISTANCE_MILES) {
+            results.push({ userId: profile.user_id, status: "skipped", reason: "too_far", distance: distance.toFixed(1) });
+            continue;
+          }
+        }
 
         try {
           const formattedPhone = formatPhoneNumber(profile.phone);
@@ -152,6 +233,13 @@ serve(async (req) => {
           results.push({ userId: profile.user_id, status: "failed", error: err.message });
         }
       }
+
+      logStep("Notification results summary", {
+        total: results.length,
+        sent: results.filter(r => r.status === "sent").length,
+        skipped: results.filter(r => r.status === "skipped").length,
+        failed: results.filter(r => r.status === "failed").length
+      });
 
       return new Response(JSON.stringify({ success: true, results }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
