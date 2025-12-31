@@ -78,6 +78,25 @@ serve(async (req) => {
         },
       });
 
+      // Send SMS notification to opted-in users about the new lead
+      try {
+        const smsUrl = `${supabaseUrl}/functions/v1/send-sms-notification`;
+        fetch(smsUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${supabaseServiceKey}`,
+          },
+          body: JSON.stringify({
+            type: "new_lead",
+            leadId: lead.id,
+          }),
+        }).catch(err => logStep("SMS notification failed (non-blocking)", { leadId: lead.id, error: err.message }));
+        logStep("SMS notification triggered for new lead", { leadId: lead.id });
+      } catch (smsError: any) {
+        logStep("SMS notification error (non-blocking)", { leadId: lead.id, error: smsError.message });
+      }
+
       logStep("Auto-published lead", { leadId: lead.id });
       results.push({ leadId: lead.id, success: true });
     }
