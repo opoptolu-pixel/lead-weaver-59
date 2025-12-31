@@ -22,6 +22,20 @@ interface CleaningRequest {
   propertyType?: string;
   bedrooms?: string;
   frequency?: string;
+  // UTM tracking fields
+  source?: string;
+  medium?: string;
+  campaign?: string;
+  utmData?: {
+    utm_source: string | null;
+    utm_medium: string | null;
+    utm_campaign: string | null;
+    utm_content: string | null;
+    utm_term: string | null;
+    landing_page: string | null;
+    referrer: string | null;
+    captured_at: string | null;
+  };
 }
 
 // Job Value Bands for Phase 2 Analytics (thresholds in pence)
@@ -336,6 +350,16 @@ serve(async (req) => {
       return pc.toUpperCase();
     };
 
+    // Determine lead source from UTM data or default to website
+    const leadSource = body.source || "website";
+    
+    // Build job notes with UTM context if available
+    let jobNotes = body.jobDescription || null;
+    if (body.utmData && body.campaign) {
+      const campaignNote = `[Campaign: ${body.campaign}]`;
+      jobNotes = jobNotes ? `${campaignNote} ${jobNotes}` : campaignNote;
+    }
+
     // Insert lead into database with enhanced metadata
     const { data, error } = await supabase.from("leads").insert({
       customer_name: body.customerName,
@@ -347,10 +371,10 @@ serve(async (req) => {
       date: body.preferredDate,
       display_value: displayValue,
       value: value,
-      source: "website",
+      source: leadSource,
       lead_status: leadStatus,
       outcome_status: "pending",
-      job_notes: body.jobDescription || null,
+      job_notes: jobNotes,
       admin_notes: adminNotes,
       quality_score: phase === 2 ? 80 : 70, // Phase 2 jobs get higher quality score
       property_type: body.propertyType || null,
@@ -384,7 +408,7 @@ serve(async (req) => {
       console.error("[SUBMIT-CLEANING] Failed to add subscriber (non-blocking):", subError);
     }
 
-    // Enhanced logging for analytics
+    // Enhanced logging for analytics with UTM data
     console.log("Lead created:", {
       id: data.id,
       jobType: body.jobType,
@@ -393,9 +417,12 @@ serve(async (req) => {
       phase: phase,
       category: category,
       postcode: body.postcode.toUpperCase(),
+      source: leadSource,
+      medium: body.medium || null,
+      campaign: body.campaign || null,
     });
 
-    // Log lead creation to activity_logs
+    // Log lead creation to activity_logs with UTM attribution
     try {
       await supabase.from("activity_logs").insert({
         user_id: "00000000-0000-0000-0000-000000000000", // System user for customer-initiated actions
@@ -408,12 +435,15 @@ serve(async (req) => {
           postcode: formatPostcode(body.postcode),
           value: value,
           display_value: displayValue,
-          source: "website",
+          source: leadSource,
+          medium: body.medium || null,
+          campaign: body.campaign || null,
           phase: phase,
           category: category,
+          utm_data: body.utmData || null,
         },
       });
-      console.log("[SUBMIT-CLEANING] Lead creation logged to activity_logs");
+      console.log("[SUBMIT-CLEANING] Lead creation logged to activity_logs with attribution");
     } catch (activityError) {
       console.error("[SUBMIT-CLEANING] Failed to log activity (non-blocking):", activityError);
     }

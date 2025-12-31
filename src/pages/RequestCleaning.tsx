@@ -31,6 +31,7 @@ import { Footer } from "@/components/Footer";
 import { cn } from "@/lib/utils";
 import { SEOHead } from "@/components/SEOHead";
 import { trackCleaningRequest, trackFormStep } from "@/lib/analytics";
+import { useUtmTracking, getLeadSource } from "@/hooks/useUtmTracking";
 
 // Phase 1 + Phase 2 Job Types - Bundled jobs that exceed £100
 const cleaningTypes = [
@@ -97,6 +98,9 @@ const isValidPostcodePrefix = (postcode: string): boolean => {
 export default function RequestCleaning() {
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // Initialize UTM tracking for attribution
+  useUtmTracking();
   
   // Initialize state directly from location.state - runs once before first render
   const [currentStep, setCurrentStep] = useState(() => {
@@ -196,6 +200,9 @@ export default function RequestCleaning() {
         return;
       }
 
+      // Get lead source attribution data
+      const leadSourceData = getLeadSource();
+
       const { data, error } = await supabase.functions.invoke("submit-cleaning-request", {
         body: {
           ...formData,
@@ -205,6 +212,11 @@ export default function RequestCleaning() {
           estimatedValue: formData.jobValue,
           propertyType: formData.propertyType === "other" ? formData.propertyTypeOther : formData.propertyType,
           bedrooms: formData.propertyType === "commercial" ? null : (formData.bedrooms === "other" ? formData.bedroomsOther : formData.bedrooms),
+          // UTM tracking data
+          source: leadSourceData.source,
+          medium: leadSourceData.medium,
+          campaign: leadSourceData.campaign,
+          utmData: leadSourceData.utm_data,
         },
       });
 
@@ -218,6 +230,7 @@ export default function RequestCleaning() {
           jobType: formData.jobType,
           postcode: formData.postcode,
           estimatedValue: formData.jobValue,
+          source: leadSourceData.source,
         }
       });
     } catch (error: any) {
