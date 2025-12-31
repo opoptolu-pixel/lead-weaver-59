@@ -106,11 +106,9 @@ serve(async (req) => {
       logStep("Found opted-in users", { count: profiles?.length || 0 });
 
       // Template variables for cleanda_new_lead:
-      // {{1}} = postcode/area
-      // {{2}} = job type
-      // {{3}} = estimated value
-      // {{4}} = dashboard URL
-      const dashboardUrl = "https://cleanda.co.uk/dashboard";
+      // {{1}} = postcode (e.g., SW1A 1AA)
+      // {{2}} = job type (e.g., Regular Cleaning)
+      // {{3}} = value (e.g., £120)
       
       const messages = [];
       for (const profile of profiles || []) {
@@ -120,7 +118,6 @@ serve(async (req) => {
           "1": lead.postcode || "Unknown",
           "2": lead.job_type || "Cleaning",
           "3": lead.display_value || "Contact for quote",
-          "4": dashboardUrl,
         };
 
         try {
@@ -160,13 +157,13 @@ serve(async (req) => {
       }
 
       // Template variables for cleanda_lead_unlocked:
-      // {{1}} = postcode/area
-      // {{2}} = customer name
-      // {{3}} = customer email
-      // {{4}} = customer address
+      // {{1}} = customer name (e.g., John Smith)
+      // {{2}} = customer phone (e.g., 07700 900123)
+      // {{3}} = customer email (e.g., john@example.com)
+      // {{4}} = customer address (e.g., 123 Main Street, London)
       const contentVariables = {
-        "1": lead.postcode || "Unknown",
-        "2": lead.customer_name || "Customer",
+        "1": lead.customer_name || "Customer",
+        "2": lead.customer_phone || "Not provided",
         "3": lead.customer_email || "Not provided",
         "4": lead.customer_address || "Contact for address",
       };
