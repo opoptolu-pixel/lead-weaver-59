@@ -23,6 +23,7 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import KPICard from "@/components/admin/KPICard";
 import QueueWidget from "@/components/admin/QueueWidget";
 import LiveCheckoutsPanel from "@/components/admin/LiveCheckoutsPanel";
+import SourceBreakdownChart from "@/components/admin/SourceBreakdownChart";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdmin } from "@/contexts/AdminContext";
@@ -928,6 +929,11 @@ export default function AdminOverview() {
             ))}
           </div>
         </div>
+      </div>
+
+      {/* Source Breakdown Chart */}
+      <div className="mb-8">
+        <SourceBreakdownChart />
       </div>
 
       {/* Charts Row 2 */}
