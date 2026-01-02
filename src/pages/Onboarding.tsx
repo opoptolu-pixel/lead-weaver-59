@@ -146,6 +146,16 @@ export default function Onboarding() {
         },
       });
 
+      // Add to email_subscribers if new business signup
+      if (isNewBusiness && user.email) {
+        await supabase.from("email_subscribers").insert({
+          email: user.email,
+          name: data.contactName.trim() || data.businessName.trim(),
+          source: "business_signup",
+          source_id: user.id,
+        }).select().maybeSingle(); // Ignore if already exists
+      }
+
       await refreshProfile();
       toast.success("Welcome to Cleanda! Your profile is set up.");
       navigate("/dashboard");
