@@ -255,16 +255,6 @@ const LeadsScrollContainer = ({
                     />
                   );
                 }
-              {(() => {
-                const reservation = getLeadReservation(lead.id);
-                if (reservation) {
-                  return (
-                    <ReservedCountdown 
-                      expiresAt={reservation.expiresAt} 
-                      onExpired={onReservationExpired}
-                    />
-                  );
-                }
                 if (isSuspended) {
                   return (
                     <Button 
