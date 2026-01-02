@@ -86,12 +86,20 @@ interface SourceStats {
   active: number;
 }
 
-type SourceGroup = "all" | "cleaning_request" | "business_inquiry" | "contact_form";
+type SourceGroup = "all" | "cleaning_request" | "business" | "contact_form";
+
+// Map source groups to actual database source values
+const SOURCE_GROUP_VALUES: Record<SourceGroup, string[]> = {
+  all: [],
+  cleaning_request: ["cleaning_request"],
+  business: ["business_inquiry", "business_signup"],
+  contact_form: ["contact_form"],
+};
 
 const SOURCE_CONFIG: Record<SourceGroup, { label: string; icon: React.ReactNode; color: string }> = {
   all: { label: "All Subscribers", icon: <Users className="h-4 w-4" />, color: "" },
   cleaning_request: { label: "Cleaning Customers", icon: <Home className="h-4 w-4" />, color: "text-green-600" },
-  business_inquiry: { label: "Businesses", icon: <Building2 className="h-4 w-4" />, color: "text-purple-600" },
+  business: { label: "Businesses", icon: <Building2 className="h-4 w-4" />, color: "text-purple-600" },
   contact_form: { label: "General Enquiries", icon: <MessageSquare className="h-4 w-4" />, color: "text-blue-600" },
 };
 
@@ -107,7 +115,7 @@ export default function AdminEmailSubscribers() {
   const [stats, setStats] = useState<Record<SourceGroup, SourceStats>>({
     all: { total: 0, active: 0 },
     cleaning_request: { total: 0, active: 0 },
-    business_inquiry: { total: 0, active: 0 },
+    business: { total: 0, active: 0 },
     contact_form: { total: 0, active: 0 },
   });
   const [toggleSubscriber, setToggleSubscriber] = useState<EmailSubscriber | null>(null);
@@ -132,8 +140,14 @@ export default function AdminEmailSubscribers() {
         query = query.or(`email.ilike.%${searchQuery}%,name.ilike.%${searchQuery}%`);
       }
 
+      // Filter by source group (may include multiple actual sources)
       if (activeTab !== "all") {
-        query = query.eq("source", activeTab);
+        const sourceValues = SOURCE_GROUP_VALUES[activeTab];
+        if (sourceValues.length === 1) {
+          query = query.eq("source", sourceValues[0]);
+        } else if (sourceValues.length > 1) {
+          query = query.in("source", sourceValues);
+        }
       }
 
       if (statusFilter === "active") {
@@ -163,7 +177,7 @@ export default function AdminEmailSubscribers() {
 
   const fetchStats = async () => {
     try {
-      const sources: SourceGroup[] = ["all", "cleaning_request", "business_inquiry", "contact_form"];
+      const sources: SourceGroup[] = ["all", "cleaning_request", "business", "contact_form"];
       const newStats: Record<SourceGroup, SourceStats> = {} as any;
 
       for (const source of sources) {
@@ -171,8 +185,14 @@ export default function AdminEmailSubscribers() {
         let activeQuery = supabase.from("email_subscribers").select("*", { count: "exact", head: true }).eq("is_active", true);
 
         if (source !== "all") {
-          totalQuery = totalQuery.eq("source", source);
-          activeQuery = activeQuery.eq("source", source);
+          const sourceValues = SOURCE_GROUP_VALUES[source];
+          if (sourceValues.length === 1) {
+            totalQuery = totalQuery.eq("source", sourceValues[0]);
+            activeQuery = activeQuery.eq("source", sourceValues[0]);
+          } else if (sourceValues.length > 1) {
+            totalQuery = totalQuery.in("source", sourceValues);
+            activeQuery = activeQuery.in("source", sourceValues);
+          }
         }
 
         const [{ count: total }, { count: active }] = await Promise.all([
@@ -326,18 +346,24 @@ export default function AdminEmailSubscribers() {
   };
 
   const getSourceBadge = (source: string) => {
-    const config = SOURCE_CONFIG[source as SourceGroup];
-    if (!config) return <Badge variant="outline">{source}</Badge>;
+    // Map actual db sources to display labels
+    const sourceLabels: Record<string, string> = {
+      contact_form: "General Enquiry",
+      cleaning_request: "Cleaning Customer",
+      business_inquiry: "Business Inquiry",
+      business_signup: "Business Signup",
+    };
 
     const colors: Record<string, string> = {
       contact_form: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
       cleaning_request: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
       business_inquiry: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
+      business_signup: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
     };
 
     return (
       <Badge variant="outline" className={colors[source] || ""}>
-        {config.label}
+        {sourceLabels[source] || source}
       </Badge>
     );
   };
@@ -428,7 +454,7 @@ export default function AdminEmailSubscribers() {
                 <CardDescription>
                   {activeTab === "all" && "All email subscribers from every source"}
                   {activeTab === "cleaning_request" && "Customers who requested cleaning services"}
-                  {activeTab === "business_inquiry" && "Cleaning businesses who registered interest"}
+                  {activeTab === "business" && "Cleaning businesses who registered interest or created accounts"}
                   {activeTab === "contact_form" && "General contact form submissions"}
                 </CardDescription>
               </CardHeader>

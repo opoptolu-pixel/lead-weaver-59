@@ -22,16 +22,25 @@ export const RegistrationForm = () => {
     setIsSubmitting(true);
 
     try {
-      const { error } = await supabase.from("business_inquiries").insert({
+      // Insert into business_inquiries
+      const { data: inquiry, error } = await supabase.from("business_inquiries").insert({
         business_name: "Inquiry - Learn More",
         contact_name: formData.contactName,
         postcode: "N/A",
         phone: formData.phone,
         email: formData.email,
         whatsapp_optin: formData.whatsappOptIn,
-      });
+      }).select('id').single();
 
       if (error) throw error;
+
+      // Also add to email_subscribers for marketing campaigns
+      await supabase.from("email_subscribers").insert({
+        email: formData.email,
+        name: formData.contactName,
+        source: "business_inquiry",
+        source_id: inquiry?.id,
+      }).select().maybeSingle(); // Ignore if already exists
 
       // Track as enquiry (not lead)
       trackEnquiry({ source: 'business_enquiry' });
