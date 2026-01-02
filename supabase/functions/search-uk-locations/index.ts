@@ -349,7 +349,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Also try place name search
+    // Also try place name search - this is the FALLBACK for cities/towns not in the map
     const placeResponse = await fetch(
       `https://api.postcodes.io/places?q=${encodeURIComponent(query)}&limit=5`
     );
@@ -366,10 +366,23 @@ Deno.serve(async (req) => {
           });
           
           // Extract postcode prefix from outcode for filtering leads
-          // e.g., "NG34" -> "NG34", "NG" -> "NG"
+          // e.g., "RM14" -> "RM", "NG34" -> "NG"
           if (outcode) {
+            // Extract the alphabetic prefix (e.g., "RM" from "RM14", "SW" from "SW1A")
+            const prefixMatch = outcode.match(/^([A-Z]{1,2})/);
+            if (prefixMatch) {
+              matchedPrefixes.push(prefixMatch[1]);
+            }
+            // Also add the full outcode for more precise matching
             matchedPrefixes.push(outcode);
           }
+        }
+        
+        // If no city was matched from the map but we got place results, 
+        // set matchedCity from the first place result for better UX
+        if (!matchedCity && placeData.result.length > 0) {
+          matchedCity = placeData.result[0].name_1?.toLowerCase() || null;
+          console.log(`Fallback: Matched city "${matchedCity}" via postcodes.io places API`);
         }
       }
     }
