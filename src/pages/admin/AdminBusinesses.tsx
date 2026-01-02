@@ -324,8 +324,10 @@ export default function AdminBusinesses() {
 
         if (template) {
           const variables: Record<string, string> = {
-            business_name: suspendingBusiness.business_name || suspendingBusiness.contact_name || "Partner",
+            business_name: suspendingBusiness.business_name || "Partner",
+            contact_name: suspendingBusiness.contact_name || "there",
             suspension_reason: reason,
+            support_email: "hello@cleanda.co.uk",
             current_year: new Date().getFullYear().toString(),
           };
 
