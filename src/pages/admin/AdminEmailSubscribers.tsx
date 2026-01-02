@@ -225,7 +225,12 @@ export default function AdminEmailSubscribers() {
         .order("created_at", { ascending: false });
 
       if (activeTab !== "all") {
-        query = query.eq("source", activeTab);
+        const sourceValues = SOURCE_GROUP_VALUES[activeTab];
+        if (sourceValues.length === 1) {
+          query = query.eq("source", sourceValues[0]);
+        } else if (sourceValues.length > 1) {
+          query = query.in("source", sourceValues);
+        }
       }
 
       if (statusFilter === "active") {
