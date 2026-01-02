@@ -60,6 +60,7 @@ interface LeadsScrollContainerProps {
   isSearchActive?: boolean;
   getLeadReservation: (leadId: string) => LeadReservationInfo | null;
   onReservationExpired?: () => void;
+  isSuspended?: boolean;
 }
 
 const INITIAL_VISIBLE_COUNT = 10;
@@ -78,6 +79,7 @@ const LeadsScrollContainer = ({
   isSearchActive = false,
   getLeadReservation,
   onReservationExpired,
+  isSuspended = false,
 }: LeadsScrollContainerProps) => {
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_COUNT);
   
@@ -159,6 +161,19 @@ const LeadsScrollContainer = ({
                         />
                       );
                     }
+                    if (isSuspended) {
+                      return (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="gap-2 cursor-not-allowed opacity-50"
+                          disabled
+                        >
+                          <AlertCircle className="w-4 h-4" />
+                          Suspended
+                        </Button>
+                      );
+                    }
                     return userCredits > 0 ? (
                       <Button 
                         variant="cta" 
@@ -238,6 +253,28 @@ const LeadsScrollContainer = ({
                       expiresAt={reservation.expiresAt} 
                       onExpired={onReservationExpired}
                     />
+                  );
+                }
+              {(() => {
+                const reservation = getLeadReservation(lead.id);
+                if (reservation) {
+                  return (
+                    <ReservedCountdown 
+                      expiresAt={reservation.expiresAt} 
+                      onExpired={onReservationExpired}
+                    />
+                  );
+                }
+                if (isSuspended) {
+                  return (
+                    <Button 
+                      variant="outline" 
+                      className="w-full gap-2 cursor-not-allowed opacity-50"
+                      disabled
+                    >
+                      <AlertCircle className="w-4 h-4" />
+                      Account Suspended
+                    </Button>
                   );
                 }
                 return userCredits > 0 ? (
@@ -851,6 +888,23 @@ export default function Leads() {
 
       {/* Page Content */}
       <main className="container mx-auto px-4 py-12">
+        {/* Suspension Banner */}
+        {profile?.is_suspended && (
+          <div className="mb-8 bg-destructive/10 border border-destructive rounded-xl p-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-6 h-6 text-destructive flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-destructive">Account Suspended</h3>
+                <p className="text-sm text-destructive/80 mt-1">
+                  Your account has been suspended{profile.suspension_reason ? ` for: ${profile.suspension_reason}` : ''}. 
+                  You cannot purchase leads until this is resolved. Please contact support at{' '}
+                  <a href="mailto:hello@cleanda.co.uk" className="underline font-medium">hello@cleanda.co.uk</a>
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="text-center mb-8">
           <span className="inline-block text-secondary font-semibold text-sm uppercase tracking-wider mb-4">
             Available Leads
@@ -1072,6 +1126,7 @@ export default function Leads() {
               return reservation ? { expiresAt: reservation.expiresAt, reservedByMe: reservation.reservedByMe } : null;
             }}
             onReservationExpired={() => fetchReservations(leads.map(l => l.id))}
+            isSuspended={profile?.is_suspended || false}
           />
         )}
 
