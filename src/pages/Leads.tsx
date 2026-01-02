@@ -644,17 +644,44 @@ export default function Leads() {
         throw new Error("Please sign in to use credits");
       }
 
-      const { data, error } = await supabase.functions.invoke("use-credit", {
+      const response = await supabase.functions.invoke("use-credit", {
         body: { leadId, visitorId },
       });
 
-      if (error) throw error;
-      if (data.error) throw new Error(data.error);
+      // Handle error responses (including 403 for suspended accounts)
+      if (response.error) {
+        // Try to parse error details from the response
+        const errorBody = response.error.message || response.error;
+        
+        // Check if this is a FunctionsHttpError with context
+        if (response.error.context?.body) {
+          try {
+            const parsedBody = JSON.parse(response.error.context.body);
+            if (parsedBody.suspended) {
+              return { suspended: true, error: parsedBody.error };
+            }
+          } catch {
+            // Ignore parse errors
+          }
+        }
+        
+        throw new Error(String(errorBody));
+      }
+      
+      if (response.data?.error) {
+        if (response.data.suspended) {
+          return { suspended: true, error: response.data.error };
+        }
+        throw new Error(response.data.error);
+      }
 
-      return data;
+      return response.data;
     });
 
     if (!result.success) {
+      // Clear checkout countdown on any error
+      releaseLead();
+      
       // Show user-friendly error message
       const errorMessage = result.error || "Failed to unlock lead";
       const isSuspended = result.data?.suspended || errorMessage.toLowerCase().includes("suspend");
@@ -663,7 +690,7 @@ export default function Leads() {
         toast.error(
           <div>
             <strong>Account Suspended</strong>
-            <p className="text-sm mt-1">Your account has been suspended. Please contact support at hello@cleanda.co.uk for assistance.</p>
+            <p className="text-sm mt-1">Your account has been suspended. You cannot purchase leads until this is resolved. Please contact support at hello@cleanda.co.uk for assistance.</p>
           </div>,
           { duration: 8000 }
         );
@@ -676,6 +703,20 @@ export default function Leads() {
       } else {
         toast.error(errorMessage);
       }
+      setUsingCreditLeadId(null);
+      return;
+    }
+    
+    // Check if the result indicates suspension (returned from the edge function)
+    if (result.data?.suspended) {
+      releaseLead();
+      toast.error(
+        <div>
+          <strong>Account Suspended</strong>
+          <p className="text-sm mt-1">Your account has been suspended. Please contact support at hello@cleanda.co.uk for assistance.</p>
+        </div>,
+        { duration: 8000 }
+      );
       setUsingCreditLeadId(null);
       return;
     }
