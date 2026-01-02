@@ -657,10 +657,16 @@ export default function Leads() {
     if (!result.success) {
       // Show user-friendly error message
       const errorMessage = result.error || "Failed to unlock lead";
-      if (errorMessage.toLowerCase().includes("suspend")) {
-        toast.error("Your account has been suspended. Please contact support for assistance.", {
-          duration: 6000,
-        });
+      const isSuspended = result.data?.suspended || errorMessage.toLowerCase().includes("suspend");
+      
+      if (isSuspended) {
+        toast.error(
+          <div>
+            <strong>Account Suspended</strong>
+            <p className="text-sm mt-1">Your account has been suspended. Please contact support at hello@cleanda.co.uk for assistance.</p>
+          </div>,
+          { duration: 8000 }
+        );
       } else if (errorMessage.toLowerCase().includes("verification") || errorMessage.toLowerCase().includes("verified")) {
         toast.error(errorMessage, { duration: 6000 });
       } else if (errorMessage.toLowerCase().includes("credit")) {
