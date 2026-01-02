@@ -53,6 +53,7 @@ import AdminAccounting from "./pages/admin/AdminAccounting";
 import AdminContactSubmissions from "./pages/admin/AdminContactSubmissions";
 import AdminEmailSubscribers from "./pages/admin/AdminEmailSubscribers";
 import AdminLiveData from "./pages/admin/AdminLiveData";
+import AdminUtmBuilder from "./pages/admin/AdminUtmBuilder";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -108,6 +109,7 @@ const App = () => (
                 <Route path="/admin/disputes" element={<AdminDisputes />} />
                 <Route path="/admin/fraud" element={<AdminFraud />} />
                 <Route path="/admin/analytics" element={<AdminAnalytics />} />
+                <Route path="/admin/utm-builder" element={<AdminUtmBuilder />} />
                 <Route path="/admin/activity-logs" element={<AdminActivityLogs />} />
                 <Route path="/admin/settings" element={<AdminSettings />} />
                 <Route path="/admin/email-templates" element={<AdminEmailTemplates />} />

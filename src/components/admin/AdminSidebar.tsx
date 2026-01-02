@@ -17,6 +17,7 @@ import {
   PoundSterling,
   MessageSquare,
   X,
+  Link2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,7 @@ const navItems = [
   { title: "Disputes", url: "/admin/disputes", icon: AlertTriangle },
   { title: "Fraud & Risk", url: "/admin/fraud", icon: ShieldAlert },
   { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
+  { title: "UTM Builder", url: "/admin/utm-builder", icon: Link2 },
   { title: "Email Templates", url: "/admin/email-templates", icon: Mail },
   { title: "Subscribers", url: "/admin/subscribers", icon: Users },
   { title: "Activity Logs", url: "/admin/activity-logs", icon: Activity },
