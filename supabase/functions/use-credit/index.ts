@@ -78,6 +78,27 @@ serve(async (req) => {
       });
     }
 
+    // Check if user account is suspended BEFORE any reservation or atomic operations
+    const { data: profileCheck, error: profileCheckError } = await supabaseClient
+      .from("profiles")
+      .select("is_suspended, suspension_reason")
+      .eq("user_id", user.id)
+      .single();
+
+    if (!profileCheckError && profileCheck?.is_suspended) {
+      logStep("Account suspended - blocking purchase", { 
+        reason: profileCheck.suspension_reason 
+      });
+      return new Response(JSON.stringify({ 
+        error: "Your account has been suspended. You cannot purchase leads until this is resolved. Please contact support at hello@cleanda.co.uk",
+        suspended: true,
+        reason: profileCheck.suspension_reason
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 403,
+      });
+    }
+
     // Additional stricter rate limiting for lead unlocking specifically
     const { data: strictRateLimit, error: strictRateLimitError } = await supabaseClient
       .rpc("enforce_lead_unlock_rate_limit", { p_user_id: user.id });
