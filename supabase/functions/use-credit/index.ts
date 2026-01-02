@@ -150,7 +150,21 @@ serve(async (req) => {
 
     if (!atomicResult.success) {
       logStep("Atomic operation failed", { error: atomicResult.error_message });
-      throw new Error(atomicResult.error_message || "Failed to process credit");
+      // Return a more user-friendly response for suspended accounts
+      const errorMessage = atomicResult.error_message || "Failed to process credit";
+      
+      // Check if this is a suspension error and return 403 instead of 500
+      if (errorMessage.toLowerCase().includes('suspended')) {
+        return new Response(JSON.stringify({ 
+          error: "Your account has been suspended. You cannot purchase leads until this is resolved. Please contact support at hello@cleanda.co.uk",
+          suspended: true
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 403,
+        });
+      }
+      
+      throw new Error(errorMessage);
     }
 
     logStep("Credit deducted atomically", { remainingCredits: atomicResult.remaining_credits });

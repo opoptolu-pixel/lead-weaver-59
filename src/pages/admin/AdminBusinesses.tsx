@@ -387,7 +387,9 @@ export default function AdminBusinesses() {
 
         if (template) {
           const variables: Record<string, string> = {
-            business_name: business.business_name || business.contact_name || "Partner",
+            business_name: business.business_name || "Partner",
+            contact_name: business.contact_name || "there",
+            support_email: "hello@cleanda.co.uk",
             current_year: new Date().getFullYear().toString(),
           };
 

@@ -261,6 +261,7 @@ export default function AdminVerifications() {
             admin_notes: adminNotes || "",
             dashboard_url: "https://cleanda.co.uk/dashboard",
             verification_url: "https://cleanda.co.uk/settings/verification",
+            support_email: "hello@cleanda.co.uk",
             current_year: currentYear,
           });
 
@@ -347,6 +348,7 @@ export default function AdminVerifications() {
             rejection_reason: adminNotes,
             dashboard_url: "https://cleanda.co.uk/dashboard",
             verification_url: "https://cleanda.co.uk/settings/verification",
+            support_email: "hello@cleanda.co.uk",
             current_year: currentYear,
           });
 
