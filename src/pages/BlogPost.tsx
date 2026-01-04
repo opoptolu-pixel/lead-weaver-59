@@ -163,10 +163,10 @@ const BlogPost = () => {
       </section>
 
       <main className="container mx-auto px-4 py-12">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           {/* Article Content */}
-          <article className="prose prose-lg max-w-none prose-headings:font-heading prose-headings:font-bold prose-h2:text-2xl prose-h2:mt-12 prose-h2:mb-6 prose-h3:text-xl prose-h3:mt-10 prose-h3:mb-4 prose-p:text-muted-foreground prose-p:leading-loose prose-p:mb-6 prose-li:text-muted-foreground prose-li:leading-relaxed prose-li:mb-2 prose-strong:text-foreground prose-ul:my-6 prose-ul:space-y-2 prose-ol:my-6 prose-ol:space-y-2">
-            <div className="space-y-6" dangerouslySetInnerHTML={{ __html: formatContent(post.content) }} />
+          <article className="blog-content">
+            <div dangerouslySetInnerHTML={{ __html: formatContent(post.content) }} />
           </article>
 
           {/* CTA Box */}
@@ -269,7 +269,6 @@ const BlogPost = () => {
 
 // Helper function to convert markdown-like content to HTML with proper spacing
 function formatContent(content: string): string {
-  // Split content into sections for better paragraph handling
   const lines = content.split('\n');
   let html = '';
   let inList = false;
@@ -278,7 +277,6 @@ function formatContent(content: string): string {
   for (let i = 0; i < lines.length; i++) {
     let line = lines[i].trim();
     
-    // Skip empty lines but use them as paragraph breaks
     if (!line) {
       if (inList) {
         html += listType === 'ul' ? '</ul>' : '</ol>';
@@ -287,13 +285,14 @@ function formatContent(content: string): string {
       continue;
     }
 
-    // Headers
+    // Headers - with proper semantic and visual styling
     if (line.startsWith('### ')) {
       if (inList) {
         html += listType === 'ul' ? '</ul>' : '</ol>';
         inList = false;
       }
-      html += `<h3 class="mt-10 mb-4">${line.substring(4)}</h3>`;
+      const headerText = line.substring(4).replace(/\*\*(.+?)\*\*/g, '$1');
+      html += `<h3>${headerText}</h3>`;
       continue;
     }
     if (line.startsWith('## ')) {
@@ -301,32 +300,35 @@ function formatContent(content: string): string {
         html += listType === 'ul' ? '</ul>' : '</ol>';
         inList = false;
       }
-      html += `<h2 class="mt-12 mb-6">${line.substring(3)}</h2>`;
+      const headerText = line.substring(3).replace(/\*\*(.+?)\*\*/g, '$1');
+      html += `<h2>${headerText}</h2>`;
       continue;
     }
 
     // Bold text
     line = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
 
-    // Unordered list items
+    // Checkbox list items
     if (line.startsWith('- [ ] ')) {
       if (!inList || listType !== 'ul') {
         if (inList) html += listType === 'ul' ? '</ul>' : '</ol>';
-        html += '<ul class="space-y-3 my-6">';
+        html += '<ul class="checklist">';
         inList = true;
         listType = 'ul';
       }
-      html += `<li class="flex items-start gap-3 leading-relaxed"><input type="checkbox" disabled class="mt-1.5 flex-shrink-0" /><span>${line.substring(6)}</span></li>`;
+      html += `<li><span class="checkbox">☐</span><span>${line.substring(6)}</span></li>`;
       continue;
     }
+    
+    // Unordered list items
     if (line.startsWith('- ')) {
       if (!inList || listType !== 'ul') {
         if (inList) html += listType === 'ul' ? '</ul>' : '</ol>';
-        html += '<ul class="space-y-3 my-6">';
+        html += '<ul>';
         inList = true;
         listType = 'ul';
       }
-      html += `<li class="leading-relaxed pl-2">${line.substring(2)}</li>`;
+      html += `<li>${line.substring(2)}</li>`;
       continue;
     }
 
@@ -335,11 +337,11 @@ function formatContent(content: string): string {
     if (orderedMatch) {
       if (!inList || listType !== 'ol') {
         if (inList) html += listType === 'ul' ? '</ul>' : '</ol>';
-        html += '<ol class="space-y-3 my-6 list-decimal list-inside">';
+        html += '<ol>';
         inList = true;
         listType = 'ol';
       }
-      html += `<li class="leading-relaxed pl-2">${orderedMatch[2]}</li>`;
+      html += `<li>${orderedMatch[2]}</li>`;
       continue;
     }
 
@@ -348,10 +350,9 @@ function formatContent(content: string): string {
       html += listType === 'ul' ? '</ul>' : '</ol>';
       inList = false;
     }
-    html += `<p class="leading-loose mb-6">${line}</p>`;
+    html += `<p>${line}</p>`;
   }
 
-  // Close any remaining list
   if (inList) {
     html += listType === 'ul' ? '</ul>' : '</ol>';
   }
