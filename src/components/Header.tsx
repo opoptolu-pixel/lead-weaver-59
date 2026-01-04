@@ -11,6 +11,9 @@ export const Header = () => {
   const { user } = useAuth();
   const location = useLocation();
   const isForCleanersPage = location.pathname === "/for-cleaners";
+  
+  // Pages with dark hero sections that can use transparent header
+  const hasDarkHero = location.pathname === "/" || location.pathname === "/for-cleaners";
 
   useEffect(() => {
     const handleScroll = () => {
@@ -38,7 +41,7 @@ export const Header = () => {
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled
+        isScrolled || !hasDarkHero
           ? "bg-primary/95 backdrop-blur-md shadow-card border-b border-primary/20"
           : "bg-transparent"
       }`}
