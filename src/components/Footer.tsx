@@ -3,6 +3,7 @@ import { Mail, Phone, MapPin, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
+import { useObfuscatedEmail } from "@/components/ObfuscatedEmail";
 
 interface FooterProps {
   hideCta?: boolean;
@@ -11,6 +12,7 @@ interface FooterProps {
 
 export const Footer = forwardRef<HTMLElement, FooterProps>(({ hideCta = false, variant = 'customer' }, ref) => {
   const currentYear = new Date().getFullYear();
+  const email = useObfuscatedEmail();
 
   return (
     <footer ref={ref} className="bg-primary text-primary-foreground relative overflow-hidden">
@@ -76,11 +78,11 @@ export const Footer = forwardRef<HTMLElement, FooterProps>(({ hideCta = false, v
               Get free quotes from verified local cleaning partners across the UK.
             </p>
             <div className="space-y-3 mb-6">
-              <a href="mailto:hello@cleanda.co.uk" className="flex items-center gap-3 text-sm text-primary-foreground/70 hover:text-secondary transition-colors group">
+              <a href={email ? `mailto:${email}` : "#"} className="flex items-center gap-3 text-sm text-primary-foreground/70 hover:text-secondary transition-colors group">
                 <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center transition-colors group-hover:bg-secondary">
                   <Mail className="w-5 h-5" />
                 </div>
-                <span>hello@cleanda.co.uk</span>
+                <span>{email || "Loading..."}</span>
               </a>
               <a href="tel:07757188197" className="flex items-center gap-3 text-sm text-primary-foreground/70 hover:text-secondary transition-colors group">
                 <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center transition-colors group-hover:bg-secondary">
