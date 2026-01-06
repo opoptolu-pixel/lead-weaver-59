@@ -17,13 +17,17 @@
     
     <!-- Microsoft Clarity Analytics - loaded conditionally via React component -->
     
-    <!-- Google Analytics 4 -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-DECLEHV54G"></script>
+    <!-- Google Analytics 4 - deferred for better performance -->
+    <script async defer src="https://www.googletagmanager.com/gtag/js?id=G-DECLEHV54G"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-      gtag('config', 'G-DECLEHV54G');
+      gtag('config', 'G-DECLEHV54G', { 'send_page_view': false });
+      // Defer page view until after load
+      window.addEventListener('load', function() {
+        setTimeout(function() { gtag('event', 'page_view'); }, 100);
+      });
     </script>
     
     <!-- Geo Tags for UK targeting -->
@@ -49,6 +53,15 @@
     <meta name="twitter:title" content="Find Trusted Cleaners Near You | Free Quotes | Cleanda" />
     <meta name="twitter:description" content="Get free quotes from verified local cleaners in the UK. Compare prices for deep cleaning, end of tenancy, carpet cleaning & more." />
     <meta name="twitter:image" content="https://cleanda.co.uk/og-image.png" />
+    
+    <!-- Preconnect to critical origins for faster loading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://www.googletagmanager.com" />
+    
+    <!-- Preload critical fonts with display=swap for better FCP -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" /></noscript>
     
     <!-- Favicons -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />

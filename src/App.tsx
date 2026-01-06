@@ -1,3 +1,4 @@
+import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,47 +14,55 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { AdminProvider } from "@/contexts/AdminContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
+import { PageLoader } from "@/components/PageLoader";
+
+// Critical routes - loaded immediately
 import Index from "./pages/Index";
-import Leads from "./pages/Leads";
-import Auth from "./pages/Auth";
-import AdminAuth from "./pages/AdminAuth";
-import Dashboard from "./pages/Dashboard";
-import Onboarding from "./pages/Onboarding";
-import Settings from "./pages/Settings";
-import Billing from "./pages/Billing";
-import Verification from "./pages/Verification";
-import PaymentSuccess from "./pages/PaymentSuccess";
-import CreditsSuccess from "./pages/CreditsSuccess";
-import Performance from "./pages/Performance";
-import Disputes from "./pages/Disputes";
-import NotFound from "./pages/NotFound";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import RefundPolicy from "./pages/RefundPolicy";
-import GDPR from "./pages/GDPR";
-import TermsOfUse from "./pages/TermsOfUse";
-import RequestCleaning from "./pages/RequestCleaning";
-import RequestCleaningThankYou from "./pages/RequestCleaningThankYou";
 import ForCleaners from "./pages/ForCleaners";
-import Contact from "./pages/Contact";
-import Blog from "./pages/Blog";
-import BlogPost from "./pages/BlogPost";
-import AdminOverview from "./pages/admin/AdminOverview";
-import AdminLeads from "./pages/admin/AdminLeads";
-import AdminBusinesses from "./pages/admin/AdminBusinesses";
-import AdminVerifications from "./pages/admin/AdminVerifications";
-import AdminPayments from "./pages/admin/AdminPayments";
-import AdminDisputes from "./pages/admin/AdminDisputes";
-import AdminAnalytics from "./pages/admin/AdminAnalytics";
-import AdminSettings from "./pages/admin/AdminSettings";
-import AdminActivityLogs from "./pages/admin/AdminActivityLogs";
-import AdminFraud from "./pages/admin/AdminFraud";
-import AdminInquiries from "./pages/admin/AdminInquiries";
-import AdminEmailTemplates from "./pages/admin/AdminEmailTemplates";
-import AdminAccounting from "./pages/admin/AdminAccounting";
-import AdminContactSubmissions from "./pages/admin/AdminContactSubmissions";
-import AdminEmailSubscribers from "./pages/admin/AdminEmailSubscribers";
-import AdminLiveData from "./pages/admin/AdminLiveData";
-import AdminUtmBuilder from "./pages/admin/AdminUtmBuilder";
+import Auth from "./pages/Auth";
+
+// Lazy loaded routes - loaded on demand
+const Leads = lazy(() => import("./pages/Leads"));
+const AdminAuth = lazy(() => import("./pages/AdminAuth"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Onboarding = lazy(() => import("./pages/Onboarding"));
+const Settings = lazy(() => import("./pages/Settings"));
+const Billing = lazy(() => import("./pages/Billing"));
+const Verification = lazy(() => import("./pages/Verification"));
+const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
+const CreditsSuccess = lazy(() => import("./pages/CreditsSuccess"));
+const Performance = lazy(() => import("./pages/Performance"));
+const Disputes = lazy(() => import("./pages/Disputes"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
+const GDPR = lazy(() => import("./pages/GDPR"));
+const TermsOfUse = lazy(() => import("./pages/TermsOfUse"));
+const RequestCleaning = lazy(() => import("./pages/RequestCleaning"));
+const RequestCleaningThankYou = lazy(() => import("./pages/RequestCleaningThankYou"));
+const Contact = lazy(() => import("./pages/Contact"));
+const Blog = lazy(() => import("./pages/Blog"));
+const BlogPost = lazy(() => import("./pages/BlogPost"));
+
+// Admin routes - lazy loaded
+const AdminOverview = lazy(() => import("./pages/admin/AdminOverview"));
+const AdminLeads = lazy(() => import("./pages/admin/AdminLeads"));
+const AdminBusinesses = lazy(() => import("./pages/admin/AdminBusinesses"));
+const AdminVerifications = lazy(() => import("./pages/admin/AdminVerifications"));
+const AdminPayments = lazy(() => import("./pages/admin/AdminPayments"));
+const AdminDisputes = lazy(() => import("./pages/admin/AdminDisputes"));
+const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
+const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
+const AdminActivityLogs = lazy(() => import("./pages/admin/AdminActivityLogs"));
+const AdminFraud = lazy(() => import("./pages/admin/AdminFraud"));
+const AdminInquiries = lazy(() => import("./pages/admin/AdminInquiries"));
+const AdminEmailTemplates = lazy(() => import("./pages/admin/AdminEmailTemplates"));
+const AdminAccounting = lazy(() => import("./pages/admin/AdminAccounting"));
+const AdminContactSubmissions = lazy(() => import("./pages/admin/AdminContactSubmissions"));
+const AdminEmailSubscribers = lazy(() => import("./pages/admin/AdminEmailSubscribers"));
+const AdminLiveData = lazy(() => import("./pages/admin/AdminLiveData"));
+const AdminUtmBuilder = lazy(() => import("./pages/admin/AdminUtmBuilder"));
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -68,55 +77,64 @@ const App = () => (
           <BackToTop />
           <AuthProvider>
             <AdminProvider>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/leads" element={<Leads />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/onboarding" element={<Onboarding />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/settings/verification" element={<Verification />} />
-                <Route path="/billing" element={<Billing />} />
-                <Route path="/performance" element={<Performance />} />
-                <Route path="/disputes" element={<Disputes />} />
-                <Route path="/payment-success" element={<PaymentSuccess />} />
-                <Route path="/credits-success" element={<CreditsSuccess />} />
-                {/* Customer-facing Pages */}
-                <Route path="/request-cleaning" element={<RequestCleaning />} />
-                <Route path="/request-cleaning/thank-you" element={<RequestCleaningThankYou />} />
-                {/* For Cleaners (Business) */}
-                <Route path="/for-cleaners" element={<ForCleaners />} />
-                {/* Blog */}
-                <Route path="/blog" element={<Blog />} />
-                <Route path="/blog/:slug" element={<BlogPost />} />
-                {/* Legal Pages */}
-                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-                <Route path="/refund-policy" element={<RefundPolicy />} />
-                <Route path="/gdpr" element={<GDPR />} />
-                <Route path="/terms-of-use" element={<TermsOfUse />} />
-                <Route path="/contact" element={<Contact />} />
-                {/* Admin Routes */}
-                <Route path="/admin-login" element={<AdminAuth />} />
-                <Route path="/admin" element={<AdminOverview />} />
-                <Route path="/admin/live" element={<AdminLiveData />} />
-                <Route path="/admin/inquiries" element={<AdminInquiries />} />
-                <Route path="/admin/contact" element={<AdminContactSubmissions />} />
-                <Route path="/admin/leads" element={<AdminLeads />} />
-                <Route path="/admin/businesses" element={<AdminBusinesses />} />
-                <Route path="/admin/verifications" element={<AdminVerifications />} />
-                <Route path="/admin/payments" element={<AdminPayments />} />
-                <Route path="/admin/accounting" element={<AdminAccounting />} />
-                <Route path="/admin/disputes" element={<AdminDisputes />} />
-                <Route path="/admin/fraud" element={<AdminFraud />} />
-                <Route path="/admin/analytics" element={<AdminAnalytics />} />
-                <Route path="/admin/utm-builder" element={<AdminUtmBuilder />} />
-                <Route path="/admin/activity-logs" element={<AdminActivityLogs />} />
-                <Route path="/admin/settings" element={<AdminSettings />} />
-                <Route path="/admin/email-templates" element={<AdminEmailTemplates />} />
-                <Route path="/admin/subscribers" element={<AdminEmailSubscribers />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  {/* Critical routes - not lazy loaded */}
+                  <Route path="/" element={<Index />} />
+                  <Route path="/for-cleaners" element={<ForCleaners />} />
+                  <Route path="/auth" element={<Auth />} />
+                  
+                  {/* Lazy loaded routes */}
+                  <Route path="/leads" element={<Leads />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/onboarding" element={<Onboarding />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/settings/verification" element={<Verification />} />
+                  <Route path="/billing" element={<Billing />} />
+                  <Route path="/performance" element={<Performance />} />
+                  <Route path="/disputes" element={<Disputes />} />
+                  <Route path="/payment-success" element={<PaymentSuccess />} />
+                  <Route path="/credits-success" element={<CreditsSuccess />} />
+                  
+                  {/* Customer-facing Pages */}
+                  <Route path="/request-cleaning" element={<RequestCleaning />} />
+                  <Route path="/request-cleaning/thank-you" element={<RequestCleaningThankYou />} />
+                  
+                  {/* Blog */}
+                  <Route path="/blog" element={<Blog />} />
+                  <Route path="/blog/:slug" element={<BlogPost />} />
+                  
+                  {/* Legal Pages */}
+                  <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                  <Route path="/refund-policy" element={<RefundPolicy />} />
+                  <Route path="/gdpr" element={<GDPR />} />
+                  <Route path="/terms-of-use" element={<TermsOfUse />} />
+                  <Route path="/contact" element={<Contact />} />
+                  
+                  {/* Admin Routes */}
+                  <Route path="/admin-login" element={<AdminAuth />} />
+                  <Route path="/admin" element={<AdminOverview />} />
+                  <Route path="/admin/live" element={<AdminLiveData />} />
+                  <Route path="/admin/inquiries" element={<AdminInquiries />} />
+                  <Route path="/admin/contact" element={<AdminContactSubmissions />} />
+                  <Route path="/admin/leads" element={<AdminLeads />} />
+                  <Route path="/admin/businesses" element={<AdminBusinesses />} />
+                  <Route path="/admin/verifications" element={<AdminVerifications />} />
+                  <Route path="/admin/payments" element={<AdminPayments />} />
+                  <Route path="/admin/accounting" element={<AdminAccounting />} />
+                  <Route path="/admin/disputes" element={<AdminDisputes />} />
+                  <Route path="/admin/fraud" element={<AdminFraud />} />
+                  <Route path="/admin/analytics" element={<AdminAnalytics />} />
+                  <Route path="/admin/utm-builder" element={<AdminUtmBuilder />} />
+                  <Route path="/admin/activity-logs" element={<AdminActivityLogs />} />
+                  <Route path="/admin/settings" element={<AdminSettings />} />
+                  <Route path="/admin/email-templates" element={<AdminEmailTemplates />} />
+                  <Route path="/admin/subscribers" element={<AdminEmailSubscribers />} />
+                  
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
               <MobileBottomNav />
               <VisitorPresenceTracker />
             </AdminProvider>

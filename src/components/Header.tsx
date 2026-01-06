@@ -92,8 +92,9 @@ export const Header = () => {
                 <>
                   <Link to="/auth">
                     <Button 
-                      variant={isScrolled ? "ghost" : "outlineHero"} 
+                      variant="outlineHero"
                       size="default"
+                      className={isScrolled ? "border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/10" : ""}
                     >
                       Sign In
                     </Button>
@@ -115,11 +116,13 @@ export const Header = () => {
           <button
             className="md:hidden p-2"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={isMobileMenuOpen}
           >
             {isMobileMenuOpen ? (
-              <X className="w-6 h-6 text-primary-foreground" />
+              <X className="w-6 h-6 text-primary-foreground" aria-hidden="true" />
             ) : (
-              <Menu className="w-6 h-6 text-primary-foreground" />
+              <Menu className="w-6 h-6 text-primary-foreground" aria-hidden="true" />
             )}
           </button>
         </div>

@@ -42,7 +42,7 @@ export const Logo = forwardRef<HTMLSpanElement, LogoProps>(
 
     if (linkTo) {
       return (
-        <Link to={linkTo} className="flex items-center">
+        <Link to={linkTo} className="flex items-center" aria-label="Cleanda - Home">
           {logoElement}
         </Link>
       );
