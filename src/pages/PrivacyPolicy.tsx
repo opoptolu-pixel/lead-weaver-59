@@ -1,6 +1,7 @@
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { SEOHead } from "@/components/SEOHead";
+import { ObfuscatedEmailText } from "@/components/ObfuscatedEmail";
 
 const PrivacyPolicy = () => {
   const structuredData = {
@@ -149,7 +150,7 @@ const PrivacyPolicy = () => {
             </p>
             <div className="mt-4 p-4 bg-muted rounded-lg">
               <p className="text-foreground">Cleanda</p>
-              <p className="text-muted-foreground">Email: hello@cleanda.co.uk</p>
+              <p className="text-muted-foreground">Email: <ObfuscatedEmailText /></p>
               <p className="text-muted-foreground">Phone: 07757 188 197</p>
             </div>
           </section>

@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
 import { trackEnquiry } from "@/lib/analytics";
+import { useObfuscatedEmail } from "@/components/ObfuscatedEmail";
 
 const contactSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
@@ -22,6 +23,7 @@ const contactSchema = z.object({
 
 const Contact = () => {
   const { toast } = useToast();
+  const email = useObfuscatedEmail();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -194,8 +196,8 @@ const Contact = () => {
                   </div>
                   <div>
                     <h3 className="font-medium text-foreground">Email</h3>
-                    <a href="mailto:hello@cleanda.co.uk" className="text-muted-foreground hover:text-primary transition-colors">
-                      hello@cleanda.co.uk
+                    <a href={email ? `mailto:${email}` : "#"} className="text-muted-foreground hover:text-primary transition-colors">
+                      {email || "Loading..."}
                     </a>
                   </div>
                 </div>

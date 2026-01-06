@@ -1,8 +1,10 @@
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { SEOHead } from "@/components/SEOHead";
+import { useObfuscatedEmail, ObfuscatedEmailText } from "@/components/ObfuscatedEmail";
 
 const GDPR = () => {
+  const email = useObfuscatedEmail();
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "WebPage",
@@ -57,7 +59,7 @@ const GDPR = () => {
             <div className="mt-4 p-4 bg-muted rounded-lg">
               <p className="text-foreground font-medium">Data Controller Contact:</p>
               <p className="text-muted-foreground">Cleanda</p>
-              <p className="text-muted-foreground">Email: hello@cleanda.co.uk</p>
+              <p className="text-muted-foreground">Email: <ObfuscatedEmailText /></p>
               <p className="text-muted-foreground">Phone: 07757 188 197</p>
             </div>
           </section>
@@ -172,7 +174,7 @@ const GDPR = () => {
               To exercise any of your rights, please contact us using one of the following methods:
             </p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Email us: hello@cleanda.co.uk</li>
+              <li>Email us: <ObfuscatedEmailText /></li>
               <li>Call us: 07757 188 197</li>
               <li>Use the data request form in your account settings</li>
             </ul>
@@ -274,7 +276,7 @@ const GDPR = () => {
             <div className="mt-4 p-4 bg-muted rounded-lg">
               <p className="text-foreground font-medium">Data Protection Contact</p>
               <p className="text-muted-foreground">Cleanda</p>
-              <p className="text-muted-foreground">Email: hello@cleanda.co.uk</p>
+              <p className="text-muted-foreground">Email: <ObfuscatedEmailText /></p>
               <p className="text-muted-foreground">Phone: 07757 188 197</p>
               <p className="text-muted-foreground">Response time: Within 5 business days</p>
             </div>
