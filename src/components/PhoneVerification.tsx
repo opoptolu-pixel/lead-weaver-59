@@ -10,13 +10,16 @@ interface PhoneVerificationProps {
   phone: string | null;
   phoneVerified: boolean;
   onVerified: () => void;
+  onSavePhone?: () => Promise<void>;
 }
 
 export default function PhoneVerification({
   phone,
   phoneVerified,
   onVerified,
+  onSavePhone,
 }: PhoneVerificationProps) {
+  const [localPhone, setLocalPhone] = useState<string | null>(phone);
   const [sendingCode, setSendingCode] = useState(false);
   const [verifyingCode, setVerifyingCode] = useState(false);
   const [verificationCode, setVerificationCode] = useState("");
@@ -45,23 +48,47 @@ export default function PhoneVerification({
     return () => clearInterval(interval);
   }, [retryAfter]);
 
+  // Keep local phone in sync with prop only when codeSent is false
+  useEffect(() => {
+    if (!codeSent && phone) {
+      setLocalPhone(phone);
+    }
+  }, [phone, codeSent]);
+
   const handleSendVerificationCode = async () => {
-    if (!phone) {
+    const phoneToVerify = localPhone || phone;
+    
+    if (!phoneToVerify) {
       toast.error("Please save your phone number first");
       return;
     }
 
     setSendingCode(true);
     try {
+      // If onSavePhone is provided, save the phone first to ensure it's persisted
+      if (onSavePhone) {
+        try {
+          await onSavePhone();
+        } catch (saveError) {
+          console.error("Error saving phone:", saveError);
+          // Continue anyway - the phone will be passed directly to the function
+        }
+      }
+
       // Refresh session before calling protected edge function
       const { error: refreshError } = await supabase.auth.refreshSession();
       if (refreshError) {
         console.error("Session refresh error:", refreshError);
         toast.error("Session expired. Please log in again.");
+        setSendingCode(false);
         return;
       }
+      
+      // Store the phone we're verifying to prevent UI from showing wrong number
+      setLocalPhone(phoneToVerify);
+      
       const response = await supabase.functions.invoke("send-verification-code", {
-        body: { phone },
+        body: { phone: phoneToVerify },
       });
 
       const { data, error } = response;
@@ -194,13 +221,13 @@ export default function PhoneVerification({
             </p>
           </div>
 
-          {!phone && (
+          {!(localPhone || phone) && (
             <p className="text-sm text-amber-600">
               Please save your phone number above first
             </p>
           )}
 
-          {phone && !codeSent && (
+          {(localPhone || phone) && !codeSent && (
             <div className="space-y-3">
               {countdown > 0 && (
                 <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-500/10 p-2 rounded-lg">
@@ -225,7 +252,7 @@ export default function PhoneVerification({
           {codeSent && (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Code sent via <span className="font-medium text-secondary">{deliveryMethod || "message"}</span> to {phone}
+                Code sent via <span className="font-medium text-secondary">{deliveryMethod || "message"}</span> to {localPhone || phone}
               </p>
               <div className="flex gap-2">
                 <Input
