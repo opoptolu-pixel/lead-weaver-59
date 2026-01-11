@@ -52,11 +52,13 @@ export default function PhoneVerification({
 
     setSendingCode(true);
     try {
-      const { data, error } = await supabase.functions.invoke("send-verification-code", {
+      const response = await supabase.functions.invoke("send-verification-code", {
         body: { phone },
       });
 
-      // Handle error message from function response body
+      const { data, error } = response;
+
+      // Handle error message from function response body (for non-2xx responses)
       if (data?.error) {
         toast.error(data.error);
         return;
@@ -68,14 +70,33 @@ export default function PhoneVerification({
         return;
       }
 
-      if (error) throw error;
+      if (error) {
+        // Try to parse error context for the actual message
+        const errorBody = error.context?.body;
+        if (errorBody) {
+          try {
+            const parsed = typeof errorBody === 'string' ? JSON.parse(errorBody) : errorBody;
+            if (parsed?.error) {
+              toast.error(parsed.error);
+              return;
+            }
+          } catch {
+            // Ignore parse errors
+          }
+        }
+        throw error;
+      }
+
       setCodeSent(true);
       setDeliveryMethod(data?.deliveryMethod || null);
       toast.success(`Verification code sent via ${data?.deliveryMethod || "message"}!`);
     } catch (error: any) {
       console.error("Error sending code:", error);
-      // Try to extract error message from response
-      const errorMessage = error?.message || "Failed to send verification code";
+      // Try to extract error message from various error shapes
+      let errorMessage = "Failed to send verification code";
+      if (error?.message && !error.message.includes("non-2xx")) {
+        errorMessage = error.message;
+      }
       toast.error(errorMessage);
     } finally {
       setSendingCode(false);
