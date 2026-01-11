@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 
 interface PhoneVerificationProps {
   phone: string | null;
@@ -80,37 +81,22 @@ export default function PhoneVerification({
       }
 
       if (error) {
-        console.log("Error object details:", JSON.stringify(error, null, 2));
+        console.log("Error object:", error);
+        console.log("Error type:", error.constructor?.name);
         
-        // For FunctionsHttpError, the response body is in error.context
-        // Try multiple ways to extract the error message
-        let errorMessage: string | null = null;
-        
-        // Method 1: Check if error has context with json response
-        if (error.context?.json) {
-          errorMessage = error.context.json.error;
-        }
-        
-        // Method 2: Check error.context.body as string
-        if (!errorMessage && error.context?.body) {
+        // For FunctionsHttpError, use the async context.json() method
+        if (error instanceof FunctionsHttpError) {
           try {
-            const parsed = typeof error.context.body === 'string' 
-              ? JSON.parse(error.context.body) 
-              : error.context.body;
-            errorMessage = parsed?.error;
-          } catch {
-            // Ignore parse errors
+            const errorData = await error.context.json();
+            console.log("Parsed error data:", errorData);
+            if (errorData?.error) {
+              toast.error(errorData.error);
+              setSendingCode(false);
+              return;
+            }
+          } catch (parseError) {
+            console.error("Failed to parse error context:", parseError);
           }
-        }
-        
-        // Method 3: Check if the data still contains the error (some versions)
-        if (!errorMessage && typeof data === 'object' && data?.error) {
-          errorMessage = data.error;
-        }
-        
-        if (errorMessage) {
-          toast.error(errorMessage);
-          return;
         }
         
         throw error;
@@ -121,11 +107,24 @@ export default function PhoneVerification({
       toast.success(`Verification code sent via ${data?.deliveryMethod || "message"}!`);
     } catch (error: any) {
       console.error("Error sending code:", error);
-      // Try to extract error message from various error shapes
+      
+      // Final fallback - try to extract any error message
       let errorMessage = "Failed to send verification code";
-      if (error?.message && !error.message.includes("non-2xx")) {
+      
+      // Check if it's a FunctionsHttpError we haven't handled
+      if (error instanceof FunctionsHttpError) {
+        try {
+          const errorData = await error.context.json();
+          if (errorData?.error) {
+            errorMessage = errorData.error;
+          }
+        } catch {
+          // Ignore
+        }
+      } else if (error?.message && !error.message.includes("non-2xx")) {
         errorMessage = error.message;
       }
+      
       toast.error(errorMessage);
     } finally {
       setSendingCode(false);
