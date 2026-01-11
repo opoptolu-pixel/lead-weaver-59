@@ -32,13 +32,21 @@ serve(async (req) => {
       throw new Error("Lead ID is required");
     }
 
-    // Verify the user owns this lead
+    // First get the lead to verify it exists and is unlocked
     const { data: lead, error: leadError } = await supabaseClient
       .from("leads")
       .select("id, job_type, postcode, unlocked_at, unlocked_by, value")
       .eq("id", leadId)
-      .eq("unlocked_by", user.id)
       .single();
+
+    if (leadError || !lead) {
+      throw new Error("Lead not found");
+    }
+
+    // Verify the user owns this lead
+    if (lead.unlocked_by !== user.id) {
+      throw new Error("You don't have access to this lead's receipt");
+    }
 
     if (leadError || !lead) {
       throw new Error("Lead not found or access denied");
