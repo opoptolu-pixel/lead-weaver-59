@@ -179,7 +179,30 @@ export default function PhoneVerification({
         body: { code: verificationCode },
       });
 
-      if (error) throw error;
+      // Check for error in data (for some response types)
+      if (data?.error) {
+        toast.error(data.error);
+        setVerifyingCode(false);
+        return;
+      }
+
+      if (error) {
+        // For FunctionsHttpError, use the async context.json() method
+        if (error instanceof FunctionsHttpError) {
+          try {
+            const errorData = await error.context.json();
+            if (errorData?.error) {
+              toast.error(errorData.error);
+              setVerifyingCode(false);
+              return;
+            }
+          } catch (parseError) {
+            console.error("Failed to parse error context:", parseError);
+          }
+        }
+        throw error;
+      }
+      
       toast.success("Phone number verified!");
       setCodeSent(false);
       setVerificationCode("");
@@ -187,7 +210,24 @@ export default function PhoneVerification({
       onVerified();
     } catch (error: any) {
       console.error("Error verifying code:", error);
-      toast.error(error.message || "Invalid verification code");
+      
+      // Final fallback error handling
+      let errorMessage = "Invalid verification code";
+      
+      if (error instanceof FunctionsHttpError) {
+        try {
+          const errorData = await error.context.json();
+          if (errorData?.error) {
+            errorMessage = errorData.error;
+          }
+        } catch {
+          // Ignore
+        }
+      } else if (error?.message && !error.message.includes("non-2xx")) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setVerifyingCode(false);
     }
