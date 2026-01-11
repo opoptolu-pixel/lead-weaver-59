@@ -94,6 +94,14 @@ async function fetchGoogleAdsData(
   if (!response.ok) {
     const errorText = await response.text();
     console.error("[GOOGLE-ADS-SYNC] API request failed:", errorText);
+    
+    // Check for common Google Ads API issues
+    if (response.status === 501 || errorText.includes("UNIMPLEMENTED")) {
+      console.warn("[GOOGLE-ADS-SYNC] API not enabled for this account - returning empty data");
+      // Return empty array instead of throwing - allows graceful handling
+      return [];
+    }
+    
     throw new Error(`Google Ads API error: ${errorText}`);
   }
 
