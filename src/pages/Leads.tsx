@@ -843,7 +843,7 @@ export default function Leads() {
       <header className="bg-primary border-b border-border">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-20">
-            <Logo size="md" variant="white" />
+            <Logo size="md" variant="white" linkTo={null} />
             <div className="flex items-center gap-4">
               {user ? (
                 <Link to="/dashboard">

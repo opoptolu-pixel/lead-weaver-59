@@ -10,7 +10,7 @@ interface LogoProps {
 }
 
 export const Logo = forwardRef<HTMLSpanElement, LogoProps>(
-  ({ size = "md", variant = "auto", linkTo = "/", className = "" }, ref) => {
+  ({ size = "md", variant = "auto", linkTo, className = "" }, ref) => {
     const sizeClasses = {
       sm: "text-2xl",
       md: "text-3xl",

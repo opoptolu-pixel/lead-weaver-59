@@ -242,7 +242,7 @@ export default function Disputes() {
       <header className="bg-primary border-b border-border sticky top-0 z-50">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-20">
-            <Logo size="md" variant="white" />
+            <Logo size="md" variant="white" linkTo={null} />
             <Link to="/dashboard">
               <Button variant="outlineHero" size="sm" className="gap-2">
                 <ArrowLeft className="w-4 h-4" />
