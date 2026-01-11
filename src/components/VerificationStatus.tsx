@@ -47,8 +47,8 @@ export default function VerificationStatus({
     );
   }
 
-  // Verification in progress
-  if (verificationStatus === "pending" && (phoneVerified || addressVerified)) {
+  // Verification in progress - only show when documents have been submitted (addressVerified indicates document review started)
+  if (verificationStatus === "pending" && addressVerified) {
     return (
       <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
         <div className="flex items-center gap-3 mb-3">
