@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Progress } from "@/components/ui/progress";
+
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -39,129 +39,141 @@ const profileSchema = z.object({
   postcode: z.string().max(10, "Postcode must be less than 10 characters").optional(),
 });
 
-// Profile completion progress component
-interface ProfileCompletionProgressProps {
+// Verification status component
+interface VerificationStatusProps {
   profile: {
-    business_name?: string | null;
-    contact_name?: string | null;
-    phone?: string | null;
-    postcode?: string | null;
     phone_verified?: boolean;
     is_verified?: boolean;
+    address_verified?: boolean;
     leads_purchased?: number;
+    verification_status?: string | null;
   } | null;
-  businessName: string;
-  contactName: string;
-  phone: string;
-  postcode: string;
 }
 
-function ProfileCompletionProgress({
-  profile,
-  businessName,
-  contactName,
-  phone,
-  postcode,
-}: ProfileCompletionProgressProps) {
-  const requirements = useMemo(() => {
-    // Use form values if available, otherwise fall back to profile
-    const hasBusinessName = Boolean(businessName || profile?.business_name);
-    const hasContactName = Boolean(contactName || profile?.contact_name);
-    const hasPhone = Boolean(phone || profile?.phone);
-    const hasPostcode = Boolean(postcode || profile?.postcode);
-    const isPhoneVerified = profile?.phone_verified || false;
+function VerificationStatusSection({ profile }: VerificationStatusProps) {
+  const isPhoneVerified = profile?.phone_verified || false;
+  const isFullyVerified = profile?.is_verified || false;
+  const leadsPurchased = profile?.leads_purchased || 0;
+  const leadsRemaining = Math.max(0, 3 - leadsPurchased);
+  const needsFullVerification = leadsPurchased >= 3 && !isFullyVerified;
 
-    return [
-      { key: "business_name", label: "Business Name", completed: hasBusinessName, required: true },
-      { key: "contact_name", label: "Your Name", completed: hasContactName, required: true },
-      { key: "phone", label: "Phone Number", completed: hasPhone, required: true },
-      { key: "postcode", label: "Service Area Postcode", completed: hasPostcode, required: true },
-      { key: "phone_verified", label: "Phone Verified", completed: isPhoneVerified, required: true },
-    ];
-  }, [profile, businessName, contactName, phone, postcode]);
+  // Determine overall status
+  const getStatusInfo = () => {
+    if (isFullyVerified) {
+      return {
+        icon: <CheckCircle className="w-5 h-5 text-secondary" />,
+        title: "Fully Verified",
+        color: "text-secondary",
+        bgColor: "bg-secondary/10",
+        borderColor: "border-secondary/30",
+      };
+    }
+    if (needsFullVerification) {
+      return {
+        icon: <AlertCircle className="w-5 h-5 text-destructive" />,
+        title: "Verification Required",
+        color: "text-destructive",
+        bgColor: "bg-destructive/10",
+        borderColor: "border-destructive/30",
+      };
+    }
+    if (isPhoneVerified) {
+      return {
+        icon: <CheckCircle className="w-5 h-5 text-secondary" />,
+        title: "Phone Verified",
+        color: "text-secondary",
+        bgColor: "bg-secondary/10",
+        borderColor: "border-secondary/30",
+      };
+    }
+    return {
+      icon: <AlertCircle className="w-5 h-5 text-amber-500" />,
+      title: "Phone Verification Required",
+      color: "text-amber-500",
+      bgColor: "bg-amber-500/10",
+      borderColor: "border-amber-500/30",
+    };
+  };
 
-  const completedCount = requirements.filter((r) => r.completed).length;
-  const totalCount = requirements.length;
-  const progressPercent = Math.round((completedCount / totalCount) * 100);
-  const isComplete = completedCount === totalCount;
-
-  const leadsRemaining = 3 - (profile?.leads_purchased || 0);
-  const needsFullVerification = (profile?.leads_purchased || 0) >= 3 && !profile?.is_verified;
+  const statusInfo = getStatusInfo();
 
   return (
     <div className="bg-card rounded-2xl border border-border p-6 mb-6">
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-heading text-lg font-semibold text-foreground flex items-center gap-2">
-          {isComplete ? (
-            <CheckCircle className="w-5 h-5 text-secondary" />
-          ) : (
-            <AlertCircle className="w-5 h-5 text-amber-500" />
-          )}
-          Profile Completion
+          <Shield className="w-5 h-5 text-primary" />
+          Verification Status
         </h2>
-        <span className={`text-sm font-medium ${isComplete ? "text-secondary" : "text-amber-500"}`}>
-          {progressPercent}%
+        <span className={`text-sm font-medium ${statusInfo.color}`}>
+          {statusInfo.title}
         </span>
       </div>
 
-      <Progress value={progressPercent} className="h-2 mb-4" />
-
       {/* Status message */}
-      {isComplete ? (
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-secondary/10 border border-secondary/30 mb-4">
-          <CheckCircle className="w-4 h-4 text-secondary flex-shrink-0" />
-          <p className="text-sm text-foreground">
-            {profile?.is_verified ? (
-              <>You're fully verified! Unlimited lead purchases available.</>
-            ) : needsFullVerification ? (
-              <>Profile complete. Complete business verification to continue buying leads.</>
-            ) : (
-              <>Profile complete! You can purchase up to <strong>{leadsRemaining}</strong> lead{leadsRemaining !== 1 ? 's' : ''} before business verification.</>
-            )}
-          </p>
-        </div>
-      ) : (
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 mb-4">
-          <AlertCircle className="w-4 h-4 text-amber-500 flex-shrink-0" />
-          <p className="text-sm text-foreground">
-            Complete all fields below to start purchasing leads
-          </p>
-        </div>
-      )}
+      <div className={`flex items-center gap-2 p-3 rounded-lg ${statusInfo.bgColor} border ${statusInfo.borderColor} mb-4`}>
+        {statusInfo.icon}
+        <p className="text-sm text-foreground">
+          {isFullyVerified ? (
+            <>You're fully verified! Unlimited lead purchases available.</>
+          ) : needsFullVerification ? (
+            <>You've purchased 3 leads. Complete business verification to continue buying.</>
+          ) : isPhoneVerified ? (
+            <>You can purchase <strong>{leadsRemaining}</strong> more lead{leadsRemaining !== 1 ? 's' : ''} before business verification is required.</>
+          ) : (
+            <>Verify your phone number to start purchasing leads.</>
+          )}
+        </p>
+      </div>
 
       {/* Requirements checklist */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-        {requirements.map((req) => (
-          <div
-            key={req.key}
-            className={`flex items-center gap-2 p-2 rounded-lg text-xs ${
-              req.completed
-                ? "bg-secondary/10 text-secondary"
-                : "bg-muted text-muted-foreground"
-            }`}
-          >
-            {req.completed ? (
-              <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" />
-            ) : (
-              <Circle className="w-3.5 h-3.5 flex-shrink-0" />
-            )}
-            <span className="truncate">{req.label}</span>
+      <div className="space-y-3">
+        {/* Phone Verification - Required for first 3 leads */}
+        <div className={`flex items-center gap-3 p-3 rounded-lg ${isPhoneVerified ? "bg-secondary/10" : "bg-muted"}`}>
+          {isPhoneVerified ? (
+            <CheckCircle className="w-5 h-5 text-secondary flex-shrink-0" />
+          ) : (
+            <Circle className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+          )}
+          <div className="flex-1">
+            <p className={`text-sm font-medium ${isPhoneVerified ? "text-secondary" : "text-foreground"}`}>
+              Phone Verification
+            </p>
+            <p className="text-xs text-muted-foreground">Required to purchase your first 3 leads</p>
           </div>
-        ))}
+        </div>
+
+        {/* Business Verification - Required after 3 leads */}
+        <div className={`flex items-center gap-3 p-3 rounded-lg ${isFullyVerified ? "bg-secondary/10" : "bg-muted"}`}>
+          {isFullyVerified ? (
+            <CheckCircle className="w-5 h-5 text-secondary flex-shrink-0" />
+          ) : (
+            <Circle className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+          )}
+          <div className="flex-1">
+            <p className={`text-sm font-medium ${isFullyVerified ? "text-secondary" : "text-foreground"}`}>
+              Business Verification
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Required after 3 leads: Proof of address, Certificate of incorporation & Insurance
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Full business verification link */}
-      {isComplete && !profile?.is_verified && (
+      {isPhoneVerified && !isFullyVerified && (
         <div className="mt-4 pt-4 border-t border-border">
           <Link to="/settings/verification">
             <Button variant="outline" size="sm" className="w-full gap-2">
               <Shield className="w-4 h-4" />
-              {needsFullVerification ? "Complete Business Verification" : "Start Business Verification"}
+              {needsFullVerification ? "Complete Business Verification Now" : "Start Business Verification (Optional)"}
             </Button>
           </Link>
-          <p className="text-xs text-muted-foreground mt-2 text-center">
-            After {3 - (profile?.leads_purchased || 0) > 0 ? `${3 - (profile?.leads_purchased || 0)} more leads` : "your 3 leads"}, you'll need to verify your business documents, insurance, and address
-          </p>
+          {!needsFullVerification && (
+            <p className="text-xs text-muted-foreground mt-2 text-center">
+              Get verified early to unlock unlimited lead purchases
+            </p>
+          )}
         </div>
       )}
     </div>
@@ -333,14 +345,8 @@ export default function Settings() {
             </p>
           </div>
 
-          {/* Profile Completion Progress */}
-          <ProfileCompletionProgress
-            profile={profile}
-            businessName={businessName}
-            contactName={contactName}
-            phone={phone}
-            postcode={postcode}
-          />
+          {/* Verification Status */}
+          <VerificationStatusSection profile={profile} />
 
           {/* Profile form */}
           <div className="bg-card rounded-2xl border border-border p-6 md:p-8">
