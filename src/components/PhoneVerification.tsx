@@ -56,6 +56,12 @@ export default function PhoneVerification({
         body: { phone },
       });
 
+      // Handle error message from function response body
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+
       if (data?.rateLimited && data?.retryAfter) {
         setRetryAfter(new Date(data.retryAfter));
         toast.error("Too many requests. Please wait before trying again.");
@@ -68,7 +74,9 @@ export default function PhoneVerification({
       toast.success(`Verification code sent via ${data?.deliveryMethod || "message"}!`);
     } catch (error: any) {
       console.error("Error sending code:", error);
-      toast.error(error.message || "Failed to send verification code");
+      // Try to extract error message from response
+      const errorMessage = error?.message || "Failed to send verification code";
+      toast.error(errorMessage);
     } finally {
       setSendingCode(false);
     }
