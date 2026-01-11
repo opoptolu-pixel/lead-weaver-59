@@ -333,7 +333,7 @@ export default function Verification() {
               <AlertTitle className="text-amber-500">Verification Required</AlertTitle>
               <AlertDescription>
                 You've purchased {profile.leads_purchased} leads. Complete verification to continue 
-                purchasing unlimited leads. Unverified accounts are limited to 5 leads.
+                purchasing unlimited leads. Unverified accounts are limited to 3 leads.
               </AlertDescription>
             </Alert>
           )}
