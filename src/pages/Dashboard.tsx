@@ -497,12 +497,12 @@ export default function Dashboard() {
                       disabled={buyingCredits !== null}
                       className="w-full p-4 rounded-xl border-2 border-secondary bg-secondary/10 hover:bg-secondary/20 transition-colors text-left disabled:opacity-50 relative overflow-hidden"
                     >
-                      <div className="absolute top-2 right-2 bg-secondary text-secondary-foreground text-xs font-bold px-2 py-0.5 rounded">
+                      <div className="absolute top-0 right-0 bg-secondary text-secondary-foreground text-xs font-bold px-2 py-0.5 rounded-bl rounded-tr-xl">
                         BEST VALUE
                       </div>
-                      <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center justify-between mb-2 pt-1">
                         <span className="font-heading font-bold text-lg text-foreground">10 Credits</span>
-                        <span className="text-secondary font-bold text-xl">£170</span>
+                        <span className="text-secondary font-bold text-xl mr-1">£170</span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-muted-foreground text-sm">£17 per lead</span>
