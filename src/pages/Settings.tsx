@@ -442,19 +442,19 @@ export default function Settings() {
                     </span>
                   )}
                 </div>
-                {/* Show warning if phone has been changed but not saved */}
-                {phone && profile?.phone && phone !== profile.phone && (
-                  <div className="mb-3 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
-                    <p className="text-sm text-amber-600 flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4" />
-                      Please save your new phone number before verifying
-                    </p>
-                  </div>
-                )}
                 <PhoneVerification
                   phone={phone || profile?.phone || null}
                   phoneVerified={profile?.phone_verified || false}
                   onVerified={refreshProfile}
+                  onSavePhone={async () => {
+                    // Save the phone number to profile before verification
+                    if (!user || !phone) return;
+                    const { error } = await supabase
+                      .from("profiles")
+                      .update({ phone: phone })
+                      .eq("user_id", user.id);
+                    if (error) throw error;
+                  }}
                 />
                 <p className="text-muted-foreground text-xs mt-3">
                   <strong>Required:</strong> You must verify your phone number before purchasing leads
