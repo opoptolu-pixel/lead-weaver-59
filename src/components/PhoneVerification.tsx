@@ -52,6 +52,13 @@ export default function PhoneVerification({
 
     setSendingCode(true);
     try {
+      // Refresh session before calling protected edge function
+      const { error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) {
+        console.error("Session refresh error:", refreshError);
+        toast.error("Session expired. Please log in again.");
+        return;
+      }
       const response = await supabase.functions.invoke("send-verification-code", {
         body: { phone },
       });
@@ -111,7 +118,16 @@ export default function PhoneVerification({
 
     setVerifyingCode(true);
     try {
-      const { error } = await supabase.functions.invoke("verify-phone-code", {
+      // Refresh session before calling protected edge function
+      const { error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) {
+        console.error("Session refresh error:", refreshError);
+        toast.error("Session expired. Please log in again.");
+        setVerifyingCode(false);
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke("verify-phone-code", {
         body: { code: verificationCode },
       });
 
