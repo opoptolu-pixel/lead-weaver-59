@@ -323,8 +323,8 @@ function VerificationStatusSection({ profile, userId, onRefresh }: VerificationS
         </div>
       </div>
 
-      {/* Business Documents Upload Section */}
-      {isPhoneVerified && !isFullyVerified && (
+      {/* Business Documents Upload Section - Always show for non-fully-verified users */}
+      {!isFullyVerified && (
         <div className="bg-card rounded-2xl border border-border p-6 mb-6">
           <h2 className="font-heading text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
             <FileText className="w-5 h-5 text-primary" />
