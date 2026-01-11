@@ -266,8 +266,8 @@ export default function AdminVerifications() {
             const contactName = doc.profile?.contact_name || businessName;
             const currentYear = new Date().getFullYear().toString();
             
-            // Try to get template from database - use a "all_documents_approved" template
-            const templateData = await getTemplateWithVariables("all_documents_approved", {
+            // Try to get template from database - use existing "verification_approved" template
+            const templateData = await getTemplateWithVariables("verification_approved", {
               business_name: businessName,
               contact_name: contactName,
               dashboard_url: "https://cleanda.co.uk/dashboard",
@@ -282,7 +282,7 @@ export default function AdminVerifications() {
                   to: userEmail,
                   subject: templateData.subject,
                   html: templateData.body,
-                  templateName: "all_documents_approved",
+                  templateName: "verification_approved",
                 },
               });
             } else {
@@ -307,7 +307,7 @@ export default function AdminVerifications() {
                       <p>Best regards,<br>The Cleanda Team</p>
                     </div>
                   `,
-                  templateName: "all_documents_approved",
+                  templateName: "verification_approved",
                 },
               });
             }
