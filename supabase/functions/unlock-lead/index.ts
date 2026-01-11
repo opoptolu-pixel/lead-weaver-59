@@ -61,7 +61,7 @@ serve(async (req) => {
         // Check user's verification status, suspension, and lead count
         const { data: profile, error: profileError } = await supabaseClient
           .from("profiles")
-          .select("is_verified, leads_purchased, is_suspended, suspension_reason")
+          .select("is_verified, leads_purchased, is_suspended, suspension_reason, phone_verified, business_name, phone, contact_name, postcode")
           .eq("user_id", userId)
           .maybeSingle();
 
@@ -72,6 +72,22 @@ serve(async (req) => {
         // CRITICAL: Check if user is suspended
         if (profile?.is_suspended) {
           throw new Error(profile.suspension_reason || "Your account is suspended. Please contact support.");
+        }
+
+        // Check profile completion - business name, phone, contact name, postcode required
+        const missingFields = [];
+        if (!profile?.business_name) missingFields.push("business name");
+        if (!profile?.phone) missingFields.push("phone number");
+        if (!profile?.contact_name) missingFields.push("contact name");
+        if (!profile?.postcode) missingFields.push("postcode");
+
+        if (missingFields.length > 0) {
+          throw new Error(`Please complete your profile before purchasing leads. Missing: ${missingFields.join(", ")}`);
+        }
+
+        // Check phone verification - required before any lead purchase
+        if (!profile?.phone_verified) {
+          throw new Error("Please verify your phone number before purchasing leads.");
         }
 
         const MAX_UNVERIFIED_LEADS = 3;

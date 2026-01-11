@@ -10,6 +10,9 @@ import {
   MapPin,
   MessageSquare,
   Send,
+  Shield,
+  CheckCircle,
+  AlertCircle,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
@@ -25,6 +28,7 @@ import {
   EmailPreferences,
   defaultEmailPreferences,
 } from "@/components/EmailNotificationSettings";
+import PhoneVerification from "@/components/PhoneVerification";
 
 const profileSchema = z.object({
   contact_name: z.string().max(100, "Name must be less than 100 characters").optional(),
@@ -198,6 +202,67 @@ export default function Settings() {
             </p>
           </div>
 
+          {/* Verification Status - At Top */}
+          <div className="bg-card rounded-2xl border border-border p-6 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-heading text-lg font-semibold text-foreground flex items-center gap-2">
+                <Shield className="w-5 h-5 text-secondary" />
+                Verification Status
+              </h2>
+              <Link to="/settings/verification">
+                <Button variant="outline" size="sm">
+                  View Full Details
+                </Button>
+              </Link>
+            </div>
+            
+            {profile?.is_verified ? (
+              <div className="flex items-center gap-3 p-4 rounded-xl bg-secondary/10 border border-secondary/30">
+                <div className="w-10 h-10 rounded-full bg-secondary/20 flex items-center justify-center">
+                  <CheckCircle className="w-5 h-5 text-secondary" />
+                </div>
+                <div>
+                  <p className="font-semibold text-foreground">Verified Business</p>
+                  <p className="text-sm text-muted-foreground">
+                    Unlimited lead purchases available
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30">
+                  <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                    <AlertCircle className="w-5 h-5 text-amber-500" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground">Verification Required</p>
+                    <p className="text-sm text-muted-foreground">
+                      {(profile?.leads_purchased || 0) < 3 ? (
+                        <>You can purchase <strong>{3 - (profile?.leads_purchased || 0)}</strong> more lead{3 - (profile?.leads_purchased || 0) !== 1 ? 's' : ''} before business verification is required.</>
+                      ) : (
+                        <>Complete business verification to continue purchasing leads.</>
+                      )}
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-center text-xs">
+                  <div className={`p-2 rounded-lg ${profile?.phone_verified ? 'bg-secondary/10 text-secondary' : 'bg-muted text-muted-foreground'}`}>
+                    Phone: {profile?.phone_verified ? '✓' : 'Pending'}
+                  </div>
+                  <div className="p-2 rounded-lg bg-muted text-muted-foreground">
+                    Business Doc: Pending
+                  </div>
+                  <div className="p-2 rounded-lg bg-muted text-muted-foreground">
+                    Insurance: Pending
+                  </div>
+                  <div className={`p-2 rounded-lg ${profile?.address_verified ? 'bg-secondary/10 text-secondary' : 'bg-muted text-muted-foreground'}`}>
+                    Address: {profile?.address_verified ? '✓' : 'Pending'}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Profile form */}
           <div className="bg-card rounded-2xl border border-border p-6 md:p-8">
             <div className="space-y-6">
@@ -292,6 +357,19 @@ export default function Settings() {
                 </p>
               </div>
 
+              {/* Phone Verification - Must verify before buying leads */}
+              <div className="pt-4 border-t border-border">
+                <h3 className="font-medium text-foreground mb-3">Phone Verification</h3>
+                <PhoneVerification
+                  phone={phone || profile?.phone || null}
+                  phoneVerified={profile?.phone_verified || false}
+                  onVerified={refreshProfile}
+                />
+                <p className="text-muted-foreground text-xs mt-2">
+                  Phone verification is required before you can purchase leads
+                </p>
+              </div>
+
               {/* SMS opt-in */}
               <div className="flex items-center justify-between rounded-lg border border-border p-4">
                 <div className="flex items-start gap-3">
@@ -364,10 +442,6 @@ export default function Settings() {
             <div className="space-y-3">
               <Link to="/billing" className="flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors">
                 <span className="text-foreground">Billing & Receipts</span>
-                <ArrowLeft className="w-4 h-4 text-muted-foreground rotate-180" />
-              </Link>
-              <Link to="/settings/verification" className="flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors">
-                <span className="text-foreground">Verification Status</span>
                 <ArrowLeft className="w-4 h-4 text-muted-foreground rotate-180" />
               </Link>
             </div>

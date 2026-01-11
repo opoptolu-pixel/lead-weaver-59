@@ -78,14 +78,19 @@ serve(async (req) => {
       });
     }
 
-    // Check if user account is suspended BEFORE any reservation or atomic operations
+    // Check user profile status
     const { data: profileCheck, error: profileCheckError } = await supabaseClient
       .from("profiles")
-      .select("is_suspended, suspension_reason")
+      .select("is_suspended, suspension_reason, phone_verified, business_name, phone, contact_name, postcode")
       .eq("user_id", user.id)
       .single();
 
-    if (!profileCheckError && profileCheck?.is_suspended) {
+    if (profileCheckError) {
+      logStep("ERROR fetching profile", { error: profileCheckError.message });
+      throw new Error("Failed to verify account status");
+    }
+
+    if (profileCheck?.is_suspended) {
       logStep("Account suspended - blocking purchase", { 
         reason: profileCheck.suspension_reason 
       });
@@ -96,6 +101,37 @@ serve(async (req) => {
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 403,
+      });
+    }
+
+    // Check profile completion - business name, phone, contact name, postcode required
+    const missingFields = [];
+    if (!profileCheck?.business_name) missingFields.push("business name");
+    if (!profileCheck?.phone) missingFields.push("phone number");
+    if (!profileCheck?.contact_name) missingFields.push("contact name");
+    if (!profileCheck?.postcode) missingFields.push("postcode");
+
+    if (missingFields.length > 0) {
+      logStep("BLOCKED - Incomplete profile", { missingFields });
+      return new Response(JSON.stringify({ 
+        error: `Please complete your profile before purchasing leads. Missing: ${missingFields.join(", ")}`,
+        profileIncomplete: true,
+        missingFields 
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      });
+    }
+
+    // Check phone verification - required before any lead purchase
+    if (!profileCheck?.phone_verified) {
+      logStep("BLOCKED - Phone not verified");
+      return new Response(JSON.stringify({ 
+        error: "Please verify your phone number before purchasing leads.",
+        phoneNotVerified: true 
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
       });
     }
 
