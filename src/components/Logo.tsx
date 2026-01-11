@@ -5,7 +5,7 @@ import { Sparkles } from "lucide-react";
 interface LogoProps {
   size?: "sm" | "md" | "lg";
   variant?: "dark" | "white" | "auto";
-  linkTo?: string;
+  linkTo?: string | null;
   className?: string;
 }
 
