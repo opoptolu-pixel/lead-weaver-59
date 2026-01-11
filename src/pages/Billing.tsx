@@ -38,8 +38,9 @@ interface Purchase {
 }
 
 interface ReceiptData {
-  type: "stripe" | "internal";
+  type: "stripe" | "pdf";
   receiptUrl?: string;
+  pdfData?: string;
   date: string;
   leadId: string;
   jobType: string;
@@ -165,10 +166,15 @@ export default function Billing() {
       if (data?.receipt?.type === "stripe" && data.receipt.receiptUrl) {
         // Open Stripe receipt in new tab
         window.open(data.receipt.receiptUrl, "_blank");
-      } else if (data?.receipt) {
-        // Generate internal PDF receipt
-        const receiptData = data.receipt as ReceiptData;
-        generateInternalReceipt(receiptData, purchase);
+      } else if (data?.receipt?.type === "pdf" && data.receipt.pdfData) {
+        // Download PDF receipt
+        const link = document.createElement("a");
+        link.href = data.receipt.pdfData;
+        link.download = `cleanda-receipt-${purchase.id.substring(0, 8)}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast.success("Receipt downloaded");
       } else {
         toast.error("No receipt available for this purchase");
       }
@@ -178,39 +184,6 @@ export default function Billing() {
     } finally {
       setDownloadingReceipt(null);
     }
-  };
-
-  const generateInternalReceipt = (receiptData: ReceiptData, purchase: Purchase) => {
-    const receiptContent = `
-CLEANDA RECEIPT
-=====================================
-
-Date: ${purchase.created_at ? new Date(purchase.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : "N/A"}
-Receipt ID: ${purchase.id.substring(0, 8).toUpperCase()}
-
-PURCHASE DETAILS
--------------------------------------
-Service Type: ${purchase.job_type}
-Location: ${purchase.postcode}
-Amount: £${purchase.amount.toFixed(2)}
-
--------------------------------------
-Thank you for your purchase!
-
-Cleanda Ltd
-support@cleanda.com
-    `.trim();
-
-    const blob = new Blob([receiptContent], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `cleanda-receipt-${purchase.id.substring(0, 8)}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    toast.success("Receipt downloaded");
   };
 
   const totalSpend = purchases.length * 20;

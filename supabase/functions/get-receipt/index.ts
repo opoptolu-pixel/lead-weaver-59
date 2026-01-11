@@ -1,10 +1,129 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { jsPDF } from "https://esm.sh/jspdf@2.5.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+const generatePDFReceipt = (data: {
+  receiptId: string;
+  date: string;
+  jobType: string;
+  postcode: string;
+  amount: number;
+  customerEmail: string;
+  businessName?: string;
+}): string => {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  
+  // Colors
+  const primaryColor = [26, 54, 93]; // Navy blue
+  const accentColor = [34, 197, 94]; // Green
+  
+  // Header background
+  doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+  doc.rect(0, 0, pageWidth, 50, "F");
+  
+  // Company name
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(28);
+  doc.setFont("helvetica", "bold");
+  doc.text("CLEANDA", 20, 30);
+  
+  // Receipt label
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "normal");
+  doc.text("RECEIPT", pageWidth - 20, 30, { align: "right" });
+  
+  // Receipt details section
+  doc.setTextColor(100, 100, 100);
+  doc.setFontSize(10);
+  doc.text("Receipt Number:", 20, 65);
+  doc.text("Date:", 20, 75);
+  doc.text("Email:", 20, 85);
+  
+  doc.setTextColor(0, 0, 0);
+  doc.setFont("helvetica", "bold");
+  doc.text(data.receiptId.toUpperCase(), 70, 65);
+  doc.setFont("helvetica", "normal");
+  
+  const formattedDate = new Date(data.date).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long", 
+    year: "numeric"
+  });
+  doc.text(formattedDate, 70, 75);
+  doc.text(data.customerEmail, 70, 85);
+  
+  // Divider line
+  doc.setDrawColor(220, 220, 220);
+  doc.setLineWidth(0.5);
+  doc.line(20, 95, pageWidth - 20, 95);
+  
+  // Purchase details header
+  doc.setFillColor(248, 250, 252);
+  doc.rect(20, 105, pageWidth - 40, 12, "F");
+  
+  doc.setTextColor(100, 100, 100);
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+  doc.text("DESCRIPTION", 25, 113);
+  doc.text("AMOUNT", pageWidth - 25, 113, { align: "right" });
+  
+  // Purchase item
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "normal");
+  doc.text("Lead Purchase", 25, 130);
+  
+  doc.setFontSize(10);
+  doc.setTextColor(100, 100, 100);
+  doc.text(`Service: ${data.jobType}`, 25, 140);
+  doc.text(`Location: ${data.postcode}`, 25, 150);
+  
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(11);
+  doc.text(`£${data.amount.toFixed(2)}`, pageWidth - 25, 130, { align: "right" });
+  
+  // Total section
+  doc.setDrawColor(220, 220, 220);
+  doc.line(20, 165, pageWidth - 20, 165);
+  
+  doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+  doc.rect(pageWidth - 80, 175, 60, 20, "F");
+  
+  doc.setTextColor(100, 100, 100);
+  doc.setFontSize(10);
+  doc.text("Total Paid:", pageWidth - 85, 188, { align: "right" });
+  
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "bold");
+  doc.text(`£${data.amount.toFixed(2)}`, pageWidth - 50, 188, { align: "center" });
+  
+  // Payment status badge
+  doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
+  doc.roundedRect(20, 175, 40, 10, 2, 2, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "bold");
+  doc.text("PAID", 40, 182, { align: "center" });
+  
+  // Footer
+  doc.setTextColor(150, 150, 150);
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  const footerY = 250;
+  doc.text("Thank you for your purchase!", pageWidth / 2, footerY, { align: "center" });
+  doc.text("Cleanda Ltd • support@cleanda.com", pageWidth / 2, footerY + 10, { align: "center" });
+  doc.text("This is an official receipt for your records.", pageWidth / 2, footerY + 20, { align: "center" });
+  
+  // Return base64 PDF
+  return doc.output("datauristring");
 };
 
 serve(async (req) => {
@@ -49,9 +168,12 @@ serve(async (req) => {
       throw new Error("You don't have access to this lead's receipt");
     }
 
-    if (leadError || !lead) {
-      throw new Error("Lead not found or access denied");
-    }
+    // Get user's business profile
+    const { data: profile } = await supabaseClient
+      .from("profiles")
+      .select("business_name")
+      .eq("user_id", user.id)
+      .single();
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
@@ -60,121 +182,66 @@ serve(async (req) => {
     // Find the customer in Stripe
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     
-    if (customers.data.length === 0) {
-      // No Stripe customer - generate a simple receipt without Stripe data
-      return new Response(
-        JSON.stringify({
-          receipt: {
-            type: "internal",
-            date: lead.unlocked_at,
-            leadId: lead.id,
-            jobType: lead.job_type,
-            postcode: lead.postcode,
-            amount: 20,
-            customerEmail: user.email,
-          }
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
-      );
-    }
+    // Generate PDF receipt data
+    const receiptData = {
+      receiptId: lead.id.substring(0, 8),
+      date: lead.unlocked_at || new Date().toISOString(),
+      jobType: lead.job_type,
+      postcode: lead.postcode,
+      amount: lead.value || 20,
+      customerEmail: user.email,
+      businessName: profile?.business_name || undefined,
+    };
 
-    const customerId = customers.data[0].id;
-
-    // Find charges/payment intents around the unlock time
-    const unlockTime = new Date(lead.unlocked_at).getTime() / 1000;
-    
-    // Search for payment intents within a reasonable time window (1 hour before to 1 hour after)
-    const paymentIntents = await stripe.paymentIntents.list({
-      customer: customerId,
-      created: {
-        gte: Math.floor(unlockTime - 3600),
-        lte: Math.ceil(unlockTime + 3600),
-      },
-      limit: 10,
-    });
-
-    // Find successful payment
-    const successfulPayment = paymentIntents.data.find(
-      (pi: { status: string }) => pi.status === "succeeded"
-    );
-
-    if (successfulPayment) {
-      // Get the charge for receipt URL
-      const charges = await stripe.charges.list({
-        payment_intent: successfulPayment.id,
-        limit: 1,
+    // Try to get Stripe receipt URL first
+    if (customers.data.length > 0) {
+      const customerId = customers.data[0].id;
+      const unlockTime = new Date(lead.unlocked_at).getTime() / 1000;
+      
+      // Search for payment intents
+      const paymentIntents = await stripe.paymentIntents.list({
+        customer: customerId,
+        created: {
+          gte: Math.floor(unlockTime - 3600),
+          lte: Math.ceil(unlockTime + 3600),
+        },
+        limit: 10,
       });
 
-      if (charges.data.length > 0 && charges.data[0].receipt_url) {
-        return new Response(
-          JSON.stringify({
-            receipt: {
-              type: "stripe",
-              receiptUrl: charges.data[0].receipt_url,
-              date: lead.unlocked_at,
-              leadId: lead.id,
-              jobType: lead.job_type,
-              postcode: lead.postcode,
-              amount: successfulPayment.amount / 100,
-            }
-          }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
-        );
-      }
-    }
+      const successfulPayment = paymentIntents.data.find(
+        (pi: { status: string }) => pi.status === "succeeded"
+      );
 
-    // Check for credit purchases (checkout sessions)
-    const sessions = await stripe.checkout.sessions.list({
-      customer: customerId,
-      limit: 50,
-    });
+      if (successfulPayment) {
+        const charges = await stripe.charges.list({
+          payment_intent: successfulPayment.id,
+          limit: 1,
+        });
 
-    // Find session around the unlock time
-    for (const session of sessions.data) {
-      if (
-        session.payment_status === "paid" &&
-        session.created >= unlockTime - 86400 && // within 24 hours before
-        session.created <= unlockTime + 3600
-      ) {
-        // Get the payment intent from the session
-        if (session.payment_intent) {
-          const pi = await stripe.paymentIntents.retrieve(session.payment_intent as string);
-          const charges = await stripe.charges.list({
-            payment_intent: pi.id,
-            limit: 1,
-          });
-
-          if (charges.data.length > 0 && charges.data[0].receipt_url) {
-            return new Response(
-              JSON.stringify({
-                receipt: {
-                  type: "stripe",
-                  receiptUrl: charges.data[0].receipt_url,
-                  date: lead.unlocked_at,
-                  leadId: lead.id,
-                  jobType: lead.job_type,
-                  postcode: lead.postcode,
-                  amount: session.amount_total ? session.amount_total / 100 : 20,
-                }
-              }),
-              { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
-            );
-          }
+        if (charges.data.length > 0 && charges.data[0].receipt_url) {
+          return new Response(
+            JSON.stringify({
+              receipt: {
+                type: "stripe",
+                receiptUrl: charges.data[0].receipt_url,
+                ...receiptData,
+              }
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+          );
         }
       }
     }
 
-    // Fallback: return internal receipt if no Stripe receipt found
+    // Generate internal PDF receipt
+    const pdfDataUri = generatePDFReceipt(receiptData);
+    
     return new Response(
       JSON.stringify({
         receipt: {
-          type: "internal",
-          date: lead.unlocked_at,
-          leadId: lead.id,
-          jobType: lead.job_type,
-          postcode: lead.postcode,
-          amount: 20,
-          customerEmail: user.email,
+          type: "pdf",
+          pdfData: pdfDataUri,
+          ...receiptData,
         }
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
