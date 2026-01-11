@@ -583,6 +583,51 @@ export default function Leads() {
     // Get lead details for the countdown
     const lead = leads.find(l => l.id === leadId);
     
+    // Frontend validation: Check profile completion and phone verification
+    if (profile) {
+      const missingFields = [];
+      if (!profile.business_name) missingFields.push("business name");
+      if (!profile.phone) missingFields.push("phone number");
+      if (!profile.contact_name) missingFields.push("contact name");
+      if (!profile.postcode) missingFields.push("postcode");
+
+      if (missingFields.length > 0) {
+        toast.error(
+          <div>
+            <strong>Complete Your Profile</strong>
+            <p className="text-sm mt-1">Please complete your profile before purchasing leads. Missing: {missingFields.join(", ")}</p>
+          </div>,
+          { duration: 6000 }
+        );
+        navigate("/settings");
+        return;
+      }
+
+      if (!profile.phone_verified) {
+        toast.error(
+          <div>
+            <strong>Phone Verification Required</strong>
+            <p className="text-sm mt-1">Please verify your phone number before purchasing leads.</p>
+          </div>,
+          { duration: 6000 }
+        );
+        navigate("/settings");
+        return;
+      }
+
+      if (!profile.is_verified && profile.leads_purchased >= 3) {
+        toast.error(
+          <div>
+            <strong>Verification Required</strong>
+            <p className="text-sm mt-1">You've reached the maximum of 3 leads for unverified businesses. Please complete verification to continue.</p>
+          </div>,
+          { duration: 6000 }
+        );
+        navigate("/settings/verification");
+        return;
+      }
+    }
+    
     setUnlockingLeadId(leadId);
     
     // First check if the lead is reserved by someone else
@@ -642,6 +687,51 @@ export default function Leads() {
       toast.error("Please sign in to use credits");
       navigate("/auth");
       return;
+    }
+
+    // Frontend validation: Check profile completion and phone verification
+    if (profile) {
+      const missingFields = [];
+      if (!profile.business_name) missingFields.push("business name");
+      if (!profile.phone) missingFields.push("phone number");
+      if (!profile.contact_name) missingFields.push("contact name");
+      if (!profile.postcode) missingFields.push("postcode");
+
+      if (missingFields.length > 0) {
+        toast.error(
+          <div>
+            <strong>Complete Your Profile</strong>
+            <p className="text-sm mt-1">Please complete your profile before purchasing leads. Missing: {missingFields.join(", ")}</p>
+          </div>,
+          { duration: 6000 }
+        );
+        navigate("/settings");
+        return;
+      }
+
+      if (!profile.phone_verified) {
+        toast.error(
+          <div>
+            <strong>Phone Verification Required</strong>
+            <p className="text-sm mt-1">Please verify your phone number before purchasing leads.</p>
+          </div>,
+          { duration: 6000 }
+        );
+        navigate("/settings");
+        return;
+      }
+
+      if (!profile.is_verified && profile.leads_purchased >= 3) {
+        toast.error(
+          <div>
+            <strong>Verification Required</strong>
+            <p className="text-sm mt-1">You've reached the maximum of 3 leads for unverified businesses. Please complete verification to continue.</p>
+          </div>,
+          { duration: 6000 }
+        );
+        navigate("/settings/verification");
+        return;
+      }
     }
 
     // Get lead details for the countdown
