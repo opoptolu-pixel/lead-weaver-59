@@ -100,7 +100,7 @@ export default function PhoneVerification({
     }
   };
 
-  if (phoneVerified) {
+  if (phoneVerified && phone) {
     return (
       <div className="flex items-center gap-3 p-4 rounded-xl bg-secondary/10 border border-secondary/30">
         <div className="w-10 h-10 rounded-full bg-secondary/20 flex items-center justify-center">
