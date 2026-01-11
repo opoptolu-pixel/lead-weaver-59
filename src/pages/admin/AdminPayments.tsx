@@ -72,6 +72,7 @@ export default function AdminPayments() {
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [fraudFlags, setFraudFlags] = useState<FraudFlag[]>([]);
   const [loading, setLoading] = useState(true);
+  const [downloadingReceipt, setDownloadingReceipt] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -222,6 +223,46 @@ export default function AdminPayments() {
     ]);
   };
 
+  const handleDownloadReceipt = async (leadId: string) => {
+    setDownloadingReceipt(leadId);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error("You must be logged in to download receipts");
+        return;
+      }
+
+      const response = await supabase.functions.invoke("get-receipt", {
+        body: { leadId },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || "Failed to get receipt");
+      }
+
+      const { receipt } = response.data;
+
+      if (receipt.type === "stripe" && receipt.receiptUrl) {
+        window.open(receipt.receiptUrl, "_blank");
+      } else if (receipt.type === "pdf" && receipt.pdfData) {
+        const link = document.createElement("a");
+        link.href = receipt.pdfData;
+        link.download = `cleanda-receipt-${receipt.receiptId}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast.success("Receipt downloaded successfully");
+      } else {
+        toast.error("No receipt available for this purchase");
+      }
+    } catch (error) {
+      console.error("Error downloading receipt:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to download receipt");
+    } finally {
+      setDownloadingReceipt(null);
+    }
+  };
+
   const pendingFraudCount = fraudFlags.filter((f) => f.status === "pending").length;
 
   // Calculate totals
@@ -358,6 +399,14 @@ export default function AdminPayments() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => handleDownloadReceipt(purchase.lead_id)}>
+                                    {downloadingReceipt === purchase.lead_id ? (
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <Download className="mr-2 h-4 w-4" />
+                                    )}
+                                    Download Receipt
+                                  </DropdownMenuItem>
                                   <DropdownMenuItem>
                                     <Eye className="mr-2 h-4 w-4" />
                                     View Details
