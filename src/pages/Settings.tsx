@@ -443,7 +443,7 @@ export default function Settings() {
                   )}
                 </div>
                 <PhoneVerification
-                  phone={phone || profile?.phone || null}
+                  phone={profile?.phone || phone || null}
                   phoneVerified={profile?.phone_verified || false}
                   onVerified={refreshProfile}
                 />
