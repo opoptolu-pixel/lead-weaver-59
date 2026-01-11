@@ -304,20 +304,67 @@ export default function AdminDisputes() {
         details: { lead_id: dispute.lead_id, credits_refunded: 1 },
       });
 
-      // 5. Send email notification (optional - will fail silently if not configured)
+      // 5. Send email notification using template
       try {
         const { data: email } = await supabase.rpc("get_user_email", { 
           user_uuid: dispute.user_id 
         });
         
         if (email) {
-          await supabase.functions.invoke("send-email", {
-            body: {
-              to: email,
-              subject: "Your dispute has been resolved - Credit refunded",
-              html: `<p>Hi,</p><p>Your dispute for lead ${dispute.lead_id.slice(0, 8)}... has been resolved. 1 credit has been returned to your account.</p><p>Thank you for your patience.</p>`,
-            },
-          });
+          // Get the business profile for personalization
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("business_name, contact_name")
+            .eq("user_id", dispute.user_id)
+            .maybeSingle();
+
+          const { data: template } = await supabase
+            .from("email_templates")
+            .select("subject, body")
+            .eq("name", "dispute_resolved")
+            .eq("is_active", true)
+            .maybeSingle();
+
+          if (template) {
+            const variables: Record<string, string> = {
+              business_name: profile?.business_name || "Partner",
+              contact_name: profile?.contact_name || "there",
+              dispute_id: dispute.id.slice(0, 8).toUpperCase(),
+              lead_id: dispute.lead_id.slice(0, 8).toUpperCase(),
+              resolution: "Refund issued - 1 credit returned to your account",
+              resolution_notes: resolutionNotes || "Your dispute has been reviewed and approved.",
+              dashboard_url: "https://cleanda.co.uk/dashboard",
+              support_email: "hello@cleanda.co.uk",
+              current_year: new Date().getFullYear().toString(),
+            };
+
+            let subject = template.subject;
+            let html = template.body;
+            
+            Object.entries(variables).forEach(([key, value]) => {
+              subject = subject.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
+              html = html.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
+            });
+
+            await supabase.functions.invoke("send-email", {
+              body: {
+                to: email,
+                subject,
+                html,
+                templateName: "dispute_resolved",
+              },
+            });
+          } else {
+            // Fallback if no template
+            await supabase.functions.invoke("send-email", {
+              body: {
+                to: email,
+                subject: "Your dispute has been resolved - Credit refunded",
+                html: `<p>Hi ${profile?.contact_name || "there"},</p><p>Your dispute for lead ${dispute.lead_id.slice(0, 8).toUpperCase()} has been resolved. 1 credit has been returned to your account.</p><p>Thank you for your patience.</p><p>Best regards,<br>The Cleanda Team</p>`,
+                templateName: "dispute_resolved",
+              },
+            });
+          }
         }
       } catch (emailError) {
         console.log("Email notification skipped:", emailError);
@@ -356,20 +403,70 @@ export default function AdminDisputes() {
 
       if (error) throw error;
 
-      // Send email notification
+      // Send email notification using appropriate template
       try {
         const { data: email } = await supabase.rpc("get_user_email", { 
           user_uuid: selectedDispute.user_id 
         });
         
         if (email) {
-          await supabase.functions.invoke("send-email", {
-            body: {
-              to: email,
-              subject: `Your dispute has been ${resolution === "rejected" ? "rejected" : "resolved"}`,
-              html: `<p>Hi,</p><p>Your dispute for lead ${selectedDispute.lead_id.slice(0, 8)}... has been ${resolution === "rejected" ? "rejected" : "resolved"}.</p>${resolutionNotes ? `<p>Notes: ${resolutionNotes}</p>` : ""}<p>Thank you.</p>`,
-            },
-          });
+          // Get the business profile for personalization
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("business_name, contact_name")
+            .eq("user_id", selectedDispute.user_id)
+            .maybeSingle();
+
+          const templateName = resolution === "rejected" ? "dispute_rejected" : "dispute_resolved";
+          
+          const { data: template } = await supabase
+            .from("email_templates")
+            .select("subject, body")
+            .eq("name", templateName)
+            .eq("is_active", true)
+            .maybeSingle();
+
+          if (template) {
+            const variables: Record<string, string> = {
+              business_name: profile?.business_name || "Partner",
+              contact_name: profile?.contact_name || "there",
+              dispute_id: selectedDispute.id.slice(0, 8).toUpperCase(),
+              lead_id: selectedDispute.lead_id.slice(0, 8).toUpperCase(),
+              resolution: resolution === "rejected" ? "Your dispute has been reviewed but could not be approved." : "Your dispute has been resolved.",
+              resolution_notes: resolutionNotes || (resolution === "rejected" ? "Unfortunately, we were unable to verify the issue reported." : "Thank you for your patience."),
+              rejection_reason: resolutionNotes || "The evidence provided did not meet our refund criteria.",
+              dashboard_url: "https://cleanda.co.uk/dashboard",
+              support_email: "hello@cleanda.co.uk",
+              current_year: new Date().getFullYear().toString(),
+            };
+
+            let subject = template.subject;
+            let html = template.body;
+            
+            Object.entries(variables).forEach(([key, value]) => {
+              subject = subject.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
+              html = html.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
+            });
+
+            await supabase.functions.invoke("send-email", {
+              body: {
+                to: email,
+                subject,
+                html,
+                templateName,
+              },
+            });
+          } else {
+            // Fallback if no template
+            await supabase.functions.invoke("send-email", {
+              body: {
+                to: email,
+                subject: `Your dispute has been ${resolution === "rejected" ? "rejected" : "resolved"}`,
+                html: `<p>Hi ${profile?.contact_name || "there"},</p><p>Your dispute for lead ${selectedDispute.lead_id.slice(0, 8).toUpperCase()} has been ${resolution === "rejected" ? "rejected" : "resolved"}.</p>${resolutionNotes ? `<p>Notes: ${resolutionNotes}</p>` : ""}<p>Best regards,<br>The Cleanda Team</p>`,
+                templateName,
+              },
+            });
+          }
         }
       } catch (emailError) {
         console.log("Email notification skipped:", emailError);
