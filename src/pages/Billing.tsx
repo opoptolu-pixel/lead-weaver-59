@@ -37,6 +37,17 @@ interface Purchase {
   created_at: string;
 }
 
+interface ReceiptData {
+  type: "stripe" | "internal";
+  receiptUrl?: string;
+  date: string;
+  leadId: string;
+  jobType: string;
+  postcode: string;
+  amount: number;
+  customerEmail?: string;
+}
+
 interface PaymentMethod {
   id: string;
   brand: string;
@@ -54,6 +65,7 @@ export default function Billing() {
   const [loading, setLoading] = useState(true);
   const [loadingMethods, setLoadingMethods] = useState(true);
   const [openingPortal, setOpeningPortal] = useState(false);
+  const [downloadingReceipt, setDownloadingReceipt] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -139,6 +151,66 @@ export default function Billing() {
     await signOut();
     navigate("/for-cleaners");
     toast.success("Signed out successfully");
+  };
+
+  const handleDownloadReceipt = async (purchase: Purchase) => {
+    setDownloadingReceipt(purchase.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("get-receipt", {
+        body: { leadId: purchase.id },
+      });
+
+      if (error) throw error;
+
+      if (data?.receipt?.type === "stripe" && data.receipt.receiptUrl) {
+        // Open Stripe receipt in new tab
+        window.open(data.receipt.receiptUrl, "_blank");
+      } else if (data?.receipt) {
+        // Generate internal PDF receipt
+        const receiptData = data.receipt as ReceiptData;
+        generateInternalReceipt(receiptData, purchase);
+      } else {
+        toast.error("No receipt available for this purchase");
+      }
+    } catch (error) {
+      console.error("Error downloading receipt:", error);
+      toast.error("Failed to download receipt");
+    } finally {
+      setDownloadingReceipt(null);
+    }
+  };
+
+  const generateInternalReceipt = (receiptData: ReceiptData, purchase: Purchase) => {
+    const receiptContent = `
+CLEANDA RECEIPT
+=====================================
+
+Date: ${purchase.created_at ? new Date(purchase.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : "N/A"}
+Receipt ID: ${purchase.id.substring(0, 8).toUpperCase()}
+
+PURCHASE DETAILS
+-------------------------------------
+Service Type: ${purchase.job_type}
+Location: ${purchase.postcode}
+Amount: £${purchase.amount.toFixed(2)}
+
+-------------------------------------
+Thank you for your purchase!
+
+Cleanda Ltd
+support@cleanda.com
+    `.trim();
+
+    const blob = new Blob([receiptContent], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `cleanda-receipt-${purchase.id.substring(0, 8)}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success("Receipt downloaded");
   };
 
   const totalSpend = purchases.length * 20;
@@ -335,8 +407,17 @@ export default function Billing() {
                             £{purchase.amount}
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button variant="ghost" size="sm">
-                              <Download className="w-4 h-4" />
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleDownloadReceipt(purchase)}
+                              disabled={downloadingReceipt === purchase.id}
+                            >
+                              {downloadingReceipt === purchase.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Download className="w-4 h-4" />
+                              )}
                             </Button>
                           </TableCell>
                         </TableRow>
