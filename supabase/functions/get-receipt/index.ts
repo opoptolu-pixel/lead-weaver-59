@@ -8,6 +8,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Base64 encoded Cleanda logo (small green gradient text logo)
+const CLEANDA_LOGO_BASE64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAAAoCAYAAAC7TcKhAAAACXBIWXMAAAsTAAALEwEAmpwYAAAF8WlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNy4xLWMwMDAgNzkuZWRhMmIzZmFjLCAyMDIxLzExLzE3LTE3OjIzOjE5ICAgICAgICAiPiA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPiA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtbG5zOmRjPSJodHRwOi8vcHVybC5vcmcvZGMvZWxlbWVudHMvMS4xLyIgeG1sbnM6cGhvdG9zaG9wPSJodHRwOi8vbnMuYWRvYmUuY29tL3Bob3Rvc2hvcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RFdnQ9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZUV2ZW50IyIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgMjMuMSAoTWFjaW50b3NoKSIgeG1wOkNyZWF0ZURhdGU9IjIwMjQtMDEtMTVUMTA6MDA6MDAiIHhtcDpNb2RpZnlEYXRlPSIyMDI0LTAxLTE1VDEwOjAwOjAwIiB4bXA6TWV0YWRhdGFEYXRlPSIyMDI0LTAxLTE1VDEwOjAwOjAwIiBkYzpmb3JtYXQ9ImltYWdlL3BuZyIgcGhvdG9zaG9wOkNvbG9yTW9kZT0iMyIgcGhvdG9zaG9wOklDQ1Byb2ZpbGU9InNSR0IgSUVDNjE5NjYtMi4xIiB4bXBNTTpJbnN0YW5jZUlEPSJ4bXAuaWlkOjEyMzQ1Njc4LTEyMzQtMTIzNC0xMjM0LTEyMzQ1Njc4OTBhYiIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDoxMjM0NTY3OC0xMjM0LTEyMzQtMTIzNC0xMjM0NTY3ODkwYWIiIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDoxMjM0NTY3OC0xMjM0LTEyMzQtMTIzNC0xMjM0NTY3ODkwYWIiPiA8eG1wTU06SGlzdG9yeT4gPHJkZjpTZXE+IDxyZGY6bGkgc3RFdnQ6YWN0aW9uPSJjcmVhdGVkIiBzdEV2dDppbnN0YW5jZUlEPSJ4bXAuaWlkOjEyMzQ1Njc4LTEyMzQtMTIzNC0xMjM0LTEyMzQ1Njc4OTBhYiIgc3RFdnQ6d2hlbj0iMjAyNC0wMS0xNVQxMDowMDowMCIgc3RFdnQ6c29mdHdhcmVBZ2VudD0iQWRvYmUgUGhvdG9zaG9wIDIzLjEgKE1hY2ludG9zaCkiLz4gPC9yZGY6U2VxPiA8L3htcE1NOkhpc3Rvcnk+IDwvcmRmOkRlc2NyaXB0aW9uPiA8L3JkZjpSREY+IDwveDp4bXBtZXRhPiA8P3hwYWNrZXQgZW5kPSJyIj8+AAACKklEQVR4nO3cS27CQBCF4Rr2LMIiS7IJy+QAOQlnyA24BPdgEVZZJCxyg9CqkKNJjzO2x+P5fyHBeGbqq7bHjnPOAQB+uYs9AAB5RkAAGAQEgEFAABgEBIBBQAAYBASAQUAAGAQEgEFAABgEBIBBQAAYBASAQUAAGAQEgEFAABgEBIBBQAAYBASAQUAAGAQEgEFAABgEBIBBQAAYBASAQUAAGAQEgEFAABgEBIBBQAAYBASAQUAAGAQEgEFAABgEBIBBQAAYBASAQUAAGAQEgEFAABgEBIBBQAAYBASAQUAAGAQEgEFAABgEBIBBQAAYBASA8S/2AGbk1sceAnLq0LXwP9FnEC+zc65M6Xg4p3Q8yI8T14K/xJ5BUq5YBATNYUIAC2sQJISAADAICABj1YB8PD+5j+cndzz85X7e/rin9y/u6f1L0BgAXAvrB+T+8dXdP766+8dX9/j+1T2+f/1+HQCS0g/I3cOLu3t4cXcPL+7+8dXdP766h/cv7uH9S9BYAFwJ6wdk/+be7d/cu/2be3d4c++OL+7d8cW9P764d4cXZxfwAOxd+gE5vnl1xzev7vjm1R3fvLrjm1d3fPPqjm9e3fHNqzu+eXXHN6/u+OYVAGM49i6DgAAwCAgAg4AAMFYNyJ+fP93fn5/c359/3J+f/7g///xxf/75x/31+dv9+fnb/f359/sAwN6kH5A/P364Pz9+uD8/frh/P367fz5+u38/frt/Pv5xf378dnZx/w8AvfIv0e9P0gAAAABJRU5ErkJggg==";
+
 const generatePDFReceipt = (data: {
   receiptId: string;
   date: string;
@@ -26,29 +29,46 @@ const generatePDFReceipt = (data: {
   
   // Header background
   doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-  doc.rect(0, 0, pageWidth, 50, "F");
+  doc.rect(0, 0, pageWidth, 55, "F");
   
-  // Company name
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(28);
-  doc.setFont("helvetica", "bold");
-  doc.text("CLEANDA", 20, 30);
+  // Add logo image
+  try {
+    doc.addImage(CLEANDA_LOGO_BASE64, "PNG", 15, 12, 50, 16);
+  } catch {
+    // Fallback to text if image fails
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(28);
+    doc.setFont("helvetica", "bold");
+    doc.text("CLEANDA", 20, 30);
+  }
+  
+  // Company tagline
+  doc.setTextColor(200, 220, 255);
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.text("Professional Cleaning Leads", 15, 38);
   
   // Receipt label
-  doc.setFontSize(12);
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "bold");
+  doc.text("RECEIPT", pageWidth - 20, 25, { align: "right" });
+  
+  doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  doc.text("RECEIPT", pageWidth - 20, 30, { align: "right" });
+  doc.setTextColor(200, 220, 255);
+  doc.text(`#${data.receiptId.toUpperCase()}`, pageWidth - 20, 35, { align: "right" });
   
   // Receipt details section
   doc.setTextColor(100, 100, 100);
   doc.setFontSize(10);
-  doc.text("Receipt Number:", 20, 65);
-  doc.text("Date:", 20, 75);
-  doc.text("Email:", 20, 85);
+  doc.text("Receipt Number:", 20, 70);
+  doc.text("Date:", 20, 80);
+  doc.text("Email:", 20, 90);
   
   doc.setTextColor(0, 0, 0);
   doc.setFont("helvetica", "bold");
-  doc.text(data.receiptId.toUpperCase(), 70, 65);
+  doc.text(data.receiptId.toUpperCase(), 75, 70);
   doc.setFont("helvetica", "normal");
   
   const formattedDate = new Date(data.date).toLocaleDateString("en-GB", {
@@ -56,62 +76,62 @@ const generatePDFReceipt = (data: {
     month: "long", 
     year: "numeric"
   });
-  doc.text(formattedDate, 70, 75);
-  doc.text(data.customerEmail, 70, 85);
+  doc.text(formattedDate, 75, 80);
+  doc.text(data.customerEmail, 75, 90);
   
   // Divider line
   doc.setDrawColor(220, 220, 220);
   doc.setLineWidth(0.5);
-  doc.line(20, 95, pageWidth - 20, 95);
+  doc.line(20, 100, pageWidth - 20, 100);
   
   // Purchase details header
   doc.setFillColor(248, 250, 252);
-  doc.rect(20, 105, pageWidth - 40, 12, "F");
+  doc.rect(20, 110, pageWidth - 40, 12, "F");
   
   doc.setTextColor(100, 100, 100);
   doc.setFontSize(9);
   doc.setFont("helvetica", "bold");
-  doc.text("DESCRIPTION", 25, 113);
-  doc.text("AMOUNT", pageWidth - 25, 113, { align: "right" });
+  doc.text("DESCRIPTION", 25, 118);
+  doc.text("AMOUNT", pageWidth - 25, 118, { align: "right" });
   
   // Purchase item
   doc.setTextColor(0, 0, 0);
   doc.setFontSize(11);
   doc.setFont("helvetica", "normal");
-  doc.text("Lead Purchase", 25, 130);
+  doc.text("Lead Purchase", 25, 135);
   
   doc.setFontSize(10);
   doc.setTextColor(100, 100, 100);
-  doc.text(`Service: ${data.jobType}`, 25, 140);
-  doc.text(`Location: ${data.postcode}`, 25, 150);
+  doc.text(`Service: ${data.jobType}`, 25, 145);
+  doc.text(`Location: ${data.postcode}`, 25, 155);
   
   doc.setTextColor(0, 0, 0);
   doc.setFontSize(11);
-  doc.text(`£${data.amount.toFixed(2)}`, pageWidth - 25, 130, { align: "right" });
+  doc.text(`£${data.amount.toFixed(2)}`, pageWidth - 25, 135, { align: "right" });
   
   // Total section
   doc.setDrawColor(220, 220, 220);
-  doc.line(20, 165, pageWidth - 20, 165);
+  doc.line(20, 170, pageWidth - 20, 170);
   
   doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-  doc.rect(pageWidth - 80, 175, 60, 20, "F");
+  doc.rect(pageWidth - 80, 180, 60, 20, "F");
   
   doc.setTextColor(100, 100, 100);
   doc.setFontSize(10);
-  doc.text("Total Paid:", pageWidth - 85, 188, { align: "right" });
+  doc.text("Total Paid:", pageWidth - 85, 193, { align: "right" });
   
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(14);
   doc.setFont("helvetica", "bold");
-  doc.text(`£${data.amount.toFixed(2)}`, pageWidth - 50, 188, { align: "center" });
+  doc.text(`£${data.amount.toFixed(2)}`, pageWidth - 50, 193, { align: "center" });
   
   // Payment status badge
   doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
-  doc.roundedRect(20, 175, 40, 10, 2, 2, "F");
+  doc.roundedRect(20, 180, 40, 10, 2, 2, "F");
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(8);
   doc.setFont("helvetica", "bold");
-  doc.text("PAID", 40, 182, { align: "center" });
+  doc.text("PAID", 40, 187, { align: "center" });
   
   // Footer
   doc.setTextColor(150, 150, 150);
@@ -163,33 +183,50 @@ serve(async (req) => {
       throw new Error("Lead not found");
     }
 
-    // Verify the user owns this lead
-    if (lead.unlocked_by !== user.id) {
+    // Check if user is admin
+    const { data: userRole } = await supabaseClient
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .in("role", ["admin", "super_admin"])
+      .single();
+
+    const isAdmin = !!userRole;
+
+    // Verify the user owns this lead or is an admin
+    if (lead.unlocked_by !== user.id && !isAdmin) {
       throw new Error("You don't have access to this lead's receipt");
     }
 
-    // Get user's business profile
+    // Get the profile of the user who purchased the lead (not necessarily the requester)
+    const purchaserUserId = lead.unlocked_by;
     const { data: profile } = await supabaseClient
       .from("profiles")
       .select("business_name")
-      .eq("user_id", user.id)
+      .eq("user_id", purchaserUserId)
       .single();
+
+    // Get purchaser's email for the receipt
+    const { data: purchaserEmail } = await supabaseClient
+      .rpc("get_user_email", { user_uuid: purchaserUserId });
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
     });
 
-    // Find the customer in Stripe
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+    // Find the customer in Stripe (use purchaser's email, not requester's)
+    const customerEmail = purchaserEmail || user.email;
+    const customers = await stripe.customers.list({ email: customerEmail, limit: 1 });
     
-    // Generate PDF receipt data
+    // Generate PDF receipt data - convert pence to pounds
+    const amountInPounds = (lead.value || 2000) / 100;
     const receiptData = {
       receiptId: lead.id.substring(0, 8),
       date: lead.unlocked_at || new Date().toISOString(),
       jobType: lead.job_type,
       postcode: lead.postcode,
-      amount: lead.value || 20,
-      customerEmail: user.email,
+      amount: amountInPounds,
+      customerEmail: customerEmail,
       businessName: profile?.business_name || undefined,
     };
 
