@@ -97,6 +97,88 @@ serve(async (req) => {
         logStep("SMS notification error (non-blocking)", { leadId: lead.id, error: smsError.message });
       }
 
+      // Send email notification to businesses in the area using template
+      try {
+        // Get the postcode area (first part of postcode)
+        const postcodeArea = lead.postcode?.split(" ")[0] || lead.postcode?.slice(0, -3) || "";
+        
+        // Find businesses that might be interested (matching postcode prefix)
+        const { data: matchingBusinesses } = await supabase
+          .from("profiles")
+          .select("user_id, business_name, contact_name")
+          .eq("is_verified", true)
+          .eq("is_suspended", false)
+          .not("postcode", "is", null);
+
+        if (matchingBusinesses && matchingBusinesses.length > 0) {
+          // Get the email template
+          const { data: template } = await supabase
+            .from("email_templates")
+            .select("subject, body")
+            .eq("name", "lead_available_notification")
+            .eq("is_active", true)
+            .maybeSingle();
+
+          if (template) {
+            // Send to each matching business (limit to prevent spam)
+            const businessesToNotify = matchingBusinesses.slice(0, 20);
+            
+            for (const business of businessesToNotify) {
+              try {
+                // Get user email
+                const { data: userEmail } = await supabase.rpc("get_user_email", { 
+                  user_uuid: business.user_id 
+                });
+
+                if (userEmail) {
+                  const variables: Record<string, string> = {
+                    business_name: business.business_name || "Partner",
+                    contact_name: business.contact_name || "there",
+                    job_type: lead.job_type || "Cleaning",
+                    postcode_area: postcodeArea,
+                    postcode: lead.postcode || "",
+                    display_value: lead.display_value || "",
+                    preferred_date: lead.date || "Flexible",
+                    leads_url: "https://cleanda.co.uk/leads",
+                    dashboard_url: "https://cleanda.co.uk/dashboard",
+                    support_email: "hello@cleanda.co.uk",
+                    current_year: new Date().getFullYear().toString(),
+                  };
+
+                  let subject = template.subject;
+                  let html = template.body;
+                  
+                  Object.entries(variables).forEach(([key, value]) => {
+                    subject = subject.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
+                    html = html.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
+                  });
+
+                  // Fire and forget - don't wait for each email
+                  fetch(`${supabaseUrl}/functions/v1/send-email`, {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      "Authorization": `Bearer ${supabaseServiceKey}`,
+                    },
+                    body: JSON.stringify({
+                      to: userEmail,
+                      subject,
+                      html,
+                      templateName: "lead_available_notification",
+                    }),
+                  }).catch(err => logStep("Email notification failed", { business: business.user_id, error: err.message }));
+                }
+              } catch (emailError: any) {
+                logStep("Error sending email to business", { business: business.user_id, error: emailError.message });
+              }
+            }
+            logStep("Email notifications triggered", { count: businessesToNotify.length, leadId: lead.id });
+          }
+        }
+      } catch (emailError: any) {
+        logStep("Email notification error (non-blocking)", { leadId: lead.id, error: emailError.message });
+      }
+
       logStep("Auto-published lead", { leadId: lead.id });
       results.push({ leadId: lead.id, success: true });
     }
