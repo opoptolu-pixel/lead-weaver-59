@@ -9,6 +9,7 @@ import {
   LogOut,
   Download,
   Calendar,
+  ExternalLink,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
@@ -36,16 +37,23 @@ interface Purchase {
   created_at: string;
 }
 
-// Mock saved payment methods (in real app, fetch from Stripe)
-const mockPaymentMethods = [
-  { id: "pm_1", brand: "visa", last4: "4242", exp_month: 12, exp_year: 2025 },
-];
+interface PaymentMethod {
+  id: string;
+  brand: string;
+  last4: string;
+  exp_month: number;
+  exp_year: number;
+  isDefault: boolean;
+}
 
 export default function Billing() {
   const { user, profile, signOut, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMethods, setLoadingMethods] = useState(true);
+  const [openingPortal, setOpeningPortal] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -54,6 +62,24 @@ export default function Billing() {
   }, [user, authLoading, navigate]);
 
   useEffect(() => {
+    const fetchPaymentMethods = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase.functions.invoke("get-payment-methods");
+        
+        if (error) throw error;
+        
+        if (data?.paymentMethods) {
+          setPaymentMethods(data.paymentMethods);
+        }
+      } catch (error) {
+        console.error("Error fetching payment methods:", error);
+      } finally {
+        setLoadingMethods(false);
+      }
+    };
+
     const fetchPurchases = async () => {
       if (!user) return;
 
@@ -86,9 +112,28 @@ export default function Billing() {
     };
 
     if (user) {
+      fetchPaymentMethods();
       fetchPurchases();
     }
   }, [user]);
+
+  const handleManagePayments = async () => {
+    setOpeningPortal(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("customer-portal");
+      
+      if (error) throw error;
+      
+      if (data?.url) {
+        window.open(data.url, "_blank");
+      }
+    } catch (error) {
+      console.error("Error opening customer portal:", error);
+      toast.error("Failed to open payment management");
+    } finally {
+      setOpeningPortal(false);
+    }
+  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -186,29 +231,49 @@ export default function Billing() {
                 <CardDescription>Your saved cards</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {mockPaymentMethods.map((method) => (
-                  <div
-                    key={method.id}
-                    className="flex items-center justify-between p-3 border rounded-lg"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-6 bg-muted rounded flex items-center justify-center text-xs font-bold uppercase">
-                        {method.brand}
-                      </div>
-                      <div>
-                        <p className="font-medium">•••• {method.last4}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Expires {method.exp_month}/{method.exp_year}
-                        </p>
-                      </div>
-                    </div>
-                    <Badge variant="secondary">Default</Badge>
+              {loadingMethods ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                   </div>
-                ))}
+                ) : paymentMethods.length === 0 ? (
+                  <div className="text-center py-4 text-muted-foreground">
+                    <CreditCard className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No saved cards</p>
+                  </div>
+                ) : (
+                  paymentMethods.map((method) => (
+                    <div
+                      key={method.id}
+                      className="flex items-center justify-between p-3 border rounded-lg"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-6 bg-muted rounded flex items-center justify-center text-xs font-bold uppercase">
+                          {method.brand}
+                        </div>
+                        <div>
+                          <p className="font-medium">•••• {method.last4}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Expires {method.exp_month}/{method.exp_year}
+                          </p>
+                        </div>
+                      </div>
+                      {method.isDefault && <Badge variant="secondary">Default</Badge>}
+                    </div>
+                  ))
+                )}
 
-                <Button variant="outline" className="w-full gap-2">
-                  <Plus className="w-4 h-4" />
-                  Add Payment Method
+                <Button 
+                  variant="outline" 
+                  className="w-full gap-2"
+                  onClick={handleManagePayments}
+                  disabled={openingPortal}
+                >
+                  {openingPortal ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <ExternalLink className="w-4 h-4" />
+                  )}
+                  Manage Payment Methods
                 </Button>
               </CardContent>
             </Card>
