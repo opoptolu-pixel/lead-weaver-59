@@ -8,8 +8,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Base64 encoded Cleanda logo (small green gradient text logo)
-const CLEANDA_LOGO_BASE64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAAAoCAYAAAC7TcKhAAAACXBIWXMAAAsTAAALEwEAmpwYAAAF8WlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNy4xLWMwMDAgNzkuZWRhMmIzZmFjLCAyMDIxLzExLzE3LTE3OjIzOjE5ICAgICAgICAiPiA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPiA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtbG5zOmRjPSJodHRwOi8vcHVybC5vcmcvZGMvZWxlbWVudHMvMS4xLyIgeG1sbnM6cGhvdG9zaG9wPSJodHRwOi8vbnMuYWRvYmUuY29tL3Bob3Rvc2hvcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RFdnQ9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZUV2ZW50IyIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgMjMuMSAoTWFjaW50b3NoKSIgeG1wOkNyZWF0ZURhdGU9IjIwMjQtMDEtMTVUMTA6MDA6MDAiIHhtcDpNb2RpZnlEYXRlPSIyMDI0LTAxLTE1VDEwOjAwOjAwIiB4bXA6TWV0YWRhdGFEYXRlPSIyMDI0LTAxLTE1VDEwOjAwOjAwIiBkYzpmb3JtYXQ9ImltYWdlL3BuZyIgcGhvdG9zaG9wOkNvbG9yTW9kZT0iMyIgcGhvdG9zaG9wOklDQ1Byb2ZpbGU9InNSR0IgSUVDNjE5NjYtMi4xIiB4bXBNTTpJbnN0YW5jZUlEPSJ4bXAuaWlkOjEyMzQ1Njc4LTEyMzQtMTIzNC0xMjM0LTEyMzQ1Njc4OTBhYiIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDoxMjM0NTY3OC0xMjM0LTEyMzQtMTIzNC0xMjM0NTY3ODkwYWIiIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDoxMjM0NTY3OC0xMjM0LTEyMzQtMTIzNC0xMjM0NTY3ODkwYWIiPiA8eG1wTU06SGlzdG9yeT4gPHJkZjpTZXE+IDxyZGY6bGkgc3RFdnQ6YWN0aW9uPSJjcmVhdGVkIiBzdEV2dDppbnN0YW5jZUlEPSJ4bXAuaWlkOjEyMzQ1Njc4LTEyMzQtMTIzNC0xMjM0LTEyMzQ1Njc4OTBhYiIgc3RFdnQ6d2hlbj0iMjAyNC0wMS0xNVQxMDowMDowMCIgc3RFdnQ6c29mdHdhcmVBZ2VudD0iQWRvYmUgUGhvdG9zaG9wIDIzLjEgKE1hY2ludG9zaCkiLz4gPC9yZGY6U2VxPiA8L3htcE1NOkhpc3Rvcnk+IDwvcmRmOkRlc2NyaXB0aW9uPiA8L3JkZjpSREY+IDwveDp4bXBtZXRhPiA8P3hwYWNrZXQgZW5kPSJyIj8+AAACKklEQVR4nO3cS27CQBCF4Rr2LMIiS7IJy+QAOQlnyA24BPdgEVZZJCxyg9CqkKNJjzO2x+P5fyHBeGbqq7bHjnPOAQB+uYs9AAB5RkAAGAQEgEFAABgEBIBBQAAYBASAQUAAGAQEgEFAABgEBIBBQAAYBASAQUAAGAQEgEFAABgEBIBBQAAYBASAQUAAGAQEgEFAABgEBIBBQAAYBASAQUAAGAQEgEFAABgEBIBBQAAYBASAQUAAGAQEgEFAABgEBIBBQAAYBASAQUAAGAQEgEFAABgEBIBBQAAYBASAQUAAGAQEgEFAABgEBIBBQAAYBASA8S/2AGbk1sceAnLq0LXwP9FnEC+zc65M6Xg4p3Q8yI8T14K/xJ5BUq5YBATNYUIAC2sQJISAADAICABj1YB8PD+5j+cndzz85X7e/rin9y/u6f1L0BgAXAvrB+T+8dXdP766+8dX9/j+1T2+f/1+HQCS0g/I3cOLu3t4cXcPL+7+8dXdP766h/cv7uH9S9BYAFwJ6wdk/+be7d/cu/2be3d4c++OL+7d8cW9P764d4cXZxfwAOxd+gE5vnl1xzev7vjm1R3fvLrjm1d3fPPqjm9e3fHNqzu+eXXHN6/u+OYVAGM49i6DgAAwCAgAg4AAMFYNyJ+fP93fn5/c359/3J+f/7g///xxf/75x/31+dv9+fnb/f359/sAwN6kH5A/P364Pz9+uD8/frh/P367fz5+u38/frt/Pv5xf378dnZx/w8AvfIv0e9P0gAAAABJRU5ErkJggg==";
+// Lead purchase price is fixed at £20
+const LEAD_PRICE_POUNDS = 20;
 
 const generatePDFReceipt = (data: {
   receiptId: string;
@@ -31,22 +31,27 @@ const generatePDFReceipt = (data: {
   doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
   doc.rect(0, 0, pageWidth, 55, "F");
   
-  // Add logo image
-  try {
-    doc.addImage(CLEANDA_LOGO_BASE64, "PNG", 15, 12, 50, 16);
-  } catch {
-    // Fallback to text if image fails
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(28);
-    doc.setFont("helvetica", "bold");
-    doc.text("CLEANDA", 20, 30);
-  }
+  // Draw text-based logo with gradient effect simulation
+  // Green gradient colors
+  const greenStart = [74, 222, 128]; // #4ade80
+  const greenEnd = [34, 197, 94]; // #22c55e
+  
+  // Company name "CLEANDA" with green gradient text
+  doc.setFontSize(32);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(greenStart[0], greenStart[1], greenStart[2]);
+  doc.text("CLEANDA", 15, 32);
+  
+  // Add a subtle green underline/accent
+  doc.setDrawColor(accentColor[0], accentColor[1], accentColor[2]);
+  doc.setLineWidth(2);
+  doc.line(15, 36, 75, 36);
   
   // Company tagline
   doc.setTextColor(200, 220, 255);
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  doc.text("Professional Cleaning Leads", 15, 38);
+  doc.text("Professional Cleaning Leads", 15, 45);
   
   // Receipt label
   doc.setTextColor(255, 255, 255);
@@ -218,14 +223,13 @@ serve(async (req) => {
     const customerEmail = purchaserEmail || user.email;
     const customers = await stripe.customers.list({ email: customerEmail, limit: 1 });
     
-    // Generate PDF receipt data - convert pence to pounds
-    const amountInPounds = (lead.value || 2000) / 100;
+    // Generate PDF receipt data - use fixed lead price of £20
     const receiptData = {
       receiptId: lead.id.substring(0, 8),
       date: lead.unlocked_at || new Date().toISOString(),
       jobType: lead.job_type,
       postcode: lead.postcode,
-      amount: amountInPounds,
+      amount: LEAD_PRICE_POUNDS,
       customerEmail: customerEmail,
       businessName: profile?.business_name || undefined,
     };
