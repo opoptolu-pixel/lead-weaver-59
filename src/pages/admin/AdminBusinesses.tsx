@@ -436,10 +436,54 @@ export default function AdminBusinesses() {
 
     if (error) {
       toast.error("Failed to verify business");
-    } else {
-      toast.success("Business verified");
-      fetchBusinesses();
+      return;
     }
+
+    // Send verification approved email
+    if (business.email) {
+      try {
+        const { data: template } = await supabase
+          .from("email_templates")
+          .select("subject, body")
+          .eq("name", "verification_approved")
+          .eq("is_active", true)
+          .maybeSingle();
+
+        if (template) {
+          const variables: Record<string, string> = {
+            business_name: business.business_name || "Partner",
+            contact_name: business.contact_name || "there",
+            dashboard_url: "https://cleanda.co.uk/dashboard",
+            support_email: "hello@cleanda.co.uk",
+            current_year: new Date().getFullYear().toString(),
+          };
+
+          let subject = template.subject;
+          let html = template.body;
+          
+          Object.entries(variables).forEach(([key, value]) => {
+            subject = subject.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
+            html = html.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
+          });
+
+          await supabase.functions.invoke("send-email", {
+            body: {
+              to: business.email,
+              subject,
+              html,
+              templateName: "verification_approved",
+            },
+          });
+          
+          toast.success("Verification email sent to business");
+        }
+      } catch (emailError) {
+        console.error("Failed to send verification email:", emailError);
+      }
+    }
+
+    toast.success("Business verified");
+    fetchBusinesses();
   };
 
   const handleUnlinkPhone = async () => {
