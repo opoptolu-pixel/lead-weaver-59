@@ -258,6 +258,72 @@ serve(async (req) => {
     if (leadError) {
       logStep("Warning: Could not fetch lead details", { error: leadError.message });
     }
+
+    // Send lead unlocked email notification
+    if (user.email && lead) {
+      try {
+        const { data: template } = await supabaseClient
+          .from("email_templates")
+          .select("subject, body")
+          .eq("name", "lead_unlocked")
+          .eq("is_active", true)
+          .maybeSingle();
+
+        if (template) {
+          const variables: Record<string, string> = {
+            business_name: profile?.business_name || "Partner",
+            contact_name: profile?.contact_name || "there",
+            job_type: lead.job_type || "Cleaning",
+            postcode: lead.postcode || "",
+            customer_name: lead.customer_name || "Customer",
+            customer_phone: lead.customer_phone || "Not provided",
+            customer_email: lead.customer_email || "Not provided",
+            customer_address: lead.customer_address || "Not provided",
+            preferred_date: lead.date || "Flexible",
+            display_value: lead.display_value || "",
+            dashboard_url: "https://cleanda.co.uk/dashboard",
+            leads_url: "https://cleanda.co.uk/leads",
+            support_email: "hello@cleanda.co.uk",
+            current_year: new Date().getFullYear().toString(),
+          };
+
+          let subject = template.subject;
+          let html = template.body;
+          
+          Object.entries(variables).forEach(([key, value]) => {
+            subject = subject.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
+            html = html.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
+          });
+
+          // Call send-email function
+          const emailResponse = await fetch(
+            `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-email`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+              },
+              body: JSON.stringify({
+                to: user.email,
+                subject,
+                html,
+                templateName: "lead_unlocked",
+              }),
+            }
+          );
+
+          if (emailResponse.ok) {
+            logStep("Lead unlocked email sent", { to: user.email });
+          } else {
+            logStep("Warning: Failed to send lead unlocked email", { status: emailResponse.status });
+          }
+        }
+      } catch (emailError: any) {
+        logStep("Warning: Failed to send lead unlocked email", { error: emailError.message });
+        // Don't fail the unlock if email fails
+      }
+    }
     
     // Complete the reservation (mark as completed, not expired)
     await supabaseClient.rpc('complete_lead_reservation', { p_lead_id: leadId });

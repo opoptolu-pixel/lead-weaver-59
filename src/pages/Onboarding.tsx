@@ -143,6 +143,7 @@ export default function Onboarding() {
           contact_name: data.contactName.trim(),
           postcode: data.postcode.trim().toUpperCase(),
           whatsapp_optin: data.whatsappOptin,
+          phone: data.phone.trim(),
         },
       });
 
@@ -154,6 +155,47 @@ export default function Onboarding() {
           source: "business_signup",
           source_id: user.id,
         }).select().maybeSingle(); // Ignore if already exists
+
+        // Send welcome email to new business
+        try {
+          const { data: template } = await supabase
+            .from("email_templates")
+            .select("subject, body")
+            .eq("name", "welcome_business")
+            .eq("is_active", true)
+            .maybeSingle();
+
+          if (template) {
+            const variables: Record<string, string> = {
+              business_name: data.businessName.trim(),
+              contact_name: data.contactName.trim(),
+              dashboard_url: "https://cleanda.co.uk/dashboard",
+              verification_url: "https://cleanda.co.uk/verification",
+              support_email: "hello@cleanda.co.uk",
+              current_year: new Date().getFullYear().toString(),
+            };
+
+            let subject = template.subject;
+            let html = template.body;
+            
+            Object.entries(variables).forEach(([key, value]) => {
+              subject = subject.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
+              html = html.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
+            });
+
+            await supabase.functions.invoke("send-email", {
+              body: {
+                to: user.email,
+                subject,
+                html,
+                templateName: "welcome_business",
+              },
+            });
+          }
+        } catch (emailError) {
+          console.error("Failed to send welcome email:", emailError);
+          // Don't fail onboarding if email fails
+        }
       }
 
       await refreshProfile();
