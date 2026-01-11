@@ -64,6 +64,8 @@ export default function PhoneVerification({
       });
 
       const { data, error } = response;
+      
+      console.log("Send verification response:", { data, error });
 
       // Handle error message from function response body (for non-2xx responses)
       if (data?.error) {
@@ -78,19 +80,39 @@ export default function PhoneVerification({
       }
 
       if (error) {
-        // Try to parse error context for the actual message
-        const errorBody = error.context?.body;
-        if (errorBody) {
+        console.log("Error object details:", JSON.stringify(error, null, 2));
+        
+        // For FunctionsHttpError, the response body is in error.context
+        // Try multiple ways to extract the error message
+        let errorMessage: string | null = null;
+        
+        // Method 1: Check if error has context with json response
+        if (error.context?.json) {
+          errorMessage = error.context.json.error;
+        }
+        
+        // Method 2: Check error.context.body as string
+        if (!errorMessage && error.context?.body) {
           try {
-            const parsed = typeof errorBody === 'string' ? JSON.parse(errorBody) : errorBody;
-            if (parsed?.error) {
-              toast.error(parsed.error);
-              return;
-            }
+            const parsed = typeof error.context.body === 'string' 
+              ? JSON.parse(error.context.body) 
+              : error.context.body;
+            errorMessage = parsed?.error;
           } catch {
             // Ignore parse errors
           }
         }
+        
+        // Method 3: Check if the data still contains the error (some versions)
+        if (!errorMessage && typeof data === 'object' && data?.error) {
+          errorMessage = data.error;
+        }
+        
+        if (errorMessage) {
+          toast.error(errorMessage);
+          return;
+        }
+        
         throw error;
       }
 
