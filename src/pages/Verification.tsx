@@ -355,112 +355,40 @@ export default function Verification() {
               <Shield className="w-5 h-5 text-secondary" />
               Verification Status
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div className={`p-4 rounded-xl text-center ${profile?.phone_verified ? 'bg-secondary/10 border border-secondary/30' : 'bg-muted'}`}>
-                <Phone className={`w-6 h-6 mx-auto mb-2 ${profile?.phone_verified ? 'text-secondary' : 'text-muted-foreground'}`} />
+                {profile?.phone_verified ? (
+                  <CheckCircle className="w-6 h-6 mx-auto mb-2 text-secondary" />
+                ) : (
+                  <Phone className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
+                )}
                 <p className="text-sm font-medium">{profile?.phone_verified ? 'Verified' : 'Pending'}</p>
                 <p className="text-xs text-muted-foreground">Phone</p>
+                {!profile?.phone_verified && (
+                  <Link to="/settings" className="text-xs text-secondary hover:underline mt-1 block">
+                    Verify in Settings
+                  </Link>
+                )}
               </div>
-              <div className={`p-4 rounded-xl text-center ${hasBusinessDoc ? 'bg-secondary/10 border border-secondary/30' : 'bg-muted'}`}>
-                <FileText className={`w-6 h-6 mx-auto mb-2 ${hasBusinessDoc ? 'text-secondary' : 'text-muted-foreground'}`} />
-                <p className="text-sm font-medium">{hasBusinessDoc ? 'Uploaded' : 'Pending'}</p>
-                <p className="text-xs text-muted-foreground">Business Doc</p>
-              </div>
-              <div className={`p-4 rounded-xl text-center ${hasInsuranceDoc ? 'bg-secondary/10 border border-secondary/30' : 'bg-muted'}`}>
-                <Shield className={`w-6 h-6 mx-auto mb-2 ${hasInsuranceDoc ? 'text-secondary' : 'text-muted-foreground'}`} />
-                <p className="text-sm font-medium">{hasInsuranceDoc ? 'Uploaded' : 'Pending'}</p>
-                <p className="text-xs text-muted-foreground">Insurance</p>
+              <div className={`p-4 rounded-xl text-center ${profile?.is_verified ? 'bg-secondary/10 border border-secondary/30' : 'bg-muted'}`}>
+                {profile?.is_verified ? (
+                  <CheckCircle className="w-6 h-6 mx-auto mb-2 text-secondary" />
+                ) : (
+                  <FileText className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
+                )}
+                <p className="text-sm font-medium">{profile?.is_verified ? 'Verified' : 'Pending'}</p>
+                <p className="text-xs text-muted-foreground">Business</p>
               </div>
               <div className={`p-4 rounded-xl text-center ${profile?.address_verified ? 'bg-secondary/10 border border-secondary/30' : 'bg-muted'}`}>
-                <MapPin className={`w-6 h-6 mx-auto mb-2 ${profile?.address_verified ? 'text-secondary' : 'text-muted-foreground'}`} />
+                {profile?.address_verified ? (
+                  <CheckCircle className="w-6 h-6 mx-auto mb-2 text-secondary" />
+                ) : (
+                  <MapPin className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
+                )}
                 <p className="text-sm font-medium">{profile?.address_verified ? 'Verified' : 'Pending'}</p>
                 <p className="text-xs text-muted-foreground">Address</p>
               </div>
             </div>
-          </div>
-
-          {/* Phone Verification */}
-          <div className="bg-card rounded-2xl border border-border p-6 mb-6">
-            <h2 className="font-heading text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-              <Phone className="w-5 h-5 text-secondary" />
-              Phone Verification
-              {profile?.phone_verified && <CheckCircle className="w-5 h-5 text-secondary ml-auto" />}
-            </h2>
-
-            {profile?.phone_verified ? (
-              <p className="text-muted-foreground">Your phone number has been verified.</p>
-            ) : (
-              <div className="space-y-4">
-                <p className="text-muted-foreground text-sm">
-                  We'll send an 8-character code via WhatsApp to {profile?.phone || "your phone number"}.
-                </p>
-
-                {!profile?.phone && (
-                  <Link to="/settings">
-                    <Button variant="outline" size="sm">
-                      Add Phone Number First
-                    </Button>
-                  </Link>
-                )}
-
-                {profile?.phone && !codeSent && (
-                  <div className="space-y-3">
-                    {countdown > 0 && (
-                      <div className="flex items-center gap-2 text-sm text-amber-500 bg-amber-500/10 p-3 rounded-lg">
-                        <Clock className="w-4 h-4" />
-                        <span>
-                          You can request a new code in {Math.floor(countdown / 60)}:{(countdown % 60).toString().padStart(2, '0')}
-                        </span>
-                      </div>
-                    )}
-                    <Button
-                      variant="cta"
-                      onClick={handleSendVerificationCode}
-                      disabled={sendingCode || countdown > 0}
-                    >
-                      {sendingCode ? (
-                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                      ) : null}
-                      {countdown > 0 ? "Please Wait" : "Send Verification Code"}
-                    </Button>
-                  </div>
-                )}
-
-                {codeSent && (
-                  <div className="space-y-3">
-                    <p className="text-sm text-muted-foreground">
-                      Code sent via <span className="font-medium text-secondary">{deliveryMethod || "message"}</span> to {profile?.phone}
-                    </p>
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Enter 8-character code"
-                        value={verificationCode}
-                        onChange={(e) => setVerificationCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8))}
-                        maxLength={8}
-                        className="max-w-[180px] uppercase"
-                      />
-                      <Button onClick={handleVerifyCode} disabled={verifyingCode}>
-                        {verifyingCode ? <Loader2 className="w-4 h-4 animate-spin" /> : "Verify"}
-                      </Button>
-                    </div>
-                    {countdown > 0 ? (
-                      <p className="text-sm text-amber-500 flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        Resend available in {Math.floor(countdown / 60)}:{(countdown % 60).toString().padStart(2, '0')}
-                      </p>
-                    ) : (
-                      <button
-                        className="text-sm text-secondary hover:underline disabled:opacity-50"
-                        onClick={handleSendVerificationCode}
-                        disabled={sendingCode}
-                      >
-                        Resend code
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
           </div>
 
           {/* Document Upload */}
