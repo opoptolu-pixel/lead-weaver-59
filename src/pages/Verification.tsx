@@ -391,297 +391,126 @@ export default function Verification() {
             </div>
           </div>
 
-          {/* Document Upload */}
+          {/* Document Upload Progress */}
           <div className="bg-card rounded-2xl border border-border p-6 mb-6">
             <h2 className="font-heading text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
               <FileText className="w-5 h-5 text-secondary" />
-              Business Documents
+              Document Progress
             </h2>
+            
+            {/* Progress Overview */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+              {[
+                { type: "business_license", label: "Business License", icon: FileText },
+                { type: "insurance", label: "Insurance", icon: Shield },
+                { type: "address_proof", label: "Address Proof", icon: MapPin },
+              ].map(({ type, label, icon: Icon }) => {
+                const doc = documents.find(d => d.document_type === type);
+                const status = doc?.status || "not_uploaded";
+                
+                return (
+                  <div
+                    key={type}
+                    className={`p-3 rounded-xl border-2 transition-colors ${
+                      status === "approved"
+                        ? "bg-secondary/10 border-secondary/40"
+                        : status === "pending"
+                        ? "bg-amber-500/10 border-amber-500/40"
+                        : status === "rejected"
+                        ? "bg-destructive/10 border-destructive/40"
+                        : "bg-muted border-border"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <Icon className={`w-4 h-4 ${
+                        status === "approved" ? "text-secondary" :
+                        status === "pending" ? "text-amber-500" :
+                        status === "rejected" ? "text-destructive" :
+                        "text-muted-foreground"
+                      }`} />
+                      <span className="text-sm font-medium">{label}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      {status === "approved" && (
+                        <>
+                          <CheckCircle className="w-3.5 h-3.5 text-secondary" />
+                          <span className="text-xs text-secondary font-medium">Approved</span>
+                        </>
+                      )}
+                      {status === "pending" && (
+                        <>
+                          <Clock className="w-3.5 h-3.5 text-amber-500" />
+                          <span className="text-xs text-amber-500 font-medium">Under Review</span>
+                        </>
+                      )}
+                      {status === "rejected" && (
+                        <>
+                          <X className="w-3.5 h-3.5 text-destructive" />
+                          <span className="text-xs text-destructive font-medium">Rejected</span>
+                        </>
+                      )}
+                      {status === "not_uploaded" && (
+                        <>
+                          <Upload className="w-3.5 h-3.5 text-muted-foreground" />
+                          <span className="text-xs text-muted-foreground">Not Uploaded</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Progress Bar */}
+            <div className="mb-6">
+              <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
+                <span>Verification Progress</span>
+                <span>
+                  {documents.filter(d => d.status === "approved").length} of 3 approved
+                </span>
+              </div>
+              <div className="h-2 bg-muted rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-secondary transition-all duration-500"
+                  style={{ 
+                    width: `${(documents.filter(d => d.status === "approved").length / 3) * 100}%` 
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Business Documents */}
+          <div className="bg-card rounded-2xl border border-border p-6 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-heading text-lg font-semibold text-foreground flex items-center gap-2">
+                <FileText className="w-5 h-5 text-secondary" />
+                Business License
+              </h2>
+              {(() => {
+                const doc = documents.find(d => d.document_type === "business_license");
+                if (!doc) return null;
+                return (
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex items-center gap-1 ${
+                    doc.status === "approved" ? "bg-secondary/20 text-secondary" :
+                    doc.status === "rejected" ? "bg-destructive/20 text-destructive" :
+                    "bg-amber-500/20 text-amber-500"
+                  }`}>
+                    {doc.status === "approved" && <CheckCircle className="w-3 h-3" />}
+                    {doc.status === "pending" && <Clock className="w-3 h-3" />}
+                    {doc.status === "rejected" && <X className="w-3 h-3" />}
+                    {doc.status.charAt(0).toUpperCase() + doc.status.slice(1)}
+                  </span>
+                );
+              })()}
+            </div>
 
             <p className="text-muted-foreground text-sm mb-4">
               Upload your business license, company registration, or similar document proving your business is registered.
             </p>
 
             <div className="space-y-4">
-              <div className="border-2 border-dashed border-border rounded-xl p-6 text-center">
-                <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground mb-3">
-                  PDF, JPG or PNG up to 10MB
-                </p>
-                <input
-                  type="file"
-                  id="business-doc"
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleDocumentUpload("business_license", file);
-                  }}
-                />
-                <label htmlFor="business-doc">
-                  <Button variant="outline" asChild disabled={uploading}>
-                    <span>
-                      {uploading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
-                      Upload Business Document
-                    </span>
-                  </Button>
-                </label>
-              </div>
-
-              {documents.filter(d => d.document_type === "business_license").length > 0 && (
-                <div className="space-y-2">
-                  {documents.filter(d => d.document_type === "business_license").map((doc) => (
-                    <div key={doc.id} className="bg-muted rounded-lg p-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <FileText className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-sm">{doc.document_type.replace("_", " ")}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handlePreviewDocument(doc)}
-                            title="Preview document"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          {doc.status === "rejected" && (
-                            <>
-                              <input
-                                type="file"
-                                id={`reupload-${doc.id}`}
-                                accept=".pdf,.jpg,.jpeg,.png"
-                                className="hidden"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) handleReupload(doc.id, doc.document_type, doc.file_path, file);
-                                }}
-                              />
-                              <label htmlFor={`reupload-${doc.id}`}>
-                                <Button variant="outline" size="sm" asChild disabled={uploading}>
-                                  <span className="cursor-pointer">
-                                    {uploading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <RefreshCw className="w-3 h-3 mr-1" />}
-                                    Re-upload
-                                  </span>
-                                </Button>
-                              </label>
-                            </>
-                          )}
-                          <span className={`text-xs px-2 py-1 rounded ${
-                            doc.status === "approved" ? "bg-secondary/20 text-secondary" :
-                            doc.status === "rejected" ? "bg-destructive/20 text-destructive" :
-                            "bg-amber-500/20 text-amber-500"
-                          }`}>
-                            {doc.status === "pending" ? <Clock className="w-3 h-3 inline mr-1" /> : null}
-                            {doc.status}
-                          </span>
-                        </div>
-                      </div>
-                      {doc.status === "rejected" && (
-                        <div className="mt-3 p-4 bg-destructive/10 border border-destructive/30 rounded-lg">
-                          <div className="flex items-start gap-3">
-                            <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
-                            <div className="space-y-2">
-                              <p className="font-medium text-destructive">Document Rejected</p>
-                              {doc.admin_notes && (
-                                <p className="text-sm text-destructive/90">
-                                  <strong>Reason:</strong> {doc.admin_notes}
-                                </p>
-                              )}
-                              <div className="text-sm text-muted-foreground space-y-1 mt-2">
-                                <p className="font-medium">How to fix:</p>
-                                <ul className="list-disc list-inside space-y-1 text-xs">
-                                  <li>Ensure the document is clearly readable and not blurry</li>
-                                  <li>Make sure all corners of the document are visible</li>
-                                  <li>Upload a recent document (within last 3 months if applicable)</li>
-                                  <li>Verify the document shows your registered business name</li>
-                                </ul>
-                              </div>
-                              <p className="text-xs text-muted-foreground mt-2">
-                                Click the "Re-upload" button above to submit a new document.
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Insurance Document */}
-          <div className="bg-card rounded-2xl border border-border p-6 mb-6">
-            <h2 className="font-heading text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-              <Shield className="w-5 h-5 text-secondary" />
-              Insurance Certificate
-              {documents.some(d => d.document_type === "insurance" && d.status === "approved") && <CheckCircle className="w-5 h-5 text-secondary ml-auto" />}
-            </h2>
-
-            <p className="text-muted-foreground text-sm mb-4">
-              Upload your public liability insurance certificate. This is required for all cleaning businesses.
-            </p>
-
-            <div className="space-y-4">
-              <div className="border-2 border-dashed border-border rounded-xl p-6 text-center">
-                <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground mb-3">
-                  PDF, JPG or PNG up to 10MB
-                </p>
-                <input
-                  type="file"
-                  id="insurance-doc"
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleDocumentUpload("insurance", file);
-                  }}
-                />
-                <label htmlFor="insurance-doc">
-                  <Button variant="outline" asChild disabled={uploading}>
-                    <span>
-                      {uploading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
-                      Upload Insurance Certificate
-                    </span>
-                  </Button>
-                </label>
-              </div>
-
-              {documents.filter(d => d.document_type === "insurance").length > 0 && (
-                <div className="space-y-2">
-                  {documents.filter(d => d.document_type === "insurance").map((doc) => (
-                    <div key={doc.id} className="bg-muted rounded-lg p-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Shield className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-sm">Insurance certificate</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handlePreviewDocument(doc)}
-                            title="Preview document"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          {doc.status === "rejected" && (
-                            <>
-                              <input
-                                type="file"
-                                id={`reupload-ins-${doc.id}`}
-                                accept=".pdf,.jpg,.jpeg,.png"
-                                className="hidden"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) handleReupload(doc.id, doc.document_type, doc.file_path, file);
-                                }}
-                              />
-                              <label htmlFor={`reupload-ins-${doc.id}`}>
-                                <Button variant="outline" size="sm" asChild disabled={uploading}>
-                                  <span className="cursor-pointer">
-                                    {uploading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <RefreshCw className="w-3 h-3 mr-1" />}
-                                    Re-upload
-                                  </span>
-                                </Button>
-                              </label>
-                            </>
-                          )}
-                          <span className={`text-xs px-2 py-1 rounded ${
-                            doc.status === "approved" ? "bg-secondary/20 text-secondary" :
-                            doc.status === "rejected" ? "bg-destructive/20 text-destructive" :
-                            "bg-amber-500/20 text-amber-500"
-                          }`}>
-                            {doc.status === "pending" ? <Clock className="w-3 h-3 inline mr-1" /> : null}
-                            {doc.status}
-                          </span>
-                        </div>
-                      </div>
-                      {doc.status === "rejected" && (
-                        <div className="mt-3 p-4 bg-destructive/10 border border-destructive/30 rounded-lg">
-                          <div className="flex items-start gap-3">
-                            <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
-                            <div className="space-y-2">
-                              <p className="font-medium text-destructive">Document Rejected</p>
-                              {doc.admin_notes && (
-                                <p className="text-sm text-destructive/90">
-                                  <strong>Reason:</strong> {doc.admin_notes}
-                                </p>
-                              )}
-                              <div className="text-sm text-muted-foreground space-y-1 mt-2">
-                                <p className="font-medium">How to fix:</p>
-                                <ul className="list-disc list-inside space-y-1 text-xs">
-                                  <li>Ensure the insurance certificate is clearly readable</li>
-                                  <li>Certificate must show your business name and coverage details</li>
-                                  <li>Make sure the policy is current and not expired</li>
-                                  <li>Include the full document showing policy number and dates</li>
-                                </ul>
-                              </div>
-                              <p className="text-xs text-muted-foreground mt-2">
-                                Click the "Re-upload" button above to submit a new document.
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Address Verification */}
-          <div className="bg-card rounded-2xl border border-border p-6">
-            <h2 className="font-heading text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-secondary" />
-              Address Verification
-              {profile?.address_verified && <CheckCircle className="w-5 h-5 text-secondary ml-auto" />}
-            </h2>
-
-            {profile?.address_verified ? (
-              <div className="space-y-4">
-                <p className="text-muted-foreground">Your address has been verified.</p>
-                
-                {/* Show uploaded documents with preview even after verification */}
-                {documents.filter(d => d.document_type === "address_proof").length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-foreground">Uploaded Documents</p>
-                    {documents.filter(d => d.document_type === "address_proof").map((doc) => (
-                      <div key={doc.id} className="bg-muted rounded-lg p-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <FileText className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-sm">Address proof</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handlePreviewDocument(doc)}
-                              title="Preview document"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                            <span className="text-xs px-2 py-1 rounded bg-secondary/20 text-secondary">
-                              approved
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <p className="text-muted-foreground text-sm">
-                  Upload a utility bill or bank statement showing your business address (dated within last 3 months).
-                </p>
-
+              {!documents.some(d => d.document_type === "business_license") && (
                 <div className="border-2 border-dashed border-border rounded-xl p-6 text-center">
                   <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
                   <p className="text-sm text-muted-foreground mb-3">
@@ -689,105 +518,439 @@ export default function Verification() {
                   </p>
                   <input
                     type="file"
-                    id="address-doc"
+                    id="business-doc"
                     accept=".pdf,.jpg,.jpeg,.png"
                     className="hidden"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
-                      if (file) handleDocumentUpload("address_proof", file);
+                      if (file) handleDocumentUpload("business_license", file);
                     }}
                   />
-                  <label htmlFor="address-doc">
+                  <label htmlFor="business-doc">
                     <Button variant="outline" asChild disabled={uploading}>
                       <span>
                         {uploading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
-                        Upload Address Proof
+                        Upload Business Document
                       </span>
                     </Button>
                   </label>
                 </div>
+              )}
 
-                {documents.filter(d => d.document_type === "address_proof").length > 0 && (
-                  <div className="space-y-2">
-                    {documents.filter(d => d.document_type === "address_proof").map((doc) => (
-                      <div key={doc.id} className="bg-muted rounded-lg p-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <FileText className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-sm">Address proof</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handlePreviewDocument(doc)}
-                              title="Preview document"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                            {doc.status === "rejected" && (
-                              <>
-                                <input
-                                  type="file"
-                                  id={`reupload-addr-${doc.id}`}
-                                  accept=".pdf,.jpg,.jpeg,.png"
-                                  className="hidden"
-                                  onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) handleReupload(doc.id, doc.document_type, doc.file_path, file);
-                                  }}
-                                />
-                                <label htmlFor={`reupload-addr-${doc.id}`}>
-                                  <Button variant="outline" size="sm" asChild disabled={uploading}>
-                                    <span className="cursor-pointer">
-                                      {uploading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <RefreshCw className="w-3 h-3 mr-1" />}
-                                      Re-upload
-                                    </span>
-                                  </Button>
-                                </label>
-                              </>
-                            )}
-                            <span className={`text-xs px-2 py-1 rounded ${
-                              doc.status === "approved" ? "bg-secondary/20 text-secondary" :
-                              doc.status === "rejected" ? "bg-destructive/20 text-destructive" :
-                              "bg-amber-500/20 text-amber-500"
-                            }`}>
-                              {doc.status === "pending" ? <Clock className="w-3 h-3 inline mr-1" /> : null}
-                              {doc.status}
-                            </span>
-                          </div>
-                        </div>
-                        {doc.status === "rejected" && (
-                          <div className="mt-3 p-4 bg-destructive/10 border border-destructive/30 rounded-lg">
-                            <div className="flex items-start gap-3">
-                              <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
-                              <div className="space-y-2">
-                                <p className="font-medium text-destructive">Document Rejected</p>
-                                {doc.admin_notes && (
-                                  <p className="text-sm text-destructive/90">
-                                    <strong>Reason:</strong> {doc.admin_notes}
-                                  </p>
-                                )}
-                                <div className="text-sm text-muted-foreground space-y-1 mt-2">
-                                  <p className="font-medium">How to fix:</p>
-                                  <ul className="list-disc list-inside space-y-1 text-xs">
-                                    <li>Ensure the document is clearly readable and not blurry</li>
-                                    <li>Make sure all corners of the document are visible</li>
-                                    <li>Document must be dated within the last 3 months</li>
-                                    <li>Verify the address matches your business registration</li>
-                                  </ul>
-                                </div>
-                                <p className="text-xs text-muted-foreground mt-2">
-                                  Click the "Re-upload" button above to submit a new document.
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        )}
+              {documents.filter(d => d.document_type === "business_license").map((doc) => (
+                <div key={doc.id} className={`rounded-xl p-4 border ${
+                  doc.status === "approved" ? "bg-secondary/5 border-secondary/30" :
+                  doc.status === "rejected" ? "bg-destructive/5 border-destructive/30" :
+                  "bg-amber-500/5 border-amber-500/30"
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                        doc.status === "approved" ? "bg-secondary/20" :
+                        doc.status === "rejected" ? "bg-destructive/20" :
+                        "bg-amber-500/20"
+                      }`}>
+                        <FileText className={`w-5 h-5 ${
+                          doc.status === "approved" ? "text-secondary" :
+                          doc.status === "rejected" ? "text-destructive" :
+                          "text-amber-500"
+                        }`} />
                       </div>
-                    ))}
+                      <div>
+                        <p className="text-sm font-medium">Business License</p>
+                        <p className="text-xs text-muted-foreground">
+                          Uploaded {new Date(doc.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handlePreviewDocument(doc)}
+                        title="Preview document"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      {doc.status === "rejected" && (
+                        <>
+                          <input
+                            type="file"
+                            id={`reupload-${doc.id}`}
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleReupload(doc.id, doc.document_type, doc.file_path, file);
+                            }}
+                          />
+                          <label htmlFor={`reupload-${doc.id}`}>
+                            <Button variant="outline" size="sm" asChild disabled={uploading}>
+                              <span className="cursor-pointer">
+                                {uploading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <RefreshCw className="w-3 h-3 mr-1" />}
+                                Re-upload
+                              </span>
+                            </Button>
+                          </label>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  {doc.status === "rejected" && doc.admin_notes && (
+                    <div className="mt-3 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-destructive">Rejection Reason</p>
+                          <p className="text-sm text-destructive/80">{doc.admin_notes}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {doc.status === "approved" && (
+                    <div className="mt-3 p-3 bg-secondary/10 rounded-lg flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-secondary" />
+                      <p className="text-sm text-secondary">Document verified successfully</p>
+                    </div>
+                  )}
+                  {doc.status === "pending" && (
+                    <div className="mt-3 p-3 bg-amber-500/10 rounded-lg flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-amber-500" />
+                      <p className="text-sm text-amber-600">Under review - typically 1-2 business days</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Insurance Document */}
+          <div className="bg-card rounded-2xl border border-border p-6 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-heading text-lg font-semibold text-foreground flex items-center gap-2">
+                <Shield className="w-5 h-5 text-secondary" />
+                Insurance Certificate
+              </h2>
+              {(() => {
+                const doc = documents.find(d => d.document_type === "insurance");
+                if (!doc) return null;
+                return (
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex items-center gap-1 ${
+                    doc.status === "approved" ? "bg-secondary/20 text-secondary" :
+                    doc.status === "rejected" ? "bg-destructive/20 text-destructive" :
+                    "bg-amber-500/20 text-amber-500"
+                  }`}>
+                    {doc.status === "approved" && <CheckCircle className="w-3 h-3" />}
+                    {doc.status === "pending" && <Clock className="w-3 h-3" />}
+                    {doc.status === "rejected" && <X className="w-3 h-3" />}
+                    {doc.status.charAt(0).toUpperCase() + doc.status.slice(1)}
+                  </span>
+                );
+              })()}
+            </div>
+
+            <p className="text-muted-foreground text-sm mb-4">
+              Upload your public liability insurance certificate. This is required for all cleaning businesses.
+            </p>
+
+            <div className="space-y-4">
+              {!documents.some(d => d.document_type === "insurance") && (
+                <div className="border-2 border-dashed border-border rounded-xl p-6 text-center">
+                  <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground mb-3">
+                    PDF, JPG or PNG up to 10MB
+                  </p>
+                  <input
+                    type="file"
+                    id="insurance-doc"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleDocumentUpload("insurance", file);
+                    }}
+                  />
+                  <label htmlFor="insurance-doc">
+                    <Button variant="outline" asChild disabled={uploading}>
+                      <span>
+                        {uploading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
+                        Upload Insurance Certificate
+                      </span>
+                    </Button>
+                  </label>
+                </div>
+              )}
+
+              {documents.filter(d => d.document_type === "insurance").map((doc) => (
+                <div key={doc.id} className={`rounded-xl p-4 border ${
+                  doc.status === "approved" ? "bg-secondary/5 border-secondary/30" :
+                  doc.status === "rejected" ? "bg-destructive/5 border-destructive/30" :
+                  "bg-amber-500/5 border-amber-500/30"
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                        doc.status === "approved" ? "bg-secondary/20" :
+                        doc.status === "rejected" ? "bg-destructive/20" :
+                        "bg-amber-500/20"
+                      }`}>
+                        <Shield className={`w-5 h-5 ${
+                          doc.status === "approved" ? "text-secondary" :
+                          doc.status === "rejected" ? "text-destructive" :
+                          "text-amber-500"
+                        }`} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Insurance Certificate</p>
+                        <p className="text-xs text-muted-foreground">
+                          Uploaded {new Date(doc.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handlePreviewDocument(doc)}
+                        title="Preview document"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      {doc.status === "rejected" && (
+                        <>
+                          <input
+                            type="file"
+                            id={`reupload-ins-${doc.id}`}
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleReupload(doc.id, doc.document_type, doc.file_path, file);
+                            }}
+                          />
+                          <label htmlFor={`reupload-ins-${doc.id}`}>
+                            <Button variant="outline" size="sm" asChild disabled={uploading}>
+                              <span className="cursor-pointer">
+                                {uploading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <RefreshCw className="w-3 h-3 mr-1" />}
+                                Re-upload
+                              </span>
+                            </Button>
+                          </label>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  {doc.status === "rejected" && doc.admin_notes && (
+                    <div className="mt-3 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-destructive">Rejection Reason</p>
+                          <p className="text-sm text-destructive/80">{doc.admin_notes}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {doc.status === "approved" && (
+                    <div className="mt-3 p-3 bg-secondary/10 rounded-lg flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-secondary" />
+                      <p className="text-sm text-secondary">Document verified successfully</p>
+                    </div>
+                  )}
+                  {doc.status === "pending" && (
+                    <div className="mt-3 p-3 bg-amber-500/10 rounded-lg flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-amber-500" />
+                      <p className="text-sm text-amber-600">Under review - typically 1-2 business days</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Address Verification */}
+          <div className="bg-card rounded-2xl border border-border p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-heading text-lg font-semibold text-foreground flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-secondary" />
+                Address Verification
+              </h2>
+              {(() => {
+                const doc = documents.find(d => d.document_type === "address_proof");
+                if (profile?.address_verified) {
+                  return (
+                    <span className="text-xs px-2.5 py-1 rounded-full font-medium flex items-center gap-1 bg-secondary/20 text-secondary">
+                      <CheckCircle className="w-3 h-3" />
+                      Verified
+                    </span>
+                  );
+                }
+                if (!doc) return null;
+                return (
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex items-center gap-1 ${
+                    doc.status === "approved" ? "bg-secondary/20 text-secondary" :
+                    doc.status === "rejected" ? "bg-destructive/20 text-destructive" :
+                    "bg-amber-500/20 text-amber-500"
+                  }`}>
+                    {doc.status === "approved" && <CheckCircle className="w-3 h-3" />}
+                    {doc.status === "pending" && <Clock className="w-3 h-3" />}
+                    {doc.status === "rejected" && <X className="w-3 h-3" />}
+                    {doc.status.charAt(0).toUpperCase() + doc.status.slice(1)}
+                  </span>
+                );
+              })()}
+            </div>
+
+            {profile?.address_verified ? (
+              <div className="space-y-4">
+                <div className="p-3 bg-secondary/10 rounded-lg flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-secondary" />
+                  <p className="text-sm text-secondary">Your address has been verified successfully</p>
+                </div>
+                
+                {documents.filter(d => d.document_type === "address_proof").map((doc) => (
+                  <div key={doc.id} className="rounded-xl p-4 border bg-secondary/5 border-secondary/30">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-secondary/20">
+                          <MapPin className="w-5 h-5 text-secondary" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Address Proof</p>
+                          <p className="text-xs text-muted-foreground">
+                            Uploaded {new Date(doc.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handlePreviewDocument(doc)}
+                        title="Preview document"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <p className="text-muted-foreground text-sm">
+                  Upload a utility bill or bank statement showing your business address (dated within last 3 months).
+                </p>
+
+                {!documents.some(d => d.document_type === "address_proof") && (
+                  <div className="border-2 border-dashed border-border rounded-xl p-6 text-center">
+                    <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground mb-3">
+                      PDF, JPG or PNG up to 10MB
+                    </p>
+                    <input
+                      type="file"
+                      id="address-doc"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleDocumentUpload("address_proof", file);
+                      }}
+                    />
+                    <label htmlFor="address-doc">
+                      <Button variant="outline" asChild disabled={uploading}>
+                        <span>
+                          {uploading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
+                          Upload Address Proof
+                        </span>
+                      </Button>
+                    </label>
                   </div>
                 )}
+
+                {documents.filter(d => d.document_type === "address_proof").map((doc) => (
+                  <div key={doc.id} className={`rounded-xl p-4 border ${
+                    doc.status === "approved" ? "bg-secondary/5 border-secondary/30" :
+                    doc.status === "rejected" ? "bg-destructive/5 border-destructive/30" :
+                    "bg-amber-500/5 border-amber-500/30"
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                          doc.status === "approved" ? "bg-secondary/20" :
+                          doc.status === "rejected" ? "bg-destructive/20" :
+                          "bg-amber-500/20"
+                        }`}>
+                          <MapPin className={`w-5 h-5 ${
+                            doc.status === "approved" ? "text-secondary" :
+                            doc.status === "rejected" ? "text-destructive" :
+                            "text-amber-500"
+                          }`} />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Address Proof</p>
+                          <p className="text-xs text-muted-foreground">
+                            Uploaded {new Date(doc.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handlePreviewDocument(doc)}
+                          title="Preview document"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        {doc.status === "rejected" && (
+                          <>
+                            <input
+                              type="file"
+                              id={`reupload-addr-${doc.id}`}
+                              accept=".pdf,.jpg,.jpeg,.png"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleReupload(doc.id, doc.document_type, doc.file_path, file);
+                              }}
+                            />
+                            <label htmlFor={`reupload-addr-${doc.id}`}>
+                              <Button variant="outline" size="sm" asChild disabled={uploading}>
+                                <span className="cursor-pointer">
+                                  {uploading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <RefreshCw className="w-3 h-3 mr-1" />}
+                                  Re-upload
+                                </span>
+                              </Button>
+                            </label>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    {doc.status === "rejected" && doc.admin_notes && (
+                      <div className="mt-3 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <AlertTriangle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium text-destructive">Rejection Reason</p>
+                            <p className="text-sm text-destructive/80">{doc.admin_notes}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {doc.status === "approved" && (
+                      <div className="mt-3 p-3 bg-secondary/10 rounded-lg flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-secondary" />
+                        <p className="text-sm text-secondary">Document verified successfully</p>
+                      </div>
+                    )}
+                    {doc.status === "pending" && (
+                      <div className="mt-3 p-3 bg-amber-500/10 rounded-lg flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-amber-500" />
+                        <p className="text-sm text-amber-600">Under review - typically 1-2 business days</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </div>
