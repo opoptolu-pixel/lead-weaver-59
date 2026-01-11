@@ -162,6 +162,10 @@ export default function AdminBusinesses() {
   // Activity timeline
   const [isActivityTimelineOpen, setIsActivityTimelineOpen] = useState(false);
   const [activityTimelineUserId, setActivityTimelineUserId] = useState<string | null>(null);
+  
+  // Phone unlinking
+  const [isUnlinkPhoneDialogOpen, setIsUnlinkPhoneDialogOpen] = useState(false);
+  const [unlinkingPhone, setUnlinkingPhone] = useState(false);
 
   useEffect(() => {
     fetchBusinesses();
@@ -435,6 +439,48 @@ export default function AdminBusinesses() {
     } else {
       toast.success("Business verified");
       fetchBusinesses();
+    }
+  };
+
+  const handleUnlinkPhone = async () => {
+    if (!selectedBusiness) return;
+    
+    setUnlinkingPhone(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ 
+          phone_verified: false,
+          // Keep the phone number but mark as unverified
+        })
+        .eq("id", selectedBusiness.id);
+
+      if (error) throw error;
+
+      // Log the action
+      await supabase.from("activity_logs").insert({
+        user_id: selectedBusiness.user_id,
+        action: "phone_unlinked",
+        entity_type: "profile",
+        entity_id: selectedBusiness.id,
+        details: { 
+          phone: selectedBusiness.phone,
+          unlinked_by: "admin",
+          reason: "Manual admin action"
+        },
+      });
+
+      toast.success("Phone number unlinked successfully. The user will need to verify again.");
+      setIsUnlinkPhoneDialogOpen(false);
+      fetchBusinesses();
+      
+      // Update selected business
+      setSelectedBusiness(prev => prev ? { ...prev, phone_verified: false } : null);
+    } catch (error) {
+      console.error("Error unlinking phone:", error);
+      toast.error("Failed to unlink phone number");
+    } finally {
+      setUnlinkingPhone(false);
     }
   };
 
@@ -892,8 +938,21 @@ export default function AdminBusinesses() {
                     </Label>
                     <div className="flex items-center gap-2">
                       <p className="font-medium">{selectedBusiness.phone || "Not set"}</p>
-                      {selectedBusiness.phone_verified && (
-                        <Badge className="bg-green-500/20 text-green-500 text-xs">Verified</Badge>
+                      {selectedBusiness.phone_verified ? (
+                        <>
+                          <Badge className="bg-green-500/20 text-green-500 text-xs">Verified</Badge>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => setIsUnlinkPhoneDialogOpen(true)}
+                          >
+                            <XCircle className="w-3 h-3 mr-1" />
+                            Unlink
+                          </Button>
+                        </>
+                      ) : (
+                        <Badge variant="secondary" className="text-xs">Not Verified</Badge>
                       )}
                     </div>
                   </div>
@@ -1446,6 +1505,57 @@ export default function AdminBusinesses() {
           if (!open) setActivityTimelineUserId(null);
         }}
       />
+
+      {/* Unlink Phone Confirmation Dialog */}
+      <Dialog open={isUnlinkPhoneDialogOpen} onOpenChange={setIsUnlinkPhoneDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Phone className="w-5 h-5" />
+              Unlink Phone Number
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to unlink the phone number <strong>{selectedBusiness?.phone}</strong> from this account?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 my-4">
+            <p className="text-sm text-amber-700 dark:text-amber-300">
+              <strong>Warning:</strong> This will:
+            </p>
+            <ul className="text-sm text-amber-700 dark:text-amber-300 mt-2 ml-4 list-disc space-y-1">
+              <li>Mark the phone as unverified for this account</li>
+              <li>Require the user to verify their phone again</li>
+              <li>Allow another user to verify this phone number</li>
+            </ul>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsUnlinkPhoneDialogOpen(false)}
+              disabled={unlinkingPhone}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleUnlinkPhone}
+              disabled={unlinkingPhone}
+            >
+              {unlinkingPhone ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Unlinking...
+                </>
+              ) : (
+                <>
+                  <XCircle className="w-4 h-4 mr-2" />
+                  Unlink Phone
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }

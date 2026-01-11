@@ -60,6 +60,24 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
+    // Check if this phone number is already verified by another user
+    const { data: existingProfile, error: existingError } = await supabaseAdmin
+      .from("profiles")
+      .select("user_id, business_name")
+      .eq("phone", phone)
+      .eq("phone_verified", true)
+      .neq("user_id", user.id)
+      .maybeSingle();
+
+    if (existingError) {
+      logStep("Error checking existing phone", { error: existingError.message });
+    }
+
+    if (existingProfile) {
+      logStep("Phone already verified by another user", { existingUserId: existingProfile.user_id });
+      throw new Error("This phone number is already registered to another account. Please use a different number or contact support at hello@cleanda.co.uk");
+    }
+
     // Check if user is currently locked out from too many failed attempts
     const { data: lockedCode } = await supabaseAdmin
       .from("phone_verification_codes")
