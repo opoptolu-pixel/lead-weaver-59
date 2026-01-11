@@ -244,61 +244,78 @@ export default function AdminVerifications() {
           .eq("user_id", doc.user_id);
       }
 
-      // Send approval email notification using template
-      try {
-        const { data: userEmail } = await supabase.rpc("get_user_email", { user_uuid: doc.user_id });
-        if (userEmail) {
-          const businessName = doc.profile?.business_name || doc.profile?.contact_name || "Business Owner";
-          const contactName = doc.profile?.contact_name || businessName;
-          const documentType = doc.document_type.replace("_", " ");
-          const currentYear = new Date().getFullYear().toString();
-          
-          // Try to get template from database
-          const templateData = await getTemplateWithVariables("document_approved", {
-            business_name: businessName,
-            contact_name: contactName,
-            document_type: documentType,
-            admin_notes: adminNotes || "",
-            dashboard_url: "https://cleanda.co.uk/dashboard",
-            verification_url: "https://cleanda.co.uk/settings/verification",
-            support_email: "hello@cleanda.co.uk",
-            current_year: currentYear,
-          });
+      // Check if all 3 required documents are now approved before sending email
+      const { data: allUserDocs } = await supabase
+        .from("verification_documents")
+        .select("document_type, status")
+        .eq("user_id", doc.user_id);
 
-          if (templateData) {
-            await supabase.functions.invoke("send-email", {
-              body: {
-                to: userEmail,
-                subject: templateData.subject,
-                html: templateData.body,
-                templateName: "document_approved",
-              },
+      const requiredDocTypes = ["business_license", "insurance", "address_proof"];
+      const approvedDocTypes = (allUserDocs || [])
+        .filter(d => d.status === "approved")
+        .map(d => d.document_type);
+      
+      const allDocsApproved = requiredDocTypes.every(type => approvedDocTypes.includes(type));
+
+      // Only send email when all 3 documents are approved
+      if (allDocsApproved) {
+        try {
+          const { data: userEmail } = await supabase.rpc("get_user_email", { user_uuid: doc.user_id });
+          if (userEmail) {
+            const businessName = doc.profile?.business_name || doc.profile?.contact_name || "Business Owner";
+            const contactName = doc.profile?.contact_name || businessName;
+            const currentYear = new Date().getFullYear().toString();
+            
+            // Try to get template from database - use a "all_documents_approved" template
+            const templateData = await getTemplateWithVariables("all_documents_approved", {
+              business_name: businessName,
+              contact_name: contactName,
+              dashboard_url: "https://cleanda.co.uk/dashboard",
+              leads_url: "https://cleanda.co.uk/leads",
+              support_email: "hello@cleanda.co.uk",
+              current_year: currentYear,
             });
-          } else {
-            // Fallback to simple email if template not found
-            await supabase.functions.invoke("send-email", {
-              body: {
-                to: userEmail,
-                subject: `Your ${documentType} has been approved`,
-                html: `
-                  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                    <h2 style="color: #10b981;">Document Approved ✓</h2>
-                    <p>Dear ${businessName},</p>
-                    <p>Great news! Your <strong>${documentType}</strong> has been reviewed and approved.</p>
-                    ${adminNotes ? `<p><strong>Notes from reviewer:</strong> ${adminNotes}</p>` : ""}
-                    <p>You're one step closer to becoming a fully verified business on Cleanda.</p>
-                    <p>If you have any questions, please don't hesitate to contact us.</p>
-                    <p>Best regards,<br>The Cleanda Team</p>
-                  </div>
-                `,
-                templateName: "document_approved",
-              },
-            });
+
+            if (templateData) {
+              await supabase.functions.invoke("send-email", {
+                body: {
+                  to: userEmail,
+                  subject: templateData.subject,
+                  html: templateData.body,
+                  templateName: "all_documents_approved",
+                },
+              });
+            } else {
+              // Fallback to simple email if template not found
+              await supabase.functions.invoke("send-email", {
+                body: {
+                  to: userEmail,
+                  subject: "🎉 Your business is now fully verified!",
+                  html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                      <h2 style="color: #10b981;">Congratulations! Your Business is Fully Verified ✓</h2>
+                      <p>Dear ${businessName},</p>
+                      <p>Great news! All your verification documents have been reviewed and approved:</p>
+                      <ul>
+                        <li>✅ Business License</li>
+                        <li>✅ Insurance Certificate</li>
+                        <li>✅ Address Proof</li>
+                      </ul>
+                      <p>You're now a fully verified business on Cleanda and can access all features, including unlimited lead purchases.</p>
+                      <p><a href="https://cleanda.co.uk/leads" style="display: inline-block; background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 16px;">Browse Available Leads</a></p>
+                      <p>If you have any questions, please don't hesitate to contact us.</p>
+                      <p>Best regards,<br>The Cleanda Team</p>
+                    </div>
+                  `,
+                  templateName: "all_documents_approved",
+                },
+              });
+            }
           }
+        } catch (emailError) {
+          console.error("Failed to send approval email:", emailError);
+          // Don't fail the approval if email fails
         }
-      } catch (emailError) {
-        console.error("Failed to send approval email:", emailError);
-        // Don't fail the approval if email fails
       }
 
       toast.success("Document approved");
