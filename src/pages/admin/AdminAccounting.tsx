@@ -1066,97 +1066,105 @@ export default function AdminAccounting() {
             )}
 
             {/* Granted Credits Summary */}
-            {grantedCreditsMetrics.totalCreditsGranted > 0 && (
-              <Card className="border-teal-500/30 bg-teal-500/5">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
-                        <Gift className="h-5 w-5 text-teal-500" />
-                        Granted Credits Summary
-                      </CardTitle>
-                      <CardDescription>Free credits issued to businesses (not revenue)</CardDescription>
-                    </div>
-                    <Badge variant="outline" className="border-teal-500/50 text-teal-600">
-                      {grantedCreditsMetrics.grantCount} grants
-                    </Badge>
+            <Card className="border-teal-500/30 bg-teal-500/5">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Gift className="h-5 w-5 text-teal-500" />
+                      Granted Credits Summary
+                    </CardTitle>
+                    <CardDescription>Free credits issued to businesses (not revenue)</CardDescription>
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Summary Stats */}
-                  <div className="grid gap-4 md:grid-cols-3">
-                    <div className="p-4 bg-teal-500/10 border border-teal-500/20 rounded-lg text-center">
-                      <p className="text-3xl font-bold text-teal-600">{grantedCreditsMetrics.totalCreditsGranted}</p>
-                      <p className="text-sm text-muted-foreground">Total Credits Granted</p>
-                    </div>
-                    <div className="p-4 bg-teal-500/10 border border-teal-500/20 rounded-lg text-center">
-                      <p className="text-3xl font-bold text-teal-600">£{grantedCreditsMetrics.totalValue.toLocaleString()}</p>
-                      <p className="text-sm text-muted-foreground">Total Value (@ £{LEAD_PRICE}/credit)</p>
-                    </div>
-                    <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg text-center">
-                      <p className="text-3xl font-bold text-green-600">£{Math.max(0, kpis.actualCashRevenue).toLocaleString()}</p>
-                      <p className="text-sm text-muted-foreground">Est. Actual Cash Revenue</p>
-                    </div>
+                  <Badge variant="outline" className="border-teal-500/50 text-teal-600">
+                    {grantedCreditsMetrics.grantCount} grants
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {grantedCreditsMetrics.totalCreditsGranted === 0 ? (
+                  <div className="text-center py-6 text-muted-foreground">
+                    <Gift className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                    <p>No credits have been granted in this period</p>
+                    <p className="text-xs mt-1">Grant credits from the Businesses page</p>
                   </div>
-
-                  {/* Breakdown by Reason */}
-                  {Object.keys(grantedCreditsMetrics.byReason).length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-                        <Coins className="h-4 w-4 text-muted-foreground" />
-                        Breakdown by Reason
-                      </h4>
-                      <div className="space-y-2">
-                        {Object.entries(grantedCreditsMetrics.byReason)
-                          .sort((a, b) => b[1].value - a[1].value)
-                          .map(([reason, data]) => (
-                            <div key={reason} className="flex items-center justify-between p-2 bg-muted/30 rounded">
-                              <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="text-xs">{data.count}x</Badge>
-                                <span className="text-sm font-medium">{reason}</span>
-                              </div>
-                              <div className="text-right">
-                                <span className="text-sm font-bold">{data.credits} credits</span>
-                                <span className="text-sm text-muted-foreground ml-2">(£{data.value})</span>
-                              </div>
-                            </div>
-                          ))}
+                ) : (
+                  <>
+                    {/* Summary Stats */}
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <div className="p-4 bg-teal-500/10 border border-teal-500/20 rounded-lg text-center">
+                        <p className="text-3xl font-bold text-teal-600">{grantedCreditsMetrics.totalCreditsGranted}</p>
+                        <p className="text-sm text-muted-foreground">Total Credits Granted</p>
+                      </div>
+                      <div className="p-4 bg-teal-500/10 border border-teal-500/20 rounded-lg text-center">
+                        <p className="text-3xl font-bold text-teal-600">£{grantedCreditsMetrics.totalValue.toLocaleString()}</p>
+                        <p className="text-sm text-muted-foreground">Total Value (@ £{LEAD_PRICE}/credit)</p>
+                      </div>
+                      <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg text-center">
+                        <p className="text-3xl font-bold text-green-600">£{Math.max(0, kpis.actualCashRevenue).toLocaleString()}</p>
+                        <p className="text-sm text-muted-foreground">Est. Actual Cash Revenue</p>
                       </div>
                     </div>
-                  )}
 
-                  {/* Top Businesses Receiving Grants */}
-                  {Object.keys(grantedCreditsMetrics.byBusiness).length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-                        <Building2 className="h-4 w-4 text-muted-foreground" />
-                        Top Businesses Receiving Grants
-                      </h4>
-                      <div className="space-y-2">
-                        {Object.entries(grantedCreditsMetrics.byBusiness)
-                          .sort((a, b) => b[1].value - a[1].value)
-                          .slice(0, 5)
-                          .map(([business, data]) => (
-                            <div key={business} className="flex items-center justify-between p-2 bg-muted/30 rounded">
-                              <span className="text-sm font-medium truncate max-w-[200px]">{business}</span>
-                              <div className="text-right">
-                                <span className="text-sm font-bold">{data.credits} credits</span>
-                                <span className="text-sm text-muted-foreground ml-2">(£{data.value})</span>
+                    {/* Breakdown by Reason */}
+                    {Object.keys(grantedCreditsMetrics.byReason).length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                          <Coins className="h-4 w-4 text-muted-foreground" />
+                          Breakdown by Reason
+                        </h4>
+                        <div className="space-y-2">
+                          {Object.entries(grantedCreditsMetrics.byReason)
+                            .sort((a, b) => b[1].value - a[1].value)
+                            .map(([reason, data]) => (
+                              <div key={reason} className="flex items-center justify-between p-2 bg-muted/30 rounded">
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="outline" className="text-xs">{data.count}x</Badge>
+                                  <span className="text-sm font-medium">{reason}</span>
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-sm font-bold">{data.credits} credits</span>
+                                  <span className="text-sm text-muted-foreground ml-2">(£{data.value})</span>
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {/* Explanation */}
-                  <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
-                    <strong>Note:</strong> Granted credits represent free value given to businesses (goodwill, compensation, promos). 
-                    The "Est. Actual Cash Revenue" subtracts this from Net Revenue to approximate real cash received.
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+                    {/* Top Businesses Receiving Grants */}
+                    {Object.keys(grantedCreditsMetrics.byBusiness).length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                          <Building2 className="h-4 w-4 text-muted-foreground" />
+                          Top Businesses Receiving Grants
+                        </h4>
+                        <div className="space-y-2">
+                          {Object.entries(grantedCreditsMetrics.byBusiness)
+                            .sort((a, b) => b[1].value - a[1].value)
+                            .slice(0, 5)
+                            .map(([business, data]) => (
+                              <div key={business} className="flex items-center justify-between p-2 bg-muted/30 rounded">
+                                <span className="text-sm font-medium truncate max-w-[200px]">{business}</span>
+                                <div className="text-right">
+                                  <span className="text-sm font-bold">{data.credits} credits</span>
+                                  <span className="text-sm text-muted-foreground ml-2">(£{data.value})</span>
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Explanation */}
+                    <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
+                      <strong>Note:</strong> Granted credits represent free value given to businesses (goodwill, compensation, promos). 
+                      The "Est. Actual Cash Revenue" subtracts this from Net Revenue to approximate real cash received.
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Revenue Trend Chart */}
             <Card>
