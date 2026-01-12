@@ -20,17 +20,11 @@ const fetchLogoBase64 = async (supabaseUrl: string): Promise<string | null> => {
   
   try {
     // Try storage bucket first
-    const storageUrl = `${supabaseUrl}/storage/v1/object/public/assets/cleanda-logo-dark.png`;
+    const storageUrl = `${supabaseUrl}/storage/v1/object/public/assets/cleanda-logo-header.png`;
     let response = await fetch(storageUrl);
     
     if (!response.ok) {
-      // Fallback to hosted site
-      const siteUrl = "https://cleanda.lovable.app/cleanda-logo-dark.png";
-      response = await fetch(siteUrl);
-    }
-    
-    if (!response.ok) {
-      console.log("Failed to fetch logo from any source");
+      console.log("Failed to fetch logo from storage");
       return null;
     }
     
@@ -41,6 +35,20 @@ const fetchLogoBase64 = async (supabaseUrl: string): Promise<string | null> => {
     console.error("Error fetching logo:", error);
     return null;
   }
+};
+
+// Helper function for text-based logo fallback
+const drawTextLogo = (doc: jsPDF, accentGreen: number[]) => {
+  // Draw star symbol using green
+  doc.setFontSize(20);
+  doc.setTextColor(accentGreen[0], accentGreen[1], accentGreen[2]);
+  doc.text("✦", 15, 30);
+  
+  // Draw "Cleanda" text in white
+  doc.setFontSize(24);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(255, 255, 255);
+  doc.text("Cleanda", 28, 30);
 };
 
 const generatePDFReceipt = async (data: {
@@ -56,73 +64,51 @@ const generatePDFReceipt = async (data: {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   
-  // Colors
+  // Brand colors matching the Cleanda logo
+  const headerBg = [30, 41, 59]; // Dark navy (#1e293b)
+  const accentGreen = [74, 222, 128]; // Green (#4ade80)
   const primaryColor = [26, 54, 93]; // Navy blue
-  const accentColor = [34, 197, 94]; // Green
   
-  // Header background - white for logo visibility
-  doc.setFillColor(255, 255, 255);
-  doc.rect(0, 0, pageWidth, 55, "F");
-  
-  // Add top accent bar
-  doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-  doc.rect(0, 0, pageWidth, 8, "F");
+  // Header background - dark navy to match logo
+  doc.setFillColor(headerBg[0], headerBg[1], headerBg[2]);
+  doc.rect(0, 0, pageWidth, 50, "F");
   
   // Try to add the actual logo
   const logoBase64 = await fetchLogoBase64(data.supabaseUrl);
   if (logoBase64) {
     try {
-      doc.addImage(`data:image/png;base64,${logoBase64}`, "PNG", 15, 15, 50, 15);
+      doc.addImage(`data:image/png;base64,${logoBase64}`, "PNG", 15, 12, 55, 26);
     } catch (e) {
       console.error("Error adding logo image:", e);
-      // Fallback to text logo
-      doc.setFontSize(24);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.text("Cleanda", 15, 32);
+      drawTextLogo(doc, accentGreen);
     }
   } else {
-    // Fallback to text logo
-    doc.setFontSize(24);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.text("Cleanda", 15, 32);
+    drawTextLogo(doc, accentGreen);
   }
   
-  // Company tagline
-  doc.setTextColor(100, 100, 100);
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "normal");
-  doc.text("Professional Cleaning Leads", 15, 42);
+  // Receipt label box on the right
+  doc.setFillColor(accentGreen[0], accentGreen[1], accentGreen[2]);
+  doc.roundedRect(pageWidth - 70, 12, 55, 26, 3, 3, "F");
   
-  // Receipt label box
-  doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-  doc.roundedRect(pageWidth - 70, 15, 55, 28, 3, 3, "F");
-  
-  doc.setTextColor(255, 255, 255);
+  doc.setTextColor(headerBg[0], headerBg[1], headerBg[2]);
   doc.setFontSize(14);
   doc.setFont("helvetica", "bold");
-  doc.text("RECEIPT", pageWidth - 42.5, 26, { align: "center" });
+  doc.text("RECEIPT", pageWidth - 42.5, 22, { align: "center" });
   
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  doc.text(`#${data.receiptId.toUpperCase()}`, pageWidth - 42.5, 36, { align: "center" });
-  
-  // Divider after header
-  doc.setDrawColor(220, 220, 220);
-  doc.setLineWidth(0.5);
-  doc.line(15, 55, pageWidth - 15, 55);
+  doc.text(`#${data.receiptId.toUpperCase()}`, pageWidth - 42.5, 32, { align: "center" });
   
   // Receipt details section
   doc.setTextColor(100, 100, 100);
   doc.setFontSize(10);
-  doc.text("Receipt Number:", 20, 70);
-  doc.text("Date:", 20, 80);
-  doc.text("Email:", 20, 90);
+  doc.text("Receipt Number:", 20, 65);
+  doc.text("Date:", 20, 75);
+  doc.text("Email:", 20, 85);
   
   doc.setTextColor(0, 0, 0);
   doc.setFont("helvetica", "bold");
-  doc.text(data.receiptId.toUpperCase(), 75, 70);
+  doc.text(data.receiptId.toUpperCase(), 75, 65);
   doc.setFont("helvetica", "normal");
   
   const formattedDate = new Date(data.date).toLocaleDateString("en-GB", {
@@ -130,62 +116,62 @@ const generatePDFReceipt = async (data: {
     month: "long", 
     year: "numeric"
   });
-  doc.text(formattedDate, 75, 80);
-  doc.text(data.customerEmail, 75, 90);
+  doc.text(formattedDate, 75, 75);
+  doc.text(data.customerEmail, 75, 85);
   
   // Divider line
   doc.setDrawColor(220, 220, 220);
   doc.setLineWidth(0.5);
-  doc.line(20, 100, pageWidth - 20, 100);
+  doc.line(20, 95, pageWidth - 20, 95);
   
   // Purchase details header
   doc.setFillColor(248, 250, 252);
-  doc.rect(20, 110, pageWidth - 40, 12, "F");
+  doc.rect(20, 105, pageWidth - 40, 12, "F");
   
   doc.setTextColor(100, 100, 100);
   doc.setFontSize(9);
   doc.setFont("helvetica", "bold");
-  doc.text("DESCRIPTION", 25, 118);
-  doc.text("AMOUNT", pageWidth - 25, 118, { align: "right" });
+  doc.text("DESCRIPTION", 25, 113);
+  doc.text("AMOUNT", pageWidth - 25, 113, { align: "right" });
   
   // Purchase item
   doc.setTextColor(0, 0, 0);
   doc.setFontSize(11);
   doc.setFont("helvetica", "normal");
-  doc.text("Lead Purchase", 25, 135);
+  doc.text("Lead Purchase", 25, 130);
   
   doc.setFontSize(10);
   doc.setTextColor(100, 100, 100);
-  doc.text(`Service: ${data.jobType}`, 25, 145);
-  doc.text(`Location: ${data.postcode}`, 25, 155);
+  doc.text(`Service: ${data.jobType}`, 25, 140);
+  doc.text(`Location: ${data.postcode}`, 25, 150);
   
   doc.setTextColor(0, 0, 0);
   doc.setFontSize(11);
-  doc.text(`£${data.amount.toFixed(2)}`, pageWidth - 25, 135, { align: "right" });
+  doc.text(`£${data.amount.toFixed(2)}`, pageWidth - 25, 130, { align: "right" });
   
   // Total section
   doc.setDrawColor(220, 220, 220);
-  doc.line(20, 170, pageWidth - 20, 170);
+  doc.line(20, 165, pageWidth - 20, 165);
   
   doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-  doc.rect(pageWidth - 80, 180, 60, 20, "F");
+  doc.rect(pageWidth - 80, 175, 60, 20, "F");
   
   doc.setTextColor(100, 100, 100);
   doc.setFontSize(10);
-  doc.text("Total Paid:", pageWidth - 85, 193, { align: "right" });
+  doc.text("Total Paid:", pageWidth - 85, 188, { align: "right" });
   
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(14);
   doc.setFont("helvetica", "bold");
-  doc.text(`£${data.amount.toFixed(2)}`, pageWidth - 50, 193, { align: "center" });
+  doc.text(`£${data.amount.toFixed(2)}`, pageWidth - 50, 188, { align: "center" });
   
   // Payment status badge
-  doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
-  doc.roundedRect(20, 180, 40, 10, 2, 2, "F");
-  doc.setTextColor(255, 255, 255);
+  doc.setFillColor(accentGreen[0], accentGreen[1], accentGreen[2]);
+  doc.roundedRect(20, 175, 40, 10, 2, 2, "F");
+  doc.setTextColor(headerBg[0], headerBg[1], headerBg[2]);
   doc.setFontSize(8);
   doc.setFont("helvetica", "bold");
-  doc.text("PAID", 40, 187, { align: "center" });
+  doc.text("PAID", 40, 182, { align: "center" });
   
   // Footer
   doc.setTextColor(150, 150, 150);
