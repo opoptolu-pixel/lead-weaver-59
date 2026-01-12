@@ -11,29 +11,33 @@ const corsHeaders = {
 // Lead purchase price is fixed at £20
 const LEAD_PRICE_POUNDS = 20;
 
-// Helper function for styled text-based logo
+// Helper function for styled text-based logo matching Cleanda branding
 const drawTextLogo = (doc: jsPDF, accentGreen: number[]) => {
-  // Draw a green star/sparkle icon
-  doc.setFillColor(accentGreen[0], accentGreen[1], accentGreen[2]);
-  
-  // Draw a simple 4-point star shape using lines
-  const starX = 22;
+  const starX = 24;
   const starY = 25;
-  const starSize = 6;
   
-  // Draw star points
+  // Draw 8-pointed starburst/asterisk shape (matching Cleanda logo)
   doc.setDrawColor(accentGreen[0], accentGreen[1], accentGreen[2]);
-  doc.setLineWidth(2);
-  doc.line(starX, starY - starSize, starX, starY + starSize); // Vertical line
-  doc.line(starX - starSize, starY, starX + starSize, starY); // Horizontal line
-  doc.line(starX - starSize * 0.7, starY - starSize * 0.7, starX + starSize * 0.7, starY + starSize * 0.7); // Diagonal 1
-  doc.line(starX + starSize * 0.7, starY - starSize * 0.7, starX - starSize * 0.7, starY + starSize * 0.7); // Diagonal 2
+  doc.setFillColor(accentGreen[0], accentGreen[1], accentGreen[2]);
+  doc.setLineWidth(2.5);
+  
+  // Main cross (vertical and horizontal) - longer rays
+  doc.line(starX, starY - 10, starX, starY + 10); // Vertical
+  doc.line(starX - 10, starY, starX + 10, starY); // Horizontal
+  
+  // Diagonal lines (45 degrees) - shorter rays
+  const diag = 7;
+  doc.line(starX - diag, starY - diag, starX + diag, starY + diag); // Diagonal \
+  doc.line(starX + diag, starY - diag, starX - diag, starY + diag); // Diagonal /
+  
+  // Center filled circle
+  doc.circle(starX, starY, 2.5, "F");
   
   // Draw "Cleanda" text in white
-  doc.setFontSize(26);
+  doc.setFontSize(28);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(255, 255, 255);
-  doc.text("Cleanda", 35, 30);
+  doc.text("Cleanda", 42, 31);
 };
 
 const generatePDFReceipt = (data: {
