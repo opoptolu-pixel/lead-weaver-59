@@ -327,14 +327,17 @@ export default function AdminOverview() {
 
     const { data: prevUnlocked } = await supabase
       .from("leads")
-      .select("id, unlocked_by")
+      .select("id, unlocked_by, credit_type")
       .gte("unlocked_at", prevStart.toISOString())
       .lte("unlocked_at", prevEnd.toISOString())
       .not("unlocked_by", "is", null);
 
+    // Filter to only paid credits for revenue
+    const prevPaidUnlocked = prevUnlocked?.filter(l => l.credit_type !== 'granted') || [];
+
     const prevLeadsReceived = prevLeads?.length || 0;
     const prevLeadsPurchased = prevUnlocked?.length || 0;
-    const prevRevenue = prevLeadsPurchased * 20;
+    const prevRevenue = prevPaidUnlocked.length * 20;
     const prevBuyers = new Set(prevUnlocked?.map(l => l.unlocked_by) || []);
 
     setPreviousStats({
@@ -350,7 +353,7 @@ export default function AdminOverview() {
     
     const { data: leads } = await supabase
       .from("leads")
-      .select("created_at, unlocked_at, is_unlocked, value, postcode, job_type, refunded_at")
+      .select("created_at, unlocked_at, is_unlocked, value, postcode, job_type, refunded_at, credit_type")
       .gte("created_at", start.toISOString())
       .lte("created_at", end.toISOString());
 
@@ -370,7 +373,8 @@ export default function AdminOverview() {
         if (dailyMap.has(dayKey)) {
           const current = dailyMap.get(dayKey)!;
           current.leads += 1;
-          if (lead.is_unlocked) {
+          // Only count revenue from paid leads (not granted)
+          if (lead.is_unlocked && lead.credit_type !== 'granted') {
             current.revenue += 20;
           }
         }
@@ -462,10 +466,13 @@ export default function AdminOverview() {
 
     const { data: unlockedLeadsInRange } = await supabase
       .from("leads")
-      .select("id, unlocked_by, value, display_value, refunded_at")
+      .select("id, unlocked_by, value, display_value, refunded_at, credit_type")
       .gte("unlocked_at", startISO)
       .lte("unlocked_at", endISO)
       .not("unlocked_by", "is", null);
+
+    // Filter to only purchased credits for revenue calculations
+    const paidLeadsInRange = unlockedLeadsInRange?.filter(l => l.credit_type !== 'granted') || [];
 
     const { data: disputes } = await supabase
       .from("disputes")
@@ -488,13 +495,17 @@ export default function AdminOverview() {
     const leadsReceived = leads?.length || 0;
     const leadsPublished = leads?.filter(l => l.lead_status === "published").length || 0;
     
+    // Total leads purchased (includes both paid and granted)
     const leadsPurchased = unlockedLeadsInRange?.length || 0;
-    const revenue = leadsPurchased * 20;
+    // Revenue only from paid credits (excludes granted)
+    const paidLeadsPurchased = paidLeadsInRange.length;
+    const revenue = paidLeadsPurchased * 20;
     
     const uniqueBuyers = new Set(unlockedLeadsInRange?.map(l => l.unlocked_by) || []);
     const activeBuyers = uniqueBuyers.size;
     
-    const refundsIssued = unlockedLeadsInRange?.filter(l => l.refunded_at !== null).length || 0;
+    // Refunds from paid leads only
+    const refundsIssued = paidLeadsInRange.filter(l => l.refunded_at !== null).length;
     
     const disputesOpen = disputes?.filter(d => d.status === "open").length || 0;
     const pendingFraud = fraudFlags?.filter(f => f.status === "pending").length || 0;
