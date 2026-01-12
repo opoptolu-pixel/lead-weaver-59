@@ -114,35 +114,34 @@ const formatDuration = (seconds: number): string => {
 };
 
 export function HistoricalVisitorAnalytics() {
-  const { getDateFilter } = useAdmin();
+  const { getDateFilter, dateRange } = useAdmin();
   const [loading, setLoading] = useState(true);
   const [pageViews, setPageViews] = useState<PageViewData[]>([]);
 
-  const { start, end } = getDateFilter();
-
   useEffect(() => {
+    const fetchPageViews = async () => {
+      setLoading(true);
+      try {
+        const { start, end } = getDateFilter();
+        const { data, error } = await supabase
+          .from("page_views")
+          .select("*")
+          .gte("created_at", start.toISOString())
+          .lte("created_at", end.toISOString())
+          .order("created_at", { ascending: false });
+
+        if (error) throw error;
+        setPageViews(data || []);
+      } catch (error) {
+        console.error("Error fetching page views:", error);
+        toast.error("Failed to load historical visitor data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchPageViews();
-  }, [start, end]);
-
-  const fetchPageViews = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from("page_views")
-        .select("*")
-        .gte("created_at", start.toISOString())
-        .lte("created_at", end.toISOString())
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setPageViews(data || []);
-    } catch (error) {
-      console.error("Error fetching page views:", error);
-      toast.error("Failed to load historical visitor data");
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [dateRange, getDateFilter]);
 
   // Calculate summary statistics
   const stats = useMemo(() => {
