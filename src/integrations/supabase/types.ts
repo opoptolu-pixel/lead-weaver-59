@@ -734,6 +734,7 @@ export type Database = {
           contact_name: string | null
           created_at: string
           credits: number
+          granted_credits: number
           id: string
           is_suspended: boolean | null
           is_verified: boolean
@@ -755,6 +756,7 @@ export type Database = {
           contact_name?: string | null
           created_at?: string
           credits?: number
+          granted_credits?: number
           id?: string
           is_suspended?: boolean | null
           is_verified?: boolean
@@ -776,6 +778,7 @@ export type Database = {
           contact_name?: string | null
           created_at?: string
           credits?: number
+          granted_credits?: number
           id?: string
           is_suspended?: boolean | null
           is_verified?: boolean
