@@ -691,6 +691,54 @@ export type Database = {
         }
         Relationships: []
       }
+      page_views: {
+        Row: {
+          city: string | null
+          country: string | null
+          created_at: string
+          device_type: string | null
+          id: string
+          page_path: string
+          page_title: string | null
+          referrer: string | null
+          region: string | null
+          session_id: string
+          time_on_page: number | null
+          user_agent: string | null
+          visitor_id: string
+        }
+        Insert: {
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          device_type?: string | null
+          id?: string
+          page_path: string
+          page_title?: string | null
+          referrer?: string | null
+          region?: string | null
+          session_id: string
+          time_on_page?: number | null
+          user_agent?: string | null
+          visitor_id: string
+        }
+        Update: {
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          device_type?: string | null
+          id?: string
+          page_path?: string
+          page_title?: string | null
+          referrer?: string | null
+          region?: string | null
+          session_id?: string
+          time_on_page?: number | null
+          user_agent?: string | null
+          visitor_id?: string
+        }
+        Relationships: []
+      }
       phone_verification_codes: {
         Row: {
           attempts: number
