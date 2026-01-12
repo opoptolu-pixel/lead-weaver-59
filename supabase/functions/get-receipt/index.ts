@@ -12,32 +12,43 @@ const corsHeaders = {
 const LEAD_PRICE_POUNDS = 20;
 
 // Helper function for styled text-based logo matching Cleanda branding
+// The logo is a 4-pointed star (sparkle) with small accent sparkles
 const drawTextLogo = (doc: jsPDF, accentGreen: number[]) => {
-  const starX = 24;
-  const starY = 25;
+  const centerX = 24;
+  const centerY = 25;
   
-  // Draw 8-pointed starburst/asterisk shape (matching Cleanda logo)
   doc.setDrawColor(accentGreen[0], accentGreen[1], accentGreen[2]);
   doc.setFillColor(accentGreen[0], accentGreen[1], accentGreen[2]);
-  doc.setLineWidth(2.5);
   
-  // Main cross (vertical and horizontal) - longer rays
-  doc.line(starX, starY - 10, starX, starY + 10); // Vertical
-  doc.line(starX - 10, starY, starX + 10, starY); // Horizontal
+  // Draw main 4-pointed star using triangles/polygons
+  // Top point
+  doc.triangle(centerX, centerY - 12, centerX - 3, centerY, centerX + 3, centerY, "F");
+  // Bottom point  
+  doc.triangle(centerX, centerY + 12, centerX - 3, centerY, centerX + 3, centerY, "F");
+  // Left point
+  doc.triangle(centerX - 12, centerY, centerX, centerY - 3, centerX, centerY + 3, "F");
+  // Right point
+  doc.triangle(centerX + 12, centerY, centerX, centerY - 3, centerX, centerY + 3, "F");
   
-  // Diagonal lines (45 degrees) - shorter rays
-  const diag = 7;
-  doc.line(starX - diag, starY - diag, starX + diag, starY + diag); // Diagonal \
-  doc.line(starX + diag, starY - diag, starX - diag, starY + diag); // Diagonal /
+  // Small accent sparkle (top-right)
+  const smallX = centerX + 10;
+  const smallY = centerY - 10;
+  doc.setLineWidth(1.5);
+  doc.line(smallX, smallY - 3, smallX, smallY + 3);
+  doc.line(smallX - 3, smallY, smallX + 3, smallY);
   
-  // Center filled circle
-  doc.circle(starX, starY, 2.5, "F");
+  // Tiny sparkle (bottom-left of main star)
+  const tinyX = centerX - 8;
+  const tinyY = centerY + 8;
+  doc.setLineWidth(1);
+  doc.line(tinyX, tinyY - 2, tinyX, tinyY + 2);
+  doc.line(tinyX - 2, tinyY, tinyX + 2, tinyY);
   
   // Draw "Cleanda" text in white
   doc.setFontSize(28);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(255, 255, 255);
-  doc.text("Cleanda", 42, 31);
+  doc.text("Cleanda", 45, 31);
 };
 
 const generatePDFReceipt = (data: {
