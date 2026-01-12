@@ -520,6 +520,7 @@ export type Database = {
           confirmation_response: string | null
           confirmation_sent_at: string | null
           created_at: string
+          credit_type: string | null
           customer_address: string
           customer_email: string
           customer_name: string
@@ -560,6 +561,7 @@ export type Database = {
           confirmation_response?: string | null
           confirmation_sent_at?: string | null
           created_at?: string
+          credit_type?: string | null
           customer_address: string
           customer_email: string
           customer_name: string
@@ -600,6 +602,7 @@ export type Database = {
           confirmation_response?: string | null
           confirmation_sent_at?: string | null
           created_at?: string
+          credit_type?: string | null
           customer_address?: string
           customer_email?: string
           customer_name?: string

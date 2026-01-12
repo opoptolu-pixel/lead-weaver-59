@@ -62,6 +62,7 @@ interface Transaction {
   refundedAt?: string | null;
   postcode?: string;
   jobType?: string;
+  creditType: "purchased" | "granted";
 }
 
 interface BusinessPerformance {
@@ -149,7 +150,8 @@ export default function AdminAccounting() {
           refund_reason,
           lead_status,
           postcode,
-          job_type
+          job_type,
+          credit_type
         `)
         .eq("is_unlocked", true)
         .gte("unlocked_at", dateRange.from.toISOString())
@@ -172,7 +174,8 @@ export default function AdminAccounting() {
             refund_reason,
             lead_status,
             postcode,
-            job_type
+            job_type,
+            credit_type
           `)
           .eq("is_unlocked", true)
           .gte("unlocked_at", previousDateRange.from.toISOString())
@@ -195,7 +198,8 @@ export default function AdminAccounting() {
           refund_reason,
           lead_status,
           postcode,
-          job_type
+          job_type,
+          credit_type
         `)
         .eq("is_unlocked", true)
         .gte("unlocked_at", yoyFrom.toISOString())
@@ -223,6 +227,7 @@ export default function AdminAccounting() {
         refundedAt: lead.refunded_at,
         postcode: lead.postcode,
         jobType: lead.job_type,
+        creditType: (lead.credit_type as "purchased" | "granted") || "purchased",
       }));
 
       const prevTxns: Transaction[] = prevLeads.map(lead => ({
@@ -236,6 +241,7 @@ export default function AdminAccounting() {
         refundedAt: lead.refunded_at,
         postcode: lead.postcode,
         jobType: lead.job_type,
+        creditType: (lead.credit_type as "purchased" | "granted") || "purchased",
       }));
 
       const yoyTxns: Transaction[] = yoyLeads.map(lead => ({
@@ -249,6 +255,7 @@ export default function AdminAccounting() {
         refundedAt: lead.refunded_at,
         postcode: lead.postcode,
         jobType: lead.job_type,
+        creditType: (lead.credit_type as "purchased" | "granted") || "purchased",
       }));
 
       setTransactions(txns);
@@ -332,9 +339,20 @@ export default function AdminAccounting() {
 
   // Calculate KPIs
   const kpis = useMemo(() => {
-    const grossRevenue = transactions.length * LEAD_PRICE;
+    // Separate purchased vs granted transactions
+    const purchasedTxns = transactions.filter(t => t.creditType === "purchased");
+    const grantedTxns = transactions.filter(t => t.creditType === "granted");
+    
+    // Gross revenue = only from purchased credits (actual cash payments)
+    const grossRevenue = purchasedTxns.length * LEAD_PRICE;
+    const grantedLeadsValue = grantedTxns.length * LEAD_PRICE;
+    
+    // Refunds - only count refunds from purchased leads for cash calculations
     const refundedTxns = transactions.filter(t => t.status === "refunded");
-    const refundsIssued = refundedTxns.length * LEAD_PRICE;
+    const refundedPurchasedTxns = purchasedTxns.filter(t => t.status === "refunded");
+    const refundsIssued = refundedPurchasedTxns.length * LEAD_PRICE;
+    
+    // Net revenue = cash received minus cash refunded
     const netRevenue = grossRevenue - refundsIssued;
     const refundRate = transactions.length > 0 ? (refundedTxns.length / transactions.length) * 100 : 0;
     
@@ -348,13 +366,14 @@ export default function AdminAccounting() {
     const netProfit = netRevenue - adMetrics.totalSpend;
     const costPerLead = transactions.length > 0 ? adMetrics.totalSpend / transactions.length : 0;
 
-    // Actual cash received = Net Revenue - Value of granted credits used
-    // Note: This is an approximation since we can't directly track which credits were used
-    const actualCashRevenue = netRevenue - grantedCreditsMetrics.totalValue;
+    // Actual cash revenue is now accurately calculated from purchased leads only
+    const actualCashRevenue = netRevenue;
 
     return {
       grossRevenue,
       totalLeadsSold: transactions.length,
+      purchasedLeadsSold: purchasedTxns.length,
+      grantedLeadsSold: grantedTxns.length,
       avgRevenuePerDay,
       refundsIssued,
       netRevenue,
@@ -364,9 +383,9 @@ export default function AdminAccounting() {
       netProfit,
       costPerLead,
       actualCashRevenue,
-      grantedCreditsValue: grantedCreditsMetrics.totalValue,
+      grantedCreditsValue: grantedLeadsValue,
     };
-  }, [transactions, dateRange, adMetrics, grantedCreditsMetrics]);
+  }, [transactions, dateRange, adMetrics]);
 
   // Calculate previous period KPIs for comparison
   const previousKpis = useMemo(() => {
