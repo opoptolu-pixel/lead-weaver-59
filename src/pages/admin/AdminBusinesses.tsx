@@ -146,6 +146,7 @@ export default function AdminBusinesses() {
   // Add credits dialog
   const [isAddCreditsOpen, setIsAddCreditsOpen] = useState(false);
   const [creditsToAdd, setCreditsToAdd] = useState("");
+  const [creditsReason, setCreditsReason] = useState("");
   const [addingCredits, setAddingCredits] = useState(false);
   
   // Send email dialog
@@ -546,18 +547,27 @@ export default function AdminBusinesses() {
 
       if (error) throw error;
 
-      // Log the action
+      // Log as 'credits_granted' - distinct from 'credits_purchased' (Stripe payments)
+      // This ensures manual credits don't appear in revenue/payment reports
       await supabase.from("activity_logs").insert({
         user_id: selectedBusiness.user_id,
-        action: "credits_added",
-        entity_type: "profile",
-        entity_id: selectedBusiness.id,
-        details: { amount, added_by: "admin" },
+        action: "credits_granted",
+        entity_type: "business",
+        entity_id: selectedBusiness.user_id,
+        details: { 
+          credits_added: amount,
+          credits_total: selectedBusiness.credits + amount,
+          reason: creditsReason || "Manual admin credit",
+          granted_by: "admin",
+          business_name: selectedBusiness.business_name || "Unknown Business",
+          contact_name: selectedBusiness.contact_name || null,
+        },
       });
 
-      toast.success(`Added ${amount} credits successfully`);
+      toast.success(`Granted ${amount} credits successfully`);
       setIsAddCreditsOpen(false);
       setCreditsToAdd("");
+      setCreditsReason("");
       fetchBusinesses();
       
       // Update selected business
@@ -1329,15 +1339,21 @@ export default function AdminBusinesses() {
       </Dialog>
 
       {/* Add Credits Dialog */}
-      <Dialog open={isAddCreditsOpen} onOpenChange={setIsAddCreditsOpen}>
+      <Dialog open={isAddCreditsOpen} onOpenChange={(open) => {
+        setIsAddCreditsOpen(open);
+        if (!open) {
+          setCreditsToAdd("");
+          setCreditsReason("");
+        }
+      }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <CreditCard className="w-5 h-5" />
-              Add Credits
+              <Coins className="w-5 h-5 text-green-500" />
+              Grant Credits
             </DialogTitle>
             <DialogDescription>
-              Add credits to {selectedBusiness?.business_name || selectedBusiness?.contact_name}'s account
+              Grant free credits to {selectedBusiness?.business_name || selectedBusiness?.contact_name}'s account. This will not count as a payment.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -1346,7 +1362,7 @@ export default function AdminBusinesses() {
               <p className="text-2xl font-bold">{selectedBusiness?.credits || 0} credits</p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="credits-amount">Credits to Add</Label>
+              <Label htmlFor="credits-amount">Credits to Grant</Label>
               <Input
                 id="credits-amount"
                 type="number"
@@ -1356,6 +1372,18 @@ export default function AdminBusinesses() {
                 onChange={(e) => setCreditsToAdd(e.target.value)}
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="credits-reason">Reason (optional)</Label>
+              <Input
+                id="credits-reason"
+                placeholder="e.g., Goodwill, Compensation, Promo..."
+                value={creditsReason}
+                onChange={(e) => setCreditsReason(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Document why credits are being granted for audit purposes.
+              </p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddCreditsOpen(false)}>
@@ -1363,7 +1391,7 @@ export default function AdminBusinesses() {
             </Button>
             <Button onClick={handleAddCredits} disabled={addingCredits || !creditsToAdd}>
               {addingCredits && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Add Credits
+              Grant Credits
             </Button>
           </DialogFooter>
         </DialogContent>
