@@ -11,22 +11,29 @@ const corsHeaders = {
 // Lead purchase price is fixed at £20
 const LEAD_PRICE_POUNDS = 20;
 
-// Hardcoded Cleanda logo as base64 (dark background with green star and white text)
-// This is a small optimized PNG of the logo
-const CLEANDA_LOGO_BASE64 = "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";
-
-// Helper function for text-based logo fallback
+// Helper function for styled text-based logo
 const drawTextLogo = (doc: jsPDF, accentGreen: number[]) => {
-  // Draw star symbol using green
-  doc.setFontSize(20);
-  doc.setTextColor(accentGreen[0], accentGreen[1], accentGreen[2]);
-  doc.text("✦", 15, 30);
+  // Draw a green star/sparkle icon
+  doc.setFillColor(accentGreen[0], accentGreen[1], accentGreen[2]);
+  
+  // Draw a simple 4-point star shape using lines
+  const starX = 22;
+  const starY = 25;
+  const starSize = 6;
+  
+  // Draw star points
+  doc.setDrawColor(accentGreen[0], accentGreen[1], accentGreen[2]);
+  doc.setLineWidth(2);
+  doc.line(starX, starY - starSize, starX, starY + starSize); // Vertical line
+  doc.line(starX - starSize, starY, starX + starSize, starY); // Horizontal line
+  doc.line(starX - starSize * 0.7, starY - starSize * 0.7, starX + starSize * 0.7, starY + starSize * 0.7); // Diagonal 1
+  doc.line(starX + starSize * 0.7, starY - starSize * 0.7, starX - starSize * 0.7, starY + starSize * 0.7); // Diagonal 2
   
   // Draw "Cleanda" text in white
-  doc.setFontSize(24);
+  doc.setFontSize(26);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(255, 255, 255);
-  doc.text("Cleanda", 28, 30);
+  doc.text("Cleanda", 35, 30);
 };
 
 const generatePDFReceipt = (data: {
@@ -50,13 +57,8 @@ const generatePDFReceipt = (data: {
   doc.setFillColor(headerBg[0], headerBg[1], headerBg[2]);
   doc.rect(0, 0, pageWidth, 50, "F");
   
-  // Add the hardcoded logo
-  try {
-    doc.addImage(`data:image/png;base64,${CLEANDA_LOGO_BASE64}`, "PNG", 15, 12, 55, 26);
-  } catch (e) {
-    console.error("Error adding logo image:", e);
-    drawTextLogo(doc, accentGreen);
-  }
+  // Draw the text-based logo with star
+  drawTextLogo(doc, accentGreen);
   
   // Receipt label box on the right
   doc.setFillColor(accentGreen[0], accentGreen[1], accentGreen[2]);
