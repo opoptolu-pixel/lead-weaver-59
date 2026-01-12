@@ -15,16 +15,25 @@ const LEAD_PRICE_POUNDS = 20;
 // Fetch and cache logo as base64
 let cachedLogoBase64: string | null = null;
 
-const fetchLogoBase64 = async (): Promise<string | null> => {
+const fetchLogoBase64 = async (supabaseUrl: string): Promise<string | null> => {
   if (cachedLogoBase64) return cachedLogoBase64;
   
   try {
-    const logoUrl = "https://jqyhiekqqcffiwpctzsi.supabase.co/storage/v1/object/public/assets/cleanda-logo-dark.png";
-    const response = await fetch(logoUrl);
+    // Try storage bucket first
+    const storageUrl = `${supabaseUrl}/storage/v1/object/public/assets/cleanda-logo-dark.png`;
+    let response = await fetch(storageUrl);
+    
     if (!response.ok) {
-      console.log("Failed to fetch logo from storage, trying fallback");
+      // Fallback to hosted site
+      const siteUrl = "https://cleanda.lovable.app/cleanda-logo-dark.png";
+      response = await fetch(siteUrl);
+    }
+    
+    if (!response.ok) {
+      console.log("Failed to fetch logo from any source");
       return null;
     }
+    
     const arrayBuffer = await response.arrayBuffer();
     cachedLogoBase64 = base64Encode(arrayBuffer);
     return cachedLogoBase64;
@@ -42,6 +51,7 @@ const generatePDFReceipt = async (data: {
   amount: number;
   customerEmail: string;
   businessName?: string;
+  supabaseUrl: string;
 }): Promise<string> => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -59,7 +69,7 @@ const generatePDFReceipt = async (data: {
   doc.rect(0, 0, pageWidth, 8, "F");
   
   // Try to add the actual logo
-  const logoBase64 = await fetchLogoBase64();
+  const logoBase64 = await fetchLogoBase64(data.supabaseUrl);
   if (logoBase64) {
     try {
       doc.addImage(`data:image/png;base64,${logoBase64}`, "PNG", 15, 15, 50, 15);
@@ -263,6 +273,7 @@ serve(async (req) => {
     const customers = await stripe.customers.list({ email: customerEmail, limit: 1 });
     
     // Generate PDF receipt data - use fixed lead price of £20
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const receiptData = {
       receiptId: lead.id.substring(0, 8),
       date: lead.unlocked_at || new Date().toISOString(),
@@ -271,6 +282,7 @@ serve(async (req) => {
       amount: LEAD_PRICE_POUNDS,
       customerEmail: customerEmail,
       businessName: profile?.business_name || undefined,
+      supabaseUrl: supabaseUrl,
     };
 
     // Try to get Stripe receipt URL first
