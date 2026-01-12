@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { jsPDF } from "https://esm.sh/jspdf@2.5.1";
+import { encode as base64Encode } from "https://deno.land/std@0.190.0/encoding/base64.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,7 +12,29 @@ const corsHeaders = {
 // Lead purchase price is fixed at £20
 const LEAD_PRICE_POUNDS = 20;
 
-const generatePDFReceipt = (data: {
+// Fetch and cache logo as base64
+let cachedLogoBase64: string | null = null;
+
+const fetchLogoBase64 = async (): Promise<string | null> => {
+  if (cachedLogoBase64) return cachedLogoBase64;
+  
+  try {
+    const logoUrl = "https://jqyhiekqqcffiwpctzsi.supabase.co/storage/v1/object/public/assets/cleanda-logo-dark.png";
+    const response = await fetch(logoUrl);
+    if (!response.ok) {
+      console.log("Failed to fetch logo from storage, trying fallback");
+      return null;
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    cachedLogoBase64 = base64Encode(arrayBuffer);
+    return cachedLogoBase64;
+  } catch (error) {
+    console.error("Error fetching logo:", error);
+    return null;
+  }
+};
+
+const generatePDFReceipt = async (data: {
   receiptId: string;
   date: string;
   jobType: string;
@@ -19,7 +42,7 @@ const generatePDFReceipt = (data: {
   amount: number;
   customerEmail: string;
   businessName?: string;
-}): string => {
+}): Promise<string> => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   
@@ -27,42 +50,58 @@ const generatePDFReceipt = (data: {
   const primaryColor = [26, 54, 93]; // Navy blue
   const accentColor = [34, 197, 94]; // Green
   
-  // Header background
-  doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+  // Header background - white for logo visibility
+  doc.setFillColor(255, 255, 255);
   doc.rect(0, 0, pageWidth, 55, "F");
   
-  // Draw text-based logo with gradient effect simulation
-  // Green gradient colors
-  const greenStart = [74, 222, 128]; // #4ade80
-  const greenEnd = [34, 197, 94]; // #22c55e
+  // Add top accent bar
+  doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+  doc.rect(0, 0, pageWidth, 8, "F");
   
-  // Company name "CLEANDA" with green gradient text
-  doc.setFontSize(32);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(greenStart[0], greenStart[1], greenStart[2]);
-  doc.text("CLEANDA", 15, 32);
-  
-  // Add a subtle green underline/accent
-  doc.setDrawColor(accentColor[0], accentColor[1], accentColor[2]);
-  doc.setLineWidth(2);
-  doc.line(15, 36, 75, 36);
+  // Try to add the actual logo
+  const logoBase64 = await fetchLogoBase64();
+  if (logoBase64) {
+    try {
+      doc.addImage(`data:image/png;base64,${logoBase64}`, "PNG", 15, 15, 50, 15);
+    } catch (e) {
+      console.error("Error adding logo image:", e);
+      // Fallback to text logo
+      doc.setFontSize(24);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.text("Cleanda", 15, 32);
+    }
+  } else {
+    // Fallback to text logo
+    doc.setFontSize(24);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.text("Cleanda", 15, 32);
+  }
   
   // Company tagline
-  doc.setTextColor(200, 220, 255);
+  doc.setTextColor(100, 100, 100);
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  doc.text("Professional Cleaning Leads", 15, 45);
+  doc.text("Professional Cleaning Leads", 15, 42);
   
-  // Receipt label
+  // Receipt label box
+  doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+  doc.roundedRect(pageWidth - 70, 15, 55, 28, 3, 3, "F");
+  
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(14);
   doc.setFont("helvetica", "bold");
-  doc.text("RECEIPT", pageWidth - 20, 25, { align: "right" });
+  doc.text("RECEIPT", pageWidth - 42.5, 26, { align: "center" });
   
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(200, 220, 255);
-  doc.text(`#${data.receiptId.toUpperCase()}`, pageWidth - 20, 35, { align: "right" });
+  doc.text(`#${data.receiptId.toUpperCase()}`, pageWidth - 42.5, 36, { align: "center" });
+  
+  // Divider after header
+  doc.setDrawColor(220, 220, 220);
+  doc.setLineWidth(0.5);
+  doc.line(15, 55, pageWidth - 15, 55);
   
   // Receipt details section
   doc.setTextColor(100, 100, 100);
@@ -275,7 +314,7 @@ serve(async (req) => {
     }
 
     // Generate internal PDF receipt
-    const pdfDataUri = generatePDFReceipt(receiptData);
+    const pdfDataUri = await generatePDFReceipt(receiptData);
     
     return new Response(
       JSON.stringify({
