@@ -76,6 +76,7 @@ interface Business {
   verification_status: string | null;
   leads_purchased: number;
   credits: number;
+  granted_credits: number;
   risk_score: number;
   is_suspended: boolean;
   suspension_reason: string | null;
@@ -540,9 +541,14 @@ export default function AdminBusinesses() {
     
     setAddingCredits(true);
     try {
+      // Update both credits and granted_credits columns
+      // granted_credits tracks how many free credits are available
       const { error } = await supabase
         .from("profiles")
-        .update({ credits: selectedBusiness.credits + amount })
+        .update({ 
+          credits: selectedBusiness.credits + amount,
+          granted_credits: (selectedBusiness.granted_credits || 0) + amount
+        })
         .eq("id", selectedBusiness.id);
 
       if (error) throw error;
@@ -571,7 +577,11 @@ export default function AdminBusinesses() {
       fetchBusinesses();
       
       // Update selected business
-      setSelectedBusiness(prev => prev ? { ...prev, credits: prev.credits + amount } : null);
+      setSelectedBusiness(prev => prev ? { 
+        ...prev, 
+        credits: prev.credits + amount,
+        granted_credits: (prev.granted_credits || 0) + amount
+      } : null);
     } catch (error) {
       console.error("Error adding credits:", error);
       toast.error("Failed to add credits");
