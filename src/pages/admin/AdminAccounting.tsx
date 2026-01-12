@@ -25,7 +25,9 @@ import {
   Receipt,
   Printer,
   Megaphone,
-  Calculator
+  Calculator,
+  Gift,
+  Coins,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, Legend } from "recharts";
@@ -72,6 +74,15 @@ interface BusinessPerformance {
   netContribution: number;
 }
 
+interface GrantedCredit {
+  id: string;
+  createdAt: string;
+  creditsAdded: number;
+  reason: string;
+  businessName: string | null;
+  grantedBy: string;
+}
+
 export default function AdminAccounting() {
   const { toast } = useToast();
   const { getDateFilter, dateRange: dateRangePreset, customStartDate, customEndDate } = useAdmin();
@@ -83,6 +94,7 @@ export default function AdminAccounting() {
   const [activeTab, setActiveTab] = useState("overview");
   const [showPrintView, setShowPrintView] = useState(false);
   const [yoyTransactions, setYoyTransactions] = useState<Transaction[]>([]);
+  const [grantedCredits, setGrantedCredits] = useState<GrantedCredit[]>([]);
 
   // Get date range from global context
   const dateRange = useMemo(() => {
@@ -242,6 +254,34 @@ export default function AdminAccounting() {
       setTransactions(txns);
       setPreviousTransactions(prevTxns);
       setYoyTransactions(yoyTxns);
+
+      // Fetch granted credits from activity_logs
+      const { data: grantedData, error: grantedError } = await supabase
+        .from("activity_logs")
+        .select("id, created_at, details, user_id")
+        .eq("action", "credits_granted")
+        .gte("created_at", dateRange.from.toISOString())
+        .lte("created_at", dateRange.to.toISOString())
+        .order("created_at", { ascending: false });
+
+      if (grantedError) {
+        console.error("Error fetching granted credits:", grantedError);
+      } else {
+        const grantedCreditsData: GrantedCredit[] = (grantedData || []).map(log => {
+          const details = (typeof log.details === 'object' && log.details !== null) 
+            ? log.details as Record<string, unknown> 
+            : {};
+          return {
+            id: log.id,
+            createdAt: log.created_at,
+            creditsAdded: Number(details.credits_added) || Number(details.amount) || 0,
+            reason: String(details.reason || "Unspecified"),
+            businessName: String(details.business_name || "Unknown Business"),
+            grantedBy: String(details.granted_by || "admin"),
+          };
+        });
+        setGrantedCredits(grantedCreditsData);
+      }
     } catch (error: any) {
       toast({
         title: "Error loading transactions",
@@ -252,6 +292,43 @@ export default function AdminAccounting() {
       setLoading(false);
     }
   };
+
+  // Calculate granted credits metrics
+  const grantedCreditsMetrics = useMemo(() => {
+    const totalCreditsGranted = grantedCredits.reduce((sum, gc) => sum + gc.creditsAdded, 0);
+    const totalValue = totalCreditsGranted * LEAD_PRICE;
+    
+    // Group by reason
+    const byReason = grantedCredits.reduce((acc, gc) => {
+      const reason = gc.reason || "Unspecified";
+      if (!acc[reason]) {
+        acc[reason] = { credits: 0, value: 0, count: 0 };
+      }
+      acc[reason].credits += gc.creditsAdded;
+      acc[reason].value += gc.creditsAdded * LEAD_PRICE;
+      acc[reason].count += 1;
+      return acc;
+    }, {} as Record<string, { credits: number; value: number; count: number }>);
+
+    // Group by business
+    const byBusiness = grantedCredits.reduce((acc, gc) => {
+      const business = gc.businessName || "Unknown";
+      if (!acc[business]) {
+        acc[business] = { credits: 0, value: 0 };
+      }
+      acc[business].credits += gc.creditsAdded;
+      acc[business].value += gc.creditsAdded * LEAD_PRICE;
+      return acc;
+    }, {} as Record<string, { credits: number; value: number }>);
+
+    return {
+      totalCreditsGranted,
+      totalValue,
+      grantCount: grantedCredits.length,
+      byReason,
+      byBusiness,
+    };
+  }, [grantedCredits]);
 
   // Calculate KPIs
   const kpis = useMemo(() => {
@@ -271,6 +348,10 @@ export default function AdminAccounting() {
     const netProfit = netRevenue - adMetrics.totalSpend;
     const costPerLead = transactions.length > 0 ? adMetrics.totalSpend / transactions.length : 0;
 
+    // Actual cash received = Net Revenue - Value of granted credits used
+    // Note: This is an approximation since we can't directly track which credits were used
+    const actualCashRevenue = netRevenue - grantedCreditsMetrics.totalValue;
+
     return {
       grossRevenue,
       totalLeadsSold: transactions.length,
@@ -282,8 +363,10 @@ export default function AdminAccounting() {
       adSpend: adMetrics.totalSpend,
       netProfit,
       costPerLead,
+      actualCashRevenue,
+      grantedCreditsValue: grantedCreditsMetrics.totalValue,
     };
-  }, [transactions, dateRange, adMetrics]);
+  }, [transactions, dateRange, adMetrics, grantedCreditsMetrics]);
 
   // Calculate previous period KPIs for comparison
   const previousKpis = useMemo(() => {
@@ -977,6 +1060,99 @@ export default function AdminAccounting() {
                         {facebookAdsMetrics.totalConversions} conversions • £{facebookAdsMetrics.costPerLead.toFixed(2)}/lead
                       </p>
                     </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Granted Credits Summary */}
+            {grantedCreditsMetrics.totalCreditsGranted > 0 && (
+              <Card className="border-teal-500/30 bg-teal-500/5">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <Gift className="h-5 w-5 text-teal-500" />
+                        Granted Credits Summary
+                      </CardTitle>
+                      <CardDescription>Free credits issued to businesses (not revenue)</CardDescription>
+                    </div>
+                    <Badge variant="outline" className="border-teal-500/50 text-teal-600">
+                      {grantedCreditsMetrics.grantCount} grants
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Summary Stats */}
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="p-4 bg-teal-500/10 border border-teal-500/20 rounded-lg text-center">
+                      <p className="text-3xl font-bold text-teal-600">{grantedCreditsMetrics.totalCreditsGranted}</p>
+                      <p className="text-sm text-muted-foreground">Total Credits Granted</p>
+                    </div>
+                    <div className="p-4 bg-teal-500/10 border border-teal-500/20 rounded-lg text-center">
+                      <p className="text-3xl font-bold text-teal-600">£{grantedCreditsMetrics.totalValue.toLocaleString()}</p>
+                      <p className="text-sm text-muted-foreground">Total Value (@ £{LEAD_PRICE}/credit)</p>
+                    </div>
+                    <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg text-center">
+                      <p className="text-3xl font-bold text-green-600">£{Math.max(0, kpis.actualCashRevenue).toLocaleString()}</p>
+                      <p className="text-sm text-muted-foreground">Est. Actual Cash Revenue</p>
+                    </div>
+                  </div>
+
+                  {/* Breakdown by Reason */}
+                  {Object.keys(grantedCreditsMetrics.byReason).length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                        <Coins className="h-4 w-4 text-muted-foreground" />
+                        Breakdown by Reason
+                      </h4>
+                      <div className="space-y-2">
+                        {Object.entries(grantedCreditsMetrics.byReason)
+                          .sort((a, b) => b[1].value - a[1].value)
+                          .map(([reason, data]) => (
+                            <div key={reason} className="flex items-center justify-between p-2 bg-muted/30 rounded">
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-xs">{data.count}x</Badge>
+                                <span className="text-sm font-medium">{reason}</span>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-sm font-bold">{data.credits} credits</span>
+                                <span className="text-sm text-muted-foreground ml-2">(£{data.value})</span>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Top Businesses Receiving Grants */}
+                  {Object.keys(grantedCreditsMetrics.byBusiness).length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                        <Building2 className="h-4 w-4 text-muted-foreground" />
+                        Top Businesses Receiving Grants
+                      </h4>
+                      <div className="space-y-2">
+                        {Object.entries(grantedCreditsMetrics.byBusiness)
+                          .sort((a, b) => b[1].value - a[1].value)
+                          .slice(0, 5)
+                          .map(([business, data]) => (
+                            <div key={business} className="flex items-center justify-between p-2 bg-muted/30 rounded">
+                              <span className="text-sm font-medium truncate max-w-[200px]">{business}</span>
+                              <div className="text-right">
+                                <span className="text-sm font-bold">{data.credits} credits</span>
+                                <span className="text-sm text-muted-foreground ml-2">(£{data.value})</span>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Explanation */}
+                  <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
+                    <strong>Note:</strong> Granted credits represent free value given to businesses (goodwill, compensation, promos). 
+                    The "Est. Actual Cash Revenue" subtracts this from Net Revenue to approximate real cash received.
                   </div>
                 </CardContent>
               </Card>
