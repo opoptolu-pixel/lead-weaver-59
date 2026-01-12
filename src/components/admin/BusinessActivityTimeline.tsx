@@ -72,7 +72,9 @@ const ACTION_ICONS: Record<string, any> = {
   profile_update: FileText,
   purchase: ShoppingCart,
   credit_purchase: CreditCard,
-  credits_added: Coins,
+  credits_purchased: CreditCard,
+  credits_granted: Coins,
+  credits_added: Coins, // Legacy support
   verification_submitted: Upload,
   verification_approved: CheckCircle,
   verification_rejected: XCircle,
@@ -80,6 +82,7 @@ const ACTION_ICONS: Record<string, any> = {
   unsuspended: CheckCircle,
   view: Eye,
   update: FileText,
+  phone_unlinked: Phone,
 };
 
 const ACTION_LABELS: Record<string, string> = {
@@ -88,7 +91,9 @@ const ACTION_LABELS: Record<string, string> = {
   profile_update: "Profile Updated",
   purchase: "Lead Purchased",
   credit_purchase: "Credits Purchased",
-  credits_added: "Credits Added",
+  credits_purchased: "Credits Purchased",
+  credits_granted: "Credits Granted",
+  credits_added: "Credits Added", // Legacy support
   verification_submitted: "Verification Submitted",
   verification_approved: "Verification Approved",
   verification_rejected: "Verification Rejected",
@@ -96,6 +101,7 @@ const ACTION_LABELS: Record<string, string> = {
   unsuspended: "Account Reactivated",
   view: "Viewed",
   update: "Updated",
+  phone_unlinked: "Phone Unlinked",
 };
 
 const ACTION_COLORS: Record<string, string> = {
@@ -104,7 +110,9 @@ const ACTION_COLORS: Record<string, string> = {
   profile_update: "bg-cyan-500/20 text-cyan-500 border-cyan-500/30",
   purchase: "bg-green-500/20 text-green-500 border-green-500/30",
   credit_purchase: "bg-amber-500/20 text-amber-500 border-amber-500/30",
-  credits_added: "bg-amber-500/20 text-amber-500 border-amber-500/30",
+  credits_purchased: "bg-amber-500/20 text-amber-500 border-amber-500/30",
+  credits_granted: "bg-teal-500/20 text-teal-500 border-teal-500/30",
+  credits_added: "bg-teal-500/20 text-teal-500 border-teal-500/30", // Legacy support
   verification_submitted: "bg-blue-500/20 text-blue-500 border-blue-500/30",
   verification_approved: "bg-green-500/20 text-green-500 border-green-500/30",
   verification_rejected: "bg-red-500/20 text-red-500 border-red-500/30",
@@ -112,6 +120,7 @@ const ACTION_COLORS: Record<string, string> = {
   unsuspended: "bg-green-500/20 text-green-500 border-green-500/30",
   view: "bg-gray-500/20 text-gray-500 border-gray-500/30",
   update: "bg-blue-500/20 text-blue-500 border-blue-500/30",
+  phone_unlinked: "bg-orange-500/20 text-orange-500 border-orange-500/30",
 };
 
 export default function BusinessActivityTimeline({ userId, open, onOpenChange }: BusinessActivityTimelineProps) {
@@ -194,9 +203,17 @@ export default function BusinessActivityTimeline({ userId, open, onOpenChange }:
         const postcode = details?.postcode || "";
         return `Purchased ${jobType} lead${postcode ? ` in ${postcode}` : ""}`;
       case "credit_purchase":
-        const amount = details?.amount || 0;
-        return `Purchased ${amount} credits via Stripe`;
+      case "credits_purchased":
+        const purchasedAmount = details?.credits_added || details?.amount || 0;
+        const totalAfterPurchase = details?.credits_total || "?";
+        return `Purchased ${purchasedAmount} credits via Stripe (Total: ${totalAfterPurchase})`;
+      case "credits_granted":
+        const grantedAmount = details?.credits_added || details?.amount || 0;
+        const grantReason = details?.reason || "";
+        const totalAfterGrant = details?.credits_total || "?";
+        return `${grantedAmount} credits granted by admin${grantReason ? ` - ${grantReason}` : ""} (Total: ${totalAfterGrant})`;
       case "credits_added":
+        // Legacy support
         const creditsAdded = details?.amount || 0;
         return `${creditsAdded} credits added by admin`;
       case "verification_submitted":
