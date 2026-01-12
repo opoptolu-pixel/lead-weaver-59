@@ -2071,6 +2071,7 @@ export default function AdminAccounting() {
                         <TableHead>Date & Time</TableHead>
                         <TableHead>Lead ID</TableHead>
                         <TableHead>Business</TableHead>
+                        <TableHead>Credit Type</TableHead>
                         <TableHead className="text-right">Amount</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Refund Reference</TableHead>
@@ -2080,14 +2081,14 @@ export default function AdminAccounting() {
                       {loading ? (
                         Array.from({ length: 5 }).map((_, i) => (
                           <TableRow key={i}>
-                            {Array.from({ length: 7 }).map((_, j) => (
+                            {Array.from({ length: 8 }).map((_, j) => (
                               <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
                             ))}
                           </TableRow>
                         ))
                       ) : filteredTransactions.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                          <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                             No transactions found
                           </TableCell>
                         </TableRow>
@@ -2098,7 +2099,22 @@ export default function AdminAccounting() {
                             <TableCell>{format(parseISO(txn.date), "MMM dd, yyyy HH:mm")}</TableCell>
                             <TableCell className="font-mono text-xs">{txn.leadId.slice(0, 8)}...</TableCell>
                             <TableCell>{txn.businessName}</TableCell>
-                            <TableCell className="text-right font-medium">£{txn.amount}</TableCell>
+                            <TableCell>
+                              <Badge 
+                                variant="outline" 
+                                className={txn.creditType === "granted" 
+                                  ? "border-teal-500/50 text-teal-600 bg-teal-500/10" 
+                                  : "border-primary/50 text-primary bg-primary/10"
+                                }
+                              >
+                                {txn.creditType === "granted" ? "Granted" : "Paid"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right font-medium">
+                              <span className={txn.creditType === "granted" ? "text-muted-foreground" : ""}>
+                                £{txn.amount}
+                              </span>
+                            </TableCell>
                             <TableCell>
                               <Badge variant={txn.status === "paid" ? "default" : "destructive"}>
                                 {txn.status}

@@ -18,6 +18,8 @@ import {
   Zap,
   Megaphone,
   RefreshCw,
+  Gift,
+  Coins,
 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import KPICard from "@/components/admin/KPICard";
@@ -100,6 +102,8 @@ export default function AdminOverview() {
     leadsReceived: 0,
     leadsPublished: 0,
     leadsPurchased: 0,
+    paidLeadsPurchased: 0,
+    grantedLeadsPurchased: 0,
     revenue: 0,
     activeBuyers: 0,
     refundsIssued: 0,
@@ -541,10 +545,15 @@ export default function AdminOverview() {
       return sum + extractJobValue(l as { value: number; display_value?: string });
     }, 0) || 0;
 
+    // Count granted leads
+    const grantedLeadsPurchased = (unlockedLeadsInRange?.length || 0) - paidLeadsInRange.length;
+
     setStats({
       leadsReceived,
       leadsPublished,
       leadsPurchased,
+      paidLeadsPurchased,
+      grantedLeadsPurchased,
       revenue,
       activeBuyers,
       refundsIssued,
@@ -726,6 +735,81 @@ export default function AdminOverview() {
               </p>
             </div>
             <p className="text-xs text-muted-foreground">Live Checkouts</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Purchased vs Granted Leads Breakdown */}
+      <div className="bg-card rounded-xl border border-border p-6 mb-8">
+        <div className="flex items-center gap-2 mb-4">
+          <Coins className="w-5 h-5 text-secondary" />
+          <h3 className="font-heading font-semibold text-foreground">Lead Credit Breakdown</h3>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Total Leads */}
+          <div className="p-4 bg-muted/30 rounded-lg text-center">
+            <p className="text-3xl font-bold text-foreground">{stats.leadsPurchased}</p>
+            <p className="text-sm text-muted-foreground">Total Leads Unlocked</p>
+          </div>
+          
+          {/* Paid Leads */}
+          <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-primary" />
+                <span className="text-sm font-medium text-primary">Paid Credits</span>
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {stats.leadsPurchased > 0 
+                  ? Math.round((stats.paidLeadsPurchased / stats.leadsPurchased) * 100) 
+                  : 0}%
+              </span>
+            </div>
+            <p className="text-2xl font-bold text-foreground">{stats.paidLeadsPurchased}</p>
+            <p className="text-sm text-muted-foreground">
+              £{stats.paidLeadsPurchased * 20} revenue
+            </p>
+            {/* Progress bar */}
+            <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-primary rounded-full transition-all duration-500"
+                style={{ 
+                  width: `${stats.leadsPurchased > 0 
+                    ? (stats.paidLeadsPurchased / stats.leadsPurchased) * 100 
+                    : 0}%` 
+                }}
+              />
+            </div>
+          </div>
+          
+          {/* Granted Leads */}
+          <div className="p-4 bg-teal-500/5 border border-teal-500/20 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Gift className="w-4 h-4 text-teal-500" />
+                <span className="text-sm font-medium text-teal-600">Granted Credits</span>
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {stats.leadsPurchased > 0 
+                  ? Math.round((stats.grantedLeadsPurchased / stats.leadsPurchased) * 100) 
+                  : 0}%
+              </span>
+            </div>
+            <p className="text-2xl font-bold text-foreground">{stats.grantedLeadsPurchased}</p>
+            <p className="text-sm text-muted-foreground">
+              £{stats.grantedLeadsPurchased * 20} value (no revenue)
+            </p>
+            {/* Progress bar */}
+            <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-teal-500 rounded-full transition-all duration-500"
+                style={{ 
+                  width: `${stats.leadsPurchased > 0 
+                    ? (stats.grantedLeadsPurchased / stats.leadsPurchased) * 100 
+                    : 0}%` 
+                }}
+              />
+            </div>
           </div>
         </div>
       </div>
