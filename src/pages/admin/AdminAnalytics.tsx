@@ -51,7 +51,8 @@ import {
   Lightbulb,
   RefreshCw,
   Megaphone,
-  PoundSterling
+  PoundSterling,
+  History
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdmin } from "@/contexts/AdminContext";
@@ -62,6 +63,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { TrendComparisonChart } from "@/components/admin/TrendComparisonChart";
 import { MarketingRecommendations } from "@/components/admin/MarketingRecommendations";
+import { HistoricalVisitorAnalytics } from "@/components/admin/HistoricalVisitorAnalytics";
 
 const COLORS = [
   "hsl(var(--secondary))", 
@@ -651,6 +653,7 @@ export default function AdminAnalytics() {
               <TabsTrigger value="geographic"><MapPin className="h-4 w-4 mr-2" />Geographic</TabsTrigger>
               <TabsTrigger value="trends"><TrendingUp className="h-4 w-4 mr-2" />Trends</TabsTrigger>
               <TabsTrigger value="recommendations"><Lightbulb className="h-4 w-4 mr-2" />Recommendations</TabsTrigger>
+              <TabsTrigger value="historical"><History className="h-4 w-4 mr-2" />Page Views</TabsTrigger>
               <TabsTrigger value="live"><Globe2 className="h-4 w-4 mr-2" />Live Visitors</TabsTrigger>
               <TabsTrigger value="acquisition"><FileText className="h-4 w-4 mr-2" />Acquisition</TabsTrigger>
               <TabsTrigger value="marketplace"><Target className="h-4 w-4 mr-2" />Marketplace</TabsTrigger>
@@ -1172,6 +1175,11 @@ export default function AdminAnalytics() {
                 buyerCityStats={buyerCityStats}
                 marketplaceStats={marketplaceStats}
               />
+            </TabsContent>
+
+            {/* HISTORICAL PAGE VIEWS TAB */}
+            <TabsContent value="historical" className="space-y-6 mt-6">
+              <HistoricalVisitorAnalytics />
             </TabsContent>
 
             {/* LIVE VISITORS TAB */}
