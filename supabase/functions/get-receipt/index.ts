@@ -2,7 +2,6 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { jsPDF } from "https://esm.sh/jspdf@2.5.1";
-import { encode as base64Encode } from "https://deno.land/std@0.190.0/encoding/base64.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,30 +11,9 @@ const corsHeaders = {
 // Lead purchase price is fixed at £20
 const LEAD_PRICE_POUNDS = 20;
 
-// Fetch and cache logo as base64
-let cachedLogoBase64: string | null = null;
-
-const fetchLogoBase64 = async (supabaseUrl: string): Promise<string | null> => {
-  if (cachedLogoBase64) return cachedLogoBase64;
-  
-  try {
-    // Try storage bucket first
-    const storageUrl = `${supabaseUrl}/storage/v1/object/public/assets/cleanda-logo-header.png`;
-    let response = await fetch(storageUrl);
-    
-    if (!response.ok) {
-      console.log("Failed to fetch logo from storage");
-      return null;
-    }
-    
-    const arrayBuffer = await response.arrayBuffer();
-    cachedLogoBase64 = base64Encode(arrayBuffer);
-    return cachedLogoBase64;
-  } catch (error) {
-    console.error("Error fetching logo:", error);
-    return null;
-  }
-};
+// Hardcoded Cleanda logo as base64 (dark background with green star and white text)
+// This is a small optimized PNG of the logo
+const CLEANDA_LOGO_BASE64 = "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";
 
 // Helper function for text-based logo fallback
 const drawTextLogo = (doc: jsPDF, accentGreen: number[]) => {
@@ -51,7 +29,7 @@ const drawTextLogo = (doc: jsPDF, accentGreen: number[]) => {
   doc.text("Cleanda", 28, 30);
 };
 
-const generatePDFReceipt = async (data: {
+const generatePDFReceipt = (data: {
   receiptId: string;
   date: string;
   jobType: string;
@@ -59,8 +37,7 @@ const generatePDFReceipt = async (data: {
   amount: number;
   customerEmail: string;
   businessName?: string;
-  supabaseUrl: string;
-}): Promise<string> => {
+}): string => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   
@@ -73,16 +50,11 @@ const generatePDFReceipt = async (data: {
   doc.setFillColor(headerBg[0], headerBg[1], headerBg[2]);
   doc.rect(0, 0, pageWidth, 50, "F");
   
-  // Try to add the actual logo
-  const logoBase64 = await fetchLogoBase64(data.supabaseUrl);
-  if (logoBase64) {
-    try {
-      doc.addImage(`data:image/png;base64,${logoBase64}`, "PNG", 15, 12, 55, 26);
-    } catch (e) {
-      console.error("Error adding logo image:", e);
-      drawTextLogo(doc, accentGreen);
-    }
-  } else {
+  // Add the hardcoded logo
+  try {
+    doc.addImage(`data:image/png;base64,${CLEANDA_LOGO_BASE64}`, "PNG", 15, 12, 55, 26);
+  } catch (e) {
+    console.error("Error adding logo image:", e);
     drawTextLogo(doc, accentGreen);
   }
   
@@ -259,7 +231,6 @@ serve(async (req) => {
     const customers = await stripe.customers.list({ email: customerEmail, limit: 1 });
     
     // Generate PDF receipt data - use fixed lead price of £20
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const receiptData = {
       receiptId: lead.id.substring(0, 8),
       date: lead.unlocked_at || new Date().toISOString(),
@@ -268,7 +239,6 @@ serve(async (req) => {
       amount: LEAD_PRICE_POUNDS,
       customerEmail: customerEmail,
       businessName: profile?.business_name || undefined,
-      supabaseUrl: supabaseUrl,
     };
 
     // Try to get Stripe receipt URL first
@@ -312,7 +282,7 @@ serve(async (req) => {
     }
 
     // Generate internal PDF receipt
-    const pdfDataUri = await generatePDFReceipt(receiptData);
+    const pdfDataUri = generatePDFReceipt(receiptData);
     
     return new Response(
       JSON.stringify({
