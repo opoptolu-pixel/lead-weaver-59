@@ -155,13 +155,16 @@ export default function AdminOverview() {
     // Month to date
     const mtdStart = new Date(todayStart.getFullYear(), todayStart.getMonth(), 1);
 
-    // Fetch today's purchases
+    // Fetch today's purchases (only purchased credits, not granted)
     const { data: todayPurchases } = await supabase
       .from("leads")
-      .select("id")
+      .select("id, credit_type")
       .gte("unlocked_at", todayStart.toISOString())
       .lte("unlocked_at", todayEnd.toISOString())
       .not("unlocked_by", "is", null);
+
+    // Filter to only purchased credits for revenue calculations
+    const todayPaidPurchases = todayPurchases?.filter(p => p.credit_type !== 'granted') || [];
 
     // Fetch today's refunds
     const { data: todayRefunds } = await supabase
@@ -170,13 +173,15 @@ export default function AdminOverview() {
       .gte("refunded_at", todayStart.toISOString())
       .lte("refunded_at", todayEnd.toISOString());
 
-    // Fetch yesterday's data for comparison
+    // Fetch yesterday's data for comparison (only purchased credits)
     const { data: yesterdayPurchases } = await supabase
       .from("leads")
-      .select("id")
+      .select("id, credit_type")
       .gte("unlocked_at", yesterdayStart.toISOString())
       .lte("unlocked_at", yesterdayEnd.toISOString())
       .not("unlocked_by", "is", null);
+
+    const yesterdayPaidPurchases = yesterdayPurchases?.filter(p => p.credit_type !== 'granted') || [];
 
     const { data: yesterdayRefunds } = await supabase
       .from("leads")
@@ -184,13 +189,15 @@ export default function AdminOverview() {
       .gte("refunded_at", yesterdayStart.toISOString())
       .lte("refunded_at", yesterdayEnd.toISOString());
 
-    // Fetch MTD purchases and refunds
+    // Fetch MTD purchases and refunds (only purchased credits)
     const { data: mtdPurchases } = await supabase
       .from("leads")
-      .select("id")
+      .select("id, credit_type")
       .gte("unlocked_at", mtdStart.toISOString())
       .lte("unlocked_at", todayEnd.toISOString())
       .not("unlocked_by", "is", null);
+
+    const mtdPaidPurchases = mtdPurchases?.filter(p => p.credit_type !== 'granted') || [];
 
     const { data: mtdRefunds } = await supabase
       .from("leads")
@@ -209,18 +216,18 @@ export default function AdminOverview() {
       .from("profiles")
       .select("credits");
 
-    const todayPurchaseCount = todayPurchases?.length || 0;
+    const todayPurchaseCount = todayPaidPurchases.length;
     const todayRefundCount = todayRefunds?.length || 0;
     const todayRevenue = todayPurchaseCount * 20;
     const todayRefundAmount = todayRefundCount * 20;
     const netRevenue = todayRevenue - todayRefundAmount;
     const refundRate = todayPurchaseCount > 0 ? Math.round((todayRefundCount / todayPurchaseCount) * 100) : 0;
 
-    const yesterdayPurchaseCount = yesterdayPurchases?.length || 0;
+    const yesterdayPurchaseCount = yesterdayPaidPurchases.length;
     const yesterdayRefundCount = yesterdayRefunds?.length || 0;
     const yesterdayNet = (yesterdayPurchaseCount * 20) - (yesterdayRefundCount * 20);
 
-    const mtdPurchaseCount = mtdPurchases?.length || 0;
+    const mtdPurchaseCount = mtdPaidPurchases.length;
     const mtdRefundCount = mtdRefunds?.length || 0;
     const mtdRevenue = (mtdPurchaseCount * 20) - (mtdRefundCount * 20);
 
