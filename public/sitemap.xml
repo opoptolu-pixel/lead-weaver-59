@@ -8,7 +8,7 @@
   <!-- Homepage - Highest Priority -->
   <url>
     <loc>https://cleanda.co.uk/</loc>
-    <lastmod>2025-12-27</lastmod>
+    <lastmod>2026-01-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -16,7 +16,7 @@
   <!-- Request Cleaning - Main Conversion Page -->
   <url>
     <loc>https://cleanda.co.uk/request-cleaning</loc>
-    <lastmod>2025-12-27</lastmod>
+    <lastmod>2026-01-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
@@ -24,7 +24,7 @@
   <!-- For Cleaners - B2B Landing -->
   <url>
     <loc>https://cleanda.co.uk/for-cleaners</loc>
-    <lastmod>2025-12-27</lastmod>
+    <lastmod>2026-01-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
@@ -34,7 +34,7 @@
   <!-- Blog Index -->
   <url>
     <loc>https://cleanda.co.uk/blog</loc>
-    <lastmod>2025-12-27</lastmod>
+    <lastmod>2026-01-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
