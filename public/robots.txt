@@ -93,3 +93,7 @@ Allow: /
 
 # Sitemap location
 Sitemap: https://cleanda.co.uk/sitemap.xml
+
+# LLM-optimized content (plain text version for AI consumption)
+# See https://llmstxt.org for the llm.txt specification
+LLM-TXT: https://cleanda.co.uk/llm.txt
