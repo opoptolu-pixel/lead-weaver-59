@@ -152,10 +152,221 @@
       ]
     }
     </script>
+    <!-- Service Schema for cleaning services -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Service",
+      "@id": "https://cleanda.co.uk/#service",
+      "name": "Professional Cleaning Services UK",
+      "description": "Connect with verified professional cleaners across the UK for deep cleaning, end of tenancy, carpet cleaning, upholstery cleaning and more.",
+      "provider": {
+        "@id": "https://cleanda.co.uk/#organization"
+      },
+      "serviceType": "Cleaning Service Platform",
+      "areaServed": {
+        "@type": "Country",
+        "name": "United Kingdom"
+      },
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": "Cleaning Services",
+        "itemListElement": [
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Deep Cleaning",
+              "description": "Thorough deep cleaning service for homes and offices. Starting from £140 for 3+ rooms."
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "End of Tenancy Cleaning",
+              "description": "Complete end of tenancy cleaning to get your deposit back. Starting from £150."
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Carpet Cleaning",
+              "description": "Professional carpet cleaning for 2-3 rooms. Starting from £100."
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Upholstery Cleaning",
+              "description": "Sofa, mattress and upholstery cleaning services. Starting from £100."
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Commercial Cleaning",
+              "description": "Office and commercial property cleaning services. Starting from £150."
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Post-Construction Cleaning",
+              "description": "Deep cleaning after construction or renovation work. Starting from £200."
+            }
+          }
+        ]
+      }
+    }
+    </script>
+
+    <!-- AggregateRating Schema -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      "name": "Cleanda Cleaning Services",
+      "description": "UK's trusted platform connecting customers with verified professional cleaners.",
+      "brand": {
+        "@type": "Brand",
+        "name": "Cleanda"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "reviewCount": "2500",
+        "bestRating": "5",
+        "worstRating": "1"
+      }
+    }
+    </script>
   </head>
 
   <body>
     <div id="root"></div>
+    
+    <!-- Noscript fallback content for AI crawlers and non-JS browsers -->
+    <noscript>
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px;">
+        <header style="margin-bottom: 40px;">
+          <h1 style="color: #1a365d; font-size: 2.5em; margin-bottom: 10px;">Cleanda - Find Trusted Cleaners Near You</h1>
+          <p style="color: #4a5568; font-size: 1.2em;">UK's #1 Platform for Professional Cleaning Services</p>
+        </header>
+        
+        <main>
+          <section style="margin-bottom: 40px;">
+            <h2 style="color: #1a365d; font-size: 1.8em;">About Cleanda</h2>
+            <p>Cleanda connects customers with verified professional cleaners across the United Kingdom. Get free quotes from local cleaning professionals for deep cleaning, end of tenancy cleaning, carpet cleaning, upholstery cleaning, and more. No obligation, fast response within 24 hours.</p>
+          </section>
+          
+          <section style="margin-bottom: 40px;">
+            <h2 style="color: #1a365d; font-size: 1.8em;">Our Cleaning Services</h2>
+            <ul style="line-height: 2;">
+              <li><strong>Deep Cleaning (3+ Rooms)</strong> - Starting from £140. Thorough cleaning of all rooms including kitchens and bathrooms.</li>
+              <li><strong>End of Tenancy Cleaning</strong> - Starting from £150. Complete cleaning to help you get your deposit back.</li>
+              <li><strong>Carpet Cleaning (2-3 Rooms)</strong> - Starting from £100. Professional steam and dry cleaning methods.</li>
+              <li><strong>Sofa + Carpet Cleaning</strong> - Starting from £120. Combined upholstery and carpet cleaning package.</li>
+              <li><strong>Sofa + Mattress Cleaning</strong> - Starting from £100. Freshen your furniture and bedding.</li>
+              <li><strong>Carpet + Mattress Cleaning</strong> - Starting from £110. Comprehensive soft furnishing cleaning.</li>
+              <li><strong>Airbnb / Short-Let Refresh</strong> - Starting from £130. Quick turnaround cleaning for rental properties.</li>
+              <li><strong>Move-In / Move-Out Clean</strong> - Starting from £140. Make your new home spotless.</li>
+              <li><strong>One-Off Deep Clean</strong> - Starting from £100. Occasional deep cleaning service.</li>
+              <li><strong>Office Carpet + Upholstery Clean</strong> - Starting from £150. Commercial cleaning for offices.</li>
+              <li><strong>Post-Construction Deep Clean</strong> - Starting from £200. Specialist cleaning after building work.</li>
+              <li><strong>Large Property Window + Interior</strong> - Starting from £180. Comprehensive property cleaning.</li>
+            </ul>
+          </section>
+          
+          <section style="margin-bottom: 40px;">
+            <h2 style="color: #1a365d; font-size: 1.8em;">How It Works</h2>
+            <ol style="line-height: 2;">
+              <li><strong>Request a Quote</strong> - Tell us what cleaning service you need and your location.</li>
+              <li><strong>Get Matched</strong> - We connect you with verified local cleaners in your area.</li>
+              <li><strong>Compare & Choose</strong> - Receive quotes and choose the cleaner that suits you best.</li>
+              <li><strong>Enjoy a Clean Home</strong> - Sit back while professionals make your space sparkle.</li>
+            </ol>
+          </section>
+          
+          <section style="margin-bottom: 40px;">
+            <h2 style="color: #1a365d; font-size: 1.8em;">Why Choose Cleanda?</h2>
+            <ul style="line-height: 2;">
+              <li><strong>Verified Professionals</strong> - All cleaners are vetted, insured, and reviewed.</li>
+              <li><strong>Free Quotes</strong> - No obligation, no hidden fees. 100% free to use.</li>
+              <li><strong>Fast Response</strong> - Get contacted within 24 hours.</li>
+              <li><strong>UK Wide Coverage</strong> - Professional cleaners in all major UK cities and towns.</li>
+              <li><strong>Rated 4.8/5</strong> - Based on 2,500+ customer reviews.</li>
+            </ul>
+          </section>
+          
+          <section style="margin-bottom: 40px;">
+            <h2 style="color: #1a365d; font-size: 1.8em;">Frequently Asked Questions</h2>
+            <div style="line-height: 1.8;">
+              <h3>Is it free to get quotes from cleaners?</h3>
+              <p>Yes, completely free! You can request quotes from multiple verified cleaners without any obligation. There are no hidden fees or charges for using our service.</p>
+              
+              <h3>How quickly will cleaners contact me?</h3>
+              <p>Most customers are contacted by their cleaning partner within 24 hours of submitting their request. Our verified cleaners are ready to provide quotes fast.</p>
+              
+              <h3>Are the cleaners verified and insured?</h3>
+              <p>Yes, all cleaners on our platform are verified professionals. We check their credentials, insurance, and reviews before they can receive cleaning requests.</p>
+              
+              <h3>What types of cleaning services are available?</h3>
+              <p>We offer a wide range of services including deep cleaning, end of tenancy cleaning, carpet cleaning, upholstery cleaning, one-off cleans, post-construction cleaning, and commercial office cleaning.</p>
+              
+              <h3>Do you cover my area in the UK?</h3>
+              <p>We have verified cleaners across the UK. Simply enter your postcode when requesting a quote and we'll connect you with local professionals in your area.</p>
+            </div>
+          </section>
+          
+          <section style="margin-bottom: 40px;">
+            <h2 style="color: #1a365d; font-size: 1.8em;">For Cleaning Professionals</h2>
+            <p>Are you a professional cleaner looking to grow your business? Join Cleanda to receive exclusive cleaning leads in your area.</p>
+            <ul style="line-height: 2;">
+              <li><strong>Pay Per Lead</strong> - Only £20 per lead. No monthly fees or contracts.</li>
+              <li><strong>Exclusive Leads</strong> - Each lead is sold only once - you get exclusive access.</li>
+              <li><strong>High-Value Jobs</strong> - All leads are valued at £100+ per job.</li>
+              <li><strong>Bulk Discounts</strong> - 5 credits for £90 (£18/lead) or 10 credits for £170 (£17/lead).</li>
+            </ul>
+          </section>
+          
+          <section style="margin-bottom: 40px;">
+            <h2 style="color: #1a365d; font-size: 1.8em;">Contact Information</h2>
+            <ul style="list-style: none; padding: 0; line-height: 2;">
+              <li><strong>Email:</strong> hello@cleanda.co.uk</li>
+              <li><strong>Phone:</strong> 07757 188 197</li>
+              <li><strong>Address:</strong> 128 City Road, London, EC1V 2NX, United Kingdom</li>
+              <li><strong>Company:</strong> Orbit Shade Ltd (Company Number: 15337705)</li>
+              <li><strong>Support Hours:</strong> Monday - Friday, 9:00 AM - 5:00 PM GMT</li>
+            </ul>
+          </section>
+          
+          <section style="margin-bottom: 40px;">
+            <h2 style="color: #1a365d; font-size: 1.8em;">Service Areas</h2>
+            <p>We operate across the United Kingdom including London, Manchester, Birmingham, Leeds, Glasgow, Edinburgh, Liverpool, Bristol, Sheffield, Newcastle, Nottingham, Leicester, Southampton, Cardiff, Belfast, and many more cities and towns.</p>
+          </section>
+        </main>
+        
+        <footer style="border-top: 1px solid #e2e8f0; padding-top: 20px; margin-top: 40px;">
+          <nav style="margin-bottom: 20px;">
+            <a href="https://cleanda.co.uk" style="margin-right: 20px;">Home</a>
+            <a href="https://cleanda.co.uk/request-cleaning" style="margin-right: 20px;">Request Cleaning</a>
+            <a href="https://cleanda.co.uk/for-cleaners" style="margin-right: 20px;">For Cleaners</a>
+            <a href="https://cleanda.co.uk/blog" style="margin-right: 20px;">Blog</a>
+            <a href="https://cleanda.co.uk/contact" style="margin-right: 20px;">Contact</a>
+            <a href="https://cleanda.co.uk/privacy-policy" style="margin-right: 20px;">Privacy Policy</a>
+            <a href="https://cleanda.co.uk/terms-of-use" style="margin-right: 20px;">Terms of Use</a>
+            <a href="https://cleanda.co.uk/gdpr">GDPR</a>
+          </nav>
+          <p style="color: #718096;">© 2024 Cleanda (Orbit Shade Ltd). All rights reserved.</p>
+        </footer>
+      </div>
+    </noscript>
+    
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -1,16 +1,20 @@
 # Cleanda - Robots.txt
 # https://cleanda.co.uk
-# Updated: 2025-12-27
+# Updated: 2026-01-18
 
-# Allow all search engines full access
+# Allow all crawlers full access to public content
 User-agent: *
 Allow: /
 Allow: /for-cleaners
 Allow: /request-cleaning
 Allow: /blog
 Allow: /contact
+Allow: /privacy-policy
+Allow: /terms-of-use
+Allow: /refund-policy
+Allow: /gdpr
 
-# Disallow admin and auth pages
+# Disallow admin and auth pages (private areas)
 Disallow: /admin
 Disallow: /admin/*
 Disallow: /auth
@@ -28,31 +32,17 @@ Disallow: /verification
 # Specific bot rules - Googlebot (priority)
 User-agent: Googlebot
 Allow: /
-Allow: /for-cleaners
-Allow: /request-cleaning
-Allow: /blog
-Allow: /contact
-Allow: /privacy-policy
-Allow: /terms-of-use
-Allow: /refund-policy
-Allow: /gdpr
+Crawl-delay: 1
 
 User-agent: Googlebot-Image
 Allow: /
 
-# Bingbot (lowercase is correct)
+# Bingbot
 User-agent: bingbot
 Allow: /
-Allow: /for-cleaners
-Allow: /request-cleaning
-Allow: /blog
-Allow: /contact
-Allow: /privacy-policy
-Allow: /terms-of-use
-Allow: /refund-policy
-Allow: /gdpr
+Crawl-delay: 1
 
-# Social media bots
+# Social media bots - Full access for rich previews
 User-agent: Twitterbot
 Allow: /
 
@@ -70,8 +60,11 @@ Allow: /
 User-agent: DuckDuckBot
 Allow: /
 
-# Allow AI assistants to read content
+# AI Assistants and LLM Crawlers - Full access
 User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
 Allow: /
 
 User-agent: CCBot
@@ -80,7 +73,22 @@ Allow: /
 User-agent: anthropic-ai
 Allow: /
 
+User-agent: Claude-Web
+Allow: /
+
 User-agent: Google-Extended
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Bytespider
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+User-agent: Applebot-Extended
 Allow: /
 
 # Sitemap location
