@@ -70,18 +70,18 @@ Allow: /
 User-agent: DuckDuckBot
 Allow: /
 
-# Block AI scrapers that don't respect content
+# Allow AI assistants to read content
 User-agent: GPTBot
-Disallow: /
+Allow: /
 
 User-agent: CCBot
-Disallow: /
+Allow: /
 
 User-agent: anthropic-ai
-Disallow: /
+Allow: /
 
 User-agent: Google-Extended
-Disallow: /
+Allow: /
 
 # Sitemap location
 Sitemap: https://cleanda.co.uk/sitemap.xml
