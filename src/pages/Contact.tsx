@@ -221,8 +221,9 @@ const Contact = () => {
                   <div>
                     <h3 className="font-medium text-foreground">Registered Address</h3>
                     <p className="text-muted-foreground">
-                      128 City Road<br />
-                      London, EC1V 2NX<br />
+                      First Floor, Swan Buildings<br />
+                      20 Swan Street<br />
+                      Manchester, M4 5JW<br />
                       United Kingdom
                     </p>
                   </div>
