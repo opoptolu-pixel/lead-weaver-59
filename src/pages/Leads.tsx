@@ -1243,7 +1243,7 @@ export default function Leads() {
         />
       )}
       
-      <Footer />
+      <Footer variant="cleaner" />
     </div>
   );
 }
