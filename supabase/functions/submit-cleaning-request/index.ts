@@ -59,6 +59,7 @@ interface CleaningRequest {
   propertyType?: string;
   bedrooms?: string;
   frequency?: string;
+  additionalNotes?: string; // Customer notes visible to cleaner after purchase
   // UTM tracking fields
   source?: string;
   medium?: string;
@@ -411,12 +412,27 @@ serve(async (req) => {
     // Determine lead source from UTM data or default to website
     const leadSource = body.source || "website";
     
-    // Build job notes with UTM context if available
-    let jobNotes = body.jobDescription || null;
+    // Build job notes: combine customer additional notes with job description and campaign info
+    let jobNotes = "";
+    
+    // Add customer's additional notes first (most important for cleaner)
+    if (body.additionalNotes && body.additionalNotes.trim()) {
+      jobNotes = body.additionalNotes.trim();
+    }
+    
+    // Add job description (date range info)
+    if (body.jobDescription) {
+      jobNotes = jobNotes ? `${jobNotes}\n\n${body.jobDescription}` : body.jobDescription;
+    }
+    
+    // Add campaign context for internal tracking
     if (body.utmData && body.campaign) {
       const campaignNote = `[Campaign: ${body.campaign}]`;
-      jobNotes = jobNotes ? `${campaignNote} ${jobNotes}` : campaignNote;
+      jobNotes = jobNotes ? `${jobNotes}\n\n${campaignNote}` : campaignNote;
     }
+    
+    // Convert to null if empty
+    const finalJobNotes = jobNotes.trim() || null;
 
     // Insert lead into database with enhanced metadata
     const { data, error } = await supabase.from("leads").insert({
@@ -432,7 +448,7 @@ serve(async (req) => {
       source: leadSource,
       lead_status: leadStatus,
       outcome_status: "pending",
-      job_notes: jobNotes,
+      job_notes: finalJobNotes,
       admin_notes: adminNotes,
       quality_score: phase === 2 ? 80 : 70, // Phase 2 jobs get higher quality score
       property_type: body.propertyType || null,

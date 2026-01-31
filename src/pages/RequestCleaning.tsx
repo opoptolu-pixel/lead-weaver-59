@@ -20,10 +20,15 @@ import {
   Clock,
   ShieldCheck,
   BadgeCheck,
-  ThumbsUp
+  ThumbsUp,
+  ChevronDown,
+  ChevronUp,
+  MessageSquare
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Logo } from "@/components/Logo";
@@ -140,8 +145,11 @@ export default function RequestCleaning() {
       customerPhone: "",
       dateFrom: "",
       dateTo: "",
+      additionalNotes: "",
     };
   });
+  
+  const [showAdditionalDetails, setShowAdditionalDetails] = useState(false);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [postcodeError, setPostcodeError] = useState("");
@@ -212,6 +220,7 @@ export default function RequestCleaning() {
           estimatedValue: formData.jobValue,
           propertyType: formData.propertyType === "other" ? formData.propertyTypeOther : formData.propertyType,
           bedrooms: formData.propertyType === "commercial" ? null : (formData.bedrooms === "other" ? formData.bedroomsOther : formData.bedrooms),
+          additionalNotes: formData.additionalNotes || null,
           // UTM tracking data
           source: leadSourceData.source,
           medium: leadSourceData.medium,
@@ -664,8 +673,8 @@ export default function RequestCleaning() {
                   Enter your contact details for quotes
                 </p>
 
-                <div className="flex-1 flex items-center justify-center">
-                  <div className="w-full max-w-sm space-y-4">
+                <div className="flex-1">
+                  <div className="w-full max-w-sm mx-auto space-y-4">
                     <div className="relative">
                       <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                       <Input
@@ -717,6 +726,45 @@ export default function RequestCleaning() {
                       {phoneError && (
                         <p className="mt-1 text-sm text-destructive">{phoneError}</p>
                       )}
+                    </div>
+
+                    {/* Toggleable Additional Details Section */}
+                    <div className="pt-2 border-t border-gray-100">
+                      <Collapsible open={showAdditionalDetails} onOpenChange={setShowAdditionalDetails}>
+                        <CollapsibleTrigger asChild>
+                          <button
+                            type="button"
+                            className="flex items-center justify-between w-full py-3 text-left group"
+                          >
+                            <div className="flex items-center gap-2">
+                              <MessageSquare className="w-4 h-4 text-primary" />
+                              <span className="text-sm font-medium text-gray-700 group-hover:text-primary transition-colors">
+                                Add more details
+                              </span>
+                              <span className="text-xs text-gray-400">(optional)</span>
+                            </div>
+                            {showAdditionalDetails ? (
+                              <ChevronUp className="w-4 h-4 text-gray-400" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4 text-gray-400" />
+                            )}
+                          </button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="overflow-hidden data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0">
+                          <div className="pb-2">
+                            <Textarea
+                              value={formData.additionalNotes}
+                              onChange={(e) => setFormData({ ...formData, additionalNotes: e.target.value })}
+                              placeholder="Tell us more about the job, e.g. specific areas to focus on, access instructions, or special requirements..."
+                              className="min-h-[100px] border-2 border-gray-200 focus:border-primary rounded-xl resize-none text-sm"
+                              maxLength={500}
+                            />
+                            <p className="text-xs text-gray-400 mt-1 text-right">
+                              {formData.additionalNotes.length}/500 characters
+                            </p>
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
                     </div>
                   </div>
                 </div>
