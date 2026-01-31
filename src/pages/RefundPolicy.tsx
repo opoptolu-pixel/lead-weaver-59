@@ -39,7 +39,7 @@ const RefundPolicy = () => {
           <section className="p-4 bg-muted rounded-lg mb-8">
             <p className="text-muted-foreground text-sm">
               Cleanda is a trading name of <strong>Orbit Shade Ltd</strong> (Company No. 15337705), registered in England and Wales. 
-              Registered address: 128 City Road, London, EC1V 2NX, United Kingdom.
+              Registered address: First Floor, Swan Buildings, 20 Swan Street, Manchester, M4 5JW, United Kingdom.
             </p>
           </section>
 
