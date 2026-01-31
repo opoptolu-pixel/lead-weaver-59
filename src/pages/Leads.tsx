@@ -1243,7 +1243,7 @@ export default function Leads() {
         />
       )}
       
-      <Footer variant="cleaner" />
+      <Footer variant="cleaner" hideCta />
     </div>
   );
 }
