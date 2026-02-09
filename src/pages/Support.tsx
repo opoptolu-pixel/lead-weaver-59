@@ -1,9 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
+import { Link, useNavigate } from "react-router-dom";
 import { SEOHead } from "@/components/SEOHead";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,8 +11,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, MessageSquare, Clock, CheckCircle2, AlertCircle, Send, ArrowLeft, Headphones, CircleDot } from "lucide-react";
+import { Logo } from "@/components/Logo";
+import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
+import { Plus, MessageSquare, Clock, CheckCircle2, AlertCircle, Send, ArrowLeft, Headphones, CircleDot, Search, BarChart3, CreditCard, FileWarning, Settings, LogOut, Menu } from "lucide-react";
 import { format } from "date-fns";
 
 interface Ticket {
@@ -61,7 +62,7 @@ function isLiveChatAvailable(): boolean {
 }
 
 export default function Support() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, profile, signOut, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -307,23 +308,85 @@ export default function Support() {
     setSending(false);
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/for-cleaners");
+  };
+
   if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   if (!user) {
-    return null; // useEffect will redirect to /auth
+    return null;
   }
 
   return (
-    <>
+    <div className="min-h-screen bg-background pb-20 md:pb-0">
       <SEOHead title="Support | Cleanda" description="Get help with your account" />
-      <Header />
-      <main className="min-h-screen bg-background pt-24 pb-24 md:pb-8">
+      
+      {/* Dashboard Header */}
+      <header className="bg-primary border-b border-border sticky top-0 z-50">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between h-20">
+            <Logo size="md" variant="white" linkTo={null} />
+            <div className="flex items-center gap-4">
+              <div className="hidden sm:flex items-center gap-2">
+                <Link to="/dashboard">
+                  <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10">Dashboard</Button>
+                </Link>
+                <Link to="/leads">
+                  <Button variant="outlineHero" size="sm">Browse Leads</Button>
+                </Link>
+                <Link to="/performance">
+                  <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10">Performance</Button>
+                </Link>
+                <Link to="/billing">
+                  <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10">Billing</Button>
+                </Link>
+                <Link to="/disputes">
+                  <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10">Disputes</Button>
+                </Link>
+                <Link to="/support">
+                  <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10 bg-primary-foreground/10">Support</Button>
+                </Link>
+              </div>
+              <div className="sm:hidden">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10">
+                      <Menu className="w-5 h-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem asChild><Link to="/dashboard" className="flex items-center gap-2"><Search className="w-4 h-4" />Dashboard</Link></DropdownMenuItem>
+                    <DropdownMenuItem asChild><Link to="/leads" className="flex items-center gap-2"><Search className="w-4 h-4" />Browse Leads</Link></DropdownMenuItem>
+                    <DropdownMenuItem asChild><Link to="/performance" className="flex items-center gap-2"><BarChart3 className="w-4 h-4" />Performance</Link></DropdownMenuItem>
+                    <DropdownMenuItem asChild><Link to="/billing" className="flex items-center gap-2"><CreditCard className="w-4 h-4" />Billing</Link></DropdownMenuItem>
+                    <DropdownMenuItem asChild><Link to="/disputes" className="flex items-center gap-2"><FileWarning className="w-4 h-4" />Disputes</Link></DropdownMenuItem>
+                    <DropdownMenuItem asChild><Link to="/support" className="flex items-center gap-2"><Headphones className="w-4 h-4" />Support</Link></DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild><Link to="/settings" className="flex items-center gap-2"><Settings className="w-4 h-4" />Settings</Link></DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleSignOut} className="flex items-center gap-2 text-destructive"><LogOut className="w-4 h-4" />Sign Out</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              <div className="hidden sm:flex items-center gap-3">
+                <div className="text-right">
+                  <p className="text-primary-foreground text-sm font-medium">{profile?.business_name || user?.email}</p>
+                  <p className="text-primary-foreground/70 text-xs">{profile?.credits || 0} credits</p>
+                </div>
+                <Link to="/settings">
+                  <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10"><Settings className="w-4 h-4" /></Button>
+                </Link>
+                <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-primary-foreground hover:bg-primary-foreground/10"><LogOut className="w-4 h-4" /></Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="container mx-auto px-4 py-8 max-w-5xl">
         <div className="container mx-auto px-4 max-w-5xl">
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -576,7 +639,6 @@ export default function Support() {
           </Tabs>
         </div>
       </main>
-      <Footer />
-    </>
+    </div>
   );
 }
