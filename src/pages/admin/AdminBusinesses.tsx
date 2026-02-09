@@ -149,6 +149,8 @@ export default function AdminBusinesses() {
   const [creditsToAdd, setCreditsToAdd] = useState("");
   const [creditsReason, setCreditsReason] = useState("");
   const [addingCredits, setAddingCredits] = useState(false);
+  const [creditType, setCreditType] = useState<"gift" | "paid">("gift");
+  const [amountPaid, setAmountPaid] = useState("");
   
   // Send email dialog
   const [isSendEmailOpen, setIsSendEmailOpen] = useState(false);
@@ -538,49 +540,60 @@ export default function AdminBusinesses() {
       toast.error("Please enter a valid number of credits");
       return;
     }
+
+    if (creditType === "paid" && (!amountPaid || parseFloat(amountPaid) <= 0)) {
+      toast.error("Please enter the amount paid");
+      return;
+    }
     
     setAddingCredits(true);
     try {
-      // Update both credits and granted_credits columns
-      // granted_credits tracks how many free credits are available
+      const isGift = creditType === "gift";
+      
+      // For gift credits, increment granted_credits; for paid, don't
+      const updateData: any = { 
+        credits: selectedBusiness.credits + amount,
+      };
+      if (isGift) {
+        updateData.granted_credits = (selectedBusiness.granted_credits || 0) + amount;
+      }
+
       const { error } = await supabase
         .from("profiles")
-        .update({ 
-          credits: selectedBusiness.credits + amount,
-          granted_credits: (selectedBusiness.granted_credits || 0) + amount
-        })
+        .update(updateData)
         .eq("id", selectedBusiness.id);
 
       if (error) throw error;
 
-      // Log as 'credits_granted' - distinct from 'credits_purchased' (Stripe payments)
-      // This ensures manual credits don't appear in revenue/payment reports
       await supabase.from("activity_logs").insert({
         user_id: selectedBusiness.user_id,
-        action: "credits_granted",
+        action: isGift ? "credits_granted" : "credits_added_paid",
         entity_type: "business",
         entity_id: selectedBusiness.user_id,
         details: { 
           credits_added: amount,
           credits_total: selectedBusiness.credits + amount,
-          reason: creditsReason || "Manual admin credit",
+          credit_type: creditType,
+          amount_paid: isGift ? 0 : parseFloat(amountPaid),
+          reason: creditsReason || (isGift ? "Gift/Goodwill credit" : "Manual paid credit"),
           granted_by: "admin",
           business_name: selectedBusiness.business_name || "Unknown Business",
           contact_name: selectedBusiness.contact_name || null,
         },
       });
 
-      toast.success(`Granted ${amount} credits successfully`);
+      toast.success(`${isGift ? "Granted" : "Added"} ${amount} credits successfully`);
       setIsAddCreditsOpen(false);
       setCreditsToAdd("");
       setCreditsReason("");
+      setCreditType("gift");
+      setAmountPaid("");
       fetchBusinesses();
       
-      // Update selected business
       setSelectedBusiness(prev => prev ? { 
         ...prev, 
         credits: prev.credits + amount,
-        granted_credits: (prev.granted_credits || 0) + amount
+        granted_credits: isGift ? (prev.granted_credits || 0) + amount : prev.granted_credits
       } : null);
     } catch (error) {
       console.error("Error adding credits:", error);
@@ -1354,16 +1367,18 @@ export default function AdminBusinesses() {
         if (!open) {
           setCreditsToAdd("");
           setCreditsReason("");
+          setCreditType("gift");
+          setAmountPaid("");
         }
       }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Coins className="w-5 h-5 text-green-500" />
-              Grant Credits
+              Add Credits
             </DialogTitle>
             <DialogDescription>
-              Grant free credits to {selectedBusiness?.business_name || selectedBusiness?.contact_name}'s account. This will not count as a payment.
+              Add credits to {selectedBusiness?.business_name || selectedBusiness?.contact_name}'s account.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -1371,8 +1386,40 @@ export default function AdminBusinesses() {
               <Label>Current Balance</Label>
               <p className="text-2xl font-bold">{selectedBusiness?.credits || 0} credits</p>
             </div>
+
+            {/* Credit Type Selection */}
             <div className="space-y-2">
-              <Label htmlFor="credits-amount">Credits to Grant</Label>
+              <Label>Credit Type</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  className={`p-3 rounded-lg border-2 text-center transition-colors ${
+                    creditType === "gift" 
+                      ? "border-secondary bg-secondary/10 text-secondary" 
+                      : "border-border bg-muted hover:border-muted-foreground"
+                  }`}
+                  onClick={() => setCreditType("gift")}
+                >
+                  <p className="font-semibold text-sm">🎁 Gift</p>
+                  <p className="text-xs text-muted-foreground">Free / Goodwill</p>
+                </button>
+                <button
+                  type="button"
+                  className={`p-3 rounded-lg border-2 text-center transition-colors ${
+                    creditType === "paid" 
+                      ? "border-secondary bg-secondary/10 text-secondary" 
+                      : "border-border bg-muted hover:border-muted-foreground"
+                  }`}
+                  onClick={() => setCreditType("paid")}
+                >
+                  <p className="font-semibold text-sm">💷 Paid</p>
+                  <p className="text-xs text-muted-foreground">Counts as revenue</p>
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="credits-amount">Credits to Add</Label>
               <Input
                 id="credits-amount"
                 type="number"
@@ -1382,16 +1429,43 @@ export default function AdminBusinesses() {
                 onChange={(e) => setCreditsToAdd(e.target.value)}
               />
             </div>
+
+            {creditType === "paid" && (
+              <div className="space-y-2">
+                <Label htmlFor="amount-paid">Amount Paid (£)</Label>
+                <Input
+                  id="amount-paid"
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  placeholder="e.g., 90 for 5 credits..."
+                  value={amountPaid}
+                  onChange={(e) => setAmountPaid(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  The amount the business actually paid. This will be counted as revenue.
+                </p>
+              </div>
+            )}
+
+            {creditType === "gift" && (
+              <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                <p className="text-xs text-amber-600">
+                  ⚠️ Gift credits will <strong>not</strong> be counted as revenue in financial reports.
+                </p>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="credits-reason">Reason (optional)</Label>
               <Input
                 id="credits-reason"
-                placeholder="e.g., Goodwill, Compensation, Promo..."
+                placeholder={creditType === "gift" ? "e.g., Goodwill, Compensation, Promo..." : "e.g., Bank transfer, Invoice payment..."}
                 value={creditsReason}
                 onChange={(e) => setCreditsReason(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                Document why credits are being granted for audit purposes.
+                Document why credits are being {creditType === "gift" ? "granted" : "added"} for audit purposes.
               </p>
             </div>
           </div>
@@ -1399,9 +1473,12 @@ export default function AdminBusinesses() {
             <Button variant="outline" onClick={() => setIsAddCreditsOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleAddCredits} disabled={addingCredits || !creditsToAdd}>
+            <Button 
+              onClick={handleAddCredits} 
+              disabled={addingCredits || !creditsToAdd || (creditType === "paid" && !amountPaid)}
+            >
               {addingCredits && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Grant Credits
+              {creditType === "gift" ? "Grant Credits" : "Add Paid Credits"}
             </Button>
           </DialogFooter>
         </DialogContent>
