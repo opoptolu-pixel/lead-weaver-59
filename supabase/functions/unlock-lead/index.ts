@@ -90,6 +90,26 @@ serve(async (req) => {
           throw new Error("Please verify your phone number before purchasing leads.");
         }
 
+        // Check insurance certificate expiry
+        const { data: insuranceDocs } = await supabaseClient
+          .from("verification_documents")
+          .select("expiry_date, status")
+          .eq("user_id", userId)
+          .eq("document_type", "insurance")
+          .eq("status", "approved")
+          .order("expiry_date", { ascending: false })
+          .limit(1);
+
+        if (insuranceDocs && insuranceDocs.length > 0) {
+          const expiryDate = new Date(insuranceDocs[0].expiry_date);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          if (expiryDate < today) {
+            logStep("BLOCKED - Insurance expired", { expiryDate: insuranceDocs[0].expiry_date });
+            throw new Error("Your insurance certificate has expired. Please upload a valid certificate before purchasing leads.");
+          }
+        }
+
         const MAX_UNVERIFIED_LEADS = 3;
         if (profile && !profile.is_verified && profile.leads_purchased >= MAX_UNVERIFIED_LEADS) {
           throw new Error("You've reached the maximum of 3 leads for unverified businesses. Please complete verification to continue purchasing leads.");
