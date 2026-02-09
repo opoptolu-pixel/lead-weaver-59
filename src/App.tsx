@@ -9,7 +9,7 @@ import { BackToTop } from "@/components/BackToTop";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import ClarityAnalytics from "@/components/ClarityAnalytics";
 import { VisitorPresenceTracker } from "@/components/VisitorPresenceTracker";
-import { SupportChatWidget } from "@/components/SupportChatWidget";
+
 import { PageViewTracker } from "@/components/PageViewTracker";
 
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -142,7 +142,7 @@ const App = () => (
                 </Routes>
               </Suspense>
               <MobileBottomNav />
-              <SupportChatWidget />
+              
               <VisitorPresenceTracker />
               <PageViewTracker />
             </AdminProvider>

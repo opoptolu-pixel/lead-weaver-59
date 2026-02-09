@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -12,8 +12,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, MessageSquare, Clock, CheckCircle2, AlertCircle, Send } from "lucide-react";
+import { Plus, MessageSquare, Clock, CheckCircle2, AlertCircle, Send, ArrowLeft, Headphones, CircleDot } from "lucide-react";
 import { format } from "date-fns";
 
 interface Ticket {
@@ -41,6 +42,7 @@ const categoryLabels: Record<string, string> = {
   billing: "Billing",
   lead_quality: "Lead Quality",
   technical: "Technical",
+  live_chat: "Live Chat",
 };
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: React.ElementType }> = {
@@ -49,6 +51,14 @@ const statusConfig: Record<string, { label: string; variant: "default" | "second
   resolved: { label: "Resolved", variant: "outline", icon: CheckCircle2 },
   closed: { label: "Closed", variant: "outline", icon: CheckCircle2 },
 };
+
+function isLiveChatAvailable(): boolean {
+  const now = new Date();
+  const ukTime = new Date(now.toLocaleString("en-US", { timeZone: "Europe/London" }));
+  const day = ukTime.getDay(); // 0=Sun, 1=Mon...5=Fri, 6=Sat
+  const hour = ukTime.getHours();
+  return day >= 1 && day <= 5 && hour >= 9 && hour < 17;
+}
 
 export default function Support() {
   const { user, loading: authLoading } = useAuth();
@@ -65,6 +75,10 @@ export default function Support() {
   const [newSubject, setNewSubject] = useState("");
   const [newCategory, setNewCategory] = useState("general");
   const [newDescription, setNewDescription] = useState("");
+  const [activeTab, setActiveTab] = useState("tickets");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const liveChatOnline = useMemo(() => isLiveChatAvailable(), []);
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/auth");
@@ -75,13 +89,21 @@ export default function Support() {
   }, [user]);
 
   useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  useEffect(() => {
     if (!selectedTicket) return;
     fetchMessages(selectedTicket.id);
 
     const channel = supabase
       .channel(`ticket-messages-${selectedTicket.id}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "support_messages", filter: `ticket_id=eq.${selectedTicket.id}` }, (payload) => {
-        setMessages((prev) => [...prev, payload.new as Message]);
+        const msg = payload.new as Message;
+        setMessages((prev) => [...prev, msg]);
+        if (msg.sender_type === "admin") {
+          supabase.from("support_messages").update({ is_read: true }).eq("id", msg.id).then();
+        }
       })
       .subscribe();
 
@@ -105,6 +127,13 @@ export default function Support() {
       .eq("ticket_id", ticketId)
       .order("created_at", { ascending: true });
     setMessages(data || []);
+
+    if (data?.length) {
+      const unreadIds = data.filter((m) => m.sender_type === "admin" && !m.is_read).map((m) => m.id);
+      if (unreadIds.length) {
+        await supabase.from("support_messages").update({ is_read: true }).in("id", unreadIds);
+      }
+    }
   };
 
   const createTicket = async () => {
@@ -135,7 +164,37 @@ export default function Support() {
     setShowCreate(false);
     setCreating(false);
     fetchTickets();
+    setSelectedTicket(ticket);
     toast({ title: "Ticket created", description: "We'll get back to you shortly." });
+  };
+
+  const startLiveChat = async () => {
+    if (!liveChatOnline) return;
+    setCreating(true);
+    const { data: ticket, error } = await supabase
+      .from("support_tickets")
+      .insert({ user_id: user!.id, subject: "Live Chat", category: "live_chat", priority: "high" })
+      .select()
+      .single();
+
+    if (error) {
+      toast({ title: "Error", description: "Failed to start live chat", variant: "destructive" });
+      setCreating(false);
+      return;
+    }
+
+    await supabase.from("support_messages").insert({
+      ticket_id: ticket.id,
+      sender_id: user!.id,
+      sender_type: "user",
+      message: "Hi, I'd like to chat with support.",
+    });
+
+    setCreating(false);
+    fetchTickets();
+    setSelectedTicket(ticket);
+    setActiveTab("tickets");
+    toast({ title: "Live chat started", description: "An agent will be with you shortly." });
   };
 
   const sendMessage = async () => {
@@ -162,86 +221,37 @@ export default function Support() {
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-2xl font-bold tracking-tight">Support</h1>
-              <p className="text-muted-foreground text-sm">Create tickets and chat with our team</p>
+              <p className="text-muted-foreground text-sm">Get help via tickets or live chat</p>
             </div>
-            <Dialog open={showCreate} onOpenChange={setShowCreate}>
-              <DialogTrigger asChild>
-                <Button variant="default" className="gap-2"><Plus className="w-4 h-4" /> New Ticket</Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader><DialogTitle>Create Support Ticket</DialogTitle></DialogHeader>
-                <div className="space-y-4 mt-2">
-                  <div>
-                    <label className="text-sm font-medium mb-1.5 block">Category</label>
-                    <Select value={newCategory} onValueChange={setNewCategory}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="general">General</SelectItem>
-                        <SelectItem value="billing">Billing</SelectItem>
-                        <SelectItem value="lead_quality">Lead Quality</SelectItem>
-                        <SelectItem value="technical">Technical</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium mb-1.5 block">Subject</label>
-                    <Input value={newSubject} onChange={(e) => setNewSubject(e.target.value)} placeholder="Brief description of your issue" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium mb-1.5 block">Description</label>
-                    <Textarea value={newDescription} onChange={(e) => setNewDescription(e.target.value)} placeholder="Tell us more about the issue..." rows={4} />
-                  </div>
-                  <Button onClick={createTicket} disabled={creating || !newSubject.trim() || !newDescription.trim()} className="w-full">
-                    {creating ? "Creating..." : "Submit Ticket"}
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Ticket list */}
-            <div className="lg:col-span-1 space-y-2">
-              {tickets.length === 0 ? (
-                <Card><CardContent className="py-8 text-center text-muted-foreground">No tickets yet. Create one to get started.</CardContent></Card>
-              ) : (
-                tickets.map((ticket) => {
-                  const sc = statusConfig[ticket.status] || statusConfig.open;
-                  return (
-                    <Card
-                      key={ticket.id}
-                      className={`cursor-pointer transition-all hover:shadow-md ${selectedTicket?.id === ticket.id ? "ring-2 ring-secondary" : ""}`}
-                      onClick={() => setSelectedTicket(ticket)}
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between gap-2 mb-1">
-                          <h3 className="font-medium text-sm line-clamp-1">{ticket.subject}</h3>
-                          <Badge variant={sc.variant} className="text-[10px] shrink-0">{sc.label}</Badge>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Badge variant="outline" className="text-[10px]">{categoryLabels[ticket.category]}</Badge>
-                          <span>{format(new Date(ticket.created_at), "dd MMM yyyy")}</span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })
-              )}
-            </div>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="mb-6">
+              <TabsTrigger value="tickets" className="gap-2">
+                <MessageSquare className="w-4 h-4" /> Tickets
+              </TabsTrigger>
+              <TabsTrigger value="live-chat" className="gap-2">
+                <Headphones className="w-4 h-4" /> Live Chat
+              </TabsTrigger>
+            </TabsList>
 
-            {/* Chat area */}
-            <div className="lg:col-span-2">
+            {/* TICKETS TAB */}
+            <TabsContent value="tickets">
               {selectedTicket ? (
-                <Card className="flex flex-col h-[500px]">
-                  <CardHeader className="pb-3 border-b">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle className="text-base">{selectedTicket.subject}</CardTitle>
+                /* Conversation view */
+                <Card className="flex flex-col h-[calc(100vh-280px)] min-h-[400px]">
+                  <CardHeader className="pb-3 border-b shrink-0">
+                    <div className="flex items-center gap-3">
+                      <Button variant="ghost" size="icon" className="shrink-0" onClick={() => { setSelectedTicket(null); setMessages([]); }}>
+                        <ArrowLeft className="w-4 h-4" />
+                      </Button>
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="text-base truncate">{selectedTicket.subject}</CardTitle>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          {categoryLabels[selectedTicket.category]} • Created {format(new Date(selectedTicket.created_at), "dd MMM yyyy HH:mm")}
+                          {categoryLabels[selectedTicket.category]} • {format(new Date(selectedTicket.created_at), "dd MMM yyyy HH:mm")}
                         </p>
                       </div>
-                      <Badge variant={statusConfig[selectedTicket.status]?.variant || "default"}>
+                      <Badge variant={statusConfig[selectedTicket.status]?.variant || "default"} className="shrink-0">
                         {statusConfig[selectedTicket.status]?.label || selectedTicket.status}
                       </Badge>
                     </div>
@@ -254,16 +264,18 @@ export default function Support() {
                             ? "bg-secondary text-secondary-foreground"
                             : "bg-muted text-foreground"
                         }`}>
-                          <p>{msg.message}</p>
+                          {msg.sender_type === "admin" && <span className="text-[10px] font-semibold block mb-0.5 opacity-70">Support Agent</span>}
+                          <p className="whitespace-pre-wrap">{msg.message}</p>
                           <span className="text-[10px] opacity-70 mt-1 block">
                             {format(new Date(msg.created_at), "HH:mm")}
                           </span>
                         </div>
                       </div>
                     ))}
+                    <div ref={messagesEndRef} />
                   </CardContent>
                   {selectedTicket.status !== "closed" && (
-                    <div className="p-3 border-t flex gap-2">
+                    <div className="p-3 border-t flex gap-2 shrink-0">
                       <Input
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
@@ -277,16 +289,121 @@ export default function Support() {
                   )}
                 </Card>
               ) : (
-                <Card className="flex items-center justify-center h-[500px]">
-                  <div className="text-center text-muted-foreground">
-                    <MessageSquare className="w-10 h-10 mx-auto mb-3 opacity-50" />
-                    <p className="font-medium">Select a ticket to view conversation</p>
-                    <p className="text-sm">Or create a new ticket to get started</p>
+                /* Ticket list */
+                <>
+                  <div className="flex justify-end mb-4">
+                    <Dialog open={showCreate} onOpenChange={setShowCreate}>
+                      <DialogTrigger asChild>
+                        <Button variant="default" className="gap-2"><Plus className="w-4 h-4" /> New Ticket</Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader><DialogTitle>Create Support Ticket</DialogTitle></DialogHeader>
+                        <div className="space-y-4 mt-2">
+                          <div>
+                            <label className="text-sm font-medium mb-1.5 block">Category</label>
+                            <Select value={newCategory} onValueChange={setNewCategory}>
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="general">General</SelectItem>
+                                <SelectItem value="billing">Billing</SelectItem>
+                                <SelectItem value="lead_quality">Lead Quality</SelectItem>
+                                <SelectItem value="technical">Technical</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium mb-1.5 block">Subject</label>
+                            <Input value={newSubject} onChange={(e) => setNewSubject(e.target.value)} placeholder="Brief description of your issue" />
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium mb-1.5 block">Description</label>
+                            <Textarea value={newDescription} onChange={(e) => setNewDescription(e.target.value)} placeholder="Tell us more about the issue..." rows={4} />
+                          </div>
+                          <Button onClick={createTicket} disabled={creating || !newSubject.trim() || !newDescription.trim()} className="w-full">
+                            {creating ? "Creating..." : "Submit Ticket"}
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                   </div>
-                </Card>
+
+                  {tickets.length === 0 ? (
+                    <Card>
+                      <CardContent className="py-12 text-center">
+                        <MessageSquare className="w-10 h-10 mx-auto mb-3 text-muted-foreground opacity-50" />
+                        <p className="font-medium text-foreground">No tickets yet</p>
+                        <p className="text-sm text-muted-foreground mt-1">Create a new ticket to get help from our team</p>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div className="space-y-2">
+                      {tickets.map((ticket) => {
+                        const sc = statusConfig[ticket.status] || statusConfig.open;
+                        return (
+                          <Card
+                            key={ticket.id}
+                            className="cursor-pointer transition-all hover:shadow-md"
+                            onClick={() => setSelectedTicket(ticket)}
+                          >
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between gap-2 mb-1">
+                                <h3 className="font-medium text-sm line-clamp-1">{ticket.subject}</h3>
+                                <Badge variant={sc.variant} className="text-[10px] shrink-0">{sc.label}</Badge>
+                              </div>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <Badge variant="outline" className="text-[10px]">{categoryLabels[ticket.category] || ticket.category}</Badge>
+                                <span>{format(new Date(ticket.created_at), "dd MMM yyyy")}</span>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
               )}
-            </div>
-          </div>
+            </TabsContent>
+
+            {/* LIVE CHAT TAB */}
+            <TabsContent value="live-chat">
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <div className="flex items-center justify-center gap-2 mb-4">
+                    <CircleDot className={`w-4 h-4 ${liveChatOnline ? "text-green-500" : "text-muted-foreground"}`} />
+                    <span className={`text-sm font-semibold ${liveChatOnline ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`}>
+                      {liveChatOnline ? "We're online" : "We're offline"}
+                    </span>
+                  </div>
+
+                  <Headphones className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+
+                  {liveChatOnline ? (
+                    <>
+                      <h3 className="text-lg font-semibold text-foreground mb-1">Live chat is available</h3>
+                      <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
+                        Chat with a member of our team in real-time. We're here to help Monday to Friday, 9am – 5pm (UK time).
+                      </p>
+                      <Button onClick={startLiveChat} disabled={creating} className="gap-2">
+                        <MessageSquare className="w-4 h-4" />
+                        {creating ? "Starting..." : "Start Live Chat"}
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <h3 className="text-lg font-semibold text-foreground mb-1">Live chat is currently offline</h3>
+                      <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
+                        Our live chat is available Monday to Friday, 9am – 5pm (UK time). In the meantime, please create a support ticket and we'll get back to you as soon as possible.
+                      </p>
+                      <Button variant="outline" onClick={() => { setActiveTab("tickets"); setShowCreate(true); }} className="gap-2">
+                        <Plus className="w-4 h-4" />
+                        Create a Ticket Instead
+                      </Button>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
       <Footer />
