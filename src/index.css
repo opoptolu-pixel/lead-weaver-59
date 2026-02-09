@@ -186,53 +186,93 @@
   @apply text-secondary font-bold flex-shrink-0 mt-0.5;
 }
 
-/* ===== Admin Uber-style polish ===== */
+/* ===== Admin — Premium Uber-grade polish ===== */
 
-/* Crisp, system-level typography for admin */
+/* System-level typography: crisp, tight, premium */
 .admin-layout {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   letter-spacing: -0.01em;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
 }
 
 .admin-layout h1,
 .admin-layout h2,
 .admin-layout h3 {
   font-weight: 700;
-  letter-spacing: -0.025em;
-  line-height: 1.2;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
 }
 
-/* Refined card surfaces */
-.admin-layout .admin-card {
+.admin-layout h1 {
+  font-size: 1.75rem;
+}
+
+.admin-layout h2 {
+  font-size: 1.25rem;
+}
+
+.admin-layout p.text-muted-foreground {
+  font-size: 0.875rem;
+  letter-spacing: -0.005em;
+}
+
+/* Premium card surfaces with depth */
+.admin-layout [class*="rounded-"] {
+  border-radius: 14px;
+}
+
+.admin-layout .admin-card,
+.admin-layout [data-slot="card"] {
   background: hsl(var(--card));
-  border: 1px solid hsl(var(--border));
-  border-radius: 12px;
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  border: 1px solid hsl(var(--border) / 0.5);
+  border-radius: 16px;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
 }
 
-.admin-layout .admin-card:hover {
-  box-shadow: 0 2px 12px -2px hsl(var(--foreground) / 0.06);
+.admin-layout .admin-card:hover,
+.admin-layout [data-slot="card"]:hover {
+  box-shadow: 0 4px 20px -4px hsl(var(--foreground) / 0.06);
 }
 
-/* Clean table rows */
+/* Clean table styling */
+.admin-layout table {
+  font-size: 0.875rem;
+}
+
+.admin-layout table thead th {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: hsl(var(--muted-foreground));
+  padding-top: 0.875rem;
+  padding-bottom: 0.875rem;
+}
+
 .admin-layout table tbody tr {
   transition: background-color 0.15s ease;
 }
 
 .admin-layout table tbody tr:hover {
-  background-color: hsl(var(--muted) / 0.5);
+  background-color: hsl(var(--muted) / 0.4);
 }
 
-/* Tight, clean badges */
+.admin-layout table tbody td {
+  padding-top: 0.875rem;
+  padding-bottom: 0.875rem;
+}
+
+/* Premium badge styling */
+.admin-layout [data-slot="badge"],
 .admin-layout .badge {
   font-weight: 600;
   letter-spacing: 0.02em;
-  text-transform: uppercase;
-  font-size: 0.65rem;
+  font-size: 0.6875rem;
+  border-radius: 6px;
 }
 
-/* Switch thumb text fix — ensure visible on white background */
+/* Switch visibility fix */
 [data-state="unchecked"] > span[data-state],
 [role="switch"][data-state="unchecked"] {
   background-color: hsl(var(--muted));
@@ -242,32 +282,49 @@
   color: hsl(var(--foreground));
 }
 
-/* Ensure switch label text is always visible */
 .admin-layout label {
   color: hsl(var(--foreground));
+  font-size: 0.875rem;
+  font-weight: 500;
 }
 
-/* Uber-style section headers */
+/* Section headers — premium uppercase micro-label */
 .admin-section-title {
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.6875rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   color: hsl(var(--muted-foreground));
   margin-bottom: 1rem;
 }
 
-/* Crisp dividers */
+/* Refined dividers */
 .admin-layout hr,
 .admin-layout [role="separator"] {
-  border-color: hsl(var(--border));
-  opacity: 0.6;
+  border-color: hsl(var(--border) / 0.5);
 }
 
-/* Smooth scrollbars for admin */
+/* Premium inputs */
+.admin-layout input,
+.admin-layout textarea,
+.admin-layout select,
+.admin-layout [role="combobox"] {
+  font-size: 0.875rem;
+}
+
+/* Premium button feel */
+.admin-layout button {
+  transition: all 0.2s ease;
+}
+
+.admin-layout button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* Smooth scrollbars */
 .admin-layout ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 .admin-layout ::-webkit-scrollbar-track {
@@ -275,12 +332,28 @@
 }
 
 .admin-layout ::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.2);
-  border-radius: 3px;
+  background: hsl(var(--muted-foreground) / 0.15);
+  border-radius: 10px;
 }
 
 .admin-layout ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.35);
+  background: hsl(var(--muted-foreground) / 0.3);
+}
+
+/* Premium tab styling */
+.admin-layout [role="tablist"] {
+  gap: 0.25rem;
+}
+
+.admin-layout [role="tab"] {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  transition: all 0.2s ease;
+}
+
+.admin-layout [role="tab"][data-state="active"] {
+  font-weight: 600;
 }
 
 /* Custom animations */

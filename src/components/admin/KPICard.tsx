@@ -27,23 +27,23 @@ export default function KPICard({ title, value, icon, change, trend, className, 
   return (
     <div 
       className={cn(
-        "bg-card rounded-xl border border-border/60 p-5 md:p-6 transition-all duration-200",
-        href && "cursor-pointer hover:shadow-md hover:border-secondary/40",
+        "bg-card rounded-2xl border border-border/40 p-5 md:p-6 transition-all duration-300 hover:shadow-[0_4px_24px_-4px_hsl(var(--foreground)/0.06)]",
+        href && "cursor-pointer hover:border-secondary/30 active:scale-[0.99]",
         className
       )}
       onClick={handleClick}
     >
       <div className="flex items-start justify-between">
-        <div className="space-y-1">
-          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{title}</p>
+        <div className="space-y-1.5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{title}</p>
           <div className="flex items-baseline gap-2">
-            <p className="text-2xl md:text-3xl font-bold text-foreground tracking-tight">{value}</p>
+            <p className="text-2xl md:text-[2rem] font-bold text-foreground tracking-[-0.03em] leading-none">{value}</p>
             {trend}
           </div>
           {change && (
             <p
               className={cn(
-                "text-xs font-medium mt-0.5",
+                "text-[11px] font-semibold mt-1",
                 change.positive ? "text-green-600 dark:text-green-400" : "text-red-500"
               )}
             >
@@ -51,7 +51,7 @@ export default function KPICard({ title, value, icon, change, trend, className, 
             </p>
           )}
         </div>
-        <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center flex-shrink-0">
+        <div className="w-11 h-11 rounded-2xl bg-secondary/8 flex items-center justify-center flex-shrink-0">
           {icon}
         </div>
       </div>

@@ -90,15 +90,15 @@ export default function AdminSidebar({ onNavigate }: AdminSidebarProps) {
       <button
         onClick={() => handleNavClick(item.url)}
         className={cn(
-          "flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 w-full text-left",
+          "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 w-full text-left group",
           active
-            ? "bg-secondary/15 text-secondary font-semibold"
-            : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+            ? "bg-secondary/12 text-secondary font-semibold shadow-sm"
+            : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
           collapsed && "justify-center px-2"
         )}
       >
-        <item.icon className="w-[18px] h-[18px] flex-shrink-0" />
-        {!collapsed && <span>{item.title}</span>}
+        <item.icon className={cn("w-[18px] h-[18px] flex-shrink-0 transition-transform duration-200", !collapsed && "group-hover:scale-105")} />
+        {!collapsed && <span className="tracking-[-0.01em]">{item.title}</span>}
       </button>
     );
 
@@ -122,8 +122,8 @@ export default function AdminSidebar({ onNavigate }: AdminSidebarProps) {
     <TooltipProvider>
       <aside
         className={cn(
-          "bg-card border-r border-border/60 h-screen flex flex-col transition-all duration-300 flex-shrink-0",
-          collapsed ? "w-16" : "w-60"
+          "bg-card border-r border-border/40 h-screen flex flex-col transition-all duration-300 flex-shrink-0",
+          collapsed ? "w-16" : "w-64"
         )}
       >
         {/* Logo */}
