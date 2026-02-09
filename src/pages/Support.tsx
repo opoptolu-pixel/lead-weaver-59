@@ -76,7 +76,12 @@ export default function Support() {
   const [newCategory, setNewCategory] = useState("general");
   const [newDescription, setNewDescription] = useState("");
   const [activeTab, setActiveTab] = useState("tickets");
+  const [liveChatTicket, setLiveChatTicket] = useState<Ticket | null>(null);
+  const [liveChatMessages, setLiveChatMessages] = useState<Message[]>([]);
+  const [liveChatMessage, setLiveChatMessage] = useState("");
+  const [liveChatSending, setLiveChatSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const liveChatEndRef = useRef<HTMLDivElement>(null);
 
   const liveChatOnline = useMemo(() => isLiveChatAvailable(), []);
 
@@ -91,6 +96,59 @@ export default function Support() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    liveChatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [liveChatMessages]);
+
+  // Load existing live chat session
+  useEffect(() => {
+    if (!user) return;
+    const loadLiveChat = async () => {
+      const { data } = await supabase
+        .from("support_tickets")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("category", "live_chat")
+        .in("status", ["open", "in_progress"])
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (data && data.length > 0) {
+        setLiveChatTicket(data[0]);
+      }
+    };
+    loadLiveChat();
+  }, [user]);
+
+  // Subscribe to live chat messages
+  useEffect(() => {
+    if (!liveChatTicket) return;
+    const fetchLiveMsgs = async () => {
+      const { data } = await supabase
+        .from("support_messages")
+        .select("*")
+        .eq("ticket_id", liveChatTicket.id)
+        .order("created_at", { ascending: true });
+      setLiveChatMessages(data || []);
+      // Mark admin messages as read
+      const unread = (data || []).filter(m => m.sender_type === "admin" && !m.is_read).map(m => m.id);
+      if (unread.length) await supabase.from("support_messages").update({ is_read: true }).in("id", unread);
+    };
+    fetchLiveMsgs();
+
+    const channel = supabase
+      .channel(`live-chat-${liveChatTicket.id}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "support_messages", filter: `ticket_id=eq.${liveChatTicket.id}` }, (payload) => {
+        const msg = payload.new as Message;
+        setLiveChatMessages((prev) => [...prev, msg]);
+        if (msg.sender_type === "admin") {
+          supabase.from("support_messages").update({ is_read: true }).eq("id", msg.id).then();
+        }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [liveChatTicket?.id]);
 
   useEffect(() => {
     if (!selectedTicket) return;
@@ -191,10 +249,49 @@ export default function Support() {
     });
 
     setCreating(false);
+    setLiveChatTicket(ticket);
     fetchTickets();
-    setSelectedTicket(ticket);
-    setActiveTab("tickets");
     toast({ title: "Live chat started", description: "An agent will be with you shortly." });
+  };
+
+  const sendLiveChatMessage = async () => {
+    if (!liveChatMessage.trim() || !liveChatTicket) return;
+    setLiveChatSending(true);
+    await supabase.from("support_messages").insert({
+      ticket_id: liveChatTicket.id,
+      sender_id: user!.id,
+      sender_type: "user",
+      message: liveChatMessage,
+    });
+    setLiveChatMessage("");
+    setLiveChatSending(false);
+  };
+
+  const startLiveChatWithMessage = async (msg: string) => {
+    setLiveChatSending(true);
+    const { data: ticket, error } = await supabase
+      .from("support_tickets")
+      .insert({ user_id: user!.id, subject: "Live Chat", category: "live_chat", priority: "high" })
+      .select()
+      .single();
+
+    if (error) {
+      toast({ title: "Error", description: "Failed to start live chat", variant: "destructive" });
+      setLiveChatSending(false);
+      return;
+    }
+
+    await supabase.from("support_messages").insert({
+      ticket_id: ticket.id,
+      sender_id: user!.id,
+      sender_type: "user",
+      message: msg,
+    });
+
+    setLiveChatTicket(ticket);
+    setLiveChatMessage("");
+    setLiveChatSending(false);
+    fetchTickets();
   };
 
   const sendMessage = async () => {
@@ -366,41 +463,104 @@ export default function Support() {
 
             {/* LIVE CHAT TAB */}
             <TabsContent value="live-chat">
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <div className="flex items-center justify-center gap-2 mb-4">
-                    <CircleDot className={`w-4 h-4 ${liveChatOnline ? "text-green-500" : "text-muted-foreground"}`} />
-                    <span className={`text-sm font-semibold ${liveChatOnline ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`}>
-                      {liveChatOnline ? "We're online" : "We're offline"}
-                    </span>
+              <Card className="flex flex-col h-[calc(100vh-280px)] min-h-[400px]">
+                {/* Chat header */}
+                <CardHeader className="pb-3 border-b shrink-0">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center shrink-0">
+                      <Headphones className="w-4 h-4 text-primary-foreground" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-base">Cleanda Support</CardTitle>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <CircleDot className={`w-3 h-3 ${liveChatOnline ? "text-green-500" : "text-muted-foreground"}`} />
+                        <span className="text-xs text-muted-foreground">
+                          {liveChatOnline ? "Online — Mon–Fri, 9am–5pm" : "Offline — Mon–Fri, 9am–5pm"}
+                        </span>
+                      </div>
+                    </div>
                   </div>
+                </CardHeader>
 
-                  <Headphones className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-
-                  {liveChatOnline ? (
-                    <>
-                      <h3 className="text-lg font-semibold text-foreground mb-1">Live chat is available</h3>
-                      <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
-                        Chat with a member of our team in real-time. We're here to help Monday to Friday, 9am – 5pm (UK time).
-                      </p>
-                      <Button onClick={startLiveChat} disabled={creating} className="gap-2">
-                        <MessageSquare className="w-4 h-4" />
-                        {creating ? "Starting..." : "Start Live Chat"}
-                      </Button>
-                    </>
+                {/* Messages area */}
+                <CardContent className="flex-1 overflow-y-auto p-4 space-y-3">
+                  {!liveChatTicket ? (
+                    <div className="flex flex-col items-center justify-center h-full text-center px-4">
+                      <Headphones className="w-10 h-10 text-muted-foreground opacity-40 mb-3" />
+                      {liveChatOnline ? (
+                        <>
+                          <p className="font-medium text-foreground mb-1">Start a conversation</p>
+                          <p className="text-sm text-muted-foreground max-w-sm">
+                            Type a message below to chat with our support team in real-time.
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="font-medium text-foreground mb-1">We're currently offline</p>
+                          <p className="text-sm text-muted-foreground mb-5 max-w-sm">
+                            Live chat is available Monday–Friday, 9am–5pm (UK time). You can still leave a message or create a support ticket.
+                          </p>
+                          <Button variant="outline" size="sm" onClick={() => { setActiveTab("tickets"); setShowCreate(true); }} className="gap-2">
+                            <Plus className="w-4 h-4" /> Create a Ticket
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   ) : (
                     <>
-                      <h3 className="text-lg font-semibold text-foreground mb-1">Live chat is currently offline</h3>
-                      <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
-                        Our live chat is available Monday to Friday, 9am – 5pm (UK time). In the meantime, please create a support ticket and we'll get back to you as soon as possible.
-                      </p>
-                      <Button variant="outline" onClick={() => { setActiveTab("tickets"); setShowCreate(true); }} className="gap-2">
-                        <Plus className="w-4 h-4" />
-                        Create a Ticket Instead
-                      </Button>
+                      {liveChatMessages.map((msg) => (
+                        <div key={msg.id} className={`flex ${msg.sender_type === "user" ? "justify-end" : "justify-start"}`}>
+                          <div className={`max-w-[80%] rounded-xl px-4 py-2.5 text-sm ${
+                            msg.sender_type === "user"
+                              ? "bg-secondary text-secondary-foreground"
+                              : "bg-muted text-foreground"
+                          }`}>
+                            {msg.sender_type === "admin" && <span className="text-[10px] font-semibold block mb-0.5 opacity-70">Support Agent</span>}
+                            <p className="whitespace-pre-wrap">{msg.message}</p>
+                            <span className="text-[10px] opacity-70 mt-1 block">
+                              {format(new Date(msg.created_at), "HH:mm")}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                      <div ref={liveChatEndRef} />
                     </>
                   )}
                 </CardContent>
+
+                {/* Input — visible when online or has active chat */}
+                {(liveChatOnline || liveChatTicket) && (
+                  <div className="p-3 border-t flex gap-2 shrink-0">
+                    <Input
+                      value={liveChatMessage}
+                      onChange={(e) => setLiveChatMessage(e.target.value)}
+                      placeholder="Type a message..."
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          if (!liveChatTicket && liveChatMessage.trim()) {
+                            startLiveChatWithMessage(liveChatMessage.trim());
+                          } else {
+                            sendLiveChatMessage();
+                          }
+                        }
+                      }}
+                    />
+                    <Button
+                      size="icon"
+                      onClick={() => {
+                        if (!liveChatTicket && liveChatMessage.trim()) {
+                          startLiveChatWithMessage(liveChatMessage.trim());
+                        } else {
+                          sendLiveChatMessage();
+                        }
+                      }}
+                      disabled={liveChatSending || !liveChatMessage.trim()}
+                    >
+                      <Send className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
               </Card>
             </TabsContent>
           </Tabs>
