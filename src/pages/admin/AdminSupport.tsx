@@ -132,12 +132,24 @@ export default function AdminSupport() {
   const sendMessage = async () => {
     if (!newMessage.trim() || !selectedTicket || !adminId) return;
     setSending(true);
-    await supabase.from("support_messages").insert({
+    
+    const { error } = await supabase.from("support_messages").insert({
       ticket_id: selectedTicket.id,
       sender_id: adminId,
       sender_type: "admin",
-      message: newMessage,
+      message: newMessage.trim(),
     });
+
+    if (error) {
+      console.error("Failed to send message:", error);
+      toast({
+        title: "Failed to send message",
+        description: error.message,
+        variant: "destructive",
+      });
+      setSending(false);
+      return;
+    }
 
     // If ticket is still "open", move to in_progress
     if (selectedTicket.status === "open") {
@@ -145,6 +157,8 @@ export default function AdminSupport() {
       setSelectedTicket({ ...selectedTicket, status: "in_progress" });
     }
 
+    // Refresh messages to ensure consistency
+    await fetchMessages(selectedTicket.id);
     setNewMessage("");
     setSending(false);
   };
