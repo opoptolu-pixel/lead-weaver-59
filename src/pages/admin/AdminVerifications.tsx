@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Check, X, Eye, FileText, Clock, Loader2, Download, Calendar, AlertTriangle } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Check, X, Eye, FileText, Clock, Loader2, Download, Calendar, AlertTriangle, Search, ChevronDown, ChevronRight, Building2 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -105,6 +105,8 @@ export default function AdminVerifications() {
   const [previewDoc, setPreviewDoc] = useState<VerificationDoc | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [expandedBusinesses, setExpandedBusinesses] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchDocuments();
@@ -500,7 +502,48 @@ export default function AdminVerifications() {
     return doc.status === statusFilter;
   });
 
-  const pagination = usePagination(filteredDocuments);
+  // Apply search filter
+  const searchedDocuments = filteredDocuments.filter(doc => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      (doc.profile?.business_name?.toLowerCase() || "").includes(q) ||
+      (doc.profile?.contact_name?.toLowerCase() || "").includes(q)
+    );
+  });
+
+  // Group documents by user_id
+  const groupedByBusiness = useMemo(() => {
+    const groups = new Map<string, { businessName: string; userId: string; docs: VerificationDoc[] }>();
+    for (const doc of searchedDocuments) {
+      const key = doc.user_id;
+      if (!groups.has(key)) {
+        groups.set(key, {
+          businessName: doc.profile?.business_name || doc.profile?.contact_name || "Unknown Business",
+          userId: doc.user_id,
+          docs: [],
+        });
+      }
+      groups.get(key)!.docs.push(doc);
+    }
+    return Array.from(groups.values());
+  }, [searchedDocuments]);
+
+  const pagination = usePagination(groupedByBusiness);
+
+  const toggleBusiness = (userId: string) => {
+    setExpandedBusinesses(prev => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId);
+      else next.add(userId);
+      return next;
+    });
+  };
+
+  // Auto-expand all on load
+  useEffect(() => {
+    setExpandedBusinesses(new Set(groupedByBusiness.map(g => g.userId)));
+  }, [groupedByBusiness.length]);
 
   const handleExportCsv = () => {
     exportToCsv(filteredDocuments, "verifications", [
@@ -545,36 +588,40 @@ export default function AdminVerifications() {
       )}
 
       <div className="bg-card rounded-xl border border-border overflow-hidden">
-        <div className="p-4 border-b border-border">
+        <div className="p-4 border-b border-border space-y-3">
+          {/* Search */}
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search business name..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                pagination.resetPage();
+              }}
+              className="pl-9"
+            />
+          </div>
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2 flex-wrap">
               <Button
                 variant={statusFilter === "pending" ? "default" : "outline"}
                 size="sm"
-                onClick={() => {
-                  setStatusFilter("pending");
-                  pagination.resetPage();
-                }}
+                onClick={() => { setStatusFilter("pending"); pagination.resetPage(); }}
               >
                 Pending ({pendingCount})
               </Button>
               <Button 
                 variant={statusFilter === "approved" ? "default" : "outline"} 
                 size="sm"
-                onClick={() => {
-                  setStatusFilter("approved");
-                  pagination.resetPage();
-                }}
+                onClick={() => { setStatusFilter("approved"); pagination.resetPage(); }}
               >
                 Approved ({approvedCount})
               </Button>
               <Button 
                 variant={statusFilter === "rejected" ? "default" : "outline"} 
                 size="sm"
-                onClick={() => {
-                  setStatusFilter("rejected");
-                  pagination.resetPage();
-                }}
+                onClick={() => { setStatusFilter("rejected"); pagination.resetPage(); }}
               >
                 Rejected ({rejectedCount})
               </Button>
@@ -583,10 +630,7 @@ export default function AdminVerifications() {
                   variant={statusFilter === "expiring_soon" ? "destructive" : "outline"} 
                   size="sm"
                   className={statusFilter !== "expiring_soon" ? "border-destructive/50 text-destructive hover:bg-destructive/10" : ""}
-                  onClick={() => {
-                    setStatusFilter("expiring_soon");
-                    pagination.resetPage();
-                  }}
+                  onClick={() => { setStatusFilter("expiring_soon"); pagination.resetPage(); }}
                 >
                   <AlertTriangle className="w-3.5 h-3.5 mr-1" />
                   Expiring ({expiringSoonCount})
@@ -595,10 +639,7 @@ export default function AdminVerifications() {
               <Button 
                 variant={statusFilter === "all" ? "default" : "outline"} 
                 size="sm"
-                onClick={() => {
-                  setStatusFilter("all");
-                  pagination.resetPage();
-                }}
+                onClick={() => { setStatusFilter("all"); pagination.resetPage(); }}
               >
                 All ({documents.length})
               </Button>
@@ -614,96 +655,108 @@ export default function AdminVerifications() {
           <div className="p-8 text-center">
             <Loader2 className="w-6 h-6 animate-spin mx-auto text-secondary" />
           </div>
-        ) : filteredDocuments.length === 0 ? (
+        ) : groupedByBusiness.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">
             <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>No verification documents {statusFilter !== "all" ? `matching filter "${statusFilter}"` : ""}</p>
+            <p>No verification documents {searchQuery ? `matching "${searchQuery}"` : statusFilter !== "all" ? `matching filter "${statusFilter}"` : ""}</p>
           </div>
         ) : (
           <>
           <div className="divide-y divide-border">
-            {pagination.paginatedData.map((doc) => (
-              <div
-                key={doc.id}
-                className="p-4 flex items-center justify-between hover:bg-muted/50"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center">
-                    <FileText className="w-5 h-5 text-secondary" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-foreground">
-                      {doc.profile?.business_name || doc.profile?.contact_name || "Unknown User"}
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm text-muted-foreground">
-                        {getDocumentTypeLabel(doc.document_type)} •{" "}
-                        {format(new Date(doc.created_at), "d MMM yyyy")}
-                      </p>
-                      {doc.document_type === "insurance" && doc.expiry_date && (
-                        <span className={`text-xs flex items-center gap-1 ${
-                          new Date(doc.expiry_date) < new Date() 
-                            ? "text-destructive" 
-                            : new Date(doc.expiry_date) < new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)
-                              ? "text-amber-500"
-                              : "text-muted-foreground"
-                        }`}>
-                          <Calendar className="w-3 h-3" />
-                          Expires: {format(new Date(doc.expiry_date), "d MMM yyyy")}
-                          {new Date(doc.expiry_date) < new Date() && (
-                            <AlertTriangle className="w-3 h-3 text-destructive" />
-                          )}
-                        </span>
+            {pagination.paginatedData.map((group) => {
+              const isExpanded = expandedBusinesses.has(group.userId);
+              const groupPendingCount = group.docs.filter(d => d.status === "pending").length;
+              return (
+                <div key={group.userId}>
+                  {/* Business header */}
+                  <button
+                    onClick={() => toggleBusiness(group.userId)}
+                    className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-secondary/10 flex items-center justify-center">
+                        <Building2 className="w-4 h-4 text-secondary" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-semibold text-foreground">{group.businessName}</p>
+                        <p className="text-xs text-muted-foreground">{group.docs.length} document{group.docs.length !== 1 ? 's' : ''}</p>
+                      </div>
+                      {groupPendingCount > 0 && (
+                        <Badge variant="secondary" className="ml-2">{groupPendingCount} pending</Badge>
                       )}
                     </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  {(() => {
-                    if (doc.document_type === "insurance" && doc.status === "approved" && doc.expiry_date) {
-                      const expiry = new Date(doc.expiry_date);
-                      if (expiry < new Date()) {
-                        return <Badge variant="destructive" className="gap-1"><AlertTriangle className="w-3 h-3" /> Expired</Badge>;
-                      }
-                      if (expiry < threeMonthsFromNow) {
-                        return <Badge className="bg-amber-500/20 text-amber-600 border-amber-500/30 gap-1"><Clock className="w-3 h-3" /> Expiring Soon</Badge>;
-                      }
-                    }
-                    return getStatusBadge(doc.status);
-                  })()}
-
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleViewDocument(doc)}
-                  >
-                    <Eye className="w-4 h-4" />
-                  </Button>
-
-                  {doc.status === "pending" && (
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-green-500 hover:text-green-600 hover:bg-green-500/10"
-                        onClick={() => setSelectedDoc(doc)}
-                      >
-                        <Check className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => setSelectedDoc(doc)}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </>
+                    {isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+                  </button>
+                  {/* Documents under this business */}
+                  {isExpanded && (
+                    <div className="border-t border-border/50">
+                      {group.docs.map((doc) => (
+                        <div
+                          key={doc.id}
+                          className="pl-16 pr-4 py-3 flex items-center justify-between hover:bg-muted/30"
+                        >
+                          <div className="flex items-center gap-3">
+                            <FileText className="w-4 h-4 text-muted-foreground" />
+                            <div>
+                              <p className="text-sm font-medium text-foreground">
+                                {getDocumentTypeLabel(doc.document_type)}
+                              </p>
+                              <div className="flex items-center gap-2">
+                                <p className="text-xs text-muted-foreground">
+                                  {format(new Date(doc.created_at), "d MMM yyyy")}
+                                </p>
+                                {doc.document_type === "insurance" && doc.expiry_date && (
+                                  <span className={`text-xs flex items-center gap-1 ${
+                                    new Date(doc.expiry_date) < new Date() 
+                                      ? "text-destructive" 
+                                      : new Date(doc.expiry_date) < new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)
+                                        ? "text-amber-500"
+                                        : "text-muted-foreground"
+                                  }`}>
+                                    <Calendar className="w-3 h-3" />
+                                    Expires: {format(new Date(doc.expiry_date), "d MMM yyyy")}
+                                    {new Date(doc.expiry_date) < new Date() && (
+                                      <AlertTriangle className="w-3 h-3 text-destructive" />
+                                    )}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            {(() => {
+                              if (doc.document_type === "insurance" && doc.status === "approved" && doc.expiry_date) {
+                                const expiry = new Date(doc.expiry_date);
+                                if (expiry < new Date()) {
+                                  return <Badge variant="destructive" className="gap-1"><AlertTriangle className="w-3 h-3" /> Expired</Badge>;
+                                }
+                                if (expiry < threeMonthsFromNow) {
+                                  return <Badge className="bg-amber-500/20 text-amber-600 border-amber-500/30 gap-1"><Clock className="w-3 h-3" /> Expiring Soon</Badge>;
+                                }
+                              }
+                              return getStatusBadge(doc.status);
+                            })()}
+                            <Button variant="ghost" size="icon" onClick={() => handleViewDocument(doc)}>
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            {doc.status === "pending" && (
+                              <>
+                                <Button variant="ghost" size="icon" className="text-green-500 hover:text-green-600 hover:bg-green-500/10" onClick={() => setSelectedDoc(doc)}>
+                                  <Check className="w-4 h-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setSelectedDoc(doc)}>
+                                  <X className="w-4 h-4" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
           <PaginationControls
             currentPage={pagination.currentPage}
