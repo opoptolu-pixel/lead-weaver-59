@@ -98,7 +98,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
 
   return (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-      <div className="h-screen bg-background flex w-full overflow-hidden">
+      <div className="h-screen bg-background flex w-full overflow-hidden admin-layout">
         {/* Desktop sidebar - hidden on mobile */}
         <div className="hidden md:block">
           <AdminSidebar />
@@ -125,7 +125,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
             title={title} 
             onMenuClick={() => setSidebarOpen(!sidebarOpen)}
           />
-          <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto pb-20 md:pb-6">
+          <main className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8 overflow-auto pb-20 md:pb-6">
             {children}
           </main>
         </div>
