@@ -13,7 +13,9 @@ import {
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import {
   Card,
@@ -76,8 +78,9 @@ export default function AdminFraud() {
   const [riskyBusinesses, setRiskyBusinesses] = useState<RiskyBusiness[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [actionDialog, setActionDialog] = useState<{ type: string; business: RiskyBusiness } | null>(null);
+  const [actionDialog, setActionDialog] = useState<{ type: string; business: RiskyBusiness; selectedDocs?: string[] } | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [reverifyDocs, setReverifyDocs] = useState<string[]>(["business_license", "insurance", "address_proof"]);
 
   useEffect(() => {
     fetchData();
@@ -164,7 +167,7 @@ export default function AdminFraud() {
     setLoading(false);
   };
 
-  const handleAction = async (action: string, business: RiskyBusiness) => {
+  const handleAction = async (action: string, business: RiskyBusiness, docTypes?: string[]) => {
     setProcessing(true);
     try {
       let updateData: any = {};
@@ -178,6 +181,14 @@ export default function AdminFraud() {
           break;
         case "require_verification":
           updateData = { is_verified: false, verification_status: "required" };
+          // Reject selected documents so the user sees which ones need re-upload
+          if (docTypes && docTypes.length > 0) {
+            await supabase
+              .from("verification_documents")
+              .update({ status: "rejected", admin_notes: "Re-verification required by admin" })
+              .eq("user_id", business.user_id)
+              .in("document_type", docTypes);
+          }
           break;
         case "block_purchases":
           updateData = { is_suspended: true, suspension_reason: "Blocked from purchasing" };
@@ -563,22 +574,61 @@ export default function AdminFraud() {
         </Card>
 
         {/* Action Confirmation Dialog */}
-        <Dialog open={!!actionDialog} onOpenChange={() => setActionDialog(null)}>
+        <Dialog open={!!actionDialog} onOpenChange={() => { setActionDialog(null); setReverifyDocs(["business_license", "insurance", "address_proof"]); }}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Confirm Action</DialogTitle>
+              <DialogTitle>
+                {actionDialog?.type === "require_verification" ? "Request Re-verification" : "Confirm Action"}
+              </DialogTitle>
               <DialogDescription>
-                Are you sure you want to {actionDialog?.type.replace("_", " ")} {actionDialog?.business.business_name || "this business"}?
+                {actionDialog?.type === "require_verification" 
+                  ? `Select which documents ${actionDialog?.business.business_name || "this business"} needs to re-submit.`
+                  : `Are you sure you want to ${actionDialog?.type.replace("_", " ")} ${actionDialog?.business.business_name || "this business"}?`
+                }
               </DialogDescription>
             </DialogHeader>
+
+            {actionDialog?.type === "require_verification" && (
+              <div className="space-y-3 py-2">
+                {[
+                  { value: "business_license", label: "Business License" },
+                  { value: "insurance", label: "Insurance Certificate" },
+                  { value: "address_proof", label: "Address Proof" },
+                ].map(({ value, label }) => (
+                  <div key={value} className="flex items-center gap-3">
+                    <Checkbox
+                      id={`reverify-${value}`}
+                      checked={reverifyDocs.includes(value)}
+                      onCheckedChange={(checked) => {
+                        setReverifyDocs(prev =>
+                          checked ? [...prev, value] : prev.filter(d => d !== value)
+                        );
+                      }}
+                    />
+                    <Label htmlFor={`reverify-${value}`} className="text-sm cursor-pointer">
+                      {label}
+                    </Label>
+                  </div>
+                ))}
+                {reverifyDocs.length === 0 && (
+                  <p className="text-xs text-destructive">Select at least one document</p>
+                )}
+              </div>
+            )}
+
             <DialogFooter>
-              <Button variant="outline" onClick={() => setActionDialog(null)}>
+              <Button variant="outline" onClick={() => { setActionDialog(null); setReverifyDocs(["business_license", "insurance", "address_proof"]); }}>
                 Cancel
               </Button>
               <Button
                 variant="destructive"
-                onClick={() => actionDialog && handleAction(actionDialog.type, actionDialog.business)}
-                disabled={processing}
+                onClick={() => {
+                  if (actionDialog) {
+                    const docs = actionDialog.type === "require_verification" ? reverifyDocs : undefined;
+                    handleAction(actionDialog.type, actionDialog.business, docs);
+                  }
+                }}
+                disabled={processing || (actionDialog?.type === "require_verification" && reverifyDocs.length === 0)}
               >
                 {processing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 Confirm

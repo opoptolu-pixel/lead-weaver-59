@@ -106,7 +106,14 @@ export default function Verification() {
       .order("created_at", { ascending: false });
 
     if (!error && data) {
-      setDocuments(data);
+      // Only keep the latest document per type to avoid duplicates
+      const latestByType = new Map<string, VerificationDocument>();
+      for (const doc of data) {
+        if (!latestByType.has(doc.document_type)) {
+          latestByType.set(doc.document_type, doc);
+        }
+      }
+      setDocuments(Array.from(latestByType.values()));
     }
   };
 
