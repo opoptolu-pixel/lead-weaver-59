@@ -324,7 +324,7 @@ export default function AdminAnalytics() {
     // Fetch leads with more details
     const { data: leads } = await supabase
       .from("leads")
-      .select("id, source, postcode, is_unlocked, unlocked_by, refunded_at, created_at, unlocked_at, lead_status, job_type, display_value")
+      .select("id, source, postcode, is_unlocked, unlocked_by, refunded_at, created_at, unlocked_at, lead_status, job_type, display_value, credit_type")
       .gte("created_at", startISO)
       .lte("created_at", endISO);
 
@@ -382,7 +382,10 @@ export default function AdminAnalytics() {
         stats.leads++;
         if (lead.is_unlocked) {
           stats.purchased++;
-          stats.revenue += 20;
+          // Only count revenue from paid leads, not granted
+          if ((lead as any).credit_type !== 'granted') {
+            stats.revenue += 20;
+          }
         }
         if (lead.refunded_at) {
           stats.refunds++;

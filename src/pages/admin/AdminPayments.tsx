@@ -37,6 +37,7 @@ interface Purchase {
   unlocked_at: string;
   job_type: string;
   postcode: string;
+  credit_type?: string;
 }
 
 interface FraudFlag {
@@ -123,7 +124,7 @@ export default function AdminPayments() {
       // Fetch purchased leads (these are actual purchases)
       const { data: leadsData, error: leadsError } = await supabase
         .from("leads")
-        .select("id, unlocked_by, unlocked_at, job_type, postcode, value, lead_status, refunded_at")
+        .select("id, unlocked_by, unlocked_at, job_type, postcode, value, lead_status, refunded_at, credit_type")
         .eq("is_unlocked", true)
         .gte("unlocked_at", startISO)
         .lte("unlocked_at", endISO)
@@ -149,6 +150,7 @@ export default function AdminPayments() {
         unlocked_at: lead.unlocked_at || "",
         job_type: lead.job_type,
         postcode: lead.postcode,
+        credit_type: (lead as any).credit_type || "purchased",
       }));
 
       setPurchases(purchasesData);
@@ -265,8 +267,8 @@ export default function AdminPayments() {
 
   const pendingFraudCount = fraudFlags.filter((f) => f.status === "pending").length;
 
-  // Calculate totals
-  const totalRevenue = filteredPurchases.filter(p => p.status === "purchased").reduce((sum, p) => sum + p.amount, 0);
+  // Calculate totals - only count paid credits as revenue (exclude granted)
+  const totalRevenue = filteredPurchases.filter(p => p.status === "purchased" && p.credit_type !== "granted").reduce((sum, p) => sum + p.amount, 0);
   const refundedAmount = filteredPurchases.filter(p => p.status === "refunded").reduce((sum, p) => sum + p.amount, 0);
 
   return (
