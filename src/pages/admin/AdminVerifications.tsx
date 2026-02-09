@@ -255,45 +255,7 @@ export default function AdminVerifications() {
           .eq("user_id", doc.user_id);
       }
 
-      // Send individual document approval email
-      try {
-        const { data: userEmail } = await supabase.rpc("get_user_email", { user_uuid: doc.user_id });
-        if (userEmail) {
-          const businessName = doc.profile?.business_name || doc.profile?.contact_name || "Business Owner";
-          const contactName = doc.profile?.contact_name || businessName;
-          const currentYear = new Date().getFullYear().toString();
-          const docTypeLabels: Record<string, string> = {
-            business_license: "Business License",
-            insurance: "Insurance Certificate",
-            address_proof: "Address Proof",
-          };
-          const documentTypeLabel = docTypeLabels[doc.document_type] || doc.document_type;
-
-          const docTemplateData = await getTemplateWithVariables("document_approved", {
-            business_name: businessName,
-            contact_name: contactName,
-            document_type: documentTypeLabel,
-            admin_notes: adminNotes || "No additional notes.",
-            verification_url: "https://cleanda.co.uk/verification",
-            current_year: currentYear,
-          });
-
-          if (docTemplateData) {
-            await supabase.functions.invoke("send-email", {
-              body: {
-                to: userEmail,
-                subject: docTemplateData.subject,
-                html: docTemplateData.body,
-                templateName: "document_approved",
-              },
-            });
-          }
-        }
-      } catch (docEmailError) {
-        console.error("Failed to send document approval email:", docEmailError);
-      }
-
-      // Check if all 3 required documents are now approved before sending full verification email
+      // Check if all 3 required documents are now approved
       const { data: allUserDocs } = await supabase
         .from("verification_documents")
         .select("document_type, status")
@@ -306,7 +268,48 @@ export default function AdminVerifications() {
       
       const allDocsApproved = requiredDocTypes.every(type => approvedDocTypes.includes(type));
 
-      // Only send email when all 3 documents are approved
+      // Send ONLY ONE email: full verification if all docs approved, otherwise individual document approval
+      if (!allDocsApproved) {
+        // Send individual document approval email
+        try {
+          const { data: userEmail } = await supabase.rpc("get_user_email", { user_uuid: doc.user_id });
+          if (userEmail) {
+            const businessName = doc.profile?.business_name || doc.profile?.contact_name || "Business Owner";
+            const contactName = doc.profile?.contact_name || businessName;
+            const currentYear = new Date().getFullYear().toString();
+            const docTypeLabels: Record<string, string> = {
+              business_license: "Business License",
+              insurance: "Insurance Certificate",
+              address_proof: "Address Proof",
+            };
+            const documentTypeLabel = docTypeLabels[doc.document_type] || doc.document_type;
+
+            const docTemplateData = await getTemplateWithVariables("document_approved", {
+              business_name: businessName,
+              contact_name: contactName,
+              document_type: documentTypeLabel,
+              admin_notes: adminNotes || "No additional notes.",
+              verification_url: "https://cleanda.co.uk/verification",
+              current_year: currentYear,
+            });
+
+            if (docTemplateData) {
+              await supabase.functions.invoke("send-email", {
+                body: {
+                  to: userEmail,
+                  subject: docTemplateData.subject,
+                  html: docTemplateData.body,
+                  templateName: "document_approved",
+                },
+              });
+            }
+          }
+        } catch (docEmailError) {
+          console.error("Failed to send document approval email:", docEmailError);
+        }
+      }
+
+      // Send full verification email when all docs are approved
       if (allDocsApproved) {
         try {
           const { data: userEmail } = await supabase.rpc("get_user_email", { user_uuid: doc.user_id });
@@ -315,7 +318,6 @@ export default function AdminVerifications() {
             const contactName = doc.profile?.contact_name || businessName;
             const currentYear = new Date().getFullYear().toString();
             
-            // Try to get template from database - use existing "verification_approved" template
             const templateData = await getTemplateWithVariables("verification_approved", {
               business_name: businessName,
               contact_name: contactName,
@@ -335,7 +337,6 @@ export default function AdminVerifications() {
                 },
               });
             } else {
-              // Fallback to simple email if template not found
               await supabase.functions.invoke("send-email", {
                 body: {
                   to: userEmail,
@@ -344,15 +345,9 @@ export default function AdminVerifications() {
                     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                       <h2 style="color: #10b981;">Congratulations! Your Business is Fully Verified ✓</h2>
                       <p>Dear ${businessName},</p>
-                      <p>Great news! All your verification documents have been reviewed and approved:</p>
-                      <ul>
-                        <li>✅ Business License</li>
-                        <li>✅ Insurance Certificate</li>
-                        <li>✅ Address Proof</li>
-                      </ul>
+                      <p>Great news! All your verification documents have been reviewed and approved.</p>
                       <p>You're now a fully verified business on Cleanda and can access all features, including unlimited lead purchases.</p>
                       <p><a href="https://cleanda.co.uk/leads" style="display: inline-block; background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 16px;">Browse Available Leads</a></p>
-                      <p>If you have any questions, please don't hesitate to contact us.</p>
                       <p>Best regards,<br>The Cleanda Team</p>
                     </div>
                   `,
@@ -363,7 +358,6 @@ export default function AdminVerifications() {
           }
         } catch (emailError) {
           console.error("Failed to send approval email:", emailError);
-          // Don't fail the approval if email fails
         }
       }
 
