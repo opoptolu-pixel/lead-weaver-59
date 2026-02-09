@@ -102,6 +102,9 @@ export default function AdminVerifications() {
   const [processing, setProcessing] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [expiryDate, setExpiryDate] = useState<string>("");
+  const [previewDoc, setPreviewDoc] = useState<VerificationDoc | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
 
   useEffect(() => {
     fetchDocuments();
@@ -461,12 +464,23 @@ export default function AdminVerifications() {
   };
 
   const handleViewDocument = async (doc: VerificationDoc) => {
+    setPreviewDoc(doc);
+    setLoadingPreview(true);
+    setPreviewUrl(null);
+    
     const url = await getDocumentUrl(doc.file_path);
     if (url) {
-      window.open(url, "_blank");
+      setPreviewUrl(url);
     } else {
-      toast.error("Failed to load document");
+      toast.error("Failed to load document preview");
+      setPreviewDoc(null);
     }
+    setLoadingPreview(false);
+  };
+
+  const closePreview = () => {
+    setPreviewDoc(null);
+    setPreviewUrl(null);
   };
 
   // Filter documents by status
@@ -774,6 +788,56 @@ export default function AdminVerifications() {
                 Reject
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Document Preview Dialog */}
+      <Dialog open={!!previewDoc} onOpenChange={(open) => !open && closePreview()}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              {previewDoc?.document_type.replace("_", " ").replace(/\b\w/g, l => l.toUpperCase())}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-auto min-h-[400px] bg-muted rounded-lg flex items-center justify-center">
+            {loadingPreview ? (
+              <div className="flex flex-col items-center gap-3">
+                <Loader2 className="w-8 h-8 animate-spin text-secondary" />
+                <p className="text-sm text-muted-foreground">Loading document...</p>
+              </div>
+            ) : previewUrl ? (
+              previewDoc?.file_path.toLowerCase().endsWith('.pdf') ? (
+                <iframe
+                  src={previewUrl}
+                  className="w-full h-full min-h-[500px] rounded-lg"
+                  title="Document Preview"
+                />
+              ) : (
+                <img
+                  src={previewUrl}
+                  alt="Document Preview"
+                  className="max-w-full max-h-[70vh] object-contain rounded-lg"
+                />
+              )
+            ) : (
+              <p className="text-muted-foreground">Unable to load preview</p>
+            )}
+          </div>
+          
+          <div className="flex justify-end gap-2 pt-4">
+            <Button variant="outline" onClick={closePreview}>
+              Close
+            </Button>
+            {previewUrl && (
+              <Button asChild>
+                <a href={previewUrl} target="_blank" rel="noopener noreferrer">
+                  Open in New Tab
+                </a>
+              </Button>
+            )}
           </div>
         </DialogContent>
       </Dialog>
