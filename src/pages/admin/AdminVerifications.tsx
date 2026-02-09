@@ -484,7 +484,18 @@ export default function AdminVerifications() {
   };
 
   // Filter documents by status
+  const threeMonthsFromNow = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
+  
+  const expiringSoonDocs = documents.filter(doc => {
+    if (doc.document_type !== "insurance" || doc.status !== "approved" || !doc.expiry_date) return false;
+    const expiry = new Date(doc.expiry_date);
+    return expiry <= threeMonthsFromNow;
+  });
+
   const filteredDocuments = documents.filter(doc => {
+    if (statusFilter === "expiring_soon") {
+      return doc.document_type === "insurance" && doc.status === "approved" && doc.expiry_date && new Date(doc.expiry_date) <= threeMonthsFromNow;
+    }
     if (statusFilter === "all") return true;
     return doc.status === statusFilter;
   });
@@ -504,13 +515,39 @@ export default function AdminVerifications() {
   const pendingCount = documents.filter((d) => d.status === "pending").length;
   const approvedCount = documents.filter((d) => d.status === "approved").length;
   const rejectedCount = documents.filter((d) => d.status === "rejected").length;
+  const expiringSoonCount = expiringSoonDocs.length;
 
   return (
     <AdminLayout title="Verification Documents">
+      {/* Expiring Soon Alert Banner */}
+      {expiringSoonCount > 0 && statusFilter !== "expiring_soon" && (
+        <div className="p-4 bg-destructive/10 border border-destructive/30 rounded-xl mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-destructive/20 flex items-center justify-center">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+            </div>
+            <div>
+              <p className="font-semibold text-foreground">{expiringSoonCount} Insurance Certificate{expiringSoonCount !== 1 ? 's' : ''} Expiring Soon or Expired</p>
+              <p className="text-sm text-muted-foreground">These businesses may lose the ability to purchase leads</p>
+            </div>
+          </div>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => {
+              setStatusFilter("expiring_soon");
+              pagination.resetPage();
+            }}
+          >
+            View Now
+          </Button>
+        </div>
+      )}
+
       <div className="bg-card rounded-xl border border-border overflow-hidden">
         <div className="p-4 border-b border-border">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Button
                 variant={statusFilter === "pending" ? "default" : "outline"}
                 size="sm"
@@ -541,6 +578,20 @@ export default function AdminVerifications() {
               >
                 Rejected ({rejectedCount})
               </Button>
+              {expiringSoonCount > 0 && (
+                <Button 
+                  variant={statusFilter === "expiring_soon" ? "destructive" : "outline"} 
+                  size="sm"
+                  className={statusFilter !== "expiring_soon" ? "border-destructive/50 text-destructive hover:bg-destructive/10" : ""}
+                  onClick={() => {
+                    setStatusFilter("expiring_soon");
+                    pagination.resetPage();
+                  }}
+                >
+                  <AlertTriangle className="w-3.5 h-3.5 mr-1" />
+                  Expiring ({expiringSoonCount})
+                </Button>
+              )}
               <Button 
                 variant={statusFilter === "all" ? "default" : "outline"} 
                 size="sm"
@@ -566,7 +617,7 @@ export default function AdminVerifications() {
         ) : filteredDocuments.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">
             <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>No verification documents {statusFilter !== "all" ? `with status "${statusFilter}"` : ""}</p>
+            <p>No verification documents {statusFilter !== "all" ? `matching filter "${statusFilter}"` : ""}</p>
           </div>
         ) : (
           <>
@@ -593,7 +644,7 @@ export default function AdminVerifications() {
                         <span className={`text-xs flex items-center gap-1 ${
                           new Date(doc.expiry_date) < new Date() 
                             ? "text-destructive" 
-                            : new Date(doc.expiry_date) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+                            : new Date(doc.expiry_date) < new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)
                               ? "text-amber-500"
                               : "text-muted-foreground"
                         }`}>
@@ -609,7 +660,18 @@ export default function AdminVerifications() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  {getStatusBadge(doc.status)}
+                  {(() => {
+                    if (doc.document_type === "insurance" && doc.status === "approved" && doc.expiry_date) {
+                      const expiry = new Date(doc.expiry_date);
+                      if (expiry < new Date()) {
+                        return <Badge variant="destructive" className="gap-1"><AlertTriangle className="w-3 h-3" /> Expired</Badge>;
+                      }
+                      if (expiry < threeMonthsFromNow) {
+                        return <Badge className="bg-amber-500/20 text-amber-600 border-amber-500/30 gap-1"><Clock className="w-3 h-3" /> Expiring Soon</Badge>;
+                      }
+                    }
+                    return getStatusBadge(doc.status);
+                  })()}
 
                   <Button
                     variant="ghost"
