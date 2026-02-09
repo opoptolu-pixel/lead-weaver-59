@@ -171,6 +171,16 @@ export default function AdminBusinesses() {
   const [isUnlinkPhoneDialogOpen, setIsUnlinkPhoneDialogOpen] = useState(false);
   const [unlinkingPhone, setUnlinkingPhone] = useState(false);
 
+  // Re-verification dialog
+  const [isReverifyOpen, setIsReverifyOpen] = useState(false);
+  const [reverifyBusiness, setReverifyBusiness] = useState<Business | null>(null);
+  const [reverifyDocs, setReverifyDocs] = useState<Record<string, boolean>>({
+    business_license: false,
+    insurance: false,
+    address_proof: false,
+  });
+  const [reverifying, setReverifying] = useState(false);
+
   useEffect(() => {
     fetchBusinesses();
   }, [dateRange]);
@@ -900,6 +910,16 @@ export default function AdminBusinesses() {
                               <DropdownMenuItem onClick={() => verifyBusiness(business)}>
                                 <Shield className="w-4 h-4 mr-2 text-green-500" />
                                 Verify Business
+                              </DropdownMenuItem>
+                            )}
+                            {business.is_verified && (
+                              <DropdownMenuItem onClick={() => {
+                                setReverifyBusiness(business);
+                                setReverifyDocs({ business_license: false, insurance: false, address_proof: false });
+                                setIsReverifyOpen(true);
+                              }}>
+                                <Shield className="w-4 h-4 mr-2 text-amber-500" />
+                                Require Re-verification
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuSeparator />
@@ -1710,6 +1730,103 @@ export default function AdminBusinesses() {
                   <XCircle className="w-4 h-4 mr-2" />
                   Unlink Phone
                 </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Require Re-verification Dialog */}
+      <Dialog open={isReverifyOpen} onOpenChange={setIsReverifyOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Shield className="w-5 h-5 text-amber-500" />
+              Require Re-verification
+            </DialogTitle>
+            <DialogDescription>
+              Select which documents <strong>{reverifyBusiness?.business_name || "this business"}</strong> needs to re-submit.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 my-4">
+            {[
+              { key: "business_license", label: "Business License" },
+              { key: "insurance", label: "Insurance Certificate" },
+              { key: "address_proof", label: "Proof of Address" },
+            ].map((doc) => (
+              <label key={doc.key} className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/30 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={reverifyDocs[doc.key] || false}
+                  onChange={(e) => setReverifyDocs(prev => ({ ...prev, [doc.key]: e.target.checked }))}
+                  className="rounded border-border"
+                />
+                <span className="text-sm font-medium">{doc.label}</span>
+              </label>
+            ))}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setIsReverifyOpen(false)} disabled={reverifying}>
+              Cancel
+            </Button>
+            <Button
+              variant="default"
+              disabled={reverifying || !Object.values(reverifyDocs).some(Boolean)}
+              onClick={async () => {
+                if (!reverifyBusiness) return;
+                setReverifying(true);
+                try {
+                  const selectedTypes = Object.entries(reverifyDocs)
+                    .filter(([, v]) => v)
+                    .map(([k]) => k);
+
+                  // Reject the selected document types so the user sees them as needing re-upload
+                  for (const docType of selectedTypes) {
+                    const { data: existingDoc } = await supabase
+                      .from("verification_documents")
+                      .select("id")
+                      .eq("user_id", reverifyBusiness.user_id)
+                      .eq("document_type", docType)
+                      .order("created_at", { ascending: false })
+                      .limit(1)
+                      .maybeSingle();
+
+                    if (existingDoc) {
+                      await supabase
+                        .from("verification_documents")
+                        .update({ status: "rejected", admin_notes: "Re-verification required by admin", updated_at: new Date().toISOString() })
+                        .eq("id", existingDoc.id);
+                    }
+                  }
+
+                  // Set profile back to unverified
+                  await supabase
+                    .from("profiles")
+                    .update({ is_verified: false, verification_status: "reverification_required" })
+                    .eq("id", reverifyBusiness.id);
+
+                  await supabase.from("activity_logs").insert({
+                    user_id: reverifyBusiness.user_id,
+                    action: "reverification_required",
+                    entity_type: "verification",
+                    entity_id: reverifyBusiness.user_id,
+                    details: { documents: selectedTypes, requested_by: "admin" },
+                  });
+
+                  toast.success("Re-verification requested for " + selectedTypes.length + " document(s)");
+                  setIsReverifyOpen(false);
+                  fetchBusinesses();
+                } catch (err) {
+                  console.error(err);
+                  toast.error("Failed to request re-verification");
+                } finally {
+                  setReverifying(false);
+                }
+              }}
+            >
+              {reverifying ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Requesting...</>
+              ) : (
+                "Request Re-verification"
               )}
             </Button>
           </DialogFooter>
