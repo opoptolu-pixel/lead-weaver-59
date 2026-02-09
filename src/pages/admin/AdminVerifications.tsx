@@ -521,18 +521,18 @@ export default function AdminVerifications() {
     <AdminLayout title="Verification Documents">
       {/* Expiring Soon Alert Banner */}
       {expiringSoonCount > 0 && statusFilter !== "expiring_soon" && (
-        <div className="p-4 bg-destructive/10 border border-destructive/30 rounded-xl mb-4 flex items-center justify-between">
+        <div className="p-4 bg-amber-500/20 border-2 border-amber-500 rounded-xl mb-4 flex items-center justify-between shadow-lg shadow-amber-500/10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-destructive/20 flex items-center justify-center">
-              <AlertTriangle className="w-5 h-5 text-destructive" />
+            <div className="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center animate-pulse">
+              <AlertTriangle className="w-5 h-5 text-white" />
             </div>
             <div>
-              <p className="font-semibold text-foreground">{expiringSoonCount} Insurance Certificate{expiringSoonCount !== 1 ? 's' : ''} Expiring Soon or Expired</p>
-              <p className="text-sm text-muted-foreground">These businesses may lose the ability to purchase leads</p>
+              <p className="font-semibold text-amber-400 dark:text-amber-300 text-amber-700">{expiringSoonCount} Insurance Certificate{expiringSoonCount !== 1 ? 's' : ''} Expiring Soon or Expired</p>
+              <p className="text-sm text-amber-600 dark:text-amber-400/80">These businesses may lose the ability to purchase leads</p>
             </div>
           </div>
           <Button
-            variant="destructive"
+            className="bg-amber-500 hover:bg-amber-600 text-white font-semibold"
             size="sm"
             onClick={() => {
               setStatusFilter("expiring_soon");

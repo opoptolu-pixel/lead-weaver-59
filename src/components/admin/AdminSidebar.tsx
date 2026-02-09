@@ -70,6 +70,7 @@ export default function AdminSidebar({ onNavigate }: AdminSidebarProps) {
     return saved === "true";
   });
   const [unreadSupportCount, setUnreadSupportCount] = useState(0);
+  const [expiringVerificationsCount, setExpiringVerificationsCount] = useState(0);
 
   // Fetch unread support messages count (user messages not read by admin)
   useEffect(() => {
@@ -87,6 +88,31 @@ export default function AdminSidebar({ onNavigate }: AdminSidebarProps) {
       .channel("admin-support-unread")
       .on("postgres_changes", { event: "*", schema: "public", table: "support_messages" }, () => {
         fetchUnread();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  // Fetch expiring/expired insurance certificates count
+  useEffect(() => {
+    const fetchExpiring = async () => {
+      const threeMonthsFromNow = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
+      const { data } = await supabase
+        .from("verification_documents")
+        .select("id, expiry_date")
+        .eq("document_type", "insurance")
+        .eq("status", "approved")
+        .not("expiry_date", "is", null)
+        .lte("expiry_date", threeMonthsFromNow);
+      setExpiringVerificationsCount(data?.length || 0);
+    };
+    fetchExpiring();
+
+    const channel = supabase
+      .channel("admin-verification-expiring")
+      .on("postgres_changes", { event: "*", schema: "public", table: "verification_documents" }, () => {
+        fetchExpiring();
       })
       .subscribe();
 
@@ -112,7 +138,10 @@ export default function AdminSidebar({ onNavigate }: AdminSidebarProps) {
   const NavItem = ({ item }: { item: typeof navItems[0] }) => {
     const active = isActive(item.url);
     const showBadge = item.url === "/admin/support" && unreadSupportCount > 0;
-    
+    const showVerificationBadge = item.url === "/admin/verifications" && expiringVerificationsCount > 0;
+    const badgeCount = showBadge ? unreadSupportCount : showVerificationBadge ? expiringVerificationsCount : 0;
+    const hasBadge = showBadge || showVerificationBadge;
+    const badgeColor = showVerificationBadge ? "bg-amber-500 text-white" : "bg-destructive text-destructive-foreground";
     const linkContent = (
       <button
         onClick={() => handleNavClick(item.url)}
@@ -129,18 +158,18 @@ export default function AdminSidebar({ onNavigate }: AdminSidebarProps) {
             "w-[18px] h-[18px] flex-shrink-0 transition-all duration-200",
             active ? "text-secondary" : "text-muted-foreground group-hover:text-foreground"
           )} />
-          {showBadge && collapsed && (
-            <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full flex items-center justify-center px-1">
-              {unreadSupportCount > 9 ? "9+" : unreadSupportCount}
+          {hasBadge && collapsed && (
+            <span className={cn("absolute -top-1.5 -right-1.5 min-w-[16px] h-4 text-[10px] font-bold rounded-full flex items-center justify-center px-1", badgeColor)}>
+              {badgeCount > 9 ? "9+" : badgeCount}
             </span>
           )}
         </span>
         {!collapsed && (
           <>
             <span className="tracking-[-0.01em] leading-tight flex-1">{item.title}</span>
-            {showBadge && (
-              <span className="min-w-[20px] h-5 bg-destructive text-destructive-foreground text-[11px] font-bold rounded-full flex items-center justify-center px-1.5">
-                {unreadSupportCount > 99 ? "99+" : unreadSupportCount}
+            {hasBadge && (
+              <span className={cn("min-w-[20px] h-5 text-[11px] font-bold rounded-full flex items-center justify-center px-1.5", badgeColor)}>
+                {badgeCount > 99 ? "99+" : badgeCount}
               </span>
             )}
           </>
