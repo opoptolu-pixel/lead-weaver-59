@@ -25,6 +25,7 @@ import {
   CreditCard,
   FileWarning,
   Home,
+  Headphones,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -315,6 +316,11 @@ export default function Dashboard() {
                     Disputes
                   </Button>
                 </Link>
+                <Link to="/support">
+                  <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10">
+                    Support
+                  </Button>
+                </Link>
               </div>
 
               {/* Mobile navigation menu */}
@@ -348,6 +354,12 @@ export default function Dashboard() {
                       <Link to="/disputes" className="flex items-center gap-2">
                         <FileWarning className="w-4 h-4" />
                         Disputes
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/support" className="flex items-center gap-2">
+                        <Headphones className="w-4 h-4" />
+                        Support
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
