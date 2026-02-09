@@ -21,18 +21,18 @@ export const EmptyState = ({
   children,
 }: EmptyStateProps) => {
   return (
-    <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-      <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-        <Icon className="w-8 h-8 text-muted-foreground" />
+    <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+      <div className="w-20 h-20 rounded-2xl bg-muted/60 flex items-center justify-center mb-5">
+        <Icon className="w-9 h-9 text-muted-foreground/70" />
       </div>
-      <h3 className="font-heading text-lg font-semibold text-foreground mb-2">
+      <h3 className="font-heading text-lg font-semibold text-foreground mb-2 tracking-[-0.02em]">
         {title}
       </h3>
-      <p className="text-muted-foreground text-sm max-w-sm mb-4">
+      <p className="text-muted-foreground text-sm max-w-sm mb-6 leading-relaxed">
         {description}
       </p>
       {action && (
-        <Button onClick={action.onClick} variant="default">
+        <Button onClick={action.onClick} variant="default" className="h-11 px-6 font-medium">
           {action.label}
         </Button>
       )}
