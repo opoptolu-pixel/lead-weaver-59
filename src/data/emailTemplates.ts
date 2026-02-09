@@ -353,4 +353,44 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplateData[] = [
 </body>
 </html>`,
   },
+  {
+    name: "insurance_expiry_reminder",
+    subject: "{{urgency_prefix}}Your Insurance {{urgency_text}}",
+    description: "Sent to businesses when their insurance certificate is about to expire",
+    variables: ["contact_name", "business_name", "urgency_text", "urgency_prefix", "expiry_date", "days_remaining", "is_urgent", "current_year", "unsubscribe_url"],
+    body: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 20px; font-family: Arial, sans-serif; background-color: #ffffff; color: #333333; line-height: 1.6;">
+  <div style="max-width: 600px; margin: 0 auto;">
+    <h2 style="color: #0B3D2E; margin-bottom: 20px;">Insurance Expiry Reminder</h2>
+    
+    <p>Hi {{contact_name}},</p>
+    
+    <p>This is a friendly reminder that your insurance certificate for <strong>{{business_name}}</strong> {{urgency_text}}.</p>
+    
+    <div style="margin: 20px 0; padding: 15px; background-color: #fffbeb; border-left: 4px solid #f59e0b;">
+      <strong>Expiry Date:</strong> {{expiry_date}}<br>
+      <strong>Days Remaining:</strong> {{days_remaining}}
+    </div>
+    
+    <p><strong>What you need to do:</strong></p>
+    <p>1. Renew your insurance policy before it expires<br>
+    2. Upload your new insurance certificate to Cleanda<br>
+    3. Keep your verification status active</p>
+    
+    <p><a href="https://cleanda.co.uk/settings/verification" style="display: inline-block; background-color: #0B3D2E; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 4px;">Upload New Insurance</a></p>
+    
+    <p style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #888888;">
+      You are receiving this because you are a registered Cleanda partner.<br>
+      Cleanda Ltd {{current_year}}<br>
+      <a href="{{unsubscribe_url}}" style="color: #888888;">Unsubscribe</a>
+    </p>
+  </div>
+</body>
+</html>`,
+  },
 ];
