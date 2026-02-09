@@ -192,62 +192,72 @@
 .admin-layout {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.011em;
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
 }
 
-.admin-layout h1,
-.admin-layout h2,
-.admin-layout h3 {
+/* ── Typography hierarchy ── */
+.admin-layout h1 {
+  font-size: 1.75rem;
   font-weight: 700;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.035em;
   line-height: 1.15;
 }
 
-.admin-layout h1 {
-  font-size: 1.75rem;
+.admin-layout h2 {
+  font-size: 1.375rem;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
 }
 
-.admin-layout h2 {
-  font-size: 1.25rem;
+.admin-layout h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
 }
 
 .admin-layout p.text-muted-foreground {
   font-size: 0.875rem;
-  letter-spacing: -0.005em;
+  letter-spacing: -0.006em;
+  line-height: 1.55;
 }
 
-/* Premium card surfaces with depth */
+/* ── Premium card surfaces ── */
 .admin-layout [class*="rounded-"] {
-  border-radius: 14px;
+  border-radius: 12px;
 }
 
 .admin-layout .admin-card,
 .admin-layout [data-slot="card"] {
   background: hsl(var(--card));
-  border: 1px solid hsl(var(--border) / 0.5);
-  border-radius: 16px;
-  transition: box-shadow 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
+  border: 1px solid hsl(var(--border) / 0.35);
+  border-radius: 14px;
+  box-shadow: 0 1px 3px hsl(var(--foreground) / 0.04), 0 1px 2px hsl(var(--foreground) / 0.03);
+  transition: box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.25s ease, transform 0.2s ease;
 }
 
 .admin-layout .admin-card:hover,
 .admin-layout [data-slot="card"]:hover {
-  box-shadow: 0 4px 20px -4px hsl(var(--foreground) / 0.06);
+  box-shadow: 0 8px 25px -5px hsl(var(--foreground) / 0.08), 0 4px 10px -4px hsl(var(--foreground) / 0.04);
+  transform: translateY(-1px);
 }
 
-/* Clean table styling */
+/* ── Tables — Stripe/Linear aesthetic ── */
 .admin-layout table {
   font-size: 0.875rem;
 }
 
 .admin-layout table thead th {
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: hsl(var(--muted-foreground));
-  padding-top: 0.875rem;
-  padding-bottom: 0.875rem;
+  color: hsl(var(--muted-foreground) / 0.8);
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid hsl(var(--border) / 0.5);
+  background: hsl(var(--muted) / 0.3);
 }
 
 .admin-layout table tbody tr {
@@ -255,24 +265,25 @@
 }
 
 .admin-layout table tbody tr:hover {
-  background-color: hsl(var(--muted) / 0.4);
+  background-color: hsl(var(--muted) / 0.35);
 }
 
 .admin-layout table tbody td {
-  padding-top: 0.875rem;
-  padding-bottom: 0.875rem;
+  padding: 0.9375rem 1rem;
+  border-bottom: 1px solid hsl(var(--border) / 0.25);
 }
 
-/* Premium badge styling */
+/* ── Badges — pill-style ── */
 .admin-layout [data-slot="badge"],
 .admin-layout .badge {
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.015em;
   font-size: 0.6875rem;
-  border-radius: 6px;
+  border-radius: 9999px;
+  padding: 0.125rem 0.625rem;
 }
 
-/* Switch visibility fix */
+/* ── Switch fix ── */
 [data-state="unchecked"] > span[data-state],
 [role="switch"][data-state="unchecked"] {
   background-color: hsl(var(--muted));
@@ -282,13 +293,15 @@
   color: hsl(var(--foreground));
 }
 
+/* ── Labels ── */
 .admin-layout label {
   color: hsl(var(--foreground));
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 500;
+  letter-spacing: -0.006em;
 }
 
-/* Section headers — premium uppercase micro-label */
+/* ── Section micro-label ── */
 .admin-section-title {
   font-size: 0.6875rem;
   font-weight: 700;
@@ -298,30 +311,47 @@
   margin-bottom: 1rem;
 }
 
-/* Refined dividers */
+/* ── Dividers ── */
 .admin-layout hr,
 .admin-layout [role="separator"] {
-  border-color: hsl(var(--border) / 0.5);
+  border-color: hsl(var(--border) / 0.35);
 }
 
-/* Premium inputs */
+/* ── Inputs — comfortable 44px+ height ── */
 .admin-layout input,
 .admin-layout textarea,
 .admin-layout select,
 .admin-layout [role="combobox"] {
   font-size: 0.875rem;
+  border-radius: 8px;
 }
 
-/* Premium button feel */
+.admin-layout input:not([type="checkbox"]):not([type="radio"]),
+.admin-layout select,
+.admin-layout [role="combobox"] {
+  min-height: 2.75rem;
+}
+
+.admin-layout input:focus,
+.admin-layout textarea:focus,
+.admin-layout select:focus {
+  box-shadow: 0 0 0 3px hsl(var(--ring) / 0.12);
+}
+
+/* ── Buttons — refined feel ── */
 .admin-layout button {
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .admin-layout button:active:not(:disabled) {
   transform: scale(0.98);
 }
 
-/* Smooth scrollbars */
+.admin-layout button:hover:not(:disabled) {
+  box-shadow: 0 2px 8px hsl(var(--foreground) / 0.06);
+}
+
+/* ── Scrollbars — thin and elegant ── */
 .admin-layout ::-webkit-scrollbar {
   width: 5px;
   height: 5px;
@@ -332,17 +362,19 @@
 }
 
 .admin-layout ::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.15);
+  background: hsl(var(--muted-foreground) / 0.12);
   border-radius: 10px;
 }
 
 .admin-layout ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.3);
+  background: hsl(var(--muted-foreground) / 0.25);
 }
 
-/* Premium tab styling */
+/* ── Tabs — clean and modern ── */
 .admin-layout [role="tablist"] {
-  gap: 0.25rem;
+  gap: 0.125rem;
+  border-radius: 10px;
+  padding: 0.125rem;
 }
 
 .admin-layout [role="tab"] {
@@ -350,10 +382,28 @@
   font-weight: 500;
   letter-spacing: -0.005em;
   transition: all 0.2s ease;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
 }
 
 .admin-layout [role="tab"][data-state="active"] {
   font-weight: 600;
+}
+
+/* ── Empty state styling ── */
+.admin-layout .empty-state-icon {
+  width: 5rem;
+  height: 5rem;
+}
+
+/* ── Dialog/Modal refinements ── */
+.admin-layout [role="dialog"] {
+  border-radius: 16px;
+}
+
+/* ── Select trigger refinement ── */
+.admin-layout [role="combobox"] {
+  border-radius: 8px;
 }
 
 /* Custom animations */

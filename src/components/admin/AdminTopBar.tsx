@@ -59,7 +59,7 @@ export default function AdminTopBar({ title, onMenuClick }: AdminTopBarProps) {
   }, []);
 
   return (
-    <header className="h-14 md:h-16 bg-card/95 backdrop-blur-xl border-b border-border/40 px-3 md:px-8 flex items-center justify-between sticky top-0 z-40">
+    <header className="h-14 md:h-[4.25rem] bg-card/98 backdrop-blur-xl border-b border-border/30 px-3 md:px-10 flex items-center justify-between sticky top-0 z-40">
       <div className="flex items-center gap-2 md:gap-3 min-w-0">
         {/* Mobile menu button */}
         <Button
@@ -71,7 +71,7 @@ export default function AdminTopBar({ title, onMenuClick }: AdminTopBarProps) {
           <Menu className="h-5 w-5" />
         </Button>
         
-        <h1 className="font-heading text-base md:text-xl font-bold text-foreground truncate tracking-[-0.03em]">{title}</h1>
+        <h1 className="font-heading text-base md:text-[1.375rem] font-bold text-foreground truncate tracking-[-0.035em]">{title}</h1>
         
         {/* Live Connection Indicator - smaller on mobile */}
         <Badge 

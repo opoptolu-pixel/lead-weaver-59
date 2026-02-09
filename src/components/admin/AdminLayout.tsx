@@ -125,7 +125,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
             title={title} 
             onMenuClick={() => setSidebarOpen(!sidebarOpen)}
           />
-          <main className="flex-1 p-4 sm:p-5 md:p-8 lg:p-10 overflow-auto pb-20 md:pb-8">
+          <main className="flex-1 p-4 sm:p-5 md:p-8 lg:p-10 xl:p-12 overflow-auto pb-20 md:pb-10 bg-background">
             {children}
           </main>
         </div>
