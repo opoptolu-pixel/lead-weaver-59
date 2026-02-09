@@ -275,7 +275,7 @@ export default function Settings() {
         .limit(1);
 
       if (leads && leads.length > 0) {
-        const { error } = await supabase.functions.invoke("send-whatsapp", {
+        const { error } = await supabase.functions.invoke("send-sms-notification", {
           body: {
             type: "lead_unlocked",
             leadId: leads[0].id,
@@ -284,12 +284,12 @@ export default function Settings() {
         });
 
         if (error) throw error;
-        toast.success("Test message sent! Check your WhatsApp.");
+        toast.success("Test SMS sent! Check your phone.");
       } else {
         toast.error("No leads available to test with");
       }
     } catch (error: any) {
-      console.error("Error sending test WhatsApp:", error);
+      console.error("Error sending test SMS:", error);
       toast.error(error.message || "Failed to send test message");
     } finally {
       setTestingWhatsapp(false);
