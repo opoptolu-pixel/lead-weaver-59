@@ -64,6 +64,7 @@ import { cn } from "@/lib/utils";
 import { TrendComparisonChart } from "@/components/admin/TrendComparisonChart";
 import { MarketingRecommendations } from "@/components/admin/MarketingRecommendations";
 import { HistoricalVisitorAnalytics } from "@/components/admin/HistoricalVisitorAnalytics";
+import { BusinessAnalyticsTab } from "@/components/admin/BusinessAnalyticsTab";
 
 const COLORS = [
   "hsl(var(--secondary))", 
@@ -661,6 +662,7 @@ export default function AdminAnalytics() {
               <TabsTrigger value="acquisition"><FileText className="h-4 w-4 mr-2" />Acquisition</TabsTrigger>
               <TabsTrigger value="marketplace"><Target className="h-4 w-4 mr-2" />Marketplace</TabsTrigger>
               <TabsTrigger value="buyers"><Users className="h-4 w-4 mr-2" />Buyer Performance</TabsTrigger>
+              <TabsTrigger value="businesses"><Building2 className="h-4 w-4 mr-2" />Businesses</TabsTrigger>
             </TabsList>
 
             {/* ADS TAB */}
@@ -1474,6 +1476,11 @@ export default function AdminAnalytics() {
                   </Table>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* BUSINESSES TAB */}
+            <TabsContent value="businesses" className="space-y-6 mt-6">
+              <BusinessAnalyticsTab startDate={start} endDate={end} />
             </TabsContent>
           </Tabs>
         )}
