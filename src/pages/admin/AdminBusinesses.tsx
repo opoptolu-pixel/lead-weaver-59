@@ -1160,6 +1160,21 @@ export default function AdminBusinesses() {
                         Verify Business
                       </Button>
                     )}
+                    {selectedBusiness.is_verified && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-amber-500 border-amber-500/30"
+                        onClick={() => {
+                          setReverifyBusiness(selectedBusiness);
+                          setReverifyDocs({ business_license: false, insurance: false, address_proof: false });
+                          setIsReverifyOpen(true);
+                        }}
+                      >
+                        <Shield className="w-4 h-4 mr-2" />
+                        Require Re-verification
+                      </Button>
+                    )}
                     {selectedBusiness.is_suspended ? (
                       <Button
                         variant="outline"
