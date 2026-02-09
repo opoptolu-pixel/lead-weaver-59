@@ -408,12 +408,15 @@ export default function Verification() {
               ].map(({ type, label, icon: Icon }) => {
                 const doc = documents.find(d => d.document_type === type);
                 const status = doc?.status || "not_uploaded";
+                const isExpired = type === "insurance" && status === "approved" && doc?.expiry_date && new Date(doc.expiry_date) < new Date();
                 
                 return (
                   <div
                     key={type}
                     className={`p-3 rounded-xl border-2 transition-colors ${
-                      status === "approved"
+                      isExpired
+                        ? "bg-destructive/10 border-destructive/40"
+                        : status === "approved"
                         ? "bg-secondary/10 border-secondary/40"
                         : status === "pending"
                         ? "bg-amber-500/10 border-amber-500/40"
@@ -424,6 +427,7 @@ export default function Verification() {
                   >
                     <div className="flex items-center gap-2 mb-1">
                       <Icon className={`w-4 h-4 ${
+                        isExpired ? "text-destructive" :
                         status === "approved" ? "text-secondary" :
                         status === "pending" ? "text-amber-500" :
                         status === "rejected" ? "text-destructive" :
@@ -432,7 +436,13 @@ export default function Verification() {
                       <span className="text-sm font-medium">{label}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      {status === "approved" && (
+                      {isExpired && (
+                        <>
+                          <AlertTriangle className="w-3.5 h-3.5 text-destructive" />
+                          <span className="text-xs text-destructive font-medium">Expired</span>
+                        </>
+                      )}
+                      {!isExpired && status === "approved" && (
                         <>
                           <CheckCircle className="w-3.5 h-3.5 text-secondary" />
                           <span className="text-xs text-secondary font-medium">Approved</span>
@@ -444,7 +454,7 @@ export default function Verification() {
                           <span className="text-xs text-amber-500 font-medium">Under Review</span>
                         </>
                       )}
-                      {status === "rejected" && (
+                      {!isExpired && status === "rejected" && (
                         <>
                           <X className="w-3.5 h-3.5 text-destructive" />
                           <span className="text-xs text-destructive font-medium">Rejected</span>
@@ -464,20 +474,39 @@ export default function Verification() {
 
             {/* Progress Bar */}
             <div className="mb-6">
-              <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
-                <span>Verification Progress</span>
-                <span>
-                  {documents.filter(d => d.status === "approved").length} of 3 approved
-                </span>
-              </div>
-              <div className="h-2 bg-muted rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-secondary transition-all duration-500"
-                  style={{ 
-                    width: `${(documents.filter(d => d.status === "approved").length / 3) * 100}%` 
-                  }}
-                />
-              </div>
+            {(() => {
+              const insuranceDoc = documents.find(d => d.document_type === "insurance");
+              const insuranceExpired = insuranceDoc?.status === "approved" && insuranceDoc?.expiry_date && new Date(insuranceDoc.expiry_date) < new Date();
+              const validApproved = documents.filter(d => {
+                if (d.status !== "approved") return false;
+                if (d.document_type === "insurance" && d.expiry_date && new Date(d.expiry_date) < new Date()) return false;
+                return true;
+              }).length;
+
+              return (
+                <>
+                  <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
+                    <span>Verification Progress</span>
+                    <span>
+                      {validApproved} of 3 approved
+                    </span>
+                  </div>
+                  <div className="h-2 bg-muted rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full transition-all duration-500 ${insuranceExpired ? 'bg-destructive' : 'bg-secondary'}`}
+                      style={{ 
+                        width: `${(validApproved / 3) * 100}%` 
+                      }}
+                    />
+                  </div>
+                  {insuranceExpired && (
+                    <p className="text-xs text-destructive mt-1.5">
+                      Your insurance certificate has expired. Please upload a new one to restore full verification.
+                    </p>
+                  )}
+                </>
+              );
+            })()}
             </div>
           </div>
 
