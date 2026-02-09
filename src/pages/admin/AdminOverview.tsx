@@ -664,7 +664,7 @@ export default function AdminOverview() {
       </div>
 
       {/* Today's Accounting Summary Widget */}
-      <div className="bg-card rounded-xl border border-border p-6 mb-8">
+      <div className="bg-card rounded-xl border border-border/60 p-6 mb-8">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Calculator className="w-5 h-5 text-secondary" />
@@ -740,7 +740,7 @@ export default function AdminOverview() {
       </div>
 
       {/* Purchased vs Granted Leads Breakdown */}
-      <div className="bg-card rounded-xl border border-border p-6 mb-8">
+      <div className="bg-card rounded-xl border border-border/60 p-6 mb-8">
         <div className="flex items-center gap-2 mb-4">
           <Coins className="w-5 h-5 text-secondary" />
           <h3 className="font-heading font-semibold text-foreground">Lead Credit Breakdown</h3>
@@ -815,7 +815,7 @@ export default function AdminOverview() {
       </div>
 
       {/* Combined Ad Performance Widget */}
-      <div className="bg-card rounded-xl border border-border p-6 mb-8">
+      <div className="bg-card rounded-xl border border-border/60 p-6 mb-8">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Megaphone className="w-5 h-5 text-secondary" />
@@ -956,7 +956,7 @@ export default function AdminOverview() {
 
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="bg-card rounded-xl border border-border p-6">
+        <div className="bg-card rounded-xl border border-border/60 p-6">
           <h3 className="font-heading font-semibold text-foreground mb-4">
             Revenue & Leads (Last 7 Days)
           </h3>
@@ -992,7 +992,7 @@ export default function AdminOverview() {
           </ResponsiveContainer>
         </div>
 
-        <div className="bg-card rounded-xl border border-border p-6">
+        <div className="bg-card rounded-xl border border-border/60 p-6">
           <h3 className="font-heading font-semibold text-foreground mb-4">
             Lead Value Bands
           </h3>
@@ -1040,7 +1040,7 @@ export default function AdminOverview() {
 
       {/* Charts Row 2 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="bg-card rounded-xl border border-border p-6">
+        <div className="bg-card rounded-xl border border-border/60 p-6">
           <h3 className="font-heading font-semibold text-foreground mb-4">
             Top Postcodes by Purchases
           </h3>
@@ -1061,7 +1061,7 @@ export default function AdminOverview() {
           </ResponsiveContainer>
         </div>
 
-        <div className="bg-card rounded-xl border border-border p-6">
+        <div className="bg-card rounded-xl border border-border/60 p-6">
           <h3 className="font-heading font-semibold text-foreground mb-4">
             Job Type Performance
           </h3>
@@ -1099,9 +1099,7 @@ export default function AdminOverview() {
       </div>
 
       {/* Queue Widgets */}
-      <h3 className="font-heading font-semibold text-foreground mb-4">
-        Action Queues
-      </h3>
+      <p className="admin-section-title">Action Queues</p>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <QueueWidget
           title="Leads Awaiting Review"

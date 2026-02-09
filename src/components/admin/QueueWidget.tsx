@@ -14,10 +14,10 @@ export default function QueueWidget({ title, count, href, color = "default" }: Q
     <Link
       to={href}
       className={cn(
-        "flex items-center justify-between p-4 rounded-lg border transition-colors hover:bg-muted/50",
+        "flex items-center justify-between p-4 rounded-xl border transition-all duration-200 hover:shadow-sm",
         color === "warning" && "border-amber-500/30 bg-amber-500/5",
         color === "danger" && "border-destructive/30 bg-destructive/5",
-        color === "default" && "border-border"
+        color === "default" && "border-border/60 bg-card"
       )}
     >
       <div className="flex items-center gap-3">
