@@ -255,7 +255,45 @@ export default function AdminVerifications() {
           .eq("user_id", doc.user_id);
       }
 
-      // Check if all 3 required documents are now approved before sending email
+      // Send individual document approval email
+      try {
+        const { data: userEmail } = await supabase.rpc("get_user_email", { user_uuid: doc.user_id });
+        if (userEmail) {
+          const businessName = doc.profile?.business_name || doc.profile?.contact_name || "Business Owner";
+          const contactName = doc.profile?.contact_name || businessName;
+          const currentYear = new Date().getFullYear().toString();
+          const docTypeLabels: Record<string, string> = {
+            business_license: "Business License",
+            insurance: "Insurance Certificate",
+            address_proof: "Address Proof",
+          };
+          const documentTypeLabel = docTypeLabels[doc.document_type] || doc.document_type;
+
+          const docTemplateData = await getTemplateWithVariables("document_approved", {
+            business_name: businessName,
+            contact_name: contactName,
+            document_type: documentTypeLabel,
+            admin_notes: adminNotes || "No additional notes.",
+            verification_url: "https://cleanda.co.uk/verification",
+            current_year: currentYear,
+          });
+
+          if (docTemplateData) {
+            await supabase.functions.invoke("send-email", {
+              body: {
+                to: userEmail,
+                subject: docTemplateData.subject,
+                html: docTemplateData.body,
+                templateName: "document_approved",
+              },
+            });
+          }
+        }
+      } catch (docEmailError) {
+        console.error("Failed to send document approval email:", docEmailError);
+      }
+
+      // Check if all 3 required documents are now approved before sending full verification email
       const { data: allUserDocs } = await supabase
         .from("verification_documents")
         .select("document_type, status")
