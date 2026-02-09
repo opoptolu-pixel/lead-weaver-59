@@ -9,6 +9,7 @@ import { BackToTop } from "@/components/BackToTop";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import ClarityAnalytics from "@/components/ClarityAnalytics";
 import { VisitorPresenceTracker } from "@/components/VisitorPresenceTracker";
+import { SupportChatWidget } from "@/components/SupportChatWidget";
 import { PageViewTracker } from "@/components/PageViewTracker";
 
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -44,6 +45,7 @@ const RequestCleaningThankYou = lazy(() => import("./pages/RequestCleaningThankY
 const Contact = lazy(() => import("./pages/Contact"));
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
+const Support = lazy(() => import("./pages/Support"));
 
 // Admin routes - lazy loaded
 const AdminOverview = lazy(() => import("./pages/admin/AdminOverview"));
@@ -63,6 +65,7 @@ const AdminContactSubmissions = lazy(() => import("./pages/admin/AdminContactSub
 const AdminEmailSubscribers = lazy(() => import("./pages/admin/AdminEmailSubscribers"));
 const AdminLiveData = lazy(() => import("./pages/admin/AdminLiveData"));
 const AdminUtmBuilder = lazy(() => import("./pages/admin/AdminUtmBuilder"));
+const AdminSupport = lazy(() => import("./pages/admin/AdminSupport"));
 
 const queryClient = new QueryClient();
 
@@ -96,6 +99,7 @@ const App = () => (
                   <Route path="/disputes" element={<Disputes />} />
                   <Route path="/payment-success" element={<PaymentSuccess />} />
                   <Route path="/credits-success" element={<CreditsSuccess />} />
+                  <Route path="/support" element={<Support />} />
                   
                   {/* Customer-facing Pages */}
                   <Route path="/request-cleaning" element={<RequestCleaning />} />
@@ -131,12 +135,14 @@ const App = () => (
                   <Route path="/admin/settings" element={<AdminSettings />} />
                   <Route path="/admin/email-templates" element={<AdminEmailTemplates />} />
                   <Route path="/admin/subscribers" element={<AdminEmailSubscribers />} />
+                  <Route path="/admin/support" element={<AdminSupport />} />
                   
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>
               <MobileBottomNav />
+              <SupportChatWidget />
               <VisitorPresenceTracker />
               <PageViewTracker />
             </AdminProvider>
