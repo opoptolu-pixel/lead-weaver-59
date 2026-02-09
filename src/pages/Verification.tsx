@@ -57,7 +57,6 @@ export default function Verification() {
   const [addressProof, setAddressProof] = useState<File | null>(null);
   const [reuploadingDocId, setReuploadingDocId] = useState<string | null>(null);
   const reuploadInputRef = useRef<HTMLInputElement>(null);
-  const [insuranceExpiryDate, setInsuranceExpiryDate] = useState("");
   const [pendingInsuranceFile, setPendingInsuranceFile] = useState<File | null>(null);
   const [pendingInsuranceReupload, setPendingInsuranceReupload] = useState<{ docId: string; oldFilePath: string } | null>(null);
   
@@ -174,7 +173,7 @@ export default function Verification() {
     }
   };
 
-  const handleDocumentUpload = async (type: string, file: File, expiryDate?: string) => {
+  const handleDocumentUpload = async (type: string, file: File) => {
     if (!user) return;
 
     setUploading(true);
@@ -195,10 +194,6 @@ export default function Verification() {
         status: "pending",
       };
 
-      if (type === "insurance" && expiryDate) {
-        insertData.expiry_date = expiryDate;
-      }
-
       const { error: dbError } = await supabase
         .from("verification_documents")
         .insert(insertData);
@@ -209,7 +204,6 @@ export default function Verification() {
       toast.success("Document uploaded successfully!");
       setAddressProof(null);
       setPendingInsuranceFile(null);
-      setInsuranceExpiryDate("");
     } catch (error: any) {
       console.error("Error uploading document:", error);
       toast.error(error.message || "Failed to upload document");
@@ -218,7 +212,7 @@ export default function Verification() {
     }
   };
 
-  const handleReupload = async (docId: string, docType: string, oldFilePath: string, file: File, expiryDate?: string) => {
+  const handleReupload = async (docId: string, docType: string, oldFilePath: string, file: File) => {
     if (!user) return;
 
     setUploading(true);
@@ -241,10 +235,6 @@ export default function Verification() {
         updated_at: new Date().toISOString(),
       };
 
-      if (docType === "insurance" && expiryDate) {
-        updateData.expiry_date = expiryDate;
-      }
-
       const { error: dbError } = await supabase
         .from("verification_documents")
         .update(updateData)
@@ -262,7 +252,6 @@ export default function Verification() {
       setReuploadingDocId(null);
       setPendingInsuranceReupload(null);
       setPendingInsuranceFile(null);
-      setInsuranceExpiryDate("");
     } catch (error: any) {
       console.error("Error re-uploading document:", error);
       toast.error(error.message || "Failed to re-upload document");
@@ -724,21 +713,6 @@ export default function Verification() {
                     </p>
                   </div>
                   
-                  {/* Expiry date field */}
-                  <div className="mb-4 max-w-xs mx-auto">
-                    <Label htmlFor="insurance-expiry" className="text-sm font-medium mb-1.5 block">
-                      Certificate Expiry Date <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="insurance-expiry"
-                      type="date"
-                      value={insuranceExpiryDate}
-                      onChange={(e) => setInsuranceExpiryDate(e.target.value)}
-                      min={new Date().toISOString().split('T')[0]}
-                      className="text-sm"
-                    />
-                  </div>
-
                   <div className="text-center">
                     <input
                       type="file"
@@ -748,17 +722,12 @@ export default function Verification() {
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
-                          if (!insuranceExpiryDate) {
-                            toast.error("Please enter the insurance certificate expiry date");
-                            e.target.value = "";
-                            return;
-                          }
-                          handleDocumentUpload("insurance", file, insuranceExpiryDate);
+                          handleDocumentUpload("insurance", file);
                         }
                       }}
                     />
                     <label htmlFor="insurance-doc">
-                      <Button variant="outline" asChild disabled={uploading || !insuranceExpiryDate}>
+                      <Button variant="outline" asChild disabled={uploading}>
                         <span>
                           {uploading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
                           Upload Insurance Certificate
@@ -817,7 +786,6 @@ export default function Verification() {
                           onClick={() => {
                             setPendingInsuranceReupload({ docId: doc.id, oldFilePath: doc.file_path });
                             setPendingInsuranceFile(null);
-                            setInsuranceExpiryDate("");
                           }}
                         >
                           <Upload className="w-3 h-3 mr-1" />
@@ -830,19 +798,6 @@ export default function Verification() {
                   {/* Re-upload form with expiry date */}
                   {pendingInsuranceReupload?.docId === doc.id && (
                     <div className="mt-3 p-4 bg-muted rounded-lg space-y-3">
-                      <div>
-                        <Label htmlFor="reupload-insurance-expiry" className="text-sm font-medium mb-1.5 block">
-                          New Certificate Expiry Date <span className="text-destructive">*</span>
-                        </Label>
-                        <Input
-                          id="reupload-insurance-expiry"
-                          type="date"
-                          value={insuranceExpiryDate}
-                          onChange={(e) => setInsuranceExpiryDate(e.target.value)}
-                          min={new Date().toISOString().split('T')[0]}
-                          className="text-sm max-w-xs"
-                        />
-                      </div>
                       <div className="flex items-center gap-2">
                         <input
                           type="file"
@@ -852,17 +807,12 @@ export default function Verification() {
                           onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) {
-                              if (!insuranceExpiryDate) {
-                                toast.error("Please enter the insurance certificate expiry date");
-                                e.target.value = "";
-                                return;
-                              }
-                              handleReupload(doc.id, doc.document_type, doc.file_path, file, insuranceExpiryDate);
+                              handleReupload(doc.id, doc.document_type, doc.file_path, file);
                             }
                           }}
                         />
                         <label htmlFor={`reupload-ins-${doc.id}`}>
-                          <Button variant="cta" size="sm" asChild disabled={uploading || !insuranceExpiryDate}>
+                          <Button variant="cta" size="sm" asChild disabled={uploading}>
                             <span className="cursor-pointer">
                               {uploading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Upload className="w-3 h-3 mr-1" />}
                               Select & Upload File
@@ -874,7 +824,6 @@ export default function Verification() {
                           size="sm" 
                           onClick={() => {
                             setPendingInsuranceReupload(null);
-                            setInsuranceExpiryDate("");
                           }}
                         >
                           Cancel
