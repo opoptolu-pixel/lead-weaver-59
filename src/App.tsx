@@ -66,6 +66,7 @@ const AdminEmailSubscribers = lazy(() => import("./pages/admin/AdminEmailSubscri
 const AdminLiveData = lazy(() => import("./pages/admin/AdminLiveData"));
 const AdminUtmBuilder = lazy(() => import("./pages/admin/AdminUtmBuilder"));
 const AdminSupport = lazy(() => import("./pages/admin/AdminSupport"));
+const AdminEmailSequences = lazy(() => import("./pages/admin/AdminEmailSequences"));
 
 const queryClient = new QueryClient();
 
@@ -136,6 +137,7 @@ const App = () => (
                   <Route path="/admin/email-templates" element={<AdminEmailTemplates />} />
                   <Route path="/admin/subscribers" element={<AdminEmailSubscribers />} />
                   <Route path="/admin/support" element={<AdminSupport />} />
+                  <Route path="/admin/email-sequences" element={<AdminEmailSequences />} />
                   
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />

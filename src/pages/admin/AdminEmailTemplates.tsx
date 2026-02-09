@@ -1678,6 +1678,148 @@ const DEFAULT_TEMPLATES = [
 </body>
 </html>`,
   },
+  {
+    name: "insurance_expiry_reminder",
+    subject: "{{urgency_prefix}}Your Insurance {{urgency_text}}",
+    description: "Sent to businesses when their insurance certificate is about to expire",
+    variables: ["contact_name", "business_name", "urgency_text", "urgency_prefix", "expiry_date", "days_remaining", "is_urgent", "current_year", "unsubscribe_url"],
+    body: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f0f4f3; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f0f4f3; padding: 40px 20px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(11, 61, 46, 0.08);">
+          
+          <!-- Header -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #0B3D2E 0%, #145A44 100%); padding: 40px; text-align: center;">
+              <div style="width: 60px; height: 60px; background-color: rgba(255,255,255,0.15); border-radius: 12px; margin: 0 auto 16px auto; line-height: 60px;">
+                <span style="font-size: 28px;">🛡️</span>
+              </div>
+              <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700;">Insurance Expiry Reminder</h1>
+              <p style="color: #7DD3A8; margin: 8px 0 0 0; font-size: 14px;">Keep your verification status active</p>
+            </td>
+          </tr>
+          
+          <!-- Main Content -->
+          <tr>
+            <td style="padding: 35px 40px;">
+              <p style="color: #333333; font-size: 17px; line-height: 1.6; margin: 0 0 25px 0;">
+                Hi <strong>{{contact_name}}</strong>,
+              </p>
+              <p style="color: #555555; font-size: 16px; line-height: 1.7; margin: 0 0 28px 0;">
+                This is a friendly reminder that your insurance certificate for <strong>{{business_name}}</strong> {{urgency_text}}.
+              </p>
+              
+              <!-- Expiry Details Card -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%); border-radius: 12px; border: 1px solid #FFB74D; margin-bottom: 28px;">
+                <tr>
+                  <td style="padding: 24px;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td width="50%" style="padding-right: 10px;">
+                          <span style="color: #795548; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Expiry Date</span><br>
+                          <span style="color: #E65100; font-size: 18px; font-weight: 700; display: block; margin-top: 4px;">{{expiry_date}}</span>
+                        </td>
+                        <td width="50%" style="padding-left: 10px; border-left: 1px solid rgba(255, 183, 77, 0.5);">
+                          <span style="color: #795548; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Days Remaining</span><br>
+                          <span style="color: #E65100; font-size: 18px; font-weight: 700; display: block; margin-top: 4px;">{{days_remaining}}</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              
+              <!-- Steps -->
+              <h3 style="color: #0B3D2E; margin: 0 0 18px 0; font-size: 18px; font-weight: 600;">What You Need To Do</h3>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td style="padding: 10px 0;">
+                    <table role="presentation" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td width="36" valign="top">
+                          <div style="width: 28px; height: 28px; background-color: #0B3D2E; color: white; border-radius: 50%; text-align: center; line-height: 28px; font-size: 14px; font-weight: 600;">1</div>
+                        </td>
+                        <td style="padding-left: 12px;">
+                          <p style="color: #333333; font-size: 15px; margin: 0; line-height: 1.5;"><strong>Renew</strong> your insurance policy before it expires</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 0;">
+                    <table role="presentation" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td width="36" valign="top">
+                          <div style="width: 28px; height: 28px; background-color: #0B3D2E; color: white; border-radius: 50%; text-align: center; line-height: 28px; font-size: 14px; font-weight: 600;">2</div>
+                        </td>
+                        <td style="padding-left: 12px;">
+                          <p style="color: #333333; font-size: 15px; margin: 0; line-height: 1.5;"><strong>Upload</strong> your new insurance certificate to Cleanda</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 0;">
+                    <table role="presentation" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td width="36" valign="top">
+                          <div style="width: 28px; height: 28px; background-color: #0B3D2E; color: white; border-radius: 50%; text-align: center; line-height: 28px; font-size: 14px; font-weight: 600;">3</div>
+                        </td>
+                        <td style="padding-left: 12px;">
+                          <p style="color: #333333; font-size: 15px; margin: 0; line-height: 1.5;"><strong>Stay active</strong> and keep unlocking leads</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              
+              <!-- CTA Button -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top: 25px;">
+                <tr>
+                  <td align="center">
+                    <a href="https://cleanda.co.uk/settings/verification" style="display: inline-block; background: linear-gradient(135deg, #0B3D2E 0%, #145A44 100%); color: #ffffff; padding: 16px 40px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 16px; box-shadow: 0 4px 12px rgba(11, 61, 46, 0.3);">Upload New Insurance →</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #0B3D2E; padding: 25px 40px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center">
+                    <p style="color: rgba(255,255,255,0.6); font-size: 12px; margin: 0 0 12px 0;">
+                      You are receiving this because you are a registered Cleanda partner.<br>
+                      © {{current_year}} Cleanda
+                    </p>
+                    <p style="margin: 0;">
+                      <a href="{{unsubscribe_url}}" style="color: rgba(255,255,255,0.4); font-size: 11px; text-decoration: underline;">Unsubscribe from emails</a>
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
+  },
 ];
 
 import { useAdmin } from "@/contexts/AdminContext";

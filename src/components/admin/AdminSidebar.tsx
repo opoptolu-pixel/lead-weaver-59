@@ -19,6 +19,7 @@ import {
   MessageSquare,
   X,
   Link2,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,7 @@ const navItems = [
   { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
   { title: "UTM Builder", url: "/admin/utm-builder", icon: Link2 },
   { title: "Email Templates", url: "/admin/email-templates", icon: Mail },
+  { title: "Email Sequences", url: "/admin/email-sequences", icon: Zap },
   { title: "Support", url: "/admin/support", icon: Headphones },
   { title: "Subscribers", url: "/admin/subscribers", icon: Users },
   { title: "Activity Logs", url: "/admin/activity-logs", icon: Activity },
