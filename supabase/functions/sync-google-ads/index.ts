@@ -79,7 +79,7 @@ async function fetchGoogleAdsData(
   `;
 
   const response = await fetch(
-    `https://googleads.googleapis.com/v18/customers/${customerId}/googleAds:searchStream`,
+    `https://googleads.googleapis.com/v23/customers/${customerId}/googleAds:searchStream`,
     {
       method: "POST",
       headers: {
@@ -163,11 +163,15 @@ Deno.serve(async (req) => {
       startDate = body.startDate;
       endDate = body.endDate;
     } catch {
-      // Default to last 30 days
+      // ignore parse errors
+    }
+
+    // Default to last 30 days if dates not provided
+    if (!startDate || !endDate) {
       const now = new Date();
-      endDate = now.toISOString().split("T")[0];
+      endDate = endDate || now.toISOString().split("T")[0];
       const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      startDate = thirtyDaysAgo.toISOString().split("T")[0];
+      startDate = startDate || thirtyDaysAgo.toISOString().split("T")[0];
     }
 
     console.log(`[GOOGLE-ADS-SYNC] Date range: ${startDate} to ${endDate}`);
