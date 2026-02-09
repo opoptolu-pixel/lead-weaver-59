@@ -666,6 +666,17 @@ export default function AdminVerifications() {
             {pagination.paginatedData.map((group) => {
               const isExpanded = expandedBusinesses.has(group.userId);
               const groupPendingCount = group.docs.filter(d => d.status === "pending").length;
+              const groupRejectedCount = group.docs.filter(d => d.status === "rejected").length;
+              const groupApprovedCount = group.docs.filter(d => d.status === "approved").length;
+              const allApproved = group.docs.length > 0 && groupApprovedCount === group.docs.length;
+              const hasExpiring = group.docs.some(d => 
+                d.document_type === "insurance" && d.status === "approved" && d.expiry_date && 
+                new Date(d.expiry_date) <= threeMonthsFromNow
+              );
+              const hasExpired = group.docs.some(d => 
+                d.document_type === "insurance" && d.status === "approved" && d.expiry_date && 
+                new Date(d.expiry_date) < new Date()
+              );
               return (
                 <div key={group.userId}>
                   {/* Business header */}
@@ -673,7 +684,7 @@ export default function AdminVerifications() {
                     onClick={() => toggleBusiness(group.userId)}
                     className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-wrap">
                       <div className="w-9 h-9 rounded-lg bg-secondary/10 flex items-center justify-center">
                         <Building2 className="w-4 h-4 text-secondary" />
                       </div>
@@ -681,8 +692,21 @@ export default function AdminVerifications() {
                         <p className="font-semibold text-foreground">{group.businessName}</p>
                         <p className="text-xs text-muted-foreground">{group.docs.length} document{group.docs.length !== 1 ? 's' : ''}</p>
                       </div>
+                      {/* Status badges */}
+                      {allApproved && !hasExpiring && !hasExpired && (
+                        <Badge className="bg-green-500/20 text-green-500">Verified</Badge>
+                      )}
                       {groupPendingCount > 0 && (
-                        <Badge variant="secondary" className="ml-2">{groupPendingCount} pending</Badge>
+                        <Badge variant="secondary">{groupPendingCount} pending</Badge>
+                      )}
+                      {groupRejectedCount > 0 && (
+                        <Badge variant="destructive">{groupRejectedCount} rejected</Badge>
+                      )}
+                      {hasExpired && (
+                        <Badge variant="destructive" className="gap-1"><AlertTriangle className="w-3 h-3" /> Insurance Expired</Badge>
+                      )}
+                      {hasExpiring && !hasExpired && (
+                        <Badge className="bg-amber-500/20 text-amber-600 border-amber-500/30 gap-1"><Clock className="w-3 h-3" /> Expiring Soon</Badge>
                       )}
                     </div>
                     {isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
