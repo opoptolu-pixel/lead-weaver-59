@@ -186,6 +186,103 @@
   @apply text-secondary font-bold flex-shrink-0 mt-0.5;
 }
 
+/* ===== Admin Uber-style polish ===== */
+
+/* Crisp, system-level typography for admin */
+.admin-layout {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.01em;
+}
+
+.admin-layout h1,
+.admin-layout h2,
+.admin-layout h3 {
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+/* Refined card surfaces */
+.admin-layout .admin-card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.admin-layout .admin-card:hover {
+  box-shadow: 0 2px 12px -2px hsl(var(--foreground) / 0.06);
+}
+
+/* Clean table rows */
+.admin-layout table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.admin-layout table tbody tr:hover {
+  background-color: hsl(var(--muted) / 0.5);
+}
+
+/* Tight, clean badges */
+.admin-layout .badge {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: 0.65rem;
+}
+
+/* Switch thumb text fix — ensure visible on white background */
+[data-state="unchecked"] > span[data-state],
+[role="switch"][data-state="unchecked"] {
+  background-color: hsl(var(--muted));
+}
+
+[role="switch"] span {
+  color: hsl(var(--foreground));
+}
+
+/* Ensure switch label text is always visible */
+.admin-layout label {
+  color: hsl(var(--foreground));
+}
+
+/* Uber-style section headers */
+.admin-section-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: hsl(var(--muted-foreground));
+  margin-bottom: 1rem;
+}
+
+/* Crisp dividers */
+.admin-layout hr,
+.admin-layout [role="separator"] {
+  border-color: hsl(var(--border));
+  opacity: 0.6;
+}
+
+/* Smooth scrollbars for admin */
+.admin-layout ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.admin-layout ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.admin-layout ::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.2);
+  border-radius: 3px;
+}
+
+.admin-layout ::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.35);
+}
+
 /* Custom animations */
 @keyframes float {
   0%, 100% { transform: translateY(0px); }

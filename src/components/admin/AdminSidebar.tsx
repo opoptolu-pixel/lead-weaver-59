@@ -88,14 +88,14 @@ export default function AdminSidebar({ onNavigate }: AdminSidebarProps) {
       <button
         onClick={() => handleNavClick(item.url)}
         className={cn(
-          "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors w-full text-left",
+          "flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 w-full text-left",
           active
-            ? "bg-secondary/20 text-secondary"
-            : "text-muted-foreground hover:bg-muted hover:text-foreground",
+            ? "bg-secondary/15 text-secondary font-semibold"
+            : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
           collapsed && "justify-center px-2"
         )}
       >
-        <item.icon className="w-5 h-5 flex-shrink-0" />
+        <item.icon className="w-[18px] h-[18px] flex-shrink-0" />
         {!collapsed && <span>{item.title}</span>}
       </button>
     );
@@ -120,8 +120,8 @@ export default function AdminSidebar({ onNavigate }: AdminSidebarProps) {
     <TooltipProvider>
       <aside
         className={cn(
-          "bg-card border-r border-border h-screen flex flex-col transition-all duration-300 flex-shrink-0",
-          collapsed ? "w-16" : "w-64"
+          "bg-card border-r border-border/60 h-screen flex flex-col transition-all duration-300 flex-shrink-0",
+          collapsed ? "w-16" : "w-60"
         )}
       >
         {/* Logo */}
