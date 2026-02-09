@@ -57,9 +57,41 @@ function VerificationStatusSection({ profile }: VerificationStatusProps) {
   const leadsRemaining = Math.max(0, 3 - leadsPurchased);
   const needsFullVerification = leadsPurchased >= 3 && !isFullyVerified;
 
+  const [hasExpiredInsurance, setHasExpiredInsurance] = useState(false);
+
+  // Check for expired insurance documents
+  useEffect(() => {
+    const checkInsurance = async () => {
+      const { data } = await supabase
+        .from("verification_documents")
+        .select("expiry_date")
+        .eq("document_type", "insurance")
+        .eq("status", "approved")
+        .maybeSingle();
+
+      if (data?.expiry_date && new Date(data.expiry_date) < new Date()) {
+        setHasExpiredInsurance(true);
+      } else {
+        setHasExpiredInsurance(false);
+      }
+    };
+    if (isFullyVerified) checkInsurance();
+  }, [isFullyVerified]);
+
+  const effectivelyVerified = isFullyVerified && !hasExpiredInsurance;
+
   // Determine overall status
   const getStatusInfo = () => {
-    if (isFullyVerified) {
+    if (isFullyVerified && hasExpiredInsurance) {
+      return {
+        icon: <AlertCircle className="w-5 h-5 text-destructive" />,
+        title: "Insurance Expired",
+        color: "text-destructive",
+        bgColor: "bg-destructive/10",
+        borderColor: "border-destructive/30",
+      };
+    }
+    if (effectivelyVerified) {
       return {
         icon: <CheckCircle className="w-5 h-5 text-secondary" />,
         title: "Fully Verified",
@@ -113,7 +145,9 @@ function VerificationStatusSection({ profile }: VerificationStatusProps) {
       <div className={`flex items-center gap-2 p-3 rounded-lg ${statusInfo.bgColor} border ${statusInfo.borderColor} mb-4`}>
         {statusInfo.icon}
         <p className="text-sm text-foreground">
-          {isFullyVerified ? (
+          {isFullyVerified && hasExpiredInsurance ? (
+            <>Your insurance certificate has expired. <Link to="/settings/verification" className="underline font-medium">Upload a new certificate</Link> to restore full verification.</>
+          ) : effectivelyVerified ? (
             <>You're fully verified! Unlimited lead purchases available.</>
           ) : needsFullVerification ? (
             <>You've purchased 3 leads. Complete business verification to continue buying.</>
@@ -145,22 +179,26 @@ function VerificationStatusSection({ profile }: VerificationStatusProps) {
         {/* Business Verification - Required after 3 leads */}
         <Link 
           to="/settings/verification"
-          className={`flex items-center gap-3 p-3 rounded-lg transition-colors hover:bg-accent ${isFullyVerified ? "bg-secondary/10" : "bg-muted"}`}
+          className={`flex items-center gap-3 p-3 rounded-lg transition-colors hover:bg-accent ${effectivelyVerified ? "bg-secondary/10" : hasExpiredInsurance ? "bg-destructive/10" : "bg-muted"}`}
         >
-          {isFullyVerified ? (
+          {effectivelyVerified ? (
             <CheckCircle className="w-5 h-5 text-secondary flex-shrink-0" />
+          ) : hasExpiredInsurance ? (
+            <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0" />
           ) : (
             <Circle className="w-5 h-5 text-muted-foreground flex-shrink-0" />
           )}
           <div className="flex-1">
-            <p className={`text-sm font-medium ${isFullyVerified ? "text-secondary" : "text-foreground"}`}>
+            <p className={`text-sm font-medium ${effectivelyVerified ? "text-secondary" : hasExpiredInsurance ? "text-destructive" : "text-foreground"}`}>
               Business Verification
             </p>
             <p className="text-xs text-muted-foreground">
-              Required after 3 leads: Proof of address, Certificate of incorporation & Insurance
+              {hasExpiredInsurance 
+                ? "Insurance expired — upload a new certificate to restore verification"
+                : "Required after 3 leads: Proof of address, Certificate of incorporation & Insurance"}
             </p>
           </div>
-          {!isFullyVerified && (
+          {!effectivelyVerified && (
             <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
           )}
         </Link>
