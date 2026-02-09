@@ -61,6 +61,7 @@ interface LeadsScrollContainerProps {
   getLeadReservation: (leadId: string) => LeadReservationInfo | null;
   onReservationExpired?: () => void;
   isSuspended?: boolean;
+  isReverificationRequired?: boolean;
 }
 
 const INITIAL_VISIBLE_COUNT = 10;
@@ -80,6 +81,7 @@ const LeadsScrollContainer = ({
   getLeadReservation,
   onReservationExpired,
   isSuspended = false,
+  isReverificationRequired = false,
 }: LeadsScrollContainerProps) => {
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_COUNT);
   
@@ -174,6 +176,19 @@ const LeadsScrollContainer = ({
                         </Button>
                       );
                     }
+                    if (isReverificationRequired) {
+                      return (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="gap-2 cursor-not-allowed opacity-50 text-amber-500 border-amber-500/30"
+                          disabled
+                        >
+                          <AlertCircle className="w-4 h-4" />
+                          Re-verification Required
+                        </Button>
+                      );
+                    }
                     return userCredits > 0 ? (
                       <Button 
                         variant="cta" 
@@ -264,6 +279,18 @@ const LeadsScrollContainer = ({
                     >
                       <AlertCircle className="w-4 h-4" />
                       Account Suspended
+                    </Button>
+                  );
+                }
+                if (isReverificationRequired) {
+                  return (
+                    <Button 
+                      variant="outline" 
+                      className="w-full gap-2 cursor-not-allowed opacity-50 text-amber-500 border-amber-500/30"
+                      disabled
+                    >
+                      <AlertCircle className="w-4 h-4" />
+                      Re-verification Required
                     </Button>
                   );
                 }
@@ -730,6 +757,18 @@ export default function Leads() {
           { duration: 6000 }
         );
         navigate("/settings/verification");
+        return;
+      }
+
+      if (profile.verification_status === 'reverification_required') {
+        toast.error(
+          <div>
+            <strong>Re-verification Required</strong>
+            <p className="text-sm mt-1">Your account requires re-verification. Please re-upload the requested documents before purchasing leads.</p>
+          </div>,
+          { duration: 6000 }
+        );
+        navigate("/verification");
         return;
       }
     }
@@ -1207,6 +1246,7 @@ export default function Leads() {
             }}
             onReservationExpired={() => fetchReservations(leads.map(l => l.id))}
             isSuspended={profile?.is_suspended || false}
+            isReverificationRequired={profile?.verification_status === 'reverification_required'}
           />
         )}
 
