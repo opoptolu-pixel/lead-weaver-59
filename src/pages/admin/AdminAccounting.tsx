@@ -389,11 +389,13 @@ export default function AdminAccounting() {
 
   // Calculate previous period KPIs for comparison
   const previousKpis = useMemo(() => {
-    const grossRevenue = previousTransactions.length * LEAD_PRICE;
-    const refundedTxns = previousTransactions.filter(t => t.status === "refunded");
+    // Only count purchased credits as revenue
+    const purchasedPrevTxns = previousTransactions.filter(t => t.creditType === "purchased");
+    const grossRevenue = purchasedPrevTxns.length * LEAD_PRICE;
+    const refundedTxns = purchasedPrevTxns.filter(t => t.status === "refunded");
     const refundsIssued = refundedTxns.length * LEAD_PRICE;
     const netRevenue = grossRevenue - refundsIssued;
-    const refundRate = previousTransactions.length > 0 ? (refundedTxns.length / previousTransactions.length) * 100 : 0;
+    const refundRate = previousTransactions.length > 0 ? (previousTransactions.filter(t => t.status === "refunded").length / previousTransactions.length) * 100 : 0;
     
     const days = previousDateRange.from && previousDateRange.to 
       ? Math.max(1, Math.ceil((previousDateRange.to.getTime() - previousDateRange.from.getTime()) / (1000 * 60 * 60 * 24)))
@@ -413,11 +415,13 @@ export default function AdminAccounting() {
 
   // Calculate YoY KPIs for year-over-year comparison
   const yoyKpis = useMemo(() => {
-    const grossRevenue = yoyTransactions.length * LEAD_PRICE;
-    const refundedTxns = yoyTransactions.filter(t => t.status === "refunded");
+    // Only count purchased credits as revenue
+    const purchasedYoyTxns = yoyTransactions.filter(t => t.creditType === "purchased");
+    const grossRevenue = purchasedYoyTxns.length * LEAD_PRICE;
+    const refundedTxns = purchasedYoyTxns.filter(t => t.status === "refunded");
     const refundsIssued = refundedTxns.length * LEAD_PRICE;
     const netRevenue = grossRevenue - refundsIssued;
-    const refundRate = yoyTransactions.length > 0 ? (refundedTxns.length / yoyTransactions.length) * 100 : 0;
+    const refundRate = yoyTransactions.length > 0 ? (yoyTransactions.filter(t => t.status === "refunded").length / yoyTransactions.length) * 100 : 0;
     
     const days = dateRange.from && dateRange.to 
       ? Math.max(1, Math.ceil((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24)))
@@ -505,8 +509,10 @@ export default function AdminAccounting() {
         return txDate >= dayStart && txDate <= dayEnd;
       });
       
-      const gross = dayTxns.length * LEAD_PRICE;
-      const refunds = dayTxns.filter(t => t.status === "refunded").length * LEAD_PRICE;
+      // Only count purchased credits as revenue (exclude granted)
+      const purchasedDayTxns = dayTxns.filter(t => t.creditType === "purchased");
+      const gross = purchasedDayTxns.length * LEAD_PRICE;
+      const refunds = purchasedDayTxns.filter(t => t.status === "refunded").length * LEAD_PRICE;
       
       return {
         date: format(day, "MMM dd"),

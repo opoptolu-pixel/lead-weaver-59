@@ -376,6 +376,7 @@ export default function AdminPayments() {
                           <TableHead>Job Type</TableHead>
                           <TableHead>Postcode</TableHead>
                           <TableHead>Amount</TableHead>
+                          <TableHead>Type</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead>Date</TableHead>
                           <TableHead className="w-[50px]"></TableHead>
@@ -389,6 +390,17 @@ export default function AdminPayments() {
                             <TableCell>{purchase.job_type}</TableCell>
                             <TableCell>{purchase.postcode}</TableCell>
                             <TableCell>£{purchase.amount}</TableCell>
+                            <TableCell>
+                              <Badge 
+                                variant="outline" 
+                                className={purchase.credit_type === "granted" 
+                                  ? "border-teal-500/50 text-teal-600 bg-teal-500/10" 
+                                  : "border-primary/50 text-primary bg-primary/10"
+                                }
+                              >
+                                {purchase.credit_type === "granted" ? "Granted" : "Paid"}
+                              </Badge>
+                            </TableCell>
                             <TableCell>{getStatusBadge(purchase.status)}</TableCell>
                             <TableCell className="text-muted-foreground">
                               {purchase.unlocked_at ? format(new Date(purchase.unlocked_at), "d MMM yyyy") : "-"}
