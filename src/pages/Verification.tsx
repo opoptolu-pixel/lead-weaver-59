@@ -57,6 +57,9 @@ export default function Verification() {
   const [addressProof, setAddressProof] = useState<File | null>(null);
   const [reuploadingDocId, setReuploadingDocId] = useState<string | null>(null);
   const reuploadInputRef = useRef<HTMLInputElement>(null);
+  const [insuranceExpiryDate, setInsuranceExpiryDate] = useState("");
+  const [pendingInsuranceFile, setPendingInsuranceFile] = useState<File | null>(null);
+  const [pendingInsuranceReupload, setPendingInsuranceReupload] = useState<{ docId: string; oldFilePath: string } | null>(null);
   
   // Document preview state
   const [previewDoc, setPreviewDoc] = useState<VerificationDocument | null>(null);
@@ -164,7 +167,7 @@ export default function Verification() {
     }
   };
 
-  const handleDocumentUpload = async (type: string, file: File) => {
+  const handleDocumentUpload = async (type: string, file: File, expiryDate?: string) => {
     if (!user) return;
 
     setUploading(true);
@@ -178,20 +181,28 @@ export default function Verification() {
 
       if (uploadError) throw uploadError;
 
+      const insertData: any = {
+        user_id: user.id,
+        document_type: type,
+        file_path: filePath,
+        status: "pending",
+      };
+
+      if (type === "insurance" && expiryDate) {
+        insertData.expiry_date = expiryDate;
+      }
+
       const { error: dbError } = await supabase
         .from("verification_documents")
-        .insert({
-          user_id: user.id,
-          document_type: type,
-          file_path: filePath,
-          status: "pending",
-        });
+        .insert(insertData);
 
       if (dbError) throw dbError;
 
       await fetchDocuments();
       toast.success("Document uploaded successfully!");
       setAddressProof(null);
+      setPendingInsuranceFile(null);
+      setInsuranceExpiryDate("");
     } catch (error: any) {
       console.error("Error uploading document:", error);
       toast.error(error.message || "Failed to upload document");
@@ -200,7 +211,7 @@ export default function Verification() {
     }
   };
 
-  const handleReupload = async (docId: string, docType: string, oldFilePath: string, file: File) => {
+  const handleReupload = async (docId: string, docType: string, oldFilePath: string, file: File, expiryDate?: string) => {
     if (!user) return;
 
     setUploading(true);
@@ -216,14 +227,20 @@ export default function Verification() {
       if (uploadError) throw uploadError;
 
       // Update the existing document record
+      const updateData: any = {
+        file_path: filePath,
+        status: "pending",
+        admin_notes: null,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (docType === "insurance" && expiryDate) {
+        updateData.expiry_date = expiryDate;
+      }
+
       const { error: dbError } = await supabase
         .from("verification_documents")
-        .update({
-          file_path: filePath,
-          status: "pending",
-          admin_notes: null,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq("id", docId);
 
       if (dbError) throw dbError;
@@ -236,6 +253,9 @@ export default function Verification() {
       await fetchDocuments();
       toast.success("Document re-uploaded successfully!");
       setReuploadingDocId(null);
+      setPendingInsuranceReupload(null);
+      setPendingInsuranceFile(null);
+      setInsuranceExpiryDate("");
     } catch (error: any) {
       console.error("Error re-uploading document:", error);
       toast.error(error.message || "Failed to re-upload document");
@@ -689,29 +709,56 @@ export default function Verification() {
 
             <div className="space-y-4">
               {!documents.some(d => d.document_type === "insurance") && (
-                <div className="border-2 border-dashed border-border rounded-xl p-6 text-center">
-                  <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground mb-3">
-                    PDF, JPG or PNG up to 10MB
-                  </p>
-                  <input
-                    type="file"
-                    id="insurance-doc"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleDocumentUpload("insurance", file);
-                    }}
-                  />
-                  <label htmlFor="insurance-doc">
-                    <Button variant="outline" asChild disabled={uploading}>
-                      <span>
-                        {uploading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
-                        Upload Insurance Certificate
-                      </span>
-                    </Button>
-                  </label>
+                <div className="border-2 border-dashed border-border rounded-xl p-6">
+                  <div className="text-center">
+                    <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground mb-3">
+                      PDF, JPG or PNG up to 10MB
+                    </p>
+                  </div>
+                  
+                  {/* Expiry date field */}
+                  <div className="mb-4 max-w-xs mx-auto">
+                    <Label htmlFor="insurance-expiry" className="text-sm font-medium mb-1.5 block">
+                      Certificate Expiry Date <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="insurance-expiry"
+                      type="date"
+                      value={insuranceExpiryDate}
+                      onChange={(e) => setInsuranceExpiryDate(e.target.value)}
+                      min={new Date().toISOString().split('T')[0]}
+                      className="text-sm"
+                    />
+                  </div>
+
+                  <div className="text-center">
+                    <input
+                      type="file"
+                      id="insurance-doc"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          if (!insuranceExpiryDate) {
+                            toast.error("Please enter the insurance certificate expiry date");
+                            e.target.value = "";
+                            return;
+                          }
+                          handleDocumentUpload("insurance", file, insuranceExpiryDate);
+                        }
+                      }}
+                    />
+                    <label htmlFor="insurance-doc">
+                      <Button variant="outline" asChild disabled={uploading || !insuranceExpiryDate}>
+                        <span>
+                          {uploading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
+                          Upload Insurance Certificate
+                        </span>
+                      </Button>
+                    </label>
+                  </div>
                 </div>
               )}
 
@@ -756,29 +803,78 @@ export default function Verification() {
                         <Eye className="w-4 h-4" />
                       </Button>
                       {(doc.status === "rejected" || isExpired) && (
-                        <>
-                          <input
-                            type="file"
-                            id={`reupload-ins-${doc.id}`}
-                            accept=".pdf,.jpg,.jpeg,.png"
-                            className="hidden"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) handleReupload(doc.id, doc.document_type, doc.file_path, file);
-                            }}
-                          />
-                          <label htmlFor={`reupload-ins-${doc.id}`}>
-                            <Button variant={isExpired ? "cta" : "outline"} size="sm" asChild disabled={uploading}>
-                              <span className="cursor-pointer">
-                                {uploading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Upload className="w-3 h-3 mr-1" />}
-                                {isExpired ? "Upload New Certificate" : "Re-upload"}
-                              </span>
-                            </Button>
-                          </label>
-                        </>
+                        <Button 
+                          variant={isExpired ? "cta" : "outline"} 
+                          size="sm" 
+                          disabled={uploading}
+                          onClick={() => {
+                            setPendingInsuranceReupload({ docId: doc.id, oldFilePath: doc.file_path });
+                            setPendingInsuranceFile(null);
+                            setInsuranceExpiryDate("");
+                          }}
+                        >
+                          <Upload className="w-3 h-3 mr-1" />
+                          {isExpired ? "Upload New Certificate" : "Re-upload"}
+                        </Button>
                       )}
                     </div>
                   </div>
+
+                  {/* Re-upload form with expiry date */}
+                  {pendingInsuranceReupload?.docId === doc.id && (
+                    <div className="mt-3 p-4 bg-muted rounded-lg space-y-3">
+                      <div>
+                        <Label htmlFor="reupload-insurance-expiry" className="text-sm font-medium mb-1.5 block">
+                          New Certificate Expiry Date <span className="text-destructive">*</span>
+                        </Label>
+                        <Input
+                          id="reupload-insurance-expiry"
+                          type="date"
+                          value={insuranceExpiryDate}
+                          onChange={(e) => setInsuranceExpiryDate(e.target.value)}
+                          min={new Date().toISOString().split('T')[0]}
+                          className="text-sm max-w-xs"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="file"
+                          id={`reupload-ins-${doc.id}`}
+                          accept=".pdf,.jpg,.jpeg,.png"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              if (!insuranceExpiryDate) {
+                                toast.error("Please enter the insurance certificate expiry date");
+                                e.target.value = "";
+                                return;
+                              }
+                              handleReupload(doc.id, doc.document_type, doc.file_path, file, insuranceExpiryDate);
+                            }
+                          }}
+                        />
+                        <label htmlFor={`reupload-ins-${doc.id}`}>
+                          <Button variant="cta" size="sm" asChild disabled={uploading || !insuranceExpiryDate}>
+                            <span className="cursor-pointer">
+                              {uploading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Upload className="w-3 h-3 mr-1" />}
+                              Select & Upload File
+                            </span>
+                          </Button>
+                        </label>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => {
+                            setPendingInsuranceReupload(null);
+                            setInsuranceExpiryDate("");
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                   {doc.status === "rejected" && doc.admin_notes && (
                     <div className="mt-3 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
                       <div className="flex items-start gap-2">
