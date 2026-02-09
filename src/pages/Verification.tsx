@@ -726,7 +726,7 @@ export default function Verification() {
                       >
                         <Eye className="w-4 h-4" />
                       </Button>
-                      {doc.status === "rejected" && (
+                      {(doc.status === "rejected" || isExpired) && (
                         <>
                           <input
                             type="file"
@@ -739,10 +739,10 @@ export default function Verification() {
                             }}
                           />
                           <label htmlFor={`reupload-ins-${doc.id}`}>
-                            <Button variant="outline" size="sm" asChild disabled={uploading}>
+                            <Button variant={isExpired ? "cta" : "outline"} size="sm" asChild disabled={uploading}>
                               <span className="cursor-pointer">
-                                {uploading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <RefreshCw className="w-3 h-3 mr-1" />}
-                                Re-upload
+                                {uploading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Upload className="w-3 h-3 mr-1" />}
+                                {isExpired ? "Upload New Certificate" : "Re-upload"}
                               </span>
                             </Button>
                           </label>
