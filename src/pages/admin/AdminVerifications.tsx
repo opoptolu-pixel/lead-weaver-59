@@ -193,6 +193,12 @@ export default function AdminVerifications() {
   };
 
   const handleApprove = async (doc: VerificationDoc) => {
+    // Require expiry date for insurance documents
+    if (doc.document_type === "insurance" && !expiryDate) {
+      toast.error("Please select the insurance certificate expiry date before approving.");
+      return;
+    }
+
     setProcessing(true);
     try {
       // Build update object
