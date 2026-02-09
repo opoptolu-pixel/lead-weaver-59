@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,25 +26,22 @@ import {
   Building2,
   Users,
   ShieldCheck,
-  ShieldAlert,
   MapPin,
   TrendingUp,
   Clock,
   Ban,
   Download,
   CreditCard,
-  AlertTriangle,
-  CheckCircle,
-  XCircle,
   Loader2,
   UserCheck,
   UserX,
   RefreshCw,
+  AlertTriangle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { exportToCsv } from "@/lib/exportCsv";
 import { toast } from "sonner";
-import { format, differenceInDays, subDays } from "date-fns";
+import { subDays } from "date-fns";
 
 const COLORS = [
   "hsl(var(--secondary))",
@@ -53,68 +50,19 @@ const COLORS = [
   "hsl(280, 65%, 60%)",
   "hsl(30, 80%, 55%)",
   "hsl(340, 70%, 55%)",
-  "hsl(180, 60%, 45%)",
-  "hsl(50, 80%, 50%)",
 ];
 
 interface BusinessProfile {
   user_id: string;
-  business_name: string | null;
-  contact_name: string | null;
   postcode: string | null;
-  phone: string | null;
   is_verified: boolean;
   verification_status: string | null;
   credits: number;
-  granted_credits: number;
   leads_purchased: number;
   is_suspended: boolean | null;
   phone_verified: boolean;
-  address_verified: boolean;
-  risk_score: number | null;
-  created_at: string;
   last_login: string | null;
-  whatsapp_optin: boolean | null;
-}
-
-interface BusinessStats {
-  total: number;
-  active: number;
-  verified: number;
-  pendingVerification: number;
-  reverificationRequired: number;
-  suspended: number;
-  withCredits: number;
-  withPurchases: number;
-  neverPurchased: number;
-  phoneVerified: number;
-  avgCredits: number;
-  avgLeadsPurchased: number;
-  totalCreditsInCirculation: number;
-  totalGrantedCredits: number;
-  totalLeadsPurchased: number;
-  newThisPeriod: number;
-  activeIn7Days: number;
-  activeIn30Days: number;
-  dormant: number;
-  highRisk: number;
-  whatsappOptedIn: number;
-}
-
-interface LocationStats {
-  city: string;
-  region: string;
-  total: number;
-  active: number;
-  verified: number;
-  avgPurchases: number;
-  totalPurchases: number;
-  totalCredits: number;
-}
-
-interface SignupTrendItem {
-  date: string;
-  signups: number;
+  created_at: string;
 }
 
 const extractCityFromPostcode = (postcode: string): { city: string; region: string } => {
@@ -214,6 +162,19 @@ const extractCityFromPostcode = (postcode: string): { city: string; region: stri
   return { city: 'Other', region: 'UK' };
 };
 
+interface CityBreakdown {
+  city: string;
+  region: string;
+  signedUp: number;
+  active: number;
+  pending: number;
+  reverification: number;
+  verified: number;
+  suspended: number;
+  buyers: number;
+  totalPurchases: number;
+}
+
 interface BusinessAnalyticsTabProps {
   startDate: Date;
   endDate: Date;
@@ -221,156 +182,100 @@ interface BusinessAnalyticsTabProps {
 
 export function BusinessAnalyticsTab({ startDate, endDate }: BusinessAnalyticsTabProps) {
   const [loading, setLoading] = useState(true);
-  const [profiles, setProfiles] = useState<BusinessProfile[]>([]);
-  const [allProfiles, setAllProfiles] = useState<BusinessProfile[]>([]);
-  const [stats, setStats] = useState<BusinessStats | null>(null);
-  const [locationStats, setLocationStats] = useState<LocationStats[]>([]);
-  const [signupTrend, setSignupTrend] = useState<SignupTrendItem[]>([]);
-  const [verificationStatusData, setVerificationStatusData] = useState<{ name: string; value: number }[]>([]);
-  const [activitySegments, setActivitySegments] = useState<{ name: string; value: number }[]>([]);
+  const [summary, setSummary] = useState({
+    total: 0, active: 0, verified: 0, pending: 0, reverification: 0,
+    suspended: 0, dormant: 0, activeIn7d: 0, buyers: 0, neverPurchased: 0,
+    totalPurchases: 0, totalCredits: 0, phoneVerified: 0, newInPeriod: 0,
+  });
+  const [cityData, setCityData] = useState<CityBreakdown[]>([]);
+  const [verificationPie, setVerificationPie] = useState<{ name: string; value: number }[]>([]);
+  const [topBuyerCities, setTopBuyerCities] = useState<CityBreakdown[]>([]);
 
   useEffect(() => {
-    fetchBusinessAnalytics();
+    fetchData();
   }, [startDate, endDate]);
 
-  const fetchBusinessAnalytics = async () => {
+  const fetchData = async () => {
     setLoading(true);
 
-    // Fetch ALL profiles (not date-filtered) for overall stats
-    const { data: allProfilesData } = await supabase
-      .from("profiles")
-      .select("*")
-      .order("created_at", { ascending: false });
+    const [{ data: allData }, { data: periodData }] = await Promise.all([
+      supabase.from("profiles").select("user_id, postcode, is_verified, verification_status, credits, leads_purchased, is_suspended, phone_verified, last_login, created_at"),
+      supabase.from("profiles").select("user_id").gte("created_at", startDate.toISOString()).lte("created_at", endDate.toISOString()),
+    ]);
 
-    // Fetch profiles created in date range for period-specific stats
-    const { data: periodProfiles } = await supabase
-      .from("profiles")
-      .select("*")
-      .gte("created_at", startDate.toISOString())
-      .lte("created_at", endDate.toISOString())
-      .order("created_at", { ascending: false });
-
-    const all = (allProfilesData || []) as BusinessProfile[];
-    const period = (periodProfiles || []) as BusinessProfile[];
-    setAllProfiles(all);
-    setProfiles(period);
-
+    const all = (allData || []) as BusinessProfile[];
     const now = new Date();
-    const sevenDaysAgo = subDays(now, 7);
-    const thirtyDaysAgo = subDays(now, 30);
-    const ninetyDaysAgo = subDays(now, 90);
+    const d7 = subDays(now, 7);
+    const d30 = subDays(now, 30);
+    const d90 = subDays(now, 90);
 
-    // Compute stats from ALL profiles
-    const activeIn7 = all.filter(p => p.last_login && new Date(p.last_login) >= sevenDaysAgo).length;
-    const activeIn30 = all.filter(p => p.last_login && new Date(p.last_login) >= thirtyDaysAgo).length;
-    const dormant = all.filter(p => !p.last_login || new Date(p.last_login) < ninetyDaysAgo).length;
+    const activeIn30 = all.filter(p => p.last_login && new Date(p.last_login) >= d30);
+    const activeIn7 = all.filter(p => p.last_login && new Date(p.last_login) >= d7);
+    const dormant = all.filter(p => !p.last_login || new Date(p.last_login) < d90);
+    const buyers = all.filter(p => p.leads_purchased > 0);
 
-    const computedStats: BusinessStats = {
+    setSummary({
       total: all.length,
-      active: activeIn30,
+      active: activeIn30.length,
       verified: all.filter(p => p.is_verified).length,
-      pendingVerification: all.filter(p => p.verification_status === 'pending' || p.verification_status === 'submitted').length,
-      reverificationRequired: all.filter(p => p.verification_status === 'reverification_required').length,
+      pending: all.filter(p => p.verification_status === 'pending' || p.verification_status === 'submitted').length,
+      reverification: all.filter(p => p.verification_status === 'reverification_required').length,
       suspended: all.filter(p => p.is_suspended).length,
-      withCredits: all.filter(p => p.credits > 0).length,
-      withPurchases: all.filter(p => p.leads_purchased > 0).length,
+      dormant: dormant.length,
+      activeIn7d: activeIn7.length,
+      buyers: buyers.length,
       neverPurchased: all.filter(p => p.leads_purchased === 0).length,
+      totalPurchases: all.reduce((s, p) => s + p.leads_purchased, 0),
+      totalCredits: all.reduce((s, p) => s + p.credits, 0),
       phoneVerified: all.filter(p => p.phone_verified).length,
-      avgCredits: all.length > 0 ? Math.round(all.reduce((sum, p) => sum + p.credits, 0) / all.length * 10) / 10 : 0,
-      avgLeadsPurchased: all.length > 0 ? Math.round(all.reduce((sum, p) => sum + p.leads_purchased, 0) / all.length * 10) / 10 : 0,
-      totalCreditsInCirculation: all.reduce((sum, p) => sum + p.credits, 0),
-      totalGrantedCredits: all.reduce((sum, p) => sum + p.granted_credits, 0),
-      totalLeadsPurchased: all.reduce((sum, p) => sum + p.leads_purchased, 0),
-      newThisPeriod: period.length,
-      activeIn7Days: activeIn7,
-      activeIn30Days: activeIn30,
-      dormant,
-      highRisk: all.filter(p => (p.risk_score || 0) >= 50).length,
-      whatsappOptedIn: all.filter(p => p.whatsapp_optin).length,
-    };
-    setStats(computedStats);
-
-    // Verification status breakdown
-    const verStatusMap = new Map<string, number>();
-    all.forEach(p => {
-      const status = p.verification_status || 'pending';
-      verStatusMap.set(status, (verStatusMap.get(status) || 0) + 1);
+      newInPeriod: (periodData || []).length,
     });
-    const verStatusLabels: Record<string, string> = {
-      approved: 'Approved',
-      pending: 'Pending',
-      submitted: 'Submitted',
-      rejected: 'Rejected',
-      reverification_required: 'Re-verification Required',
+
+    // Verification pie
+    const vMap = new Map<string, number>();
+    all.forEach(p => {
+      const s = p.verification_status || 'pending';
+      vMap.set(s, (vMap.get(s) || 0) + 1);
+    });
+    const labels: Record<string, string> = {
+      approved: 'Verified', pending: 'Pending', submitted: 'Under Review',
+      rejected: 'Rejected', reverification_required: 'Re-verification',
     };
-    setVerificationStatusData(
-      Array.from(verStatusMap.entries()).map(([key, value]) => ({
-        name: verStatusLabels[key] || key,
-        value,
-      }))
-    );
+    setVerificationPie(Array.from(vMap.entries()).map(([k, v]) => ({ name: labels[k] || k, value: v })));
 
-    // Activity segments
-    setActivitySegments([
-      { name: 'Active (7d)', value: activeIn7 },
-      { name: 'Active (30d)', value: activeIn30 - activeIn7 },
-      { name: 'Dormant (90d+)', value: dormant },
-      { name: 'Other', value: Math.max(0, all.length - activeIn30 - dormant) },
-    ].filter(s => s.value > 0));
-
-    // Location stats
-    const locMap = new Map<string, LocationStats>();
+    // City breakdown
+    const cMap = new Map<string, CityBreakdown>();
     all.forEach(p => {
       if (!p.postcode) return;
       const { city, region } = extractCityFromPostcode(p.postcode);
       const key = `${city}-${region}`;
-      if (!locMap.has(key)) {
-        locMap.set(key, { city, region, total: 0, active: 0, verified: 0, avgPurchases: 0, totalPurchases: 0, totalCredits: 0 });
+      if (!cMap.has(key)) {
+        cMap.set(key, { city, region, signedUp: 0, active: 0, pending: 0, reverification: 0, verified: 0, suspended: 0, buyers: 0, totalPurchases: 0 });
       }
-      const s = locMap.get(key)!;
-      s.total++;
-      if (p.last_login && new Date(p.last_login) >= thirtyDaysAgo) s.active++;
-      if (p.is_verified) s.verified++;
-      s.totalPurchases += p.leads_purchased;
-      s.totalCredits += p.credits;
+      const c = cMap.get(key)!;
+      c.signedUp++;
+      if (p.last_login && new Date(p.last_login) >= d30) c.active++;
+      if (p.verification_status === 'pending' || p.verification_status === 'submitted') c.pending++;
+      if (p.verification_status === 'reverification_required') c.reverification++;
+      if (p.is_verified) c.verified++;
+      if (p.is_suspended) c.suspended++;
+      if (p.leads_purchased > 0) { c.buyers++; c.totalPurchases += p.leads_purchased; }
     });
-    const locationData = Array.from(locMap.values())
-      .map(s => ({ ...s, avgPurchases: s.total > 0 ? Math.round(s.totalPurchases / s.total * 10) / 10 : 0 }))
-      .sort((a, b) => b.total - a.total);
-    setLocationStats(locationData);
 
-    // Signup trend (daily within period)
-    const daysDiff = differenceInDays(endDate, startDate);
-    const trendMap = new Map<string, number>();
-    
-    if (daysDiff <= 60) {
-      // Daily granularity
-      period.forEach(p => {
-        const day = format(new Date(p.created_at), 'dd MMM');
-        trendMap.set(day, (trendMap.get(day) || 0) + 1);
-      });
-    } else {
-      // Weekly granularity
-      period.forEach(p => {
-        const week = format(new Date(p.created_at), "'W'w yyyy");
-        trendMap.set(week, (trendMap.get(week) || 0) + 1);
-      });
-    }
-    setSignupTrend(Array.from(trendMap.entries()).map(([date, signups]) => ({ date, signups })));
+    const sorted = Array.from(cMap.values()).sort((a, b) => b.signedUp - a.signedUp);
+    setCityData(sorted);
+    setTopBuyerCities([...sorted].sort((a, b) => b.totalPurchases - a.totalPurchases).filter(c => c.totalPurchases > 0).slice(0, 10));
 
     setLoading(false);
   };
 
   const handleExport = () => {
-    exportToCsv(locationStats, "business_locations", [
-      { key: "city", label: "City" },
-      { key: "region", label: "Region" },
-      { key: "total", label: "Total Businesses" },
-      { key: "active", label: "Active (30d)" },
-      { key: "verified", label: "Verified" },
-      { key: "totalPurchases", label: "Total Purchases" },
-      { key: "avgPurchases", label: "Avg Purchases" },
-      { key: "totalCredits", label: "Credits Held" },
+    exportToCsv(cityData, "business_by_city", [
+      { key: "city", label: "City" }, { key: "region", label: "Region" },
+      { key: "signedUp", label: "Signed Up" }, { key: "active", label: "Active (30d)" },
+      { key: "verified", label: "Verified" }, { key: "pending", label: "Pending" },
+      { key: "reverification", label: "Re-verification" }, { key: "suspended", label: "Suspended" },
+      { key: "buyers", label: "Buyers" }, { key: "totalPurchases", label: "Total Purchases" },
     ]);
     toast.success("Export started");
   };
@@ -384,210 +289,148 @@ export function BusinessAnalyticsTab({ startDate, endDate }: BusinessAnalyticsTa
     );
   }
 
-  if (!stats) return null;
-
-  const topBuyerLocations = locationStats.filter(l => l.totalPurchases > 0).sort((a, b) => b.totalPurchases - a.totalPurchases).slice(0, 10);
+  const pct = (n: number) => summary.total > 0 ? Math.round((n / summary.total) * 100) : 0;
 
   return (
     <div className="space-y-6">
-      {/* KPI Cards Row 1 - Core Counts */}
+      {/* Summary KPIs */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Building2 className="h-4 w-4" /> Total Businesses
+              <Building2 className="h-4 w-4" /> Total Signed Up
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">{stats.total}</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              +{stats.newThisPeriod} in selected period
-            </p>
+            <p className="text-3xl font-bold">{summary.total.toLocaleString()}</p>
+            <p className="text-xs text-muted-foreground mt-1">+{summary.newInPeriod} in period</p>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <UserCheck className="h-4 w-4 text-green-500" /> Active (30d)
+              <UserCheck className="h-4 w-4" /> Active (30 days)
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-green-600">{stats.activeIn30Days}</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {stats.total > 0 ? Math.round((stats.activeIn30Days / stats.total) * 100) : 0}% of total
-            </p>
+            <p className="text-3xl font-bold">{summary.active.toLocaleString()}</p>
+            <p className="text-xs text-muted-foreground mt-1">{pct(summary.active)}% · {summary.activeIn7d} active this week</p>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-blue-500" /> Verified
+              <ShieldCheck className="h-4 w-4" /> Verified
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-blue-600">{stats.verified}</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {stats.total > 0 ? Math.round((stats.verified / stats.total) * 100) : 0}% of total
-            </p>
+            <p className="text-3xl font-bold">{summary.verified.toLocaleString()}</p>
+            <p className="text-xs text-muted-foreground mt-1">{pct(summary.verified)}% of all businesses</p>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Ban className="h-4 w-4 text-red-500" /> Suspended
+              <Clock className="h-4 w-4" /> Pending Verification
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-red-600">{stats.suspended}</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {stats.highRisk} flagged high risk
-            </p>
+            <p className="text-3xl font-bold">{summary.pending.toLocaleString()}</p>
+            <p className="text-xs text-muted-foreground mt-1">{pct(summary.pending)}% awaiting review</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* KPI Cards Row 2 - Verification & Activity */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Clock className="h-4 w-4 text-amber-500" /> Pending Verification
+              <RefreshCw className="h-4 w-4" /> Re-verification Required
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-amber-600">{stats.pendingVerification}</p>
+            <p className="text-3xl font-bold">{summary.reverification.toLocaleString()}</p>
+            <p className="text-xs text-muted-foreground mt-1">Blocked from purchasing</p>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <RefreshCw className="h-4 w-4 text-orange-500" /> Re-verification Required
+              <Ban className="h-4 w-4" /> Suspended
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-orange-600">{stats.reverificationRequired}</p>
+            <p className="text-3xl font-bold">{summary.suspended.toLocaleString()}</p>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <UserX className="h-4 w-4 text-muted-foreground" /> Dormant (90d+)
+              <UserX className="h-4 w-4" /> Dormant (90d+)
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">{stats.dormant}</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {stats.total > 0 ? Math.round((stats.dormant / stats.total) * 100) : 0}% of total
-            </p>
+            <p className="text-3xl font-bold">{summary.dormant.toLocaleString()}</p>
+            <p className="text-xs text-muted-foreground mt-1">{pct(summary.dormant)}% inactive</p>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-secondary" /> Active (7d)
+              <CreditCard className="h-4 w-4" /> Active Buyers
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-secondary">{stats.activeIn7Days}</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {stats.total > 0 ? Math.round((stats.activeIn7Days / stats.total) * 100) : 0}% of total
-            </p>
+            <p className="text-3xl font-bold">{summary.buyers.toLocaleString()}</p>
+            <p className="text-xs text-muted-foreground mt-1">{summary.neverPurchased} never purchased</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* KPI Cards Row 3 - Purchasing & Credits */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <CreditCard className="h-4 w-4" /> Total Leads Purchased
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Leads Purchased</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{stats.totalLeadsPurchased}</p>
-            <p className="text-xs text-muted-foreground">Avg {stats.avgLeadsPurchased} per business</p>
+            <p className="text-2xl font-bold">{summary.totalPurchases.toLocaleString()}</p>
+            <p className="text-xs text-muted-foreground">Avg {summary.buyers > 0 ? (summary.totalPurchases / summary.buyers).toFixed(1) : 0} per buyer</p>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Users className="h-4 w-4" /> Ever Purchased
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{stats.withPurchases}</p>
-            <p className="text-xs text-muted-foreground">{stats.neverPurchased} never purchased</p>
-          </CardContent>
-        </Card>
-
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Credits in Circulation</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{stats.totalCreditsInCirculation}</p>
-            <p className="text-xs text-muted-foreground">{stats.withCredits} businesses hold credits</p>
+            <p className="text-2xl font-bold">{summary.totalCredits.toLocaleString()}</p>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Granted Credits</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{stats.totalGrantedCredits}</p>
-            <p className="text-xs text-muted-foreground">Avg {stats.avgCredits} credits/business</p>
-          </CardContent>
-        </Card>
-
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Phone Verified</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{stats.phoneVerified}</p>
-            <p className="text-xs text-muted-foreground">
-              {stats.whatsappOptedIn} WhatsApp opted in
-            </p>
+            <p className="text-2xl font-bold">{summary.phoneVerified.toLocaleString()}</p>
+            <p className="text-xs text-muted-foreground">{pct(summary.phoneVerified)}% of businesses</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Charts Row */}
+      {/* Charts */}
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Verification Status Pie */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ShieldCheck className="h-5 w-5 text-secondary" />
-              Verification Status Breakdown
+            <CardTitle className="flex items-center gap-2 text-base">
+              <ShieldCheck className="h-5 w-5 text-secondary" /> Verification Status
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
+            <div className="h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie
-                    data={verificationStatusData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={3}
-                    dataKey="value"
-                    label={({ name, value }) => `${name}: ${value}`}
-                  >
-                    {verificationStatusData.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
+                  <Pie data={verificationPie} cx="50%" cy="50%" innerRadius={55} outerRadius={95} paddingAngle={3} dataKey="value"
+                    label={({ name, value }) => `${name}: ${value}`}>
+                    {verificationPie.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                   </Pie>
                   <Tooltip />
                 </PieChart>
@@ -596,86 +439,45 @@ export function BusinessAnalyticsTab({ startDate, endDate }: BusinessAnalyticsTa
           </CardContent>
         </Card>
 
-        {/* Activity Segments Pie */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-secondary" />
-              Activity Segments
+            <CardTitle className="flex items-center gap-2 text-base">
+              <TrendingUp className="h-5 w-5 text-secondary" /> Most Active Buyer Cities
             </CardTitle>
-            <CardDescription>Business activity based on last login</CardDescription>
+            <CardDescription>Top 10 cities by total lead purchases</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
+            <div className="h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={activitySegments}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={3}
-                    dataKey="value"
-                    label={({ name, value }) => `${name}: ${value}`}
-                  >
-                    {activitySegments.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Signup Trend */}
-      {signupTrend.length > 1 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-secondary" />
-              New Signups Trend
-            </CardTitle>
-            <CardDescription>Business registrations over selected period</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[250px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={signupTrend}>
+                <BarChart data={topBuyerCities} layout="vertical" margin={{ left: 80 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
-                  <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" allowDecimals={false} />
+                  <XAxis type="number" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
+                  <YAxis type="category" dataKey="city" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" width={75} />
                   <Tooltip
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                    }}
+                    contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }}
+                    formatter={(value: number, name: string) => [value.toLocaleString(), name === 'totalPurchases' ? 'Purchases' : name === 'buyers' ? 'Buyers' : name]}
                   />
-                  <Bar dataKey="signups" fill="hsl(var(--secondary))" radius={[4, 4, 0, 0]} name="Signups" />
+                  <Bar dataKey="totalPurchases" fill="hsl(var(--secondary))" radius={[0, 4, 4, 0]} name="Purchases" />
+                  <Bar dataKey="buyers" fill="hsl(200, 80%, 50%)" radius={[0, 4, 4, 0]} name="Buyers" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
-      )}
+      </div>
 
-      {/* Location Table - Top Buyer Locations */}
+      {/* City Breakdown Table */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="flex items-center gap-2">
-                <MapPin className="h-5 w-5 text-secondary" />
-                Most Active Buyer Locations
+              <CardTitle className="flex items-center gap-2 text-base">
+                <MapPin className="h-5 w-5 text-secondary" /> Breakdown by City
               </CardTitle>
-              <CardDescription>Where your most active buyers are located</CardDescription>
+              <CardDescription>All business metrics aggregated by location</CardDescription>
             </div>
             <Button variant="outline" size="sm" onClick={handleExport}>
-              <Download className="h-4 w-4 mr-2" /> Export
+              <Download className="h-4 w-4 mr-2" /> Export CSV
             </Button>
           </div>
         </CardHeader>
@@ -686,85 +488,58 @@ export function BusinessAnalyticsTab({ startDate, endDate }: BusinessAnalyticsTa
                 <TableRow>
                   <TableHead>City</TableHead>
                   <TableHead>Region</TableHead>
-                  <TableHead className="text-right">Businesses</TableHead>
-                  <TableHead className="text-right">Active (30d)</TableHead>
+                  <TableHead className="text-right">Signed Up</TableHead>
+                  <TableHead className="text-right">Active</TableHead>
                   <TableHead className="text-right">Verified</TableHead>
-                  <TableHead className="text-right">Total Purchases</TableHead>
-                  <TableHead className="text-right">Avg Purchases</TableHead>
-                  <TableHead className="text-right">Credits Held</TableHead>
+                  <TableHead className="text-right">Pending</TableHead>
+                  <TableHead className="text-right">Re-verify</TableHead>
+                  <TableHead className="text-right">Suspended</TableHead>
+                  <TableHead className="text-right">Buyers</TableHead>
+                  <TableHead className="text-right">Purchases</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {topBuyerLocations.length === 0 ? (
+                {cityData.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                      No buyer location data available
-                    </TableCell>
+                    <TableCell colSpan={10} className="text-center text-muted-foreground py-8">No data available</TableCell>
                   </TableRow>
                 ) : (
-                  topBuyerLocations.map((loc, i) => (
+                  cityData.map((c, i) => (
                     <TableRow key={i}>
-                      <TableCell className="font-medium">{loc.city}</TableCell>
-                      <TableCell className="text-muted-foreground">{loc.region}</TableCell>
-                      <TableCell className="text-right">{loc.total}</TableCell>
+                      <TableCell className="font-medium">{c.city}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm">{c.region}</TableCell>
+                      <TableCell className="text-right font-medium">{c.signedUp}</TableCell>
                       <TableCell className="text-right">
-                        <Badge variant={loc.active > 0 ? "default" : "secondary"} className="text-xs">
-                          {loc.active}
-                        </Badge>
+                        {c.active > 0 ? (
+                          <Badge variant="default" className="text-xs">{c.active}</Badge>
+                        ) : (
+                          <span className="text-muted-foreground">0</span>
+                        )}
                       </TableCell>
-                      <TableCell className="text-right">{loc.verified}</TableCell>
-                      <TableCell className="text-right font-medium">{loc.totalPurchases}</TableCell>
-                      <TableCell className="text-right">{loc.avgPurchases}</TableCell>
-                      <TableCell className="text-right">{loc.totalCredits}</TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* All Locations Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5 text-secondary" />
-            All Business Locations
-          </CardTitle>
-          <CardDescription>Complete breakdown by city</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>City</TableHead>
-                  <TableHead>Region</TableHead>
-                  <TableHead className="text-right">Businesses</TableHead>
-                  <TableHead className="text-right">Active (30d)</TableHead>
-                  <TableHead className="text-right">Verified</TableHead>
-                  <TableHead className="text-right">Total Purchases</TableHead>
-                  <TableHead className="text-right">Avg Purchases</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {locationStats.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                      No location data available
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  locationStats.map((loc, i) => (
-                    <TableRow key={i}>
-                      <TableCell className="font-medium">{loc.city}</TableCell>
-                      <TableCell className="text-muted-foreground">{loc.region}</TableCell>
-                      <TableCell className="text-right">{loc.total}</TableCell>
-                      <TableCell className="text-right">{loc.active}</TableCell>
-                      <TableCell className="text-right">{loc.verified}</TableCell>
-                      <TableCell className="text-right">{loc.totalPurchases}</TableCell>
-                      <TableCell className="text-right">{loc.avgPurchases}</TableCell>
+                      <TableCell className="text-right">{c.verified}</TableCell>
+                      <TableCell className="text-right">
+                        {c.pending > 0 ? (
+                          <span className="text-amber-600 font-medium">{c.pending}</span>
+                        ) : (
+                          <span className="text-muted-foreground">0</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {c.reverification > 0 ? (
+                          <span className="text-orange-600 font-medium">{c.reverification}</span>
+                        ) : (
+                          <span className="text-muted-foreground">0</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {c.suspended > 0 ? (
+                          <span className="text-destructive font-medium">{c.suspended}</span>
+                        ) : (
+                          <span className="text-muted-foreground">0</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">{c.buyers}</TableCell>
+                      <TableCell className="text-right font-medium">{c.totalPurchases}</TableCell>
                     </TableRow>
                   ))
                 )}
