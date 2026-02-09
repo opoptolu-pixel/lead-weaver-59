@@ -38,6 +38,7 @@ interface VerificationDocument {
   created_at: string;
   admin_notes: string | null;
   file_path: string;
+  expiry_date: string | null;
 }
 
 export default function Verification() {
@@ -634,16 +635,20 @@ export default function Verification() {
               {(() => {
                 const doc = documents.find(d => d.document_type === "insurance");
                 if (!doc) return null;
+                const isExpired = doc.status === "approved" && doc.expiry_date && new Date(doc.expiry_date) < new Date();
+                const displayStatus = isExpired ? "expired" : doc.status;
                 return (
                   <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex items-center gap-1 ${
+                    isExpired ? "bg-destructive/20 text-destructive" :
                     doc.status === "approved" ? "bg-secondary/20 text-secondary" :
                     doc.status === "rejected" ? "bg-destructive/20 text-destructive" :
                     "bg-amber-500/20 text-amber-500"
                   }`}>
-                    {doc.status === "approved" && <CheckCircle className="w-3 h-3" />}
+                    {isExpired && <AlertTriangle className="w-3 h-3" />}
+                    {!isExpired && doc.status === "approved" && <CheckCircle className="w-3 h-3" />}
                     {doc.status === "pending" && <Clock className="w-3 h-3" />}
                     {doc.status === "rejected" && <X className="w-3 h-3" />}
-                    {doc.status.charAt(0).toUpperCase() + doc.status.slice(1)}
+                    {isExpired ? "Expired" : doc.status.charAt(0).toUpperCase() + doc.status.slice(1)}
                   </span>
                 );
               })()}
@@ -681,8 +686,11 @@ export default function Verification() {
                 </div>
               )}
 
-              {documents.filter(d => d.document_type === "insurance").map((doc) => (
+              {documents.filter(d => d.document_type === "insurance").map((doc) => {
+                const isExpired = doc.status === "approved" && doc.expiry_date && new Date(doc.expiry_date) < new Date();
+                return (
                 <div key={doc.id} className={`rounded-xl p-4 border ${
+                  isExpired ? "bg-destructive/5 border-destructive/30" :
                   doc.status === "approved" ? "bg-secondary/5 border-secondary/30" :
                   doc.status === "rejected" ? "bg-destructive/5 border-destructive/30" :
                   "bg-amber-500/5 border-amber-500/30"
@@ -690,11 +698,13 @@ export default function Verification() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                        isExpired ? "bg-destructive/20" :
                         doc.status === "approved" ? "bg-secondary/20" :
                         doc.status === "rejected" ? "bg-destructive/20" :
                         "bg-amber-500/20"
                       }`}>
                         <Shield className={`w-5 h-5 ${
+                          isExpired ? "text-destructive" :
                           doc.status === "approved" ? "text-secondary" :
                           doc.status === "rejected" ? "text-destructive" :
                           "text-amber-500"
@@ -751,7 +761,18 @@ export default function Verification() {
                       </div>
                     </div>
                   )}
-                  {doc.status === "approved" && (
+                  {doc.status === "approved" && doc.expiry_date && new Date(doc.expiry_date) < new Date() && (
+                    <div className="mt-3 p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-destructive" />
+                      <div>
+                        <p className="text-sm font-medium text-destructive">Insurance Expired</p>
+                        <p className="text-xs text-destructive/80">
+                          Expired on {new Date(doc.expiry_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}. Please upload a new certificate to continue purchasing leads.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {doc.status === "approved" && (!doc.expiry_date || new Date(doc.expiry_date) >= new Date()) && (
                     <div className="mt-3 p-3 bg-secondary/10 rounded-lg flex items-center gap-2">
                       <CheckCircle className="w-4 h-4 text-secondary" />
                       <p className="text-sm text-secondary">Document verified successfully</p>
@@ -764,7 +785,8 @@ export default function Verification() {
                     </div>
                   )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
