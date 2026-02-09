@@ -15,7 +15,7 @@ const logStep = (step: string, details?: any) => {
 };
 
 // Reminder intervals in days before expiry
-const REMINDER_INTERVALS = [30, 14, 7, 1];
+const REMINDER_INTERVALS = [30, 14, 7, 1, 0];
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -95,17 +95,49 @@ serve(async (req) => {
           const currentYear = new Date().getFullYear().toString();
 
           // Determine urgency level for styling
+          const isExpired = daysBeforeExpiry <= 0;
           const isUrgent = daysBeforeExpiry <= 7;
-          const urgencyColor = isUrgent ? "#ef4444" : "#f59e0b";
-          const urgencyText = daysBeforeExpiry === 1 
-            ? "expires tomorrow" 
-            : daysBeforeExpiry === 0 
-              ? "expires today"
+          const urgencyColor = isExpired ? "#dc2626" : isUrgent ? "#ef4444" : "#f59e0b";
+          const urgencyText = isExpired
+            ? "has expired"
+            : daysBeforeExpiry === 1 
+              ? "expires tomorrow" 
               : `expires in ${daysBeforeExpiry} days`;
 
-          const subject = isUrgent 
-            ? `⚠️ Urgent: Your Insurance ${urgencyText}`
-            : `Reminder: Your Insurance ${urgencyText}`;
+          // If expired, revoke verification status
+          if (isExpired) {
+            const { error: updateError } = await supabase
+              .from("profiles")
+              .update({ 
+                is_verified: false, 
+                verification_status: "expired_insurance" 
+              })
+              .eq("user_id", doc.user_id);
+            
+            if (updateError) {
+              logStep("Failed to revoke verification", { userId: doc.user_id, error: updateError.message });
+            } else {
+              logStep("Verification revoked due to expired insurance", { userId: doc.user_id });
+            }
+
+            // Log the activity
+            await supabase.from("activity_logs").insert({
+              user_id: doc.user_id,
+              entity_type: "verification",
+              entity_id: doc.id,
+              action: "insurance_expired",
+              details: {
+                business_name: businessName,
+                expiry_date: doc.expiry_date,
+              },
+            });
+          }
+
+          const subject = isExpired
+            ? `🚫 Your Insurance Has Expired - Action Required`
+            : isUrgent 
+              ? `⚠️ Urgent: Your Insurance ${urgencyText}`
+              : `Reminder: Your Insurance ${urgencyText}`;
 
           const htmlBody = `<!DOCTYPE html>
 <html>

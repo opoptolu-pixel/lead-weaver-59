@@ -135,6 +135,32 @@ serve(async (req) => {
       });
     }
 
+    // Check insurance certificate expiry
+    const { data: insuranceDocs } = await supabaseClient
+      .from("verification_documents")
+      .select("expiry_date, status")
+      .eq("user_id", user.id)
+      .eq("document_type", "insurance")
+      .eq("status", "approved")
+      .order("expiry_date", { ascending: false })
+      .limit(1);
+
+    if (insuranceDocs && insuranceDocs.length > 0) {
+      const expiryDate = new Date(insuranceDocs[0].expiry_date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (expiryDate < today) {
+        logStep("BLOCKED - Insurance expired", { expiryDate: insuranceDocs[0].expiry_date });
+        return new Response(JSON.stringify({ 
+          error: "Your insurance certificate has expired. Please upload a valid certificate before purchasing leads.",
+          insuranceExpired: true 
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 403,
+        });
+      }
+    }
+
     // Additional stricter rate limiting for lead unlocking specifically
     const { data: strictRateLimit, error: strictRateLimitError } = await supabaseClient
       .rpc("enforce_lead_unlock_rate_limit", { p_user_id: user.id });
