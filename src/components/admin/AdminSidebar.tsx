@@ -31,6 +31,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { supabase } from "@/integrations/supabase/client";
 
 const navItems = [
   { title: "Overview", url: "/admin", icon: LayoutDashboard },
@@ -66,6 +67,29 @@ export default function AdminSidebar({ onNavigate }: AdminSidebarProps) {
     const saved = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
     return saved === "true";
   });
+  const [unreadSupportCount, setUnreadSupportCount] = useState(0);
+
+  // Fetch unread support messages count (user messages not read by admin)
+  useEffect(() => {
+    const fetchUnread = async () => {
+      const { count } = await supabase
+        .from("support_messages")
+        .select("*", { count: "exact", head: true })
+        .eq("sender_type", "user")
+        .eq("is_read", false);
+      setUnreadSupportCount(count || 0);
+    };
+    fetchUnread();
+
+    const channel = supabase
+      .channel("admin-support-unread")
+      .on("postgres_changes", { event: "*", schema: "public", table: "support_messages" }, () => {
+        fetchUnread();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
   useEffect(() => {
     localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(collapsed));
@@ -85,23 +109,40 @@ export default function AdminSidebar({ onNavigate }: AdminSidebarProps) {
 
   const NavItem = ({ item }: { item: typeof navItems[0] }) => {
     const active = isActive(item.url);
+    const showBadge = item.url === "/admin/support" && unreadSupportCount > 0;
     
     const linkContent = (
       <button
         onClick={() => handleNavClick(item.url)}
         className={cn(
-          "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[0.8125rem] font-medium transition-all duration-200 w-full text-left group",
+          "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[0.8125rem] font-medium transition-all duration-200 w-full text-left group relative",
           active
             ? "bg-secondary/10 text-secondary font-semibold"
             : "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
           collapsed && "justify-center px-2"
         )}
       >
-        <item.icon className={cn(
-          "w-[18px] h-[18px] flex-shrink-0 transition-all duration-200",
-          active ? "text-secondary" : "text-muted-foreground group-hover:text-foreground"
-        )} />
-        {!collapsed && <span className="tracking-[-0.01em] leading-tight">{item.title}</span>}
+        <span className="relative">
+          <item.icon className={cn(
+            "w-[18px] h-[18px] flex-shrink-0 transition-all duration-200",
+            active ? "text-secondary" : "text-muted-foreground group-hover:text-foreground"
+          )} />
+          {showBadge && collapsed && (
+            <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+              {unreadSupportCount > 9 ? "9+" : unreadSupportCount}
+            </span>
+          )}
+        </span>
+        {!collapsed && (
+          <>
+            <span className="tracking-[-0.01em] leading-tight flex-1">{item.title}</span>
+            {showBadge && (
+              <span className="min-w-[20px] h-5 bg-destructive text-destructive-foreground text-[11px] font-bold rounded-full flex items-center justify-center px-1.5">
+                {unreadSupportCount > 99 ? "99+" : unreadSupportCount}
+              </span>
+            )}
+          </>
+        )}
       </button>
     );
 
