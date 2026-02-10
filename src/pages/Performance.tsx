@@ -11,6 +11,8 @@ import {
   ArrowLeft,
   MessageSquareX,
   Clock,
+  PhoneOutgoing,
+  CalendarCheck,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
@@ -85,8 +87,8 @@ export default function Performance() {
   }
 
   const totalLeads = leads.length;
-  const contactedLeads = leads.filter(l => l.outcome_status === "contacted" || l.outcome_status === "booked" || l.outcome_status === "completed").length;
-  const bookedLeads = leads.filter(l => l.outcome_status === "booked" || l.outcome_status === "completed").length;
+  const contactedLeads = leads.filter(l => l.outcome_status === "contacted" || l.job_status === "contacted" || l.outcome_status === "booked" || l.job_status === "booked" || l.outcome_status === "completed" || l.job_status === "completed").length;
+  const bookedLeads = leads.filter(l => l.outcome_status === "booked" || l.job_status === "booked" || l.outcome_status === "completed" || l.job_status === "completed").length;
   const completedLeads = leads.filter(l => l.outcome_status === "completed" || l.job_status === "completed").length;
   const lostLeads = leads.filter(l => l.outcome_status === "lost" || l.job_status === "lost").length;
   const noResponseLeads = leads.filter(l => l.job_status === "no_response").length;
@@ -130,7 +132,7 @@ export default function Performance() {
           ) : (
             <>
               {/* KPI Cards */}
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-8">
                 <Card>
                   <CardHeader className="pb-2">
                     <CardDescription>Leads Purchased</CardDescription>
@@ -141,6 +143,18 @@ export default function Performance() {
                   <CardHeader className="pb-2">
                     <CardDescription className="flex items-center gap-1"><Clock className="w-3 h-3" /> Pending</CardDescription>
                     <CardTitle className="text-3xl text-secondary">{pendingLeads}</CardTitle>
+                  </CardHeader>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardDescription className="flex items-center gap-1"><PhoneOutgoing className="w-3 h-3 text-blue-500" /> Contacted</CardDescription>
+                    <CardTitle className="text-3xl text-blue-500">{contactedLeads}</CardTitle>
+                  </CardHeader>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardDescription className="flex items-center gap-1"><CalendarCheck className="w-3 h-3 text-purple-500" /> Booked</CardDescription>
+                    <CardTitle className="text-3xl text-purple-500">{bookedLeads}</CardTitle>
                   </CardHeader>
                 </Card>
                 <Card>
@@ -259,7 +273,10 @@ export default function Performance() {
                                     : "secondary"
                                 }
                               >
-                                {lead.job_status === "no_response" ? "No Response" : (lead.outcome_status || lead.job_status || "pending")}
+                                {lead.job_status === "no_response" ? "No Response" 
+                                  : lead.job_status === "contacted" ? "Contacted"
+                                  : lead.job_status === "booked" ? "Booked"
+                                  : (lead.outcome_status || lead.job_status || "pending")}
                               </Badge>
                             </TableCell>
                             <TableCell className="text-muted-foreground">
