@@ -43,13 +43,13 @@ import { exportToCsv } from "@/lib/exportCsv";
 import { toast } from "sonner";
 import { subDays } from "date-fns";
 
-const COLORS = [
-  "hsl(var(--secondary))",
-  "hsl(142, 76%, 36%)",
-  "hsl(200, 80%, 50%)",
-  "hsl(280, 65%, 60%)",
-  "hsl(30, 80%, 55%)",
-  "hsl(340, 70%, 55%)",
+const PIE_COLORS = [
+  "hsl(217, 91%, 60%)",   // blue
+  "hsl(45, 93%, 47%)",    // amber/gold
+  "hsl(280, 65%, 60%)",   // purple
+  "hsl(340, 70%, 55%)",   // rose
+  "hsl(30, 80%, 55%)",    // orange
+  "hsl(172, 66%, 50%)",   // teal
 ];
 
 interface BusinessProfile {
@@ -430,7 +430,7 @@ export function BusinessAnalyticsTab({ startDate, endDate }: BusinessAnalyticsTa
                 <PieChart>
                   <Pie data={verificationPie} cx="50%" cy="50%" innerRadius={55} outerRadius={95} paddingAngle={3} dataKey="value"
                     label={({ name, value }) => `${name}: ${value}`}>
-                    {verificationPie.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                    {verificationPie.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                   </Pie>
                   <Tooltip />
                 </PieChart>
@@ -457,8 +457,8 @@ export function BusinessAnalyticsTab({ startDate, endDate }: BusinessAnalyticsTa
                     contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }}
                     formatter={(value: number, name: string) => [value.toLocaleString(), name === 'totalPurchases' ? 'Purchases' : name === 'buyers' ? 'Buyers' : name]}
                   />
-                  <Bar dataKey="totalPurchases" fill="hsl(var(--secondary))" radius={[0, 4, 4, 0]} name="Purchases" />
-                  <Bar dataKey="buyers" fill="hsl(200, 80%, 50%)" radius={[0, 4, 4, 0]} name="Buyers" />
+                  <Bar dataKey="totalPurchases" fill="hsl(217, 91%, 60%)" radius={[0, 4, 4, 0]} name="Purchases" />
+                  <Bar dataKey="buyers" fill="hsl(280, 65%, 60%)" radius={[0, 4, 4, 0]} name="Buyers" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
