@@ -54,7 +54,13 @@ import {
   PoundSterling,
   History,
   Calendar,
+  Search,
+  Phone,
+  Mail,
+  AlertTriangle,
+  Clock,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdmin } from "@/contexts/AdminContext";
 import { useVisitorData, Visitor, GeoLocation } from "@/hooks/useVisitorData";
@@ -106,6 +112,12 @@ interface LeadDetail {
   is_unlocked: boolean;
   unlocked_at?: string;
   refunded_at?: string;
+  customer_name?: string;
+  customer_phone?: string;
+  customer_email?: string;
+  job_status?: string;
+  booked_date?: string;
+  lost_reason?: string;
 }
 
 interface BuyerDetail {
@@ -177,6 +189,7 @@ export default function AdminAnalytics() {
   const [showAllBuyers, setShowAllBuyers] = useState(false);
   const [cityLeadsDetail, setCityLeadsDetail] = useState<LeadDetail[]>([]);
   const [cityBuyersDetail, setCityBuyersDetail] = useState<BuyerDetail[]>([]);
+  const [marketplaceSearch, setMarketplaceSearch] = useState("");
 
   // Live visitor location stats
   const liveVisitorLocations = useMemo(() => {
@@ -334,7 +347,7 @@ export default function AdminAnalytics() {
     // Fetch leads with more details
     const { data: leads } = await supabase
       .from("leads")
-      .select("id, source, postcode, is_unlocked, unlocked_by, refunded_at, created_at, unlocked_at, lead_status, job_type, display_value, credit_type, job_status")
+      .select("id, source, postcode, is_unlocked, unlocked_by, refunded_at, created_at, unlocked_at, lead_status, job_type, display_value, credit_type, job_status, customer_name, customer_phone, customer_email, booked_date, lost_reason")
       .gte("created_at", startISO)
       .lte("created_at", endISO);
 
@@ -1497,6 +1510,96 @@ export default function AdminAnalytics() {
                       </TableBody>
                     </Table>
                   )}
+                </CardContent>
+              </Card>
+
+              {/* Status-Filtered Lead Tables with Search */}
+              <Card>
+                <CardHeader>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                      <CardTitle>Purchased Leads by Status</CardTitle>
+                      <CardDescription>Detailed breakdown of leads grouped by their current job status</CardDescription>
+                    </div>
+                    <div className="relative w-full sm:w-72">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search by customer name..."
+                        value={marketplaceSearch}
+                        onChange={(e) => setMarketplaceSearch(e.target.value)}
+                        className="pl-9"
+                      />
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-8">
+                  {(() => {
+                    const purchasedLeads = allLeads.filter(l => l.is_unlocked);
+                    const search = marketplaceSearch.toLowerCase().trim();
+                    const filterBySearch = (leads: LeadDetail[]) =>
+                      search ? leads.filter(l => l.customer_name?.toLowerCase().includes(search)) : leads;
+
+                    const statusGroups: { key: string; label: string; statuses: string[]; color: string; icon: React.ReactNode }[] = [
+                      { key: "pending", label: "Pending", statuses: ["pending", ""], color: "text-secondary", icon: <Clock className="w-5 h-5 text-secondary" /> },
+                      { key: "contacted", label: "Contacted", statuses: ["contacted"], color: "text-blue-500", icon: <Phone className="w-5 h-5 text-blue-500" /> },
+                      { key: "lost", label: "Lost", statuses: ["lost"], color: "text-destructive", icon: <AlertTriangle className="w-5 h-5 text-destructive" /> },
+                      { key: "no_response", label: "No Response", statuses: ["no_response"], color: "text-muted-foreground", icon: <Mail className="w-5 h-5 text-muted-foreground" /> },
+                    ];
+
+                    return statusGroups.map(group => {
+                      const groupLeads = filterBySearch(
+                        purchasedLeads.filter(l => {
+                          const status = l.job_status || "pending";
+                          return group.statuses.includes(status);
+                        })
+                      );
+
+                      return (
+                        <div key={group.key}>
+                          <div className="flex items-center gap-2 mb-3">
+                            {group.icon}
+                            <h3 className={`text-base font-semibold ${group.color}`}>{group.label}</h3>
+                            <Badge variant="outline" className="ml-1">{groupLeads.length}</Badge>
+                          </div>
+                          {groupLeads.length === 0 ? (
+                            <p className="text-sm text-muted-foreground py-3 pl-7">
+                              {search ? "No matching leads found" : `No ${group.label.toLowerCase()} leads`}
+                            </p>
+                          ) : (
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Customer</TableHead>
+                                  <TableHead>Job Type</TableHead>
+                                  <TableHead>Location</TableHead>
+                                  <TableHead>Created</TableHead>
+                                  <TableHead>Purchased</TableHead>
+                                  {group.key === "lost" && <TableHead>Reason</TableHead>}
+                                  <TableHead className="text-right">Value</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {groupLeads.slice(0, 20).map(lead => (
+                                  <TableRow key={lead.id}>
+                                    <TableCell className="font-medium">{lead.customer_name || "—"}</TableCell>
+                                    <TableCell>{lead.job_type}</TableCell>
+                                    <TableCell className="text-muted-foreground">{lead.postcode}</TableCell>
+                                    <TableCell className="text-muted-foreground">{formatDate(lead.created_at)}</TableCell>
+                                    <TableCell className="text-muted-foreground">{lead.unlocked_at ? formatDate(lead.unlocked_at) : "—"}</TableCell>
+                                    {group.key === "lost" && <TableCell className="text-destructive text-sm">{lead.lost_reason || "—"}</TableCell>}
+                                    <TableCell className="text-right font-medium">{lead.display_value}</TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          )}
+                          {groupLeads.length > 20 && (
+                            <p className="text-xs text-muted-foreground mt-2 pl-7">Showing 20 of {groupLeads.length} leads</p>
+                          )}
+                        </div>
+                      );
+                    });
+                  })()}
                 </CardContent>
               </Card>
             </TabsContent>
