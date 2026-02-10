@@ -719,6 +719,7 @@ export type Database = {
           admin_notes: string | null
           auto_publish_at: string | null
           bedrooms: string | null
+          booked_date: string | null
           confirmation_method: string | null
           confirmation_response: string | null
           confirmation_sent_at: string | null
@@ -749,6 +750,7 @@ export type Database = {
           quality_score: number | null
           refund_reason: string | null
           refunded_at: string | null
+          sms_reminders_sent: string[] | null
           source: string | null
           unlocked_at: string | null
           unlocked_by: string | null
@@ -760,6 +762,7 @@ export type Database = {
           admin_notes?: string | null
           auto_publish_at?: string | null
           bedrooms?: string | null
+          booked_date?: string | null
           confirmation_method?: string | null
           confirmation_response?: string | null
           confirmation_sent_at?: string | null
@@ -790,6 +793,7 @@ export type Database = {
           quality_score?: number | null
           refund_reason?: string | null
           refunded_at?: string | null
+          sms_reminders_sent?: string[] | null
           source?: string | null
           unlocked_at?: string | null
           unlocked_by?: string | null
@@ -801,6 +805,7 @@ export type Database = {
           admin_notes?: string | null
           auto_publish_at?: string | null
           bedrooms?: string | null
+          booked_date?: string | null
           confirmation_method?: string | null
           confirmation_response?: string | null
           confirmation_sent_at?: string | null
@@ -831,6 +836,7 @@ export type Database = {
           quality_score?: number | null
           refund_reason?: string | null
           refunded_at?: string | null
+          sms_reminders_sent?: string[] | null
           source?: string | null
           unlocked_at?: string | null
           unlocked_by?: string | null

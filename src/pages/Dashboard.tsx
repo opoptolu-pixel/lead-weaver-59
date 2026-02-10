@@ -29,6 +29,8 @@ import {
   PhoneOutgoing,
   CalendarCheck,
 } from "lucide-react";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
@@ -82,6 +84,7 @@ interface UnlockedLead {
   property_type: string | null;
   bedrooms: string | null;
   frequency: string | null;
+  booked_date?: string | null;
 }
 
 export default function Dashboard() {
@@ -94,7 +97,9 @@ export default function Dashboard() {
   const [buyingCredits, setBuyingCredits] = useState<string | null>(null);
   const [showCreditDialog, setShowCreditDialog] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
-
+  const [bookingLeadId, setBookingLeadId] = useState<string | null>(null);
+  const [bookingDate, setBookingDate] = useState<Date | undefined>(undefined);
+  const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
   // Redirect if not logged in
   useEffect(() => {
     if (!authLoading && !user) {
@@ -169,8 +174,16 @@ export default function Dashboard() {
     }
   };
 
-  const handleStatusUpdate = async (leadId: string, newStatus: string, notes?: string) => {
+  const handleStatusUpdate = async (leadId: string, newStatus: string, notes?: string, bookedDate?: Date) => {
     if (!user) return;
+
+    // Intercept "booked" — require a date
+    if (newStatus === 'booked' && !bookedDate) {
+      setBookingLeadId(leadId);
+      setBookingDate(undefined);
+      setBookingDialogOpen(true);
+      return;
+    }
     
     const lead = leads.find(l => l.id === leadId);
     const previousStatus = lead?.job_status || 'pending';
@@ -183,6 +196,10 @@ export default function Dashboard() {
       
       if (newStatus === 'completed') {
         updateData.job_completed_at = new Date().toISOString();
+      }
+
+      if (newStatus === 'booked' && bookedDate) {
+        updateData.booked_date = format(bookedDate, 'yyyy-MM-dd');
       }
       
       if (notes !== undefined) {
@@ -215,6 +232,7 @@ export default function Dashboard() {
           business_name: freshProfile?.business_name || profile?.business_name || "Unknown Business",
           contact_name: freshProfile?.contact_name || profile?.contact_name || user.email,
           notes: notes || null,
+          booked_date: newStatus === 'booked' && bookedDate ? format(bookedDate, 'yyyy-MM-dd') : null,
         },
       });
 
@@ -225,13 +243,20 @@ export default function Dashboard() {
           : lead
       ));
 
-      toast.success("Job status updated!");
+      toast.success(newStatus === 'booked' ? `Job booked for ${format(bookedDate!, 'd MMM yyyy')}!` : "Job status updated!");
     } catch (error) {
       console.error("Error updating status:", error);
       toast.error("Failed to update status");
     } finally {
       setUpdatingStatus(null);
     }
+  };
+
+  const handleConfirmBooking = () => {
+    if (!bookingLeadId || !bookingDate) return;
+    setBookingDialogOpen(false);
+    handleStatusUpdate(bookingLeadId, 'booked', undefined, bookingDate);
+    setBookingLeadId(null);
   };
 
   const getStatusIcon = (status: string | null) => {
@@ -957,7 +982,9 @@ export default function Dashboard() {
                       <p className="font-medium text-foreground mb-2 text-[0.9375rem]">{lead.customer_name}</p>
                       <div className="flex items-center gap-2 text-sm text-purple-600">
                         <CalendarCheck className="w-4 h-4" />
-                        <span>Job booked</span>
+                        <span>
+                          Job booked{lead.booked_date ? ` for ${formatDate(lead.booked_date)}` : ''}
+                        </span>
                       </div>
                     </div>
                     <div className="flex flex-col gap-3 min-w-[160px]">
@@ -1140,6 +1167,59 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+        {/* Booking Date Dialog */}
+        <Dialog open={bookingDialogOpen} onOpenChange={(open) => {
+          setBookingDialogOpen(open);
+          if (!open) {
+            setBookingLeadId(null);
+            setBookingDate(undefined);
+          }
+        }}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Select Service Date</DialogTitle>
+              <DialogDescription>
+                Choose the date the cleaning service is scheduled. We'll send SMS reminders 3 days before, 2 days before, and on the morning of the job.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-center py-4">
+              <CalendarComponent
+                mode="single"
+                selected={bookingDate}
+                onSelect={setBookingDate}
+                disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                className="rounded-md border"
+              />
+            </div>
+            {bookingDate && (
+              <p className="text-center text-sm text-muted-foreground">
+                Selected: <span className="font-medium text-foreground">{format(bookingDate, "EEEE, d MMMM yyyy")}</span>
+              </p>
+            )}
+            <div className="flex gap-3 pt-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  setBookingDialogOpen(false);
+                  setBookingLeadId(null);
+                  setBookingDate(undefined);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="cta"
+                className="flex-1 gap-2"
+                disabled={!bookingDate}
+                onClick={handleConfirmBooking}
+              >
+                <CalendarCheck className="w-4 h-4" />
+                Confirm Booking
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
