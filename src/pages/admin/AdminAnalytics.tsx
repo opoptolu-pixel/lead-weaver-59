@@ -123,7 +123,7 @@ interface BuyerDetail {
 export default function AdminAnalytics() {
   const { getDateFilter, dateRange } = useAdmin();
   const visitors = useVisitorData();
-  const { start, end } = getDateFilter();
+  const { start, end } = useMemo(() => getDateFilter(), [getDateFilter]);
   const { 
     adSpendData, 
     metrics: adMetrics,

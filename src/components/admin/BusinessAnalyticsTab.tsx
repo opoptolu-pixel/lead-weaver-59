@@ -191,9 +191,12 @@ export function BusinessAnalyticsTab({ startDate, endDate }: BusinessAnalyticsTa
   const [verificationPie, setVerificationPie] = useState<{ name: string; value: number }[]>([]);
   const [topBuyerCities, setTopBuyerCities] = useState<CityBreakdown[]>([]);
 
+  const startIso = startDate.toISOString();
+  const endIso = endDate.toISOString();
+
   useEffect(() => {
     fetchData();
-  }, [startDate, endDate]);
+  }, [startIso, endIso]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -428,7 +431,7 @@ export function BusinessAnalyticsTab({ startDate, endDate }: BusinessAnalyticsTa
             <div className="h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={verificationPie} cx="50%" cy="50%" innerRadius={55} outerRadius={95} paddingAngle={3} dataKey="value"
+                  <Pie data={verificationPie} cx="50%" cy="50%" innerRadius={55} outerRadius={95} paddingAngle={3} dataKey="value" isAnimationActive={false}
                     label={({ name, value }) => `${name}: ${value}`}>
                     {verificationPie.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                   </Pie>
