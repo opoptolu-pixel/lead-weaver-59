@@ -1560,6 +1560,7 @@ export default function AdminAnalytics() {
                           <SelectItem value="all">All Statuses</SelectItem>
                           <SelectItem value="pending">Pending</SelectItem>
                           <SelectItem value="contacted">Contacted</SelectItem>
+                          <SelectItem value="booked">Booked</SelectItem>
                           <SelectItem value="lost">Lost</SelectItem>
                           <SelectItem value="no_response">No Response</SelectItem>
                         </SelectContent>
@@ -1603,6 +1604,7 @@ export default function AdminAnalytics() {
                     const getStatusBadge = (status: string) => {
                       switch (status) {
                         case "contacted": return <Badge className="bg-blue-500/20 text-blue-500 border-0">Contacted</Badge>;
+                        case "booked": return <Badge className="bg-purple-500/20 text-purple-500 border-0">Booked</Badge>;
                         case "lost": return <Badge className="bg-destructive/20 text-destructive border-0">Lost</Badge>;
                         case "no_response": return <Badge variant="outline" className="text-muted-foreground">No Response</Badge>;
                         default: return <Badge className="bg-secondary/20 text-secondary border-0">Pending</Badge>;
