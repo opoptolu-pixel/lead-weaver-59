@@ -190,6 +190,8 @@ export default function AdminAnalytics() {
   const [cityLeadsDetail, setCityLeadsDetail] = useState<LeadDetail[]>([]);
   const [cityBuyersDetail, setCityBuyersDetail] = useState<BuyerDetail[]>([]);
   const [marketplaceSearch, setMarketplaceSearch] = useState("");
+  const [bookingSearch, setBookingSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   // Live visitor location stats
   const liveVisitorLocations = useMemo(() => {
@@ -1467,105 +1469,125 @@ export default function AdminAnalytics() {
               {/* Upcoming Bookings */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5 text-cyan-500" />
-                    Upcoming Bookings
-                  </CardTitle>
-                  <CardDescription>Scheduled cleaning jobs with confirmed dates</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {upcomingBookings.length === 0 ? (
-                    <p className="text-muted-foreground text-center py-6">No upcoming bookings scheduled</p>
-                  ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Countdown</TableHead>
-                          <TableHead>Job Type</TableHead>
-                          <TableHead>Customer</TableHead>
-                          <TableHead>Location</TableHead>
-                          <TableHead>Cleaner</TableHead>
-                          <TableHead className="text-right">Value</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {upcomingBookings.map((booking) => (
-                          <TableRow key={booking.id}>
-                            <TableCell className="font-medium">
-                              {new Date(booking.booked_date + "T00:00:00").toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
-                            </TableCell>
-                            <TableCell>
-                              <Badge className={booking.days_until === 0 ? "bg-green-500/20 text-green-600" : booking.days_until <= 2 ? "bg-amber-500/20 text-amber-600" : "bg-cyan-500/10 text-cyan-500"}>
-                                {booking.days_until === 0 ? "Today" : booking.days_until === 1 ? "Tomorrow" : `${booking.days_until} days`}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>{booking.job_type}</TableCell>
-                            <TableCell>{booking.customer_name}</TableCell>
-                            <TableCell className="text-muted-foreground">{booking.postcode}</TableCell>
-                            <TableCell>{booking.cleaner_name}</TableCell>
-                            <TableCell className="text-right font-medium">{booking.display_value}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Status-Filtered Lead Tables with Search */}
-              <Card>
-                <CardHeader>
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
-                      <CardTitle>Purchased Leads by Status</CardTitle>
-                      <CardDescription>Detailed breakdown of leads grouped by their current job status</CardDescription>
+                      <CardTitle className="flex items-center gap-2">
+                        <Calendar className="h-5 w-5 text-cyan-500" />
+                        Upcoming Bookings
+                      </CardTitle>
+                      <CardDescription>Scheduled cleaning jobs with confirmed dates</CardDescription>
                     </div>
                     <div className="relative w-full sm:w-72">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
                         placeholder="Search by customer name..."
-                        value={marketplaceSearch}
-                        onChange={(e) => setMarketplaceSearch(e.target.value)}
+                        value={bookingSearch}
+                        onChange={(e) => setBookingSearch(e.target.value)}
                         className="pl-9"
                       />
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-8">
+                <CardContent>
                   {(() => {
-                    const purchasedLeads = allLeads.filter(l => l.is_unlocked);
-                    const search = marketplaceSearch.toLowerCase().trim();
-                    const filterBySearch = (leads: LeadDetail[]) =>
-                      search ? leads.filter(l => l.customer_name?.toLowerCase().includes(search)) : leads;
+                    const bSearch = bookingSearch.toLowerCase().trim();
+                    const filtered = bSearch
+                      ? upcomingBookings.filter(b => b.customer_name?.toLowerCase().includes(bSearch))
+                      : upcomingBookings;
+                    
+                    if (filtered.length === 0) {
+                      return <p className="text-muted-foreground text-center py-6">{bSearch ? "No matching bookings found" : "No upcoming bookings scheduled"}</p>;
+                    }
+                    
+                    return (
+                      <div className="max-h-80 overflow-y-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Date</TableHead>
+                              <TableHead>Countdown</TableHead>
+                              <TableHead>Job Type</TableHead>
+                              <TableHead>Customer</TableHead>
+                              <TableHead>Location</TableHead>
+                              <TableHead>Cleaner</TableHead>
+                              <TableHead className="text-right">Value</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {filtered.map((booking) => (
+                              <TableRow key={booking.id}>
+                                <TableCell className="font-medium">
+                                  {new Date(booking.booked_date + "T00:00:00").toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge className={booking.days_until === 0 ? "bg-green-500/20 text-green-600" : booking.days_until <= 2 ? "bg-amber-500/20 text-amber-600" : "bg-cyan-500/10 text-cyan-500"}>
+                                    {booking.days_until === 0 ? "Today" : booking.days_until === 1 ? "Tomorrow" : `${booking.days_until} days`}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>{booking.job_type}</TableCell>
+                                <TableCell>{booking.customer_name}</TableCell>
+                                <TableCell className="text-muted-foreground">{booking.postcode}</TableCell>
+                                <TableCell>{booking.cleaner_name}</TableCell>
+                                <TableCell className="text-right font-medium">{booking.display_value}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    );
+                  })()}
+                </CardContent>
+              </Card>
 
-                    const statusGroups: { key: string; label: string; statuses: string[]; color: string; icon: React.ReactNode }[] = [
-                      { key: "pending", label: "Pending", statuses: ["pending", ""], color: "text-secondary", icon: <Clock className="w-5 h-5 text-secondary" /> },
-                      { key: "contacted", label: "Contacted", statuses: ["contacted"], color: "text-blue-500", icon: <Phone className="w-5 h-5 text-blue-500" /> },
-                      { key: "lost", label: "Lost", statuses: ["lost"], color: "text-destructive", icon: <AlertTriangle className="w-5 h-5 text-destructive" /> },
-                      { key: "no_response", label: "No Response", statuses: ["no_response"], color: "text-muted-foreground", icon: <Mail className="w-5 h-5 text-muted-foreground" /> },
-                    ];
+              {/* Status-Filtered Lead Sections */}
+              {(() => {
+                const purchasedLeads = allLeads.filter(l => l.is_unlocked);
+                const search = marketplaceSearch.toLowerCase().trim();
+                const filterBySearch = (leads: LeadDetail[]) =>
+                  search ? leads.filter(l => l.customer_name?.toLowerCase().includes(search)) : leads;
 
-                    return statusGroups.map(group => {
-                      const groupLeads = filterBySearch(
-                        purchasedLeads.filter(l => {
-                          const status = l.job_status || "pending";
-                          return group.statuses.includes(status);
-                        })
-                      );
+                const statusGroups: { key: string; label: string; statuses: string[]; color: string; borderColor: string; icon: React.ReactNode }[] = [
+                  { key: "pending", label: "Pending", statuses: ["pending", ""], color: "text-secondary", borderColor: "border-secondary/20", icon: <Clock className="w-5 h-5 text-secondary" /> },
+                  { key: "contacted", label: "Contacted", statuses: ["contacted"], color: "text-blue-500", borderColor: "border-blue-500/20", icon: <Phone className="w-5 h-5 text-blue-500" /> },
+                  { key: "lost", label: "Lost", statuses: ["lost"], color: "text-destructive", borderColor: "border-destructive/20", icon: <AlertTriangle className="w-5 h-5 text-destructive" /> },
+                  { key: "no_response", label: "No Response", statuses: ["no_response"], color: "text-muted-foreground", borderColor: "border-muted-foreground/20", icon: <Mail className="w-5 h-5 text-muted-foreground" /> },
+                ];
 
-                      return (
-                        <div key={group.key}>
-                          <div className="flex items-center gap-2 mb-3">
+                return statusGroups.map(group => {
+                  const groupLeads = filterBySearch(
+                    purchasedLeads.filter(l => {
+                      const status = l.job_status || "pending";
+                      return group.statuses.includes(status);
+                    })
+                  );
+
+                  return (
+                    <Card key={group.key} className={group.borderColor}>
+                      <CardHeader>
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                          <div className="flex items-center gap-2">
                             {group.icon}
-                            <h3 className={`text-base font-semibold ${group.color}`}>{group.label}</h3>
-                            <Badge variant="outline" className="ml-1">{groupLeads.length}</Badge>
+                            <CardTitle className={group.color}>{group.label}</CardTitle>
+                            <Badge variant="outline">{groupLeads.length}</Badge>
                           </div>
-                          {groupLeads.length === 0 ? (
-                            <p className="text-sm text-muted-foreground py-3 pl-7">
-                              {search ? "No matching leads found" : `No ${group.label.toLowerCase()} leads`}
-                            </p>
-                          ) : (
+                          <div className="relative w-full sm:w-64">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            <Input
+                              placeholder="Search by name..."
+                              value={marketplaceSearch}
+                              onChange={(e) => setMarketplaceSearch(e.target.value)}
+                              className="pl-9 h-9"
+                            />
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        {groupLeads.length === 0 ? (
+                          <p className="text-sm text-muted-foreground text-center py-4">
+                            {search ? "No matching leads found" : `No ${group.label.toLowerCase()} leads`}
+                          </p>
+                        ) : (
+                          <div className="max-h-72 overflow-y-auto">
                             <Table>
                               <TableHeader>
                                 <TableRow>
@@ -1579,7 +1601,7 @@ export default function AdminAnalytics() {
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
-                                {groupLeads.slice(0, 20).map(lead => (
+                                {groupLeads.map(lead => (
                                   <TableRow key={lead.id}>
                                     <TableCell className="font-medium">{lead.customer_name || "—"}</TableCell>
                                     <TableCell>{lead.job_type}</TableCell>
@@ -1592,16 +1614,13 @@ export default function AdminAnalytics() {
                                 ))}
                               </TableBody>
                             </Table>
-                          )}
-                          {groupLeads.length > 20 && (
-                            <p className="text-xs text-muted-foreground mt-2 pl-7">Showing 20 of {groupLeads.length} leads</p>
-                          )}
-                        </div>
-                      );
-                    });
-                  })()}
-                </CardContent>
-              </Card>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                });
+              })()}
             </TabsContent>
 
             {/* BUYERS TAB */}
