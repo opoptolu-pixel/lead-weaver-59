@@ -902,14 +902,24 @@ export default function Dashboard() {
             </div>
             <div className="divide-y divide-border/50">
               {contactedLeads.map((lead) => (
-                <div key={lead.id} className="lead-card bg-blue-50/20 dark:bg-blue-950/10">
+                <div key={lead.id} className={`lead-card bg-blue-50/20 dark:bg-blue-950/10 ${lead.is_access_expired ? 'bg-muted/10' : ''}`}>
+                  {/* Access expiration warning */}
+                  {lead.is_access_expired ? (
+                    <div className="flex items-center gap-2 bg-destructive/8 border border-destructive/15 rounded-xl px-4 py-2.5 mb-4">
+                      <Lock className="w-4 h-4 text-destructive" />
+                      <span className="text-destructive text-sm font-medium">Contact access expired - Customer data is no longer available</span>
+                    </div>
+                  ) : lead.access_expires_at && (
+                    <div className="flex items-center gap-2 bg-secondary/8 border border-secondary/15 rounded-xl px-4 py-2.5 mb-4">
+                      <AlertTriangle className="w-4 h-4 text-secondary" />
+                      <span className="text-secondary text-sm">Contact access expires: {formatDate(lead.access_expires_at)}</span>
+                    </div>
+                  )}
                   <div className="flex flex-col lg:flex-row lg:items-start gap-6">
                     <div className="flex-1">
                       <div className="flex items-start justify-between mb-3">
                         <div>
-                          <span className="postcode-tag mb-2">
-                            {lead.postcode}
-                          </span>
+                          <span className="postcode-tag mb-2">{lead.postcode}</span>
                           <h3 className="text-foreground">{lead.job_type}</h3>
                         </div>
                         <div className="text-right">
@@ -917,10 +927,40 @@ export default function Dashboard() {
                           <p className="text-muted-foreground text-sm">{formatDate(lead.date)}</p>
                         </div>
                       </div>
-                      <p className="font-medium text-foreground mb-2">{lead.customer_name}</p>
-                      <div className="flex items-center gap-2 text-sm text-blue-600">
-                        <PhoneOutgoing className="w-4 h-4" />
-                        <span>Customer contacted</span>
+                      <p className={`font-medium mb-3 text-[0.9375rem] ${lead.is_access_expired ? 'text-muted-foreground' : 'text-foreground'}`}>{lead.customer_name}</p>
+                      {(lead.property_type || lead.bedrooms || lead.frequency) && (
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          {lead.property_type && <span className="property-badge bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400"><Home className="w-3 h-3" />{lead.property_type}</span>}
+                          {lead.bedrooms && <span className="property-badge bg-purple-50 text-purple-700 dark:bg-purple-950/30 dark:text-purple-400"><User className="w-3 h-3" />{lead.bedrooms}</span>}
+                          {lead.frequency && <span className="property-badge bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400"><Clock className="w-3 h-3" />{lead.frequency}</span>}
+                        </div>
+                      )}
+                      <div className="grid md:grid-cols-2 gap-3">
+                        <div className={`contact-row flex items-center gap-2 ${lead.is_access_expired ? 'opacity-60' : ''}`}>
+                          <Phone className={`w-4 h-4 ${lead.is_access_expired ? 'text-muted-foreground' : 'text-secondary'}`} />
+                          {lead.is_access_expired ? (
+                            <span className="text-muted-foreground flex-1">{lead.customer_phone}</span>
+                          ) : (
+                            <><a href={`tel:${lead.customer_phone}`} className="text-foreground hover:text-secondary transition-colors flex-1">{lead.customer_phone}</a>
+                            <button onClick={() => copyToClipboard(lead.customer_phone, `phone-${lead.id}`)} className="text-muted-foreground hover:text-foreground">{copiedField === `phone-${lead.id}` ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}</button></>
+                          )}
+                        </div>
+                        <div className={`contact-row flex items-center gap-2 ${lead.is_access_expired ? 'opacity-60' : ''}`}>
+                          <Mail className={`w-4 h-4 ${lead.is_access_expired ? 'text-muted-foreground' : 'text-secondary'}`} />
+                          {lead.is_access_expired ? (
+                            <span className="text-muted-foreground flex-1 truncate">{lead.customer_email}</span>
+                          ) : (
+                            <><a href={`mailto:${lead.customer_email}`} className="text-foreground hover:text-secondary transition-colors flex-1 truncate">{lead.customer_email}</a>
+                            <button onClick={() => copyToClipboard(lead.customer_email, `email-${lead.id}`)} className="text-muted-foreground hover:text-foreground">{copiedField === `email-${lead.id}` ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}</button></>
+                          )}
+                        </div>
+                        <div className={`contact-row md:col-span-2 flex items-start gap-2 ${lead.is_access_expired ? 'opacity-60' : ''}`}>
+                          <MapPin className={`w-4 h-4 mt-0.5 ${lead.is_access_expired ? 'text-muted-foreground' : 'text-secondary'}`} />
+                          <span className={`flex-1 ${lead.is_access_expired ? 'text-muted-foreground' : 'text-foreground'}`}>{lead.customer_address}</span>
+                          {!lead.is_access_expired && (
+                            <button onClick={() => copyToClipboard(lead.customer_address, `address-${lead.id}`)} className="text-muted-foreground hover:text-foreground">{copiedField === `address-${lead.id}` ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}</button>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="flex flex-col gap-3 min-w-[160px]">
@@ -928,14 +968,8 @@ export default function Dashboard() {
                         <PhoneOutgoing className="w-4 h-4 text-blue-500" />
                         <span className="font-medium text-blue-600">Contacted</span>
                       </div>
-                      <Select
-                        value={lead.job_status || 'pending'}
-                        onValueChange={(value) => handleStatusUpdate(lead.id, value)}
-                        disabled={updatingStatus === lead.id}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Update status" />
-                        </SelectTrigger>
+                      <Select value={lead.job_status || 'pending'} onValueChange={(value) => handleStatusUpdate(lead.id, value)} disabled={updatingStatus === lead.id}>
+                        <SelectTrigger className="w-full"><SelectValue placeholder="Update status" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="pending"><div className="flex items-center gap-2"><Clock className="w-4 h-4" /> Pending</div></SelectItem>
                           <SelectItem value="contacted"><div className="flex items-center gap-2"><PhoneOutgoing className="w-4 h-4 text-blue-500" /> Contacted</div></SelectItem>
@@ -945,6 +979,14 @@ export default function Dashboard() {
                           <SelectItem value="no_response"><div className="flex items-center gap-2"><MessageSquareX className="w-4 h-4" /> No response</div></SelectItem>
                         </SelectContent>
                       </Select>
+                      {lead.is_access_expired ? (
+                        <div className="flex items-center justify-center gap-2 text-muted-foreground text-sm py-2"><Lock className="w-4 h-4" /><span>Access expired</span></div>
+                      ) : (
+                        <div className="flex gap-3">
+                          <a href={`tel:${lead.customer_phone}`} className="flex-1"><Button variant="cta" size="sm" className="w-full gap-1.5 h-11 rounded-xl text-[0.8125rem] font-semibold"><Phone className="w-4 h-4" />Call</Button></a>
+                          <a href={`mailto:${lead.customer_email}`} className="flex-1"><Button variant="outline" size="sm" className="w-full gap-1.5 h-11 rounded-xl text-[0.8125rem] font-semibold"><Mail className="w-4 h-4" />Email</Button></a>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -966,7 +1008,19 @@ export default function Dashboard() {
             </div>
             <div className="divide-y divide-border/50">
               {bookedLeads.map((lead) => (
-                <div key={lead.id} className="lead-card bg-purple-50/20 dark:bg-purple-950/10">
+                <div key={lead.id} className={`lead-card bg-purple-50/20 dark:bg-purple-950/10 ${lead.is_access_expired ? 'bg-muted/10' : ''}`}>
+                  {/* Access expiration warning */}
+                  {lead.is_access_expired ? (
+                    <div className="flex items-center gap-2 bg-destructive/8 border border-destructive/15 rounded-xl px-4 py-2.5 mb-4">
+                      <Lock className="w-4 h-4 text-destructive" />
+                      <span className="text-destructive text-sm font-medium">Contact access expired - Customer data is no longer available</span>
+                    </div>
+                  ) : lead.access_expires_at && (
+                    <div className="flex items-center gap-2 bg-secondary/8 border border-secondary/15 rounded-xl px-4 py-2.5 mb-4">
+                      <AlertTriangle className="w-4 h-4 text-secondary" />
+                      <span className="text-secondary text-sm">Contact access expires: {formatDate(lead.access_expires_at)}</span>
+                    </div>
+                  )}
                   <div className="flex flex-col lg:flex-row lg:items-start gap-6">
                     <div className="flex-1">
                       <div className="flex items-start justify-between mb-3">
@@ -979,12 +1033,44 @@ export default function Dashboard() {
                           <p className="text-muted-foreground text-sm">{formatDate(lead.date)}</p>
                         </div>
                       </div>
-                      <p className="font-medium text-foreground mb-2 text-[0.9375rem]">{lead.customer_name}</p>
+                      <p className={`font-medium mb-3 text-[0.9375rem] ${lead.is_access_expired ? 'text-muted-foreground' : 'text-foreground'}`}>{lead.customer_name}</p>
+                      {(lead.property_type || lead.bedrooms || lead.frequency) && (
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          {lead.property_type && <span className="property-badge bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400"><Home className="w-3 h-3" />{lead.property_type}</span>}
+                          {lead.bedrooms && <span className="property-badge bg-purple-50 text-purple-700 dark:bg-purple-950/30 dark:text-purple-400"><User className="w-3 h-3" />{lead.bedrooms}</span>}
+                          {lead.frequency && <span className="property-badge bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400"><Clock className="w-3 h-3" />{lead.frequency}</span>}
+                        </div>
+                      )}
+                      <div className="grid md:grid-cols-2 gap-3 mb-3">
+                        <div className={`contact-row flex items-center gap-2 ${lead.is_access_expired ? 'opacity-60' : ''}`}>
+                          <Phone className={`w-4 h-4 ${lead.is_access_expired ? 'text-muted-foreground' : 'text-secondary'}`} />
+                          {lead.is_access_expired ? (
+                            <span className="text-muted-foreground flex-1">{lead.customer_phone}</span>
+                          ) : (
+                            <><a href={`tel:${lead.customer_phone}`} className="text-foreground hover:text-secondary transition-colors flex-1">{lead.customer_phone}</a>
+                            <button onClick={() => copyToClipboard(lead.customer_phone, `phone-${lead.id}`)} className="text-muted-foreground hover:text-foreground">{copiedField === `phone-${lead.id}` ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}</button></>
+                          )}
+                        </div>
+                        <div className={`contact-row flex items-center gap-2 ${lead.is_access_expired ? 'opacity-60' : ''}`}>
+                          <Mail className={`w-4 h-4 ${lead.is_access_expired ? 'text-muted-foreground' : 'text-secondary'}`} />
+                          {lead.is_access_expired ? (
+                            <span className="text-muted-foreground flex-1 truncate">{lead.customer_email}</span>
+                          ) : (
+                            <><a href={`mailto:${lead.customer_email}`} className="text-foreground hover:text-secondary transition-colors flex-1 truncate">{lead.customer_email}</a>
+                            <button onClick={() => copyToClipboard(lead.customer_email, `email-${lead.id}`)} className="text-muted-foreground hover:text-foreground">{copiedField === `email-${lead.id}` ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}</button></>
+                          )}
+                        </div>
+                        <div className={`contact-row md:col-span-2 flex items-start gap-2 ${lead.is_access_expired ? 'opacity-60' : ''}`}>
+                          <MapPin className={`w-4 h-4 mt-0.5 ${lead.is_access_expired ? 'text-muted-foreground' : 'text-secondary'}`} />
+                          <span className={`flex-1 ${lead.is_access_expired ? 'text-muted-foreground' : 'text-foreground'}`}>{lead.customer_address}</span>
+                          {!lead.is_access_expired && (
+                            <button onClick={() => copyToClipboard(lead.customer_address, `address-${lead.id}`)} className="text-muted-foreground hover:text-foreground">{copiedField === `address-${lead.id}` ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}</button>
+                          )}
+                        </div>
+                      </div>
                       <div className="flex items-center gap-2 text-sm text-purple-600">
                         <CalendarCheck className="w-4 h-4" />
-                        <span>
-                          Job booked{lead.booked_date ? ` for ${formatDate(lead.booked_date)}` : ''}
-                        </span>
+                        <span>Job booked{lead.booked_date ? ` for ${formatDate(lead.booked_date)}` : ''}</span>
                       </div>
                     </div>
                     <div className="flex flex-col gap-3 min-w-[160px]">
@@ -1003,6 +1089,14 @@ export default function Dashboard() {
                           <SelectItem value="no_response"><div className="flex items-center gap-2"><MessageSquareX className="w-4 h-4" /> No response</div></SelectItem>
                         </SelectContent>
                       </Select>
+                      {lead.is_access_expired ? (
+                        <div className="flex items-center justify-center gap-2 text-muted-foreground text-sm py-2"><Lock className="w-4 h-4" /><span>Access expired</span></div>
+                      ) : (
+                        <div className="flex gap-3">
+                          <a href={`tel:${lead.customer_phone}`} className="flex-1"><Button variant="cta" size="sm" className="w-full gap-1.5 h-11 rounded-xl text-[0.8125rem] font-semibold"><Phone className="w-4 h-4" />Call</Button></a>
+                          <a href={`mailto:${lead.customer_email}`} className="flex-1"><Button variant="outline" size="sm" className="w-full gap-1.5 h-11 rounded-xl text-[0.8125rem] font-semibold"><Mail className="w-4 h-4" />Email</Button></a>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
