@@ -265,12 +265,18 @@ export default function Dashboard() {
       lead.customer_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Separate pending and completed leads
+  // Separate leads by status
   const pendingLeads = filteredLeads.filter(
-    (lead) => lead.job_status !== 'completed'
+    (lead) => !lead.job_status || lead.job_status === 'pending'
   );
   const completedLeads = filteredLeads.filter(
     (lead) => lead.job_status === 'completed'
+  );
+  const lostLeads = filteredLeads.filter(
+    (lead) => lead.job_status === 'lost'
+  );
+  const noResponseLeads = filteredLeads.filter(
+    (lead) => lead.job_status === 'no_response'
   );
 
   const formatDate = (dateString: string) => {
@@ -597,9 +603,9 @@ export default function Dashboard() {
                     <Button variant="cta">Browse Available Leads</Button>
                   </Link>
                 </>
-              ) : pendingLeads.length === 0 && completedLeads.length > 0 ? (
+              ) : pendingLeads.length === 0 && (completedLeads.length > 0 || lostLeads.length > 0 || noResponseLeads.length > 0) ? (
                 <p className="text-muted-foreground text-lg">
-                  All leads have been completed! 🎉
+                  No pending leads right now
                 </p>
               ) : (
                 <p className="text-muted-foreground text-lg">
@@ -832,7 +838,7 @@ export default function Dashboard() {
 
         {/* Completed Leads section */}
         {completedLeads.length > 0 && (
-          <div className="bg-card rounded-2xl border border-border overflow-hidden">
+          <div className="bg-card rounded-2xl border border-border overflow-hidden mb-8">
             <div className="p-6 border-b border-border">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-green-500" />
@@ -846,7 +852,6 @@ export default function Dashboard() {
               {completedLeads.map((lead) => (
                 <div key={lead.id} className="p-6 hover:bg-muted/30 transition-colors bg-green-50/30 dark:bg-green-950/10">
                   <div className="flex flex-col lg:flex-row lg:items-start gap-6">
-                    {/* Lead info */}
                     <div className="flex-1">
                       <div className="flex items-start justify-between mb-3">
                         <div>
@@ -866,23 +871,201 @@ export default function Dashboard() {
                           </p>
                         </div>
                       </div>
-
                       <p className="font-medium text-foreground mb-2">
                         {lead.customer_name}
                       </p>
-                      
                       <div className="flex items-center gap-2 text-sm text-green-600">
                         <CheckCircle2 className="w-4 h-4" />
                         <span>Completed {lead.job_completed_at ? `on ${formatDate(lead.job_completed_at)}` : ''}</span>
                       </div>
                     </div>
-
-                    {/* Status indicator */}
                     <div className="flex flex-col gap-3 min-w-[160px]">
                       <div className="flex items-center gap-2 text-sm">
                         <CheckCircle2 className="w-4 h-4 text-green-500" />
                         <span className="font-medium text-green-600">Completed</span>
                       </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Lost Leads section */}
+        {lostLeads.length > 0 && (
+          <div className="bg-card rounded-2xl border border-border overflow-hidden mb-8">
+            <div className="p-6 border-b border-border">
+              <div className="flex items-center gap-2">
+                <XCircle className="w-5 h-5 text-destructive" />
+                <h2 className="font-heading text-xl font-bold text-foreground">
+                  Lost ({lostLeads.length})
+                </h2>
+              </div>
+            </div>
+
+            <div className="divide-y divide-border">
+              {lostLeads.map((lead) => (
+                <div key={lead.id} className="p-6 hover:bg-muted/30 transition-colors bg-red-50/30 dark:bg-red-950/10">
+                  <div className="flex flex-col lg:flex-row lg:items-start gap-6">
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <span className="inline-block bg-muted text-foreground font-semibold rounded-lg px-3 py-1 text-sm mb-2">
+                            {lead.postcode}
+                          </span>
+                          <h3 className="font-semibold text-foreground text-lg">
+                            {lead.job_type}
+                          </h3>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-secondary font-bold text-xl">
+                            {lead.display_value}
+                          </p>
+                          <p className="text-muted-foreground text-sm">
+                            {formatDate(lead.date)}
+                          </p>
+                        </div>
+                      </div>
+                      <p className="font-medium text-foreground mb-2">
+                        {lead.customer_name}
+                      </p>
+                      <div className="flex items-center gap-2 text-sm text-destructive">
+                        <XCircle className="w-4 h-4" />
+                        <span>Lost to competitor</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-3 min-w-[160px]">
+                      <div className="flex items-center gap-2 text-sm">
+                        <XCircle className="w-4 h-4 text-destructive" />
+                        <span className="font-medium text-destructive">Lost</span>
+                      </div>
+                      <Select
+                        value={lead.job_status || 'pending'}
+                        onValueChange={(value) => handleStatusUpdate(lead.id, value)}
+                        disabled={updatingStatus === lead.id}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Update status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pending">
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-4 h-4" />
+                              Pending
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="completed">
+                            <div className="flex items-center gap-2">
+                              <CheckCircle2 className="w-4 h-4 text-green-500" />
+                              Completed
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="lost">
+                            <div className="flex items-center gap-2">
+                              <XCircle className="w-4 h-4 text-destructive" />
+                              Lost to competitor
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="no_response">
+                            <div className="flex items-center gap-2">
+                              <MessageSquareX className="w-4 h-4" />
+                              No response
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* No Response Leads section */}
+        {noResponseLeads.length > 0 && (
+          <div className="bg-card rounded-2xl border border-border overflow-hidden mb-8">
+            <div className="p-6 border-b border-border">
+              <div className="flex items-center gap-2">
+                <MessageSquareX className="w-5 h-5 text-muted-foreground" />
+                <h2 className="font-heading text-xl font-bold text-foreground">
+                  No Response ({noResponseLeads.length})
+                </h2>
+              </div>
+            </div>
+
+            <div className="divide-y divide-border">
+              {noResponseLeads.map((lead) => (
+                <div key={lead.id} className="p-6 hover:bg-muted/30 transition-colors bg-muted/20">
+                  <div className="flex flex-col lg:flex-row lg:items-start gap-6">
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <span className="inline-block bg-muted text-foreground font-semibold rounded-lg px-3 py-1 text-sm mb-2">
+                            {lead.postcode}
+                          </span>
+                          <h3 className="font-semibold text-foreground text-lg">
+                            {lead.job_type}
+                          </h3>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-secondary font-bold text-xl">
+                            {lead.display_value}
+                          </p>
+                          <p className="text-muted-foreground text-sm">
+                            {formatDate(lead.date)}
+                          </p>
+                        </div>
+                      </div>
+                      <p className="font-medium text-foreground mb-2">
+                        {lead.customer_name}
+                      </p>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <MessageSquareX className="w-4 h-4" />
+                        <span>Customer did not respond</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-3 min-w-[160px]">
+                      <div className="flex items-center gap-2 text-sm">
+                        <MessageSquareX className="w-4 h-4 text-muted-foreground" />
+                        <span className="font-medium text-muted-foreground">No Response</span>
+                      </div>
+                      <Select
+                        value={lead.job_status || 'pending'}
+                        onValueChange={(value) => handleStatusUpdate(lead.id, value)}
+                        disabled={updatingStatus === lead.id}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Update status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pending">
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-4 h-4" />
+                              Pending
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="completed">
+                            <div className="flex items-center gap-2">
+                              <CheckCircle2 className="w-4 h-4 text-green-500" />
+                              Completed
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="lost">
+                            <div className="flex items-center gap-2">
+                              <XCircle className="w-4 h-4 text-destructive" />
+                              Lost to competitor
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="no_response">
+                            <div className="flex items-center gap-2">
+                              <MessageSquareX className="w-4 h-4" />
+                              No response
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 </div>
