@@ -103,6 +103,8 @@ interface Lead {
   confirmation_response: string | null;
   auto_publish_at: string | null;
   confirmation_method: string | null;
+  // Booking
+  booked_date: string | null;
 }
 
 // Kanban columns in FIXED order - leads go straight to pending_confirmation
@@ -955,6 +957,12 @@ export default function AdminLeads() {
                                   Booked
                                 </Badge>
                               )}
+                              {lead.booked_date && (
+                                <Badge className="bg-cyan-500/10 text-cyan-500 mt-1 text-xs">
+                                  <Calendar className="w-3 h-3 mr-1" />
+                                  {format(new Date(lead.booked_date + "T00:00:00"), "d MMM yyyy")}
+                                </Badge>
+                              )}
                               {lead.job_status === 'completed' && (
                                 <Badge className="bg-green-500/20 text-green-600 mt-1 text-xs">
                                   <CheckCircle className="w-3 h-3 mr-1" />
@@ -1273,6 +1281,15 @@ export default function AdminLeads() {
                         <p className="font-medium flex items-center gap-1">
                           <BedDouble className="w-4 h-4 text-purple-500" />
                           {selectedLead.bedrooms}
+                        </p>
+                      </div>
+                    )}
+                    {(selectedLead as any).booked_date && (
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground text-xs">Booked Date</Label>
+                        <p className="font-medium flex items-center gap-1 text-cyan-500">
+                          <Calendar className="w-4 h-4" />
+                          {format(new Date((selectedLead as any).booked_date + "T00:00:00"), "d MMMM yyyy")}
                         </p>
                       </div>
                     )}
