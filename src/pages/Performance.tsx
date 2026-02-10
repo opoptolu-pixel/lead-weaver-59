@@ -9,6 +9,8 @@ import {
   Phone,
   Calendar,
   ArrowLeft,
+  MessageSquareX,
+  Clock,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
@@ -86,10 +88,13 @@ export default function Performance() {
   const contactedLeads = leads.filter(l => l.outcome_status === "contacted" || l.outcome_status === "booked" || l.outcome_status === "completed").length;
   const bookedLeads = leads.filter(l => l.outcome_status === "booked" || l.outcome_status === "completed").length;
   const completedLeads = leads.filter(l => l.outcome_status === "completed" || l.job_status === "completed").length;
-  const lostLeads = leads.filter(l => l.outcome_status === "lost").length;
+  const lostLeads = leads.filter(l => l.outcome_status === "lost" || l.job_status === "lost").length;
+  const noResponseLeads = leads.filter(l => l.job_status === "no_response").length;
+  const pendingLeads = leads.filter(l => !l.job_status || l.job_status === "pending").length;
 
   const closeRate = totalLeads > 0 ? ((completedLeads / totalLeads) * 100).toFixed(1) : 0;
   const bookingRate = contactedLeads > 0 ? ((bookedLeads / contactedLeads) * 100).toFixed(1) : 0;
+  const lostRate = totalLeads > 0 ? ((lostLeads / totalLeads) * 100).toFixed(1) : 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -125,7 +130,7 @@ export default function Performance() {
           ) : (
             <>
               {/* KPI Cards */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
                 <Card>
                   <CardHeader className="pb-2">
                     <CardDescription>Leads Purchased</CardDescription>
@@ -134,14 +139,26 @@ export default function Performance() {
                 </Card>
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardDescription>Jobs Booked</CardDescription>
-                    <CardTitle className="text-3xl text-blue-500">{bookedLeads}</CardTitle>
+                    <CardDescription className="flex items-center gap-1"><Clock className="w-3 h-3" /> Pending</CardDescription>
+                    <CardTitle className="text-3xl text-secondary">{pendingLeads}</CardTitle>
                   </CardHeader>
                 </Card>
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardDescription>Jobs Completed</CardDescription>
+                    <CardDescription className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-green-500" /> Completed</CardDescription>
                     <CardTitle className="text-3xl text-green-500">{completedLeads}</CardTitle>
+                  </CardHeader>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardDescription className="flex items-center gap-1"><XCircle className="w-3 h-3 text-destructive" /> Lost</CardDescription>
+                    <CardTitle className="text-3xl text-destructive">{lostLeads}</CardTitle>
+                  </CardHeader>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardDescription className="flex items-center gap-1"><MessageSquareX className="w-3 h-3" /> No Response</CardDescription>
+                    <CardTitle className="text-3xl text-muted-foreground">{noResponseLeads}</CardTitle>
                   </CardHeader>
                 </Card>
                 <Card>
@@ -174,24 +191,31 @@ export default function Performance() {
                     </div>
                     <div>
                       <div className="flex justify-between text-sm mb-1">
-                        <span>Contacted</span>
-                        <span>{contactedLeads} leads ({totalLeads > 0 ? ((contactedLeads / totalLeads) * 100).toFixed(0) : 0}%)</span>
+                        <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> Pending</span>
+                        <span>{pendingLeads} leads ({totalLeads > 0 ? ((pendingLeads / totalLeads) * 100).toFixed(0) : 0}%)</span>
                       </div>
-                      <Progress value={totalLeads > 0 ? (contactedLeads / totalLeads) * 100 : 0} className="h-3" />
+                      <Progress value={totalLeads > 0 ? (pendingLeads / totalLeads) * 100 : 0} className="h-3" />
                     </div>
                     <div>
                       <div className="flex justify-between text-sm mb-1">
-                        <span>Booked</span>
-                        <span>{bookedLeads} leads ({totalLeads > 0 ? ((bookedLeads / totalLeads) * 100).toFixed(0) : 0}%)</span>
-                      </div>
-                      <Progress value={totalLeads > 0 ? (bookedLeads / totalLeads) * 100 : 0} className="h-3" />
-                    </div>
-                    <div>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span>Completed</span>
+                        <span className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-green-500" /> Completed</span>
                         <span>{completedLeads} leads ({totalLeads > 0 ? ((completedLeads / totalLeads) * 100).toFixed(0) : 0}%)</span>
                       </div>
                       <Progress value={totalLeads > 0 ? (completedLeads / totalLeads) * 100 : 0} className="h-3" />
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="flex items-center gap-1"><XCircle className="w-3 h-3 text-destructive" /> Lost</span>
+                        <span>{lostLeads} leads ({lostRate}%)</span>
+                      </div>
+                      <Progress value={totalLeads > 0 ? (lostLeads / totalLeads) * 100 : 0} className="h-3" />
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="flex items-center gap-1"><MessageSquareX className="w-3 h-3" /> No Response</span>
+                        <span>{noResponseLeads} leads ({totalLeads > 0 ? ((noResponseLeads / totalLeads) * 100).toFixed(0) : 0}%)</span>
+                      </div>
+                      <Progress value={totalLeads > 0 ? (noResponseLeads / totalLeads) * 100 : 0} className="h-3" />
                     </div>
                   </div>
                 </CardContent>
@@ -228,12 +252,14 @@ export default function Performance() {
                                 variant={
                                   lead.job_status === "completed" || lead.outcome_status === "completed"
                                     ? "default"
-                                    : lead.outcome_status === "lost"
+                                    : lead.job_status === "lost" || lead.outcome_status === "lost"
                                     ? "destructive"
+                                    : lead.job_status === "no_response"
+                                    ? "outline"
                                     : "secondary"
                                 }
                               >
-                                {lead.outcome_status || lead.job_status || "pending"}
+                                {lead.job_status === "no_response" ? "No Response" : (lead.outcome_status || lead.job_status || "pending")}
                               </Badge>
                             </TableCell>
                             <TableCell className="text-muted-foreground">

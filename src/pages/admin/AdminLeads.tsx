@@ -90,6 +90,7 @@ interface Lead {
   unlocked_at: string | null;
   refund_reason: string | null;
   outcome_status: string | null;
+  job_status: string | null;
   outcome_notes: string | null;
   lost_reason: string | null;
   // Property details
@@ -935,10 +936,30 @@ export default function AdminLeads() {
                           )}
 
                           {column.value === "purchased" && (
-                            <Badge className="bg-purple-500/20 text-purple-500 mt-2 text-xs">
-                              <Lock className="w-3 h-3 mr-1" />
-                              Locked
-                            </Badge>
+                            <>
+                              <Badge className="bg-purple-500/20 text-purple-500 mt-2 text-xs">
+                                <Lock className="w-3 h-3 mr-1" />
+                                Locked
+                              </Badge>
+                              {lead.job_status === 'completed' && (
+                                <Badge className="bg-green-500/20 text-green-600 mt-1 text-xs">
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  Job Completed
+                                </Badge>
+                              )}
+                              {lead.job_status === 'lost' && (
+                                <Badge className="bg-destructive/20 text-destructive mt-1 text-xs">
+                                  <XCircle className="w-3 h-3 mr-1" />
+                                  Lost
+                                </Badge>
+                              )}
+                              {lead.job_status === 'no_response' && (
+                                <Badge variant="outline" className="text-muted-foreground mt-1 text-xs">
+                                  <MessageSquare className="w-3 h-3 mr-1" />
+                                  No Response
+                                </Badge>
+                              )}
+                            </>
                           )}
                         </div>
                       );
