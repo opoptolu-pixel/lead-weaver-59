@@ -20,6 +20,10 @@ import {
   RefreshCw,
   Gift,
   Coins,
+  CheckCircle2,
+  XCircle,
+  MessageSquareX,
+  Clock,
 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import KPICard from "@/components/admin/KPICard";
@@ -112,6 +116,10 @@ export default function AdminOverview() {
     avgJobValue: 0,
     conversionRate: 0,
     totalJobRevenue: 0,
+    jobsCompleted: 0,
+    jobsLost: 0,
+    jobsNoResponse: 0,
+    jobsPending: 0,
   });
   const [previousStats, setPreviousStats] = useState<PeriodComparison | null>(null);
   const [queues, setQueues] = useState({
@@ -464,7 +472,7 @@ export default function AdminOverview() {
 
     const { data: leads } = await supabase
       .from("leads")
-      .select("id, is_unlocked, lead_status, created_at, refunded_at, value, display_value, unlocked_by")
+      .select("id, is_unlocked, lead_status, created_at, refunded_at, value, display_value, unlocked_by, job_status")
       .gte("created_at", startISO)
       .lte("created_at", endISO);
 
@@ -548,6 +556,13 @@ export default function AdminOverview() {
     // Count granted leads
     const grantedLeadsPurchased = (unlockedLeadsInRange?.length || 0) - paidLeadsInRange.length;
 
+    // Job outcome stats (from purchased leads)
+    const purchasedLeadsList = leads?.filter(l => l.is_unlocked) || [];
+    const jobsCompleted = purchasedLeadsList.filter(l => (l as any).job_status === 'completed').length;
+    const jobsLost = purchasedLeadsList.filter(l => (l as any).job_status === 'lost').length;
+    const jobsNoResponse = purchasedLeadsList.filter(l => (l as any).job_status === 'no_response').length;
+    const jobsPending = purchasedLeadsList.filter(l => !(l as any).job_status || (l as any).job_status === 'pending').length;
+
     setStats({
       leadsReceived,
       leadsPublished,
@@ -562,6 +577,10 @@ export default function AdminOverview() {
       avgJobValue,
       conversionRate,
       totalJobRevenue,
+      jobsCompleted,
+      jobsLost,
+      jobsNoResponse,
+      jobsPending,
     });
 
     const leadsAwaiting = leads?.filter(l => l.lead_status === "new").length || 0;
@@ -814,7 +833,53 @@ export default function AdminOverview() {
         </div>
       </div>
 
-      {/* Combined Ad Performance Widget */}
+      {/* Job Outcomes Widget */}
+      <div className="bg-card rounded-xl border border-border/60 p-6 mb-8">
+        <div className="flex items-center gap-2 mb-4">
+          <Target className="w-5 h-5 text-secondary" />
+          <h3 className="font-heading font-semibold text-foreground">Job Outcomes (Purchased Leads)</h3>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="text-center p-4 bg-muted/30 rounded-lg">
+            <div className="flex items-center justify-center gap-1.5 mb-1">
+              <Clock className="w-4 h-4 text-secondary" />
+            </div>
+            <p className="text-2xl font-bold text-foreground">{stats.jobsPending}</p>
+            <p className="text-xs text-muted-foreground">Pending</p>
+          </div>
+          <div className="text-center p-4 bg-green-500/5 border border-green-500/20 rounded-lg">
+            <div className="flex items-center justify-center gap-1.5 mb-1">
+              <CheckCircle2 className="w-4 h-4 text-green-500" />
+            </div>
+            <p className="text-2xl font-bold text-green-500">{stats.jobsCompleted}</p>
+            <p className="text-xs text-muted-foreground">Completed</p>
+            {stats.leadsPurchased > 0 && (
+              <p className="text-xs text-green-600 mt-1">{Math.round((stats.jobsCompleted / stats.leadsPurchased) * 100)}% close rate</p>
+            )}
+          </div>
+          <div className="text-center p-4 bg-destructive/5 border border-destructive/20 rounded-lg">
+            <div className="flex items-center justify-center gap-1.5 mb-1">
+              <XCircle className="w-4 h-4 text-destructive" />
+            </div>
+            <p className="text-2xl font-bold text-destructive">{stats.jobsLost}</p>
+            <p className="text-xs text-muted-foreground">Lost</p>
+            {stats.leadsPurchased > 0 && (
+              <p className="text-xs text-destructive/80 mt-1">{Math.round((stats.jobsLost / stats.leadsPurchased) * 100)}% lost rate</p>
+            )}
+          </div>
+          <div className="text-center p-4 bg-muted/30 rounded-lg">
+            <div className="flex items-center justify-center gap-1.5 mb-1">
+              <MessageSquareX className="w-4 h-4 text-muted-foreground" />
+            </div>
+            <p className="text-2xl font-bold text-muted-foreground">{stats.jobsNoResponse}</p>
+            <p className="text-xs text-muted-foreground">No Response</p>
+            {stats.leadsPurchased > 0 && (
+              <p className="text-xs text-muted-foreground mt-1">{Math.round((stats.jobsNoResponse / stats.leadsPurchased) * 100)}%</p>
+            )}
+          </div>
+        </div>
+      </div>
+
       <div className="bg-card rounded-xl border border-border/60 p-6 mb-8">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">

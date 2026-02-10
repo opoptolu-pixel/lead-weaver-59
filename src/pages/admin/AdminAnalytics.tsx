@@ -154,7 +154,12 @@ export default function AdminAnalytics() {
     purchaseRate: 0, 
     avgTimeToPurchase: 0, 
     expiredRate: 0, 
-    refundRate: 0 
+    refundRate: 0,
+    jobsCompleted: 0,
+    jobsLost: 0,
+    jobsNoResponse: 0,
+    jobsPending: 0,
+    totalPurchased: 0,
   });
   const [cityLeadStats, setCityLeadStats] = useState<CityStats[]>([]);
   const [buyerCityStats, setBuyerCityStats] = useState<BuyerCityStats[]>([]);
@@ -325,7 +330,7 @@ export default function AdminAnalytics() {
     // Fetch leads with more details
     const { data: leads } = await supabase
       .from("leads")
-      .select("id, source, postcode, is_unlocked, unlocked_by, refunded_at, created_at, unlocked_at, lead_status, job_type, display_value, credit_type")
+      .select("id, source, postcode, is_unlocked, unlocked_by, refunded_at, created_at, unlocked_at, lead_status, job_type, display_value, credit_type, job_status")
       .gte("created_at", startISO)
       .lte("created_at", endISO);
 
@@ -422,11 +427,23 @@ export default function AdminAnalytics() {
         avgTimeHours = Math.round((totalTimeMs / purchasedLeads.length) / (1000 * 60 * 60) * 10) / 10;
       }
       
+      // Job outcome stats
+      const purchasedList = leads.filter(l => l.is_unlocked);
+      const jobsCompleted = purchasedList.filter(l => (l as any).job_status === 'completed').length;
+      const jobsLost = purchasedList.filter(l => (l as any).job_status === 'lost').length;
+      const jobsNoResponse = purchasedList.filter(l => (l as any).job_status === 'no_response').length;
+      const jobsPending = purchasedList.filter(l => !(l as any).job_status || (l as any).job_status === 'pending').length;
+
       setMarketplaceStats({
         purchaseRate: totalLeads > 0 ? Math.round((purchased / totalLeads) * 100) : 0,
         avgTimeToPurchase: avgTimeHours,
         expiredRate: totalLeads > 0 ? Math.round((expired / totalLeads) * 100) : 0,
         refundRate: purchased > 0 ? Math.round((refunded / purchased) * 100) : 0,
+        jobsCompleted,
+        jobsLost,
+        jobsNoResponse,
+        jobsPending,
+        totalPurchased: purchased,
       });
     }
 
@@ -1341,6 +1358,43 @@ export default function AdminAnalytics() {
                     <div className="text-center p-4 border rounded-lg">
                       <p className="text-2xl font-bold">{marketplaceStats.refundRate}%</p>
                       <p className="text-sm text-muted-foreground">Refund Rate</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Job Outcomes Breakdown */}
+              <Card>
+                <CardHeader><CardTitle>Job Outcomes (Purchased Leads)</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 md:grid-cols-4">
+                    <div className="text-center p-4 border rounded-lg">
+                      <p className="text-2xl font-bold text-secondary">{marketplaceStats.jobsPending}</p>
+                      <p className="text-sm text-muted-foreground">Pending</p>
+                      {marketplaceStats.totalPurchased > 0 && (
+                        <p className="text-xs text-muted-foreground mt-1">{Math.round((marketplaceStats.jobsPending / marketplaceStats.totalPurchased) * 100)}%</p>
+                      )}
+                    </div>
+                    <div className="text-center p-4 border border-green-500/20 bg-green-500/5 rounded-lg">
+                      <p className="text-2xl font-bold text-green-500">{marketplaceStats.jobsCompleted}</p>
+                      <p className="text-sm text-muted-foreground">Completed</p>
+                      {marketplaceStats.totalPurchased > 0 && (
+                        <p className="text-xs text-green-600 mt-1">{Math.round((marketplaceStats.jobsCompleted / marketplaceStats.totalPurchased) * 100)}% close rate</p>
+                      )}
+                    </div>
+                    <div className="text-center p-4 border border-destructive/20 bg-destructive/5 rounded-lg">
+                      <p className="text-2xl font-bold text-destructive">{marketplaceStats.jobsLost}</p>
+                      <p className="text-sm text-muted-foreground">Lost</p>
+                      {marketplaceStats.totalPurchased > 0 && (
+                        <p className="text-xs text-destructive/80 mt-1">{Math.round((marketplaceStats.jobsLost / marketplaceStats.totalPurchased) * 100)}%</p>
+                      )}
+                    </div>
+                    <div className="text-center p-4 border rounded-lg">
+                      <p className="text-2xl font-bold text-muted-foreground">{marketplaceStats.jobsNoResponse}</p>
+                      <p className="text-sm text-muted-foreground">No Response</p>
+                      {marketplaceStats.totalPurchased > 0 && (
+                        <p className="text-xs text-muted-foreground mt-1">{Math.round((marketplaceStats.jobsNoResponse / marketplaceStats.totalPurchased) * 100)}%</p>
+                      )}
                     </div>
                   </div>
                 </CardContent>
