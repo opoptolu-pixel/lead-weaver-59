@@ -1560,7 +1560,6 @@ export default function AdminAnalytics() {
                           <SelectItem value="all">All Statuses</SelectItem>
                           <SelectItem value="pending">Pending</SelectItem>
                           <SelectItem value="contacted">Contacted</SelectItem>
-                          <SelectItem value="booked">Booked</SelectItem>
                           <SelectItem value="lost">Lost</SelectItem>
                           <SelectItem value="no_response">No Response</SelectItem>
                         </SelectContent>
@@ -1582,10 +1581,10 @@ export default function AdminAnalytics() {
                     const purchasedLeads = allLeads.filter(l => l.is_unlocked);
                     const search = marketplaceSearch.toLowerCase().trim();
                     
-                    // Exclude completed leads (they go in separate section)
+                    // Exclude completed and booked leads (they have their own sections)
                     let filtered = purchasedLeads.filter(l => {
                       const status = l.job_status || "pending";
-                      return status !== "completed";
+                      return status !== "completed" && status !== "booked";
                     });
                     
                     // Apply status filter
