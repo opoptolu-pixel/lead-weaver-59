@@ -406,6 +406,254 @@
   border-radius: 8px;
 }
 
+/* ===== Cleaner Dashboard — Uber-premium polish ===== */
+
+.cleaner-dashboard {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.011em;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  background: hsl(210 20% 98%);
+}
+
+.dark .cleaner-dashboard {
+  background: hsl(var(--background));
+}
+
+/* Typography */
+.cleaner-dashboard h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+}
+
+@media (min-width: 768px) {
+  .cleaner-dashboard h1 {
+    font-size: 2rem;
+  }
+}
+
+.cleaner-dashboard h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.cleaner-dashboard h3 {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+
+.cleaner-dashboard p {
+  line-height: 1.6;
+}
+
+/* Premium card surfaces */
+.cleaner-dashboard .dash-card {
+  background: hsl(0 0% 100%);
+  border: 1px solid hsl(210 20% 92%);
+  border-radius: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+  transition: box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.25s ease, transform 0.2s ease;
+}
+
+.dark .cleaner-dashboard .dash-card {
+  background: hsl(var(--card));
+  border-color: hsl(var(--border) / 0.35);
+}
+
+.cleaner-dashboard .dash-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+/* Stat cards */
+.cleaner-dashboard .stat-card {
+  background: hsl(0 0% 100%);
+  border: 1px solid hsl(210 20% 92%);
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dark .cleaner-dashboard .stat-card {
+  background: hsl(var(--card));
+  border-color: hsl(var(--border) / 0.35);
+}
+
+.cleaner-dashboard .stat-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.cleaner-dashboard .stat-card .stat-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: -0.006em;
+  color: hsl(210 10% 40%);
+}
+
+.dark .cleaner-dashboard .stat-card .stat-label {
+  color: hsl(var(--muted-foreground));
+}
+
+.cleaner-dashboard .stat-card .stat-value {
+  font-size: 1.875rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  margin-top: 0.25rem;
+}
+
+@media (min-width: 768px) {
+  .cleaner-dashboard .stat-card .stat-value {
+    font-size: 2.25rem;
+  }
+}
+
+/* Lead cards */
+.cleaner-dashboard .lead-card {
+  padding: 1.25rem;
+  transition: background-color 0.2s ease;
+}
+
+@media (min-width: 768px) {
+  .cleaner-dashboard .lead-card {
+    padding: 1.5rem;
+  }
+}
+
+.cleaner-dashboard .lead-card:hover {
+  background-color: hsl(210 20% 97%);
+}
+
+.dark .cleaner-dashboard .lead-card:hover {
+  background-color: hsl(var(--muted) / 0.35);
+}
+
+/* Section headers */
+.cleaner-dashboard .section-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid hsl(210 20% 93%);
+}
+
+.dark .cleaner-dashboard .section-header {
+  border-color: hsl(var(--border) / 0.35);
+}
+
+/* Contact detail rows */
+.cleaner-dashboard .contact-row {
+  border-radius: 10px;
+  padding: 0.625rem 0.875rem;
+  background: hsl(210 20% 97%);
+  font-size: 0.9375rem;
+}
+
+.dark .cleaner-dashboard .contact-row {
+  background: hsl(var(--muted) / 0.5);
+}
+
+/* Postcode tag */
+.cleaner-dashboard .postcode-tag {
+  display: inline-block;
+  background: hsl(210 20% 95%);
+  color: hsl(var(--foreground));
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8125rem;
+  letter-spacing: -0.01em;
+}
+
+.dark .cleaner-dashboard .postcode-tag {
+  background: hsl(var(--muted));
+}
+
+/* Property badges */
+.cleaner-dashboard .property-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+}
+
+/* Status badges */
+.cleaner-dashboard .status-badge {
+  font-weight: 600;
+  letter-spacing: 0.015em;
+  font-size: 0.6875rem;
+  border-radius: 9999px;
+  padding: 0.125rem 0.625rem;
+}
+
+/* Buttons */
+.cleaner-dashboard button {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cleaner-dashboard button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* Inputs */
+.cleaner-dashboard input,
+.cleaner-dashboard select,
+.cleaner-dashboard [role="combobox"] {
+  font-size: 0.9375rem;
+  border-radius: 10px;
+  min-height: 2.75rem;
+}
+
+.cleaner-dashboard input:focus,
+.cleaner-dashboard select:focus {
+  box-shadow: 0 0 0 3px hsl(var(--ring) / 0.12);
+}
+
+/* Scrollbars */
+.cleaner-dashboard ::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.cleaner-dashboard ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cleaner-dashboard ::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.12);
+  border-radius: 10px;
+}
+
+/* Mobile bottom nav premium */
+.cleaner-bottom-nav {
+  background: hsl(0 0% 100%);
+  border-top: 1px solid hsl(210 20% 92%);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.dark .cleaner-bottom-nav {
+  background: hsl(var(--card));
+  border-color: hsl(var(--border));
+}
+
+.cleaner-bottom-nav .nav-item {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.cleaner-bottom-nav .nav-icon {
+  width: 24px;
+  height: 24px;
+}
+
 /* Custom animations */
 @keyframes float {
   0%, 100% { transform: translateY(0px); }

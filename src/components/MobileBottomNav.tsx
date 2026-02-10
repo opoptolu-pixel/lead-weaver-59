@@ -20,14 +20,13 @@ const navItems: NavItem[] = [
 export const MobileBottomNav = forwardRef<HTMLElement>((_, ref) => {
   const location = useLocation();
 
-  // Only show on business dashboard routes
   const businessRoutes = ["/dashboard", "/leads", "/performance", "/billing", "/settings", "/disputes", "/support"];
   const shouldShow = businessRoutes.some((route) => location.pathname.startsWith(route));
 
   if (!shouldShow) return null;
 
   return (
-    <nav ref={ref} className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border md:hidden pb-safe">
+    <nav ref={ref} className="cleaner-bottom-nav fixed bottom-0 left-0 right-0 z-50 md:hidden pb-safe">
       <div className="flex items-center justify-around h-16">
         {navItems.map((item) => {
           const isActive = location.pathname === item.href;
@@ -38,13 +37,13 @@ export const MobileBottomNav = forwardRef<HTMLElement>((_, ref) => {
               key={item.href}
               to={item.href}
               className={cn(
-                "flex flex-col items-center justify-center w-full h-full gap-1 text-xs transition-colors",
+                "nav-item flex flex-col items-center justify-center w-full h-full gap-0.5 text-[0.6875rem] transition-colors duration-200",
                 isActive
                   ? "text-secondary"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <Icon className={cn("w-5 h-5", isActive && "fill-secondary/20")} />
+              <Icon className={cn("nav-icon", isActive && "fill-secondary/20")} />
               <span className="font-medium">{item.label}</span>
             </Link>
           );
