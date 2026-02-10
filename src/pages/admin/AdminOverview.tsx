@@ -24,6 +24,8 @@ import {
   XCircle,
   MessageSquareX,
   Clock,
+  PhoneOutgoing,
+  CalendarCheck,
 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import KPICard from "@/components/admin/KPICard";
@@ -117,6 +119,8 @@ export default function AdminOverview() {
     conversionRate: 0,
     totalJobRevenue: 0,
     jobsCompleted: 0,
+    jobsContacted: 0,
+    jobsBooked: 0,
     jobsLost: 0,
     jobsNoResponse: 0,
     jobsPending: 0,
@@ -559,6 +563,8 @@ export default function AdminOverview() {
     // Job outcome stats (from purchased leads)
     const purchasedLeadsList = leads?.filter(l => l.is_unlocked) || [];
     const jobsCompleted = purchasedLeadsList.filter(l => (l as any).job_status === 'completed').length;
+    const jobsContacted = purchasedLeadsList.filter(l => (l as any).job_status === 'contacted').length;
+    const jobsBooked = purchasedLeadsList.filter(l => (l as any).job_status === 'booked').length;
     const jobsLost = purchasedLeadsList.filter(l => (l as any).job_status === 'lost').length;
     const jobsNoResponse = purchasedLeadsList.filter(l => (l as any).job_status === 'no_response').length;
     const jobsPending = purchasedLeadsList.filter(l => !(l as any).job_status || (l as any).job_status === 'pending').length;
@@ -578,6 +584,8 @@ export default function AdminOverview() {
       conversionRate,
       totalJobRevenue,
       jobsCompleted,
+      jobsContacted,
+      jobsBooked,
       jobsLost,
       jobsNoResponse,
       jobsPending,
@@ -839,13 +847,33 @@ export default function AdminOverview() {
           <Target className="w-5 h-5 text-secondary" />
           <h3 className="font-heading font-semibold text-foreground">Job Outcomes (Purchased Leads)</h3>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <div className="text-center p-4 bg-muted/30 rounded-lg">
             <div className="flex items-center justify-center gap-1.5 mb-1">
               <Clock className="w-4 h-4 text-secondary" />
             </div>
             <p className="text-2xl font-bold text-foreground">{stats.jobsPending}</p>
             <p className="text-xs text-muted-foreground">Pending</p>
+          </div>
+          <div className="text-center p-4 bg-blue-500/5 border border-blue-500/20 rounded-lg">
+            <div className="flex items-center justify-center gap-1.5 mb-1">
+              <PhoneOutgoing className="w-4 h-4 text-blue-500" />
+            </div>
+            <p className="text-2xl font-bold text-blue-500">{stats.jobsContacted}</p>
+            <p className="text-xs text-muted-foreground">Contacted</p>
+            {stats.leadsPurchased > 0 && (
+              <p className="text-xs text-blue-600 mt-1">{Math.round((stats.jobsContacted / stats.leadsPurchased) * 100)}%</p>
+            )}
+          </div>
+          <div className="text-center p-4 bg-purple-500/5 border border-purple-500/20 rounded-lg">
+            <div className="flex items-center justify-center gap-1.5 mb-1">
+              <CalendarCheck className="w-4 h-4 text-purple-500" />
+            </div>
+            <p className="text-2xl font-bold text-purple-500">{stats.jobsBooked}</p>
+            <p className="text-xs text-muted-foreground">Booked</p>
+            {stats.leadsPurchased > 0 && (
+              <p className="text-xs text-purple-600 mt-1">{Math.round((stats.jobsBooked / stats.leadsPurchased) * 100)}%</p>
+            )}
           </div>
           <div className="text-center p-4 bg-green-500/5 border border-green-500/20 rounded-lg">
             <div className="flex items-center justify-center gap-1.5 mb-1">

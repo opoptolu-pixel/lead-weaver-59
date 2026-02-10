@@ -23,6 +23,8 @@ import {
   Home,
   BedDouble,
   History,
+  Phone,
+  Calendar,
 } from "lucide-react";
 import { usePagination } from "@/hooks/usePagination";
 import { PaginationControls } from "@/components/admin/PaginationControls";
@@ -941,6 +943,18 @@ export default function AdminLeads() {
                                 <Lock className="w-3 h-3 mr-1" />
                                 Locked
                               </Badge>
+                              {lead.job_status === 'contacted' && (
+                                <Badge className="bg-blue-500/20 text-blue-600 mt-1 text-xs">
+                                  <Phone className="w-3 h-3 mr-1" />
+                                  Contacted
+                                </Badge>
+                              )}
+                              {lead.job_status === 'booked' && (
+                                <Badge className="bg-purple-500/20 text-purple-600 mt-1 text-xs">
+                                  <Calendar className="w-3 h-3 mr-1" />
+                                  Booked
+                                </Badge>
+                              )}
                               {lead.job_status === 'completed' && (
                                 <Badge className="bg-green-500/20 text-green-600 mt-1 text-xs">
                                   <CheckCircle className="w-3 h-3 mr-1" />
