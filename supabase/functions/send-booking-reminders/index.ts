@@ -83,10 +83,11 @@ serve(async (req) => {
     };
 
     const today = todayStr;
+    const in1Day = addDays(now, 1);
     const in2Days = addDays(now, 2);
     const in3Days = addDays(now, 3);
 
-    logStep("Checking for reminders", { today, in2Days, in3Days });
+    logStep("Checking for reminders", { today, in1Day, in2Days, in3Days });
 
     // Fetch all booked leads with a booked_date that matches our reminder windows
     const { data: leads, error } = await supabase
@@ -94,7 +95,7 @@ serve(async (req) => {
       .select("id, customer_name, customer_phone, job_type, postcode, booked_date, sms_reminders_sent, unlocked_by")
       .eq("job_status", "booked")
       .not("booked_date", "is", null)
-      .in("booked_date", [today, in2Days, in3Days]);
+      .in("booked_date", [today, in1Day, in2Days, in3Days]);
 
     if (error) {
       throw new Error(`Error fetching leads: ${error.message}`);
@@ -107,75 +108,83 @@ serve(async (req) => {
     for (const lead of leads || []) {
       const sentReminders: string[] = lead.sms_reminders_sent || [];
       const bookedDate = lead.booked_date;
-      let reminderType: string | null = null;
-      let message = "";
-
       const formattedDate = formatDate(bookedDate);
 
+      // --- CLEANER REMINDERS (3 day, 2 day, morning) ---
+      let cleanerReminderType: string | null = null;
+      let cleanerMessage = "";
+
       if (bookedDate === in3Days && !sentReminders.includes("3_day")) {
-        reminderType = "3_day";
-        message = `Reminder: You have a cleaning job booked for ${formattedDate}.\n\n` +
-          `Customer: ${lead.customer_name}\n` +
-          `Job: ${lead.job_type}\n` +
-          `Area: ${lead.postcode}\n\n` +
-          `3 days to go! Make sure you're prepared.\n` +
-          `- Cleanda`;
+        cleanerReminderType = "3_day";
+        cleanerMessage = `Reminder: You have a cleaning job booked for ${formattedDate}.\n\nCustomer: ${lead.customer_name}\nJob: ${lead.job_type}\nArea: ${lead.postcode}\n\n3 days to go! Make sure you're prepared.\n- Cleanda`;
       } else if (bookedDate === in2Days && !sentReminders.includes("2_day")) {
-        reminderType = "2_day";
-        message = `Reminder: Your cleaning job is in 2 days (${formattedDate}).\n\n` +
-          `Customer: ${lead.customer_name}\n` +
-          `Job: ${lead.job_type}\n` +
-          `Area: ${lead.postcode}\n\n` +
-          `Almost there! Get everything ready.\n` +
-          `- Cleanda`;
+        cleanerReminderType = "2_day";
+        cleanerMessage = `Reminder: Your cleaning job is in 2 days (${formattedDate}).\n\nCustomer: ${lead.customer_name}\nJob: ${lead.job_type}\nArea: ${lead.postcode}\n\nAlmost there! Get everything ready.\n- Cleanda`;
       } else if (bookedDate === today && !sentReminders.includes("morning")) {
-        reminderType = "morning";
-        message = `Today's the day! Your cleaning job is today.\n\n` +
-          `Customer: ${lead.customer_name}\n` +
-          `Job: ${lead.job_type}\n` +
-          `Area: ${lead.postcode}\n\n` +
-          `Good luck with the job!\n` +
-          `- Cleanda`;
+        cleanerReminderType = "morning";
+        cleanerMessage = `Today's the day! Your cleaning job is today.\n\nCustomer: ${lead.customer_name}\nJob: ${lead.job_type}\nArea: ${lead.postcode}\n\nGood luck with the job!\n- Cleanda`;
       }
 
-      if (!reminderType) {
-        results.push({ leadId: lead.id, status: "skipped", reason: "already_sent" });
-        continue;
+      // Send cleaner reminder
+      if (cleanerReminderType && lead.unlocked_by) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("phone, whatsapp_optin, business_name")
+          .eq("user_id", lead.unlocked_by)
+          .single();
+
+        if (profile?.phone && profile?.whatsapp_optin) {
+          try {
+            await sendSMS(formatPhoneNumber(profile.phone), cleanerMessage);
+            sentReminders.push(cleanerReminderType);
+            results.push({ leadId: lead.id, status: "sent", reminderType: cleanerReminderType, recipient: "cleaner" });
+          } catch (err: any) {
+            logStep("Failed cleaner reminder", { leadId: lead.id, error: err.message });
+            results.push({ leadId: lead.id, status: "failed", reminderType: cleanerReminderType, recipient: "cleaner", error: err.message });
+          }
+        } else {
+          results.push({ leadId: lead.id, status: "skipped", reason: "no_phone_or_optin", recipient: "cleaner" });
+        }
       }
 
-      // Get the cleaner's phone from their profile
-      if (!lead.unlocked_by) {
-        results.push({ leadId: lead.id, status: "skipped", reason: "no_owner" });
-        continue;
+      // --- CUSTOMER REMINDERS (1 day before, morning of) ---
+      let customerReminderType: string | null = null;
+      let customerMessage = "";
+
+      let businessName = "your cleaner";
+      if (lead.unlocked_by) {
+        const { data: cp } = await supabase
+          .from("profiles")
+          .select("business_name")
+          .eq("user_id", lead.unlocked_by)
+          .single();
+        if (cp?.business_name) businessName = cp.business_name;
       }
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("phone, whatsapp_optin")
-        .eq("user_id", lead.unlocked_by)
-        .single();
-
-      if (!profile?.phone || !profile?.whatsapp_optin) {
-        results.push({ leadId: lead.id, status: "skipped", reason: "no_phone_or_optin" });
-        continue;
+      if (bookedDate === in1Day && !sentReminders.includes("customer_1_day")) {
+        customerReminderType = "customer_1_day";
+        customerMessage = `Hi ${lead.customer_name}, this is a reminder that your ${lead.job_type.toLowerCase()} is booked for tomorrow (${formattedDate}).\n\nYour cleaner: ${businessName}\n\nIf you need to make any changes, please contact them directly.\n- Cleanda`;
+      } else if (bookedDate === today && !sentReminders.includes("customer_morning")) {
+        customerReminderType = "customer_morning";
+        customerMessage = `Hi ${lead.customer_name}, your ${lead.job_type.toLowerCase()} is scheduled for today!\n\nYour cleaner: ${businessName}\n\nWe hope everything goes well.\n- Cleanda`;
       }
 
-      try {
-        const formattedPhone = formatPhoneNumber(profile.phone);
-        await sendSMS(formattedPhone, message);
-
-        // Mark reminder as sent
-        const updatedReminders = [...sentReminders, reminderType];
-        await supabase
-          .from("leads")
-          .update({ sms_reminders_sent: updatedReminders })
-          .eq("id", lead.id);
-
-        results.push({ leadId: lead.id, status: "sent", reminderType });
-      } catch (err: any) {
-        logStep("Failed to send reminder", { leadId: lead.id, error: err.message });
-        results.push({ leadId: lead.id, status: "failed", error: err.message });
+      if (customerReminderType && lead.customer_phone) {
+        try {
+          await sendSMS(formatPhoneNumber(lead.customer_phone), customerMessage);
+          sentReminders.push(customerReminderType);
+          results.push({ leadId: lead.id, status: "sent", reminderType: customerReminderType, recipient: "customer" });
+        } catch (err: any) {
+          logStep("Failed customer reminder", { leadId: lead.id, error: err.message });
+          results.push({ leadId: lead.id, status: "failed", reminderType: customerReminderType, recipient: "customer", error: err.message });
+        }
       }
+
+      // Persist all sent reminders
+      await supabase
+        .from("leads")
+        .update({ sms_reminders_sent: sentReminders })
+        .eq("id", lead.id);
     }
 
     logStep("Reminder results", {
