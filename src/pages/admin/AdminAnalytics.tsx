@@ -156,6 +156,8 @@ export default function AdminAnalytics() {
     expiredRate: 0, 
     refundRate: 0,
     jobsCompleted: 0,
+    jobsContacted: 0,
+    jobsBooked: 0,
     jobsLost: 0,
     jobsNoResponse: 0,
     jobsPending: 0,
@@ -430,6 +432,8 @@ export default function AdminAnalytics() {
       // Job outcome stats
       const purchasedList = leads.filter(l => l.is_unlocked);
       const jobsCompleted = purchasedList.filter(l => (l as any).job_status === 'completed').length;
+      const jobsContacted = purchasedList.filter(l => (l as any).job_status === 'contacted').length;
+      const jobsBooked = purchasedList.filter(l => (l as any).job_status === 'booked').length;
       const jobsLost = purchasedList.filter(l => (l as any).job_status === 'lost').length;
       const jobsNoResponse = purchasedList.filter(l => (l as any).job_status === 'no_response').length;
       const jobsPending = purchasedList.filter(l => !(l as any).job_status || (l as any).job_status === 'pending').length;
@@ -440,6 +444,8 @@ export default function AdminAnalytics() {
         expiredRate: totalLeads > 0 ? Math.round((expired / totalLeads) * 100) : 0,
         refundRate: purchased > 0 ? Math.round((refunded / purchased) * 100) : 0,
         jobsCompleted,
+        jobsContacted,
+        jobsBooked,
         jobsLost,
         jobsNoResponse,
         jobsPending,
@@ -1367,12 +1373,26 @@ export default function AdminAnalytics() {
               <Card>
                 <CardHeader><CardTitle>Job Outcomes (Purchased Leads)</CardTitle></CardHeader>
                 <CardContent>
-                  <div className="grid gap-4 md:grid-cols-4">
+                  <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
                     <div className="text-center p-4 border rounded-lg">
                       <p className="text-2xl font-bold text-secondary">{marketplaceStats.jobsPending}</p>
                       <p className="text-sm text-muted-foreground">Pending</p>
                       {marketplaceStats.totalPurchased > 0 && (
                         <p className="text-xs text-muted-foreground mt-1">{Math.round((marketplaceStats.jobsPending / marketplaceStats.totalPurchased) * 100)}%</p>
+                      )}
+                    </div>
+                    <div className="text-center p-4 border border-blue-500/20 bg-blue-500/5 rounded-lg">
+                      <p className="text-2xl font-bold text-blue-500">{marketplaceStats.jobsContacted}</p>
+                      <p className="text-sm text-muted-foreground">Contacted</p>
+                      {marketplaceStats.totalPurchased > 0 && (
+                        <p className="text-xs text-blue-600 mt-1">{Math.round((marketplaceStats.jobsContacted / marketplaceStats.totalPurchased) * 100)}%</p>
+                      )}
+                    </div>
+                    <div className="text-center p-4 border border-purple-500/20 bg-purple-500/5 rounded-lg">
+                      <p className="text-2xl font-bold text-purple-500">{marketplaceStats.jobsBooked}</p>
+                      <p className="text-sm text-muted-foreground">Booked</p>
+                      {marketplaceStats.totalPurchased > 0 && (
+                        <p className="text-xs text-purple-600 mt-1">{Math.round((marketplaceStats.jobsBooked / marketplaceStats.totalPurchased) * 100)}%</p>
                       )}
                     </div>
                     <div className="text-center p-4 border border-green-500/20 bg-green-500/5 rounded-lg">
