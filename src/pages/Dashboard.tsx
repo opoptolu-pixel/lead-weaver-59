@@ -28,6 +28,7 @@ import {
   Headphones,
   PhoneOutgoing,
   CalendarCheck,
+  FileText,
 } from "lucide-react";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -725,6 +726,19 @@ export default function Dashboard() {
                         </div>
                       )}
 
+                      {/* Customer notes */}
+                      {lead.job_notes && !lead.is_access_expired && (
+                        <div className="mb-4 bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-800/30 rounded-xl p-3">
+                          <div className="flex items-start gap-2">
+                            <FileText className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <p className="text-xs font-medium text-amber-700 dark:text-amber-400 mb-1">Customer Notes</p>
+                              <p className="text-sm text-foreground whitespace-pre-line">{lead.job_notes}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Contact details */}
                       <div className="grid md:grid-cols-2 gap-3">
                         <div className={`contact-row flex items-center gap-2 ${lead.is_access_expired ? 'opacity-60' : ''}`}>
@@ -935,6 +949,17 @@ export default function Dashboard() {
                           {lead.frequency && <span className="property-badge bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400"><Clock className="w-3 h-3" />{lead.frequency}</span>}
                         </div>
                       )}
+                      {lead.job_notes && !lead.is_access_expired && (
+                        <div className="mb-4 bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-800/30 rounded-xl p-3">
+                          <div className="flex items-start gap-2">
+                            <FileText className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <p className="text-xs font-medium text-amber-700 dark:text-amber-400 mb-1">Customer Notes</p>
+                              <p className="text-sm text-foreground whitespace-pre-line">{lead.job_notes}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                       <div className="grid md:grid-cols-2 gap-3">
                         <div className={`contact-row flex items-center gap-2 ${lead.is_access_expired ? 'opacity-60' : ''}`}>
                           <Phone className={`w-4 h-4 ${lead.is_access_expired ? 'text-muted-foreground' : 'text-secondary'}`} />
@@ -1039,6 +1064,17 @@ export default function Dashboard() {
                           {lead.property_type && <span className="property-badge bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400"><Home className="w-3 h-3" />{lead.property_type}</span>}
                           {lead.bedrooms && <span className="property-badge bg-purple-50 text-purple-700 dark:bg-purple-950/30 dark:text-purple-400"><User className="w-3 h-3" />{lead.bedrooms}</span>}
                           {lead.frequency && <span className="property-badge bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400"><Clock className="w-3 h-3" />{lead.frequency}</span>}
+                        </div>
+                      )}
+                      {lead.job_notes && !lead.is_access_expired && (
+                        <div className="mb-4 bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-800/30 rounded-xl p-3">
+                          <div className="flex items-start gap-2">
+                            <FileText className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <p className="text-xs font-medium text-amber-700 dark:text-amber-400 mb-1">Customer Notes</p>
+                              <p className="text-sm text-foreground whitespace-pre-line">{lead.job_notes}</p>
+                            </div>
+                          </div>
                         </div>
                       )}
                       <div className="grid md:grid-cols-2 gap-3 mb-3">
