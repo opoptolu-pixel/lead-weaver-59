@@ -45,10 +45,10 @@ interface ContactSubmission {
 }
 
 const statusColors: Record<string, string> = {
-  new: "bg-blue-100 text-blue-800",
-  read: "bg-yellow-100 text-yellow-800",
-  responded: "bg-green-100 text-green-800",
-  archived: "bg-gray-100 text-gray-800",
+  new: "bg-blue-500/20 text-blue-500",
+  read: "bg-yellow-500/20 text-yellow-500",
+  responded: "bg-green-500/20 text-green-500",
+  archived: "bg-muted text-muted-foreground",
 };
 
 export default function AdminContactSubmissions() {
@@ -225,9 +225,9 @@ export default function AdminContactSubmissions() {
                 </TableRow>
               ) : (
                 filteredSubmissions.map((submission) => (
-                  <TableRow key={submission.id} className={submission.status === "new" ? "bg-blue-50/50" : ""}>
+                  <TableRow key={submission.id} className={submission.status === "new" ? "bg-blue-500/5" : ""}>
                     <TableCell>
-                      <Badge className={statusColors[submission.status] || "bg-gray-100"}>
+                      <Badge className={statusColors[submission.status] || "bg-muted text-muted-foreground"}>
                         {submission.status}
                       </Badge>
                     </TableCell>
