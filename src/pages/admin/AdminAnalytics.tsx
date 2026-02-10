@@ -59,8 +59,11 @@ import {
   Mail,
   AlertTriangle,
   Clock,
+  CheckCircle2,
+  ListFilter,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdmin } from "@/contexts/AdminContext";
 import { useVisitorData, Visitor, GeoLocation } from "@/hooks/useVisitorData";
@@ -1539,88 +1542,154 @@ export default function AdminAnalytics() {
                 </CardContent>
               </Card>
 
-              {/* Status-Filtered Lead Sections */}
-              {(() => {
-                const purchasedLeads = allLeads.filter(l => l.is_unlocked);
-                const search = marketplaceSearch.toLowerCase().trim();
-                const filterBySearch = (leads: LeadDetail[]) =>
-                  search ? leads.filter(l => l.customer_name?.toLowerCase().includes(search)) : leads;
-
-                const statusGroups: { key: string; label: string; statuses: string[]; color: string; borderColor: string; icon: React.ReactNode }[] = [
-                  { key: "pending", label: "Pending", statuses: ["pending", ""], color: "text-secondary", borderColor: "border-secondary/20", icon: <Clock className="w-5 h-5 text-secondary" /> },
-                  { key: "contacted", label: "Contacted", statuses: ["contacted"], color: "text-blue-500", borderColor: "border-blue-500/20", icon: <Phone className="w-5 h-5 text-blue-500" /> },
-                  { key: "lost", label: "Lost", statuses: ["lost"], color: "text-destructive", borderColor: "border-destructive/20", icon: <AlertTriangle className="w-5 h-5 text-destructive" /> },
-                  { key: "no_response", label: "No Response", statuses: ["no_response"], color: "text-muted-foreground", borderColor: "border-muted-foreground/20", icon: <Mail className="w-5 h-5 text-muted-foreground" /> },
-                ];
-
-                return statusGroups.map(group => {
-                  const groupLeads = filterBySearch(
-                    purchasedLeads.filter(l => {
+              {/* Purchased Leads - Combined with Status Filter */}
+              <Card>
+                <CardHeader>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                      <CardTitle>Purchased Leads</CardTitle>
+                      <CardDescription>All purchased leads with status filter</CardDescription>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger className="w-44 h-9">
+                          <ListFilter className="w-4 h-4 mr-2 text-muted-foreground" />
+                          <SelectValue placeholder="Filter by status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Statuses</SelectItem>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="contacted">Contacted</SelectItem>
+                          <SelectItem value="lost">Lost</SelectItem>
+                          <SelectItem value="no_response">No Response</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <div className="relative w-full sm:w-64">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Search by name..."
+                          value={marketplaceSearch}
+                          onChange={(e) => setMarketplaceSearch(e.target.value)}
+                          className="pl-9 h-9"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {(() => {
+                    const purchasedLeads = allLeads.filter(l => l.is_unlocked);
+                    const search = marketplaceSearch.toLowerCase().trim();
+                    
+                    // Exclude completed leads (they go in separate section)
+                    let filtered = purchasedLeads.filter(l => {
                       const status = l.job_status || "pending";
-                      return group.statuses.includes(status);
-                    })
-                  );
+                      return status !== "completed";
+                    });
+                    
+                    // Apply status filter
+                    if (statusFilter !== "all") {
+                      filtered = filtered.filter(l => {
+                        const status = l.job_status || "pending";
+                        return status === statusFilter;
+                      });
+                    }
+                    
+                    // Apply search
+                    if (search) {
+                      filtered = filtered.filter(l => l.customer_name?.toLowerCase().includes(search));
+                    }
 
-                  return (
-                    <Card key={group.key} className={group.borderColor}>
-                      <CardHeader>
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                          <div className="flex items-center gap-2">
-                            {group.icon}
-                            <CardTitle className={group.color}>{group.label}</CardTitle>
-                            <Badge variant="outline">{groupLeads.length}</Badge>
-                          </div>
-                          <div className="relative w-full sm:w-64">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                            <Input
-                              placeholder="Search by name..."
-                              value={marketplaceSearch}
-                              onChange={(e) => setMarketplaceSearch(e.target.value)}
-                              className="pl-9 h-9"
-                            />
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        {groupLeads.length === 0 ? (
-                          <p className="text-sm text-muted-foreground text-center py-4">
-                            {search ? "No matching leads found" : `No ${group.label.toLowerCase()} leads`}
-                          </p>
-                        ) : (
-                          <div className="max-h-72 overflow-y-auto">
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead>Customer</TableHead>
-                                  <TableHead>Job Type</TableHead>
-                                  <TableHead>Location</TableHead>
-                                  <TableHead>Created</TableHead>
-                                  <TableHead>Purchased</TableHead>
-                                  {group.key === "lost" && <TableHead>Reason</TableHead>}
-                                  <TableHead className="text-right">Value</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {groupLeads.map(lead => (
-                                  <TableRow key={lead.id}>
-                                    <TableCell className="font-medium">{lead.customer_name || "—"}</TableCell>
-                                    <TableCell>{lead.job_type}</TableCell>
-                                    <TableCell className="text-muted-foreground">{lead.postcode}</TableCell>
-                                    <TableCell className="text-muted-foreground">{formatDate(lead.created_at)}</TableCell>
-                                    <TableCell className="text-muted-foreground">{lead.unlocked_at ? formatDate(lead.unlocked_at) : "—"}</TableCell>
-                                    {group.key === "lost" && <TableCell className="text-destructive text-sm">{lead.lost_reason || "—"}</TableCell>}
-                                    <TableCell className="text-right font-medium">{lead.display_value}</TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  );
-                });
-              })()}
+                    const getStatusBadge = (status: string) => {
+                      switch (status) {
+                        case "contacted": return <Badge className="bg-blue-500/20 text-blue-500 border-0">Contacted</Badge>;
+                        case "lost": return <Badge className="bg-destructive/20 text-destructive border-0">Lost</Badge>;
+                        case "no_response": return <Badge variant="outline" className="text-muted-foreground">No Response</Badge>;
+                        default: return <Badge className="bg-secondary/20 text-secondary border-0">Pending</Badge>;
+                      }
+                    };
+
+                    if (filtered.length === 0) {
+                      return <p className="text-sm text-muted-foreground text-center py-6">{search || statusFilter !== "all" ? "No matching leads found" : "No purchased leads"}</p>;
+                    }
+
+                    return (
+                      <div className="max-h-96 overflow-y-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Customer</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead>Job Type</TableHead>
+                              <TableHead>Location</TableHead>
+                              <TableHead>Purchased</TableHead>
+                              <TableHead className="text-right">Value</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {filtered.map(lead => (
+                              <TableRow key={lead.id}>
+                                <TableCell className="font-medium">{lead.customer_name || "—"}</TableCell>
+                                <TableCell>{getStatusBadge(lead.job_status || "pending")}</TableCell>
+                                <TableCell>{lead.job_type}</TableCell>
+                                <TableCell className="text-muted-foreground">{lead.postcode}</TableCell>
+                                <TableCell className="text-muted-foreground">{lead.unlocked_at ? formatDate(lead.unlocked_at) : "—"}</TableCell>
+                                <TableCell className="text-right font-medium">{lead.display_value}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    );
+                  })()}
+                </CardContent>
+              </Card>
+
+              {/* Completed Leads - Separate Section */}
+              <Card className="border-green-500/20">
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5 text-green-500" />
+                    <CardTitle className="text-green-500">Completed</CardTitle>
+                    <Badge variant="outline">{allLeads.filter(l => l.is_unlocked && l.job_status === "completed").length}</Badge>
+                  </div>
+                  <CardDescription>Leads that resulted in completed jobs</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {(() => {
+                    const completedLeads = allLeads.filter(l => l.is_unlocked && l.job_status === "completed");
+                    if (completedLeads.length === 0) {
+                      return <p className="text-sm text-muted-foreground text-center py-4">No completed leads yet</p>;
+                    }
+                    return (
+                      <div className="max-h-72 overflow-y-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Customer</TableHead>
+                              <TableHead>Job Type</TableHead>
+                              <TableHead>Location</TableHead>
+                              <TableHead>Purchased</TableHead>
+                              <TableHead className="text-right">Value</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {completedLeads.map(lead => (
+                              <TableRow key={lead.id}>
+                                <TableCell className="font-medium">{lead.customer_name || "—"}</TableCell>
+                                <TableCell>{lead.job_type}</TableCell>
+                                <TableCell className="text-muted-foreground">{lead.postcode}</TableCell>
+                                <TableCell className="text-muted-foreground">{lead.unlocked_at ? formatDate(lead.unlocked_at) : "—"}</TableCell>
+                                <TableCell className="text-right font-medium">{lead.display_value}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    );
+                  })()}
+                </CardContent>
+              </Card>
             </TabsContent>
 
             {/* BUYERS TAB */}
