@@ -87,12 +87,12 @@ export default function Performance() {
   }
 
   const totalLeads = leads.length;
-  const contactedLeads = leads.filter(l => l.outcome_status === "contacted" || l.job_status === "contacted" || l.outcome_status === "booked" || l.job_status === "booked" || l.outcome_status === "completed" || l.job_status === "completed").length;
-  const bookedLeads = leads.filter(l => l.outcome_status === "booked" || l.job_status === "booked" || l.outcome_status === "completed" || l.job_status === "completed").length;
-  const completedLeads = leads.filter(l => l.outcome_status === "completed" || l.job_status === "completed").length;
-  const lostLeads = leads.filter(l => l.outcome_status === "lost" || l.job_status === "lost").length;
-  const noResponseLeads = leads.filter(l => l.job_status === "no_response").length;
   const pendingLeads = leads.filter(l => !l.job_status || l.job_status === "pending").length;
+  const contactedLeads = leads.filter(l => l.job_status === "contacted").length;
+  const bookedLeads = leads.filter(l => l.job_status === "booked").length;
+  const completedLeads = leads.filter(l => l.job_status === "completed").length;
+  const lostLeads = leads.filter(l => l.job_status === "lost").length;
+  const noResponseLeads = leads.filter(l => l.job_status === "no_response").length;
 
   const closeRate = totalLeads > 0 ? ((completedLeads / totalLeads) * 100).toFixed(1) : 0;
   const bookingRate = contactedLeads > 0 ? ((bookedLeads / contactedLeads) * 100).toFixed(1) : 0;
@@ -261,9 +261,9 @@ export default function Performance() {
                               <Badge
                                 className="status-badge"
                                 variant={
-                                  lead.job_status === "completed" || lead.outcome_status === "completed"
+                                  lead.job_status === "completed"
                                     ? "default"
-                                    : lead.job_status === "lost" || lead.outcome_status === "lost"
+                                    : lead.job_status === "lost"
                                     ? "destructive"
                                     : lead.job_status === "no_response"
                                     ? "outline"
@@ -273,7 +273,9 @@ export default function Performance() {
                                 {lead.job_status === "no_response" ? "No Response" 
                                   : lead.job_status === "contacted" ? "Contacted"
                                   : lead.job_status === "booked" ? "Booked"
-                                  : (lead.outcome_status || lead.job_status || "pending")}
+                                  : lead.job_status === "completed" ? "Completed"
+                                  : lead.job_status === "lost" ? "Lost"
+                                  : lead.job_status || "Pending"}
                               </Badge>
                             </TableCell>
                             <TableCell className="text-muted-foreground text-[0.875rem]">
