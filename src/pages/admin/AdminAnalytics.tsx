@@ -52,7 +52,8 @@ import {
   RefreshCw,
   Megaphone,
   PoundSterling,
-  History
+  History,
+  Calendar,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdmin } from "@/contexts/AdminContext";
@@ -167,6 +168,7 @@ export default function AdminAnalytics() {
   const [buyerCityStats, setBuyerCityStats] = useState<BuyerCityStats[]>([]);
   const [allLeads, setAllLeads] = useState<LeadDetail[]>([]);
   const [allBuyers, setAllBuyers] = useState<BuyerDetail[]>([]);
+  const [upcomingBookings, setUpcomingBookings] = useState<any[]>([]);
   
   // Dialog states
   const [selectedCity, setSelectedCity] = useState<CityStats | null>(null);
@@ -587,6 +589,35 @@ export default function AdminAnalytics() {
         setTopBuyers([]);
         setBuyerCityStats([]);
       }
+    }
+
+    // Fetch upcoming bookings (all booked leads with future booked_date)
+    const todayStr = new Date().toISOString().split("T")[0];
+    const { data: bookings } = await supabase
+      .from("leads")
+      .select("id, customer_name, job_type, postcode, booked_date, job_status, unlocked_by, display_value")
+      .eq("job_status", "booked")
+      .not("booked_date", "is", null)
+      .gte("booked_date", todayStr)
+      .order("booked_date", { ascending: true });
+
+    if (bookings && bookings.length > 0) {
+      // Get cleaner names for these bookings
+      const ownerIds = [...new Set(bookings.map(b => b.unlocked_by).filter(Boolean))];
+      const { data: ownerProfiles } = await supabase
+        .from("profiles")
+        .select("user_id, business_name")
+        .in("user_id", ownerIds);
+      
+      const ownerMap = new Map((ownerProfiles || []).map(p => [p.user_id, p.business_name]));
+      
+      setUpcomingBookings(bookings.map(b => ({
+        ...b,
+        cleaner_name: ownerMap.get(b.unlocked_by || "") || "Unknown",
+        days_until: Math.ceil((new Date(b.booked_date + "T00:00:00").getTime() - new Date(todayStr + "T00:00:00").getTime()) / (1000 * 60 * 60 * 24)),
+      })));
+    } else {
+      setUpcomingBookings([]);
     }
 
     setLoading(false);
@@ -1417,6 +1448,55 @@ export default function AdminAnalytics() {
                       )}
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Upcoming Bookings */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-cyan-500" />
+                    Upcoming Bookings
+                  </CardTitle>
+                  <CardDescription>Scheduled cleaning jobs with confirmed dates</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {upcomingBookings.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-6">No upcoming bookings scheduled</p>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Countdown</TableHead>
+                          <TableHead>Job Type</TableHead>
+                          <TableHead>Customer</TableHead>
+                          <TableHead>Location</TableHead>
+                          <TableHead>Cleaner</TableHead>
+                          <TableHead className="text-right">Value</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {upcomingBookings.map((booking) => (
+                          <TableRow key={booking.id}>
+                            <TableCell className="font-medium">
+                              {new Date(booking.booked_date + "T00:00:00").toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
+                            </TableCell>
+                            <TableCell>
+                              <Badge className={booking.days_until === 0 ? "bg-green-500/20 text-green-600" : booking.days_until <= 2 ? "bg-amber-500/20 text-amber-600" : "bg-cyan-500/10 text-cyan-500"}>
+                                {booking.days_until === 0 ? "Today" : booking.days_until === 1 ? "Tomorrow" : `${booking.days_until} days`}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{booking.job_type}</TableCell>
+                            <TableCell>{booking.customer_name}</TableCell>
+                            <TableCell className="text-muted-foreground">{booking.postcode}</TableCell>
+                            <TableCell>{booking.cleaner_name}</TableCell>
+                            <TableCell className="text-right font-medium">{booking.display_value}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
