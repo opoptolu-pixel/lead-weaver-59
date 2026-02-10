@@ -1335,6 +1335,7 @@ export type Database = {
         Returns: {
           access_expires_at: string
           bedrooms: string
+          booked_date: string
           customer_address: string
           customer_email: string
           customer_name: string
