@@ -308,7 +308,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20 md:pb-0">
+    <div className="cleaner-dashboard min-h-screen pb-20 md:pb-0">
       {/* Header */}
       <header className="bg-primary border-b border-border sticky top-0 z-50">
         <div className="container mx-auto px-4">
@@ -431,7 +431,7 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 md:px-6 py-6 md:py-10 max-w-6xl">
         {/* Suspension Banner */}
         {profile?.is_suspended && (
           <div className="mb-6 bg-destructive/10 border border-destructive rounded-xl p-4">
@@ -457,43 +457,43 @@ export default function Dashboard() {
         )}
 
         {/* Welcome section */}
-        <div className="mb-8">
-          <h1 className="font-heading text-3xl font-bold text-foreground mb-2">
+        <div className="mb-10">
+          <h1 className="text-foreground mb-1">
             Your Dashboard
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground text-[0.9375rem]">
             Manage your unlocked leads and account
           </p>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div className="bg-card rounded-xl border border-border p-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5 mb-10">
+          <div className="stat-card">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-lg bg-secondary/20 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-xl bg-secondary/10 flex items-center justify-center flex-shrink-0">
                 <User className="w-6 h-6 text-secondary" />
               </div>
               <div>
-                <p className="text-muted-foreground text-sm">Unlocked Leads</p>
-                <p className="text-foreground text-2xl font-bold">{leads.length}</p>
+                <p className="stat-label">Unlocked Leads</p>
+                <p className="stat-value text-foreground">{leads.length}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-card rounded-xl border border-border p-6">
+          <div className="stat-card">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-lg bg-secondary/20 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-xl bg-secondary/10 flex items-center justify-center flex-shrink-0">
                   <Coins className="w-6 h-6 text-secondary" />
                 </div>
                 <div>
-                  <p className="text-muted-foreground text-sm">Credits Available</p>
-                  <p className="text-foreground text-2xl font-bold">{profile?.credits || 0}</p>
+                  <p className="stat-label">Credits Available</p>
+                  <p className="stat-value text-foreground">{profile?.credits || 0}</p>
                 </div>
               </div>
               <Dialog open={showCreditDialog} onOpenChange={setShowCreditDialog}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-1">
+                  <Button variant="outline" size="sm" className="gap-1 rounded-lg h-10 px-4">
                     <Plus className="w-4 h-4" />
                     Buy
                   </Button>
@@ -509,10 +509,10 @@ export default function Dashboard() {
                     <button
                       onClick={() => handleBuyCredits("5")}
                       disabled={buyingCredits !== null}
-                      className="w-full p-4 rounded-xl border-2 border-border hover:border-secondary transition-colors text-left bg-card hover:bg-muted/50 disabled:opacity-50"
+                      className="w-full p-5 rounded-2xl border border-border/60 hover:border-secondary transition-all text-left bg-card hover:bg-muted/30 disabled:opacity-50 hover:shadow-md"
                     >
                       <div className="flex items-center justify-between mb-2">
-                        <span className="font-heading font-bold text-lg text-foreground">5 Credits</span>
+                        <span className="font-semibold text-lg text-foreground">5 Credits</span>
                         <span className="text-secondary font-bold text-xl">£90</span>
                       </div>
                       <div className="flex items-center justify-between">
@@ -529,13 +529,13 @@ export default function Dashboard() {
                     <button
                       onClick={() => handleBuyCredits("10")}
                       disabled={buyingCredits !== null}
-                      className="w-full p-4 rounded-xl border-2 border-secondary bg-secondary/10 hover:bg-secondary/20 transition-colors text-left disabled:opacity-50 relative overflow-hidden"
+                      className="w-full p-5 rounded-2xl border-2 border-secondary bg-secondary/5 hover:bg-secondary/10 transition-all text-left disabled:opacity-50 relative overflow-hidden hover:shadow-md"
                     >
-                      <div className="absolute top-0 right-0 bg-secondary text-secondary-foreground text-xs font-bold px-2 py-0.5 rounded-bl rounded-tr-xl">
+                      <div className="absolute top-0 right-0 bg-secondary text-secondary-foreground text-xs font-bold px-3 py-1 rounded-bl-xl">
                         BEST VALUE
                       </div>
                       <div className="flex items-center justify-between mb-2 pt-1">
-                        <span className="font-heading font-bold text-lg text-foreground">10 Credits</span>
+                        <span className="font-semibold text-lg text-foreground">10 Credits</span>
                         <span className="text-secondary font-bold text-xl mr-1">£170</span>
                       </div>
                       <div className="flex items-center justify-between">
@@ -557,14 +557,14 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="bg-card rounded-xl border border-border p-6">
+          <div className="stat-card">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-lg bg-secondary/20 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-xl bg-secondary/10 flex items-center justify-center flex-shrink-0">
                 <Calendar className="w-6 h-6 text-secondary" />
               </div>
               <div>
-                <p className="text-muted-foreground text-sm">Member Since</p>
-                <p className="text-foreground text-2xl font-bold">
+                <p className="stat-label">Member Since</p>
+                <p className="stat-value text-foreground">
                   {user?.created_at ? formatDate(user.created_at) : "N/A"}
                 </p>
               </div>
@@ -586,10 +586,10 @@ export default function Dashboard() {
         )}
 
         {/* Pending Leads section */}
-        <div className="bg-card rounded-2xl border border-border overflow-hidden mb-8">
-          <div className="p-6 border-b border-border">
+        <div className="dash-card overflow-hidden mb-6">
+          <div className="section-header">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <h2 className="font-heading text-xl font-bold text-foreground">
+              <h2 className="text-foreground">
                 Pending Leads
               </h2>
               <div className="relative w-full sm:w-64">
@@ -598,7 +598,7 @@ export default function Dashboard() {
                   placeholder="Search leads..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
+                  className="pl-10"
                 />
               </div>
             </div>
@@ -630,19 +630,19 @@ export default function Dashboard() {
               )}
             </div>
           ) : (
-            <div className="divide-y divide-border">
+            <div className="divide-y divide-border/50">
               {pendingLeads.map((lead) => (
-                <div key={lead.id} className={`p-6 hover:bg-muted/30 transition-colors ${lead.is_access_expired ? 'bg-muted/20' : ''}`}>
+                <div key={lead.id} className={`lead-card ${lead.is_access_expired ? 'bg-muted/10' : ''}`}>
                   {/* Access expiration warning */}
                   {lead.is_access_expired ? (
-                    <div className="flex items-center gap-2 bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2 mb-4">
+                    <div className="flex items-center gap-2 bg-destructive/8 border border-destructive/15 rounded-xl px-4 py-2.5 mb-4">
                       <Lock className="w-4 h-4 text-destructive" />
                       <span className="text-destructive text-sm font-medium">
                         Contact access expired - Customer data is no longer available
                       </span>
                     </div>
                   ) : lead.access_expires_at && (
-                    <div className="flex items-center gap-2 bg-secondary/10 border border-secondary/20 rounded-lg px-3 py-2 mb-4">
+                    <div className="flex items-center gap-2 bg-secondary/8 border border-secondary/15 rounded-xl px-4 py-2.5 mb-4">
                       <AlertTriangle className="w-4 h-4 text-secondary" />
                       <span className="text-secondary text-sm">
                         Contact access expires: {formatDate(lead.access_expires_at)}
@@ -655,15 +655,15 @@ export default function Dashboard() {
                     <div className="flex-1">
                       <div className="flex items-start justify-between mb-3">
                         <div>
-                          <span className="inline-block bg-muted text-foreground font-semibold rounded-lg px-3 py-1 text-sm mb-2">
+                          <span className="postcode-tag mb-2">
                             {lead.postcode}
                           </span>
-                          <h3 className="font-semibold text-foreground text-lg">
+                          <h3 className="text-foreground">
                             {lead.job_type}
                           </h3>
                         </div>
                         <div className="text-right">
-                          <p className="text-secondary font-bold text-xl">
+                          <p className="text-secondary font-bold text-xl tracking-tight">
                             {lead.display_value}
                           </p>
                           <p className="text-muted-foreground text-sm">
@@ -672,7 +672,7 @@ export default function Dashboard() {
                         </div>
                       </div>
 
-                      <p className={`font-medium mb-2 ${lead.is_access_expired ? 'text-muted-foreground' : 'text-foreground'}`}>
+                      <p className={`font-medium mb-3 text-[0.9375rem] ${lead.is_access_expired ? 'text-muted-foreground' : 'text-foreground'}`}>
                         {lead.customer_name}
                       </p>
 
@@ -680,19 +680,19 @@ export default function Dashboard() {
                       {(lead.property_type || lead.bedrooms || lead.frequency) && (
                         <div className="flex flex-wrap gap-2 mb-4">
                           {lead.property_type && (
-                            <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 text-xs font-medium px-2 py-1 rounded-full">
+                            <span className="property-badge bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400">
                               <Home className="w-3 h-3" />
                               {lead.property_type}
                             </span>
                           )}
                           {lead.bedrooms && (
-                            <span className="inline-flex items-center gap-1 bg-purple-100 text-purple-700 text-xs font-medium px-2 py-1 rounded-full">
+                            <span className="property-badge bg-purple-50 text-purple-700 dark:bg-purple-950/30 dark:text-purple-400">
                               <User className="w-3 h-3" />
                               {lead.bedrooms}
                             </span>
                           )}
                           {lead.frequency && (
-                            <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 text-xs font-medium px-2 py-1 rounded-full">
+                            <span className="property-badge bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400">
                               <Clock className="w-3 h-3" />
                               {lead.frequency}
                             </span>
@@ -702,7 +702,7 @@ export default function Dashboard() {
 
                       {/* Contact details */}
                       <div className="grid md:grid-cols-2 gap-3">
-                        <div className={`flex items-center gap-2 rounded-lg px-3 py-2 ${lead.is_access_expired ? 'bg-muted/30' : 'bg-muted/50'}`}>
+                        <div className={`contact-row flex items-center gap-2 ${lead.is_access_expired ? 'opacity-60' : ''}`}>
                           <Phone className={`w-4 h-4 ${lead.is_access_expired ? 'text-muted-foreground' : 'text-secondary'}`} />
                           {lead.is_access_expired ? (
                             <span className="text-muted-foreground flex-1">{lead.customer_phone}</span>
@@ -728,7 +728,7 @@ export default function Dashboard() {
                           )}
                         </div>
 
-                        <div className={`flex items-center gap-2 rounded-lg px-3 py-2 ${lead.is_access_expired ? 'bg-muted/30' : 'bg-muted/50'}`}>
+                        <div className={`contact-row flex items-center gap-2 ${lead.is_access_expired ? 'opacity-60' : ''}`}>
                           <Mail className={`w-4 h-4 ${lead.is_access_expired ? 'text-muted-foreground' : 'text-secondary'}`} />
                           {lead.is_access_expired ? (
                             <span className="text-muted-foreground flex-1 truncate">{lead.customer_email}</span>
@@ -754,7 +754,7 @@ export default function Dashboard() {
                           )}
                         </div>
 
-                        <div className={`md:col-span-2 flex items-start gap-2 rounded-lg px-3 py-2 ${lead.is_access_expired ? 'bg-muted/30' : 'bg-muted/50'}`}>
+                        <div className={`contact-row md:col-span-2 flex items-start gap-2 ${lead.is_access_expired ? 'opacity-60' : ''}`}>
                           <MapPin className={`w-4 h-4 mt-0.5 ${lead.is_access_expired ? 'text-muted-foreground' : 'text-secondary'}`} />
                           <span className={`flex-1 ${lead.is_access_expired ? 'text-muted-foreground' : 'text-foreground'}`}>
                             {lead.customer_address}
@@ -841,15 +841,15 @@ export default function Dashboard() {
                           <span>Access expired</span>
                         </div>
                       ) : (
-                        <div className="flex gap-2">
+                        <div className="flex gap-3">
                           <a href={`tel:${lead.customer_phone}`} className="flex-1">
-                            <Button variant="cta" size="sm" className="w-full gap-1">
+                            <Button variant="cta" size="sm" className="w-full gap-1.5 h-11 rounded-xl text-[0.8125rem] font-semibold">
                               <Phone className="w-4 h-4" />
                               Call
                             </Button>
                           </a>
                           <a href={`mailto:${lead.customer_email}`} className="flex-1">
-                            <Button variant="outline" size="sm" className="w-full gap-1">
+                            <Button variant="outline" size="sm" className="w-full gap-1.5 h-11 rounded-xl text-[0.8125rem] font-semibold">
                               <Mail className="w-4 h-4" />
                               Email
                             </Button>
@@ -866,26 +866,26 @@ export default function Dashboard() {
 
         {/* Contacted Leads section */}
         {contactedLeads.length > 0 && (
-          <div className="bg-card rounded-2xl border border-border overflow-hidden mb-8">
-            <div className="p-6 border-b border-border">
+          <div className="dash-card overflow-hidden mb-6">
+            <div className="section-header">
               <div className="flex items-center gap-2">
                 <PhoneOutgoing className="w-5 h-5 text-blue-500" />
-                <h2 className="font-heading text-xl font-bold text-foreground">
+                <h2 className="text-foreground">
                   Contacted ({contactedLeads.length})
                 </h2>
               </div>
             </div>
-            <div className="divide-y divide-border">
+            <div className="divide-y divide-border/50">
               {contactedLeads.map((lead) => (
-                <div key={lead.id} className="p-6 hover:bg-muted/30 transition-colors bg-blue-50/30 dark:bg-blue-950/10">
+                <div key={lead.id} className="lead-card bg-blue-50/20 dark:bg-blue-950/10">
                   <div className="flex flex-col lg:flex-row lg:items-start gap-6">
                     <div className="flex-1">
                       <div className="flex items-start justify-between mb-3">
                         <div>
-                          <span className="inline-block bg-muted text-foreground font-semibold rounded-lg px-3 py-1 text-sm mb-2">
+                          <span className="postcode-tag mb-2">
                             {lead.postcode}
                           </span>
-                          <h3 className="font-semibold text-foreground text-lg">{lead.job_type}</h3>
+                          <h3 className="text-foreground">{lead.job_type}</h3>
                         </div>
                         <div className="text-right">
                           <p className="text-secondary font-bold text-xl">{lead.display_value}</p>
@@ -930,33 +930,31 @@ export default function Dashboard() {
 
         {/* Booked Leads section */}
         {bookedLeads.length > 0 && (
-          <div className="bg-card rounded-2xl border border-border overflow-hidden mb-8">
-            <div className="p-6 border-b border-border">
+          <div className="dash-card overflow-hidden mb-6">
+            <div className="section-header">
               <div className="flex items-center gap-2">
                 <CalendarCheck className="w-5 h-5 text-purple-500" />
-                <h2 className="font-heading text-xl font-bold text-foreground">
+                <h2 className="text-foreground">
                   Booked ({bookedLeads.length})
                 </h2>
               </div>
             </div>
-            <div className="divide-y divide-border">
+            <div className="divide-y divide-border/50">
               {bookedLeads.map((lead) => (
-                <div key={lead.id} className="p-6 hover:bg-muted/30 transition-colors bg-purple-50/30 dark:bg-purple-950/10">
+                <div key={lead.id} className="lead-card bg-purple-50/20 dark:bg-purple-950/10">
                   <div className="flex flex-col lg:flex-row lg:items-start gap-6">
                     <div className="flex-1">
                       <div className="flex items-start justify-between mb-3">
                         <div>
-                          <span className="inline-block bg-muted text-foreground font-semibold rounded-lg px-3 py-1 text-sm mb-2">
-                            {lead.postcode}
-                          </span>
-                          <h3 className="font-semibold text-foreground text-lg">{lead.job_type}</h3>
+                          <span className="postcode-tag mb-2">{lead.postcode}</span>
+                          <h3 className="text-foreground">{lead.job_type}</h3>
                         </div>
                         <div className="text-right">
-                          <p className="text-secondary font-bold text-xl">{lead.display_value}</p>
+                          <p className="text-secondary font-bold text-xl tracking-tight">{lead.display_value}</p>
                           <p className="text-muted-foreground text-sm">{formatDate(lead.date)}</p>
                         </div>
                       </div>
-                      <p className="font-medium text-foreground mb-2">{lead.customer_name}</p>
+                      <p className="font-medium text-foreground mb-2 text-[0.9375rem]">{lead.customer_name}</p>
                       <div className="flex items-center gap-2 text-sm text-purple-600">
                         <CalendarCheck className="w-4 h-4" />
                         <span>Job booked</span>
@@ -967,14 +965,8 @@ export default function Dashboard() {
                         <CalendarCheck className="w-4 h-4 text-purple-500" />
                         <span className="font-medium text-purple-600">Booked</span>
                       </div>
-                      <Select
-                        value={lead.job_status || 'pending'}
-                        onValueChange={(value) => handleStatusUpdate(lead.id, value)}
-                        disabled={updatingStatus === lead.id}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Update status" />
-                        </SelectTrigger>
+                      <Select value={lead.job_status || 'pending'} onValueChange={(value) => handleStatusUpdate(lead.id, value)} disabled={updatingStatus === lead.id}>
+                        <SelectTrigger className="w-full"><SelectValue placeholder="Update status" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="pending"><div className="flex items-center gap-2"><Clock className="w-4 h-4" /> Pending</div></SelectItem>
                           <SelectItem value="contacted"><div className="flex items-center gap-2"><PhoneOutgoing className="w-4 h-4 text-blue-500" /> Contacted</div></SelectItem>
@@ -994,33 +986,31 @@ export default function Dashboard() {
 
         {/* Completed Leads section */}
         {completedLeads.length > 0 && (
-          <div className="bg-card rounded-2xl border border-border overflow-hidden mb-8">
-            <div className="p-6 border-b border-border">
+          <div className="dash-card overflow-hidden mb-6">
+            <div className="section-header">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-green-500" />
-                <h2 className="font-heading text-xl font-bold text-foreground">
+                <h2 className="text-foreground">
                   Completed ({completedLeads.length})
                 </h2>
               </div>
             </div>
-            <div className="divide-y divide-border">
+            <div className="divide-y divide-border/50">
               {completedLeads.map((lead) => (
-                <div key={lead.id} className="p-6 hover:bg-muted/30 transition-colors bg-green-50/30 dark:bg-green-950/10">
+                <div key={lead.id} className="lead-card bg-green-50/20 dark:bg-green-950/10">
                   <div className="flex flex-col lg:flex-row lg:items-start gap-6">
                     <div className="flex-1">
                       <div className="flex items-start justify-between mb-3">
                         <div>
-                          <span className="inline-block bg-muted text-foreground font-semibold rounded-lg px-3 py-1 text-sm mb-2">
-                            {lead.postcode}
-                          </span>
-                          <h3 className="font-semibold text-foreground text-lg">{lead.job_type}</h3>
+                          <span className="postcode-tag mb-2">{lead.postcode}</span>
+                          <h3 className="text-foreground">{lead.job_type}</h3>
                         </div>
                         <div className="text-right">
-                          <p className="text-secondary font-bold text-xl">{lead.display_value}</p>
+                          <p className="text-secondary font-bold text-xl tracking-tight">{lead.display_value}</p>
                           <p className="text-muted-foreground text-sm">{formatDate(lead.date)}</p>
                         </div>
                       </div>
-                      <p className="font-medium text-foreground mb-2">{lead.customer_name}</p>
+                      <p className="font-medium text-foreground mb-2 text-[0.9375rem]">{lead.customer_name}</p>
                       <div className="flex items-center gap-2 text-sm text-green-600">
                         <CheckCircle2 className="w-4 h-4" />
                         <span>Completed {lead.job_completed_at ? `on ${formatDate(lead.job_completed_at)}` : ''}</span>
@@ -1041,33 +1031,31 @@ export default function Dashboard() {
 
         {/* Lost Leads section */}
         {lostLeads.length > 0 && (
-          <div className="bg-card rounded-2xl border border-border overflow-hidden mb-8">
-            <div className="p-6 border-b border-border">
+          <div className="dash-card overflow-hidden mb-6">
+            <div className="section-header">
               <div className="flex items-center gap-2">
                 <XCircle className="w-5 h-5 text-destructive" />
-                <h2 className="font-heading text-xl font-bold text-foreground">
+                <h2 className="text-foreground">
                   Lost ({lostLeads.length})
                 </h2>
               </div>
             </div>
-            <div className="divide-y divide-border">
+            <div className="divide-y divide-border/50">
               {lostLeads.map((lead) => (
-                <div key={lead.id} className="p-6 hover:bg-muted/30 transition-colors bg-red-50/30 dark:bg-red-950/10">
+                <div key={lead.id} className="lead-card bg-red-50/20 dark:bg-red-950/10">
                   <div className="flex flex-col lg:flex-row lg:items-start gap-6">
                     <div className="flex-1">
                       <div className="flex items-start justify-between mb-3">
                         <div>
-                          <span className="inline-block bg-muted text-foreground font-semibold rounded-lg px-3 py-1 text-sm mb-2">
-                            {lead.postcode}
-                          </span>
-                          <h3 className="font-semibold text-foreground text-lg">{lead.job_type}</h3>
+                          <span className="postcode-tag mb-2">{lead.postcode}</span>
+                          <h3 className="text-foreground">{lead.job_type}</h3>
                         </div>
                         <div className="text-right">
-                          <p className="text-secondary font-bold text-xl">{lead.display_value}</p>
+                          <p className="text-secondary font-bold text-xl tracking-tight">{lead.display_value}</p>
                           <p className="text-muted-foreground text-sm">{formatDate(lead.date)}</p>
                         </div>
                       </div>
-                      <p className="font-medium text-foreground mb-2">{lead.customer_name}</p>
+                      <p className="font-medium text-foreground mb-2 text-[0.9375rem]">{lead.customer_name}</p>
                       <div className="flex items-center gap-2 text-sm text-destructive">
                         <XCircle className="w-4 h-4" />
                         <span>Lost to competitor</span>
@@ -1078,14 +1066,8 @@ export default function Dashboard() {
                         <XCircle className="w-4 h-4 text-destructive" />
                         <span className="font-medium text-destructive">Lost</span>
                       </div>
-                      <Select
-                        value={lead.job_status || 'pending'}
-                        onValueChange={(value) => handleStatusUpdate(lead.id, value)}
-                        disabled={updatingStatus === lead.id}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Update status" />
-                        </SelectTrigger>
+                      <Select value={lead.job_status || 'pending'} onValueChange={(value) => handleStatusUpdate(lead.id, value)} disabled={updatingStatus === lead.id}>
+                        <SelectTrigger className="w-full"><SelectValue placeholder="Update status" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="pending"><div className="flex items-center gap-2"><Clock className="w-4 h-4" /> Pending</div></SelectItem>
                           <SelectItem value="contacted"><div className="flex items-center gap-2"><PhoneOutgoing className="w-4 h-4 text-blue-500" /> Contacted</div></SelectItem>
@@ -1105,33 +1087,31 @@ export default function Dashboard() {
 
         {/* No Response Leads section */}
         {noResponseLeads.length > 0 && (
-          <div className="bg-card rounded-2xl border border-border overflow-hidden mb-8">
-            <div className="p-6 border-b border-border">
+          <div className="dash-card overflow-hidden mb-6">
+            <div className="section-header">
               <div className="flex items-center gap-2">
                 <MessageSquareX className="w-5 h-5 text-muted-foreground" />
-                <h2 className="font-heading text-xl font-bold text-foreground">
+                <h2 className="text-foreground">
                   No Response ({noResponseLeads.length})
                 </h2>
               </div>
             </div>
-            <div className="divide-y divide-border">
+            <div className="divide-y divide-border/50">
               {noResponseLeads.map((lead) => (
-                <div key={lead.id} className="p-6 hover:bg-muted/30 transition-colors bg-muted/20">
+                <div key={lead.id} className="lead-card">
                   <div className="flex flex-col lg:flex-row lg:items-start gap-6">
                     <div className="flex-1">
                       <div className="flex items-start justify-between mb-3">
                         <div>
-                          <span className="inline-block bg-muted text-foreground font-semibold rounded-lg px-3 py-1 text-sm mb-2">
-                            {lead.postcode}
-                          </span>
-                          <h3 className="font-semibold text-foreground text-lg">{lead.job_type}</h3>
+                          <span className="postcode-tag mb-2">{lead.postcode}</span>
+                          <h3 className="text-foreground">{lead.job_type}</h3>
                         </div>
                         <div className="text-right">
-                          <p className="text-secondary font-bold text-xl">{lead.display_value}</p>
+                          <p className="text-secondary font-bold text-xl tracking-tight">{lead.display_value}</p>
                           <p className="text-muted-foreground text-sm">{formatDate(lead.date)}</p>
                         </div>
                       </div>
-                      <p className="font-medium text-foreground mb-2">{lead.customer_name}</p>
+                      <p className="font-medium text-foreground mb-2 text-[0.9375rem]">{lead.customer_name}</p>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <MessageSquareX className="w-4 h-4" />
                         <span>Customer did not respond</span>
@@ -1142,14 +1122,8 @@ export default function Dashboard() {
                         <MessageSquareX className="w-4 h-4 text-muted-foreground" />
                         <span className="font-medium text-muted-foreground">No Response</span>
                       </div>
-                      <Select
-                        value={lead.job_status || 'pending'}
-                        onValueChange={(value) => handleStatusUpdate(lead.id, value)}
-                        disabled={updatingStatus === lead.id}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Update status" />
-                        </SelectTrigger>
+                      <Select value={lead.job_status || 'pending'} onValueChange={(value) => handleStatusUpdate(lead.id, value)} disabled={updatingStatus === lead.id}>
+                        <SelectTrigger className="w-full"><SelectValue placeholder="Update status" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="pending"><div className="flex items-center gap-2"><Clock className="w-4 h-4" /> Pending</div></SelectItem>
                           <SelectItem value="contacted"><div className="flex items-center gap-2"><PhoneOutgoing className="w-4 h-4 text-blue-500" /> Contacted</div></SelectItem>
