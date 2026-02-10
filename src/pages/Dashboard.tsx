@@ -26,6 +26,8 @@ import {
   FileWarning,
   Home,
   Headphones,
+  PhoneOutgoing,
+  CalendarCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -234,6 +236,10 @@ export default function Dashboard() {
 
   const getStatusIcon = (status: string | null) => {
     switch (status) {
+      case 'contacted':
+        return <PhoneOutgoing className="w-4 h-4 text-blue-500" />;
+      case 'booked':
+        return <CalendarCheck className="w-4 h-4 text-purple-500" />;
       case 'completed':
         return <CheckCircle2 className="w-4 h-4 text-green-500" />;
       case 'lost':
@@ -247,6 +253,10 @@ export default function Dashboard() {
 
   const getStatusLabel = (status: string | null) => {
     switch (status) {
+      case 'contacted':
+        return 'Contacted';
+      case 'booked':
+        return 'Booked';
       case 'completed':
         return 'Completed';
       case 'lost':
@@ -268,6 +278,12 @@ export default function Dashboard() {
   // Separate leads by status
   const pendingLeads = filteredLeads.filter(
     (lead) => !lead.job_status || lead.job_status === 'pending'
+  );
+  const contactedLeads = filteredLeads.filter(
+    (lead) => lead.job_status === 'contacted'
+  );
+  const bookedLeads = filteredLeads.filter(
+    (lead) => lead.job_status === 'booked'
   );
   const completedLeads = filteredLeads.filter(
     (lead) => lead.job_status === 'completed'
@@ -603,7 +619,7 @@ export default function Dashboard() {
                     <Button variant="cta">Browse Available Leads</Button>
                   </Link>
                 </>
-              ) : pendingLeads.length === 0 && (completedLeads.length > 0 || lostLeads.length > 0 || noResponseLeads.length > 0) ? (
+              ) : pendingLeads.length === 0 && (contactedLeads.length > 0 || bookedLeads.length > 0 || completedLeads.length > 0 || lostLeads.length > 0 || noResponseLeads.length > 0) ? (
                 <p className="text-muted-foreground text-lg">
                   No pending leads right now
                 </p>
@@ -784,6 +800,18 @@ export default function Dashboard() {
                                 Pending
                               </div>
                             </SelectItem>
+                            <SelectItem value="contacted">
+                              <div className="flex items-center gap-2">
+                                <PhoneOutgoing className="w-4 h-4 text-blue-500" />
+                                Contacted
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="booked">
+                              <div className="flex items-center gap-2">
+                                <CalendarCheck className="w-4 h-4 text-purple-500" />
+                                Booked
+                              </div>
+                            </SelectItem>
                             <SelectItem value="completed">
                               <div className="flex items-center gap-2">
                                 <CheckCircle2 className="w-4 h-4 text-green-500" />
@@ -836,6 +864,134 @@ export default function Dashboard() {
           )}
         </div>
 
+        {/* Contacted Leads section */}
+        {contactedLeads.length > 0 && (
+          <div className="bg-card rounded-2xl border border-border overflow-hidden mb-8">
+            <div className="p-6 border-b border-border">
+              <div className="flex items-center gap-2">
+                <PhoneOutgoing className="w-5 h-5 text-blue-500" />
+                <h2 className="font-heading text-xl font-bold text-foreground">
+                  Contacted ({contactedLeads.length})
+                </h2>
+              </div>
+            </div>
+            <div className="divide-y divide-border">
+              {contactedLeads.map((lead) => (
+                <div key={lead.id} className="p-6 hover:bg-muted/30 transition-colors bg-blue-50/30 dark:bg-blue-950/10">
+                  <div className="flex flex-col lg:flex-row lg:items-start gap-6">
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <span className="inline-block bg-muted text-foreground font-semibold rounded-lg px-3 py-1 text-sm mb-2">
+                            {lead.postcode}
+                          </span>
+                          <h3 className="font-semibold text-foreground text-lg">{lead.job_type}</h3>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-secondary font-bold text-xl">{lead.display_value}</p>
+                          <p className="text-muted-foreground text-sm">{formatDate(lead.date)}</p>
+                        </div>
+                      </div>
+                      <p className="font-medium text-foreground mb-2">{lead.customer_name}</p>
+                      <div className="flex items-center gap-2 text-sm text-blue-600">
+                        <PhoneOutgoing className="w-4 h-4" />
+                        <span>Customer contacted</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-3 min-w-[160px]">
+                      <div className="flex items-center gap-2 text-sm">
+                        <PhoneOutgoing className="w-4 h-4 text-blue-500" />
+                        <span className="font-medium text-blue-600">Contacted</span>
+                      </div>
+                      <Select
+                        value={lead.job_status || 'pending'}
+                        onValueChange={(value) => handleStatusUpdate(lead.id, value)}
+                        disabled={updatingStatus === lead.id}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Update status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pending"><div className="flex items-center gap-2"><Clock className="w-4 h-4" /> Pending</div></SelectItem>
+                          <SelectItem value="contacted"><div className="flex items-center gap-2"><PhoneOutgoing className="w-4 h-4 text-blue-500" /> Contacted</div></SelectItem>
+                          <SelectItem value="booked"><div className="flex items-center gap-2"><CalendarCheck className="w-4 h-4 text-purple-500" /> Booked</div></SelectItem>
+                          <SelectItem value="completed"><div className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-green-500" /> Completed</div></SelectItem>
+                          <SelectItem value="lost"><div className="flex items-center gap-2"><XCircle className="w-4 h-4 text-destructive" /> Lost to competitor</div></SelectItem>
+                          <SelectItem value="no_response"><div className="flex items-center gap-2"><MessageSquareX className="w-4 h-4" /> No response</div></SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Booked Leads section */}
+        {bookedLeads.length > 0 && (
+          <div className="bg-card rounded-2xl border border-border overflow-hidden mb-8">
+            <div className="p-6 border-b border-border">
+              <div className="flex items-center gap-2">
+                <CalendarCheck className="w-5 h-5 text-purple-500" />
+                <h2 className="font-heading text-xl font-bold text-foreground">
+                  Booked ({bookedLeads.length})
+                </h2>
+              </div>
+            </div>
+            <div className="divide-y divide-border">
+              {bookedLeads.map((lead) => (
+                <div key={lead.id} className="p-6 hover:bg-muted/30 transition-colors bg-purple-50/30 dark:bg-purple-950/10">
+                  <div className="flex flex-col lg:flex-row lg:items-start gap-6">
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <span className="inline-block bg-muted text-foreground font-semibold rounded-lg px-3 py-1 text-sm mb-2">
+                            {lead.postcode}
+                          </span>
+                          <h3 className="font-semibold text-foreground text-lg">{lead.job_type}</h3>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-secondary font-bold text-xl">{lead.display_value}</p>
+                          <p className="text-muted-foreground text-sm">{formatDate(lead.date)}</p>
+                        </div>
+                      </div>
+                      <p className="font-medium text-foreground mb-2">{lead.customer_name}</p>
+                      <div className="flex items-center gap-2 text-sm text-purple-600">
+                        <CalendarCheck className="w-4 h-4" />
+                        <span>Job booked</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-3 min-w-[160px]">
+                      <div className="flex items-center gap-2 text-sm">
+                        <CalendarCheck className="w-4 h-4 text-purple-500" />
+                        <span className="font-medium text-purple-600">Booked</span>
+                      </div>
+                      <Select
+                        value={lead.job_status || 'pending'}
+                        onValueChange={(value) => handleStatusUpdate(lead.id, value)}
+                        disabled={updatingStatus === lead.id}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Update status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pending"><div className="flex items-center gap-2"><Clock className="w-4 h-4" /> Pending</div></SelectItem>
+                          <SelectItem value="contacted"><div className="flex items-center gap-2"><PhoneOutgoing className="w-4 h-4 text-blue-500" /> Contacted</div></SelectItem>
+                          <SelectItem value="booked"><div className="flex items-center gap-2"><CalendarCheck className="w-4 h-4 text-purple-500" /> Booked</div></SelectItem>
+                          <SelectItem value="completed"><div className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-green-500" /> Completed</div></SelectItem>
+                          <SelectItem value="lost"><div className="flex items-center gap-2"><XCircle className="w-4 h-4 text-destructive" /> Lost to competitor</div></SelectItem>
+                          <SelectItem value="no_response"><div className="flex items-center gap-2"><MessageSquareX className="w-4 h-4" /> No response</div></SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Completed Leads section */}
         {completedLeads.length > 0 && (
           <div className="bg-card rounded-2xl border border-border overflow-hidden mb-8">
@@ -847,7 +1003,6 @@ export default function Dashboard() {
                 </h2>
               </div>
             </div>
-
             <div className="divide-y divide-border">
               {completedLeads.map((lead) => (
                 <div key={lead.id} className="p-6 hover:bg-muted/30 transition-colors bg-green-50/30 dark:bg-green-950/10">
@@ -858,22 +1013,14 @@ export default function Dashboard() {
                           <span className="inline-block bg-muted text-foreground font-semibold rounded-lg px-3 py-1 text-sm mb-2">
                             {lead.postcode}
                           </span>
-                          <h3 className="font-semibold text-foreground text-lg">
-                            {lead.job_type}
-                          </h3>
+                          <h3 className="font-semibold text-foreground text-lg">{lead.job_type}</h3>
                         </div>
                         <div className="text-right">
-                          <p className="text-secondary font-bold text-xl">
-                            {lead.display_value}
-                          </p>
-                          <p className="text-muted-foreground text-sm">
-                            {formatDate(lead.date)}
-                          </p>
+                          <p className="text-secondary font-bold text-xl">{lead.display_value}</p>
+                          <p className="text-muted-foreground text-sm">{formatDate(lead.date)}</p>
                         </div>
                       </div>
-                      <p className="font-medium text-foreground mb-2">
-                        {lead.customer_name}
-                      </p>
+                      <p className="font-medium text-foreground mb-2">{lead.customer_name}</p>
                       <div className="flex items-center gap-2 text-sm text-green-600">
                         <CheckCircle2 className="w-4 h-4" />
                         <span>Completed {lead.job_completed_at ? `on ${formatDate(lead.job_completed_at)}` : ''}</span>
@@ -903,7 +1050,6 @@ export default function Dashboard() {
                 </h2>
               </div>
             </div>
-
             <div className="divide-y divide-border">
               {lostLeads.map((lead) => (
                 <div key={lead.id} className="p-6 hover:bg-muted/30 transition-colors bg-red-50/30 dark:bg-red-950/10">
@@ -914,22 +1060,14 @@ export default function Dashboard() {
                           <span className="inline-block bg-muted text-foreground font-semibold rounded-lg px-3 py-1 text-sm mb-2">
                             {lead.postcode}
                           </span>
-                          <h3 className="font-semibold text-foreground text-lg">
-                            {lead.job_type}
-                          </h3>
+                          <h3 className="font-semibold text-foreground text-lg">{lead.job_type}</h3>
                         </div>
                         <div className="text-right">
-                          <p className="text-secondary font-bold text-xl">
-                            {lead.display_value}
-                          </p>
-                          <p className="text-muted-foreground text-sm">
-                            {formatDate(lead.date)}
-                          </p>
+                          <p className="text-secondary font-bold text-xl">{lead.display_value}</p>
+                          <p className="text-muted-foreground text-sm">{formatDate(lead.date)}</p>
                         </div>
                       </div>
-                      <p className="font-medium text-foreground mb-2">
-                        {lead.customer_name}
-                      </p>
+                      <p className="font-medium text-foreground mb-2">{lead.customer_name}</p>
                       <div className="flex items-center gap-2 text-sm text-destructive">
                         <XCircle className="w-4 h-4" />
                         <span>Lost to competitor</span>
@@ -949,30 +1087,12 @@ export default function Dashboard() {
                           <SelectValue placeholder="Update status" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="pending">
-                            <div className="flex items-center gap-2">
-                              <Clock className="w-4 h-4" />
-                              Pending
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="completed">
-                            <div className="flex items-center gap-2">
-                              <CheckCircle2 className="w-4 h-4 text-green-500" />
-                              Completed
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="lost">
-                            <div className="flex items-center gap-2">
-                              <XCircle className="w-4 h-4 text-destructive" />
-                              Lost to competitor
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="no_response">
-                            <div className="flex items-center gap-2">
-                              <MessageSquareX className="w-4 h-4" />
-                              No response
-                            </div>
-                          </SelectItem>
+                          <SelectItem value="pending"><div className="flex items-center gap-2"><Clock className="w-4 h-4" /> Pending</div></SelectItem>
+                          <SelectItem value="contacted"><div className="flex items-center gap-2"><PhoneOutgoing className="w-4 h-4 text-blue-500" /> Contacted</div></SelectItem>
+                          <SelectItem value="booked"><div className="flex items-center gap-2"><CalendarCheck className="w-4 h-4 text-purple-500" /> Booked</div></SelectItem>
+                          <SelectItem value="completed"><div className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-green-500" /> Completed</div></SelectItem>
+                          <SelectItem value="lost"><div className="flex items-center gap-2"><XCircle className="w-4 h-4 text-destructive" /> Lost to competitor</div></SelectItem>
+                          <SelectItem value="no_response"><div className="flex items-center gap-2"><MessageSquareX className="w-4 h-4" /> No response</div></SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -994,7 +1114,6 @@ export default function Dashboard() {
                 </h2>
               </div>
             </div>
-
             <div className="divide-y divide-border">
               {noResponseLeads.map((lead) => (
                 <div key={lead.id} className="p-6 hover:bg-muted/30 transition-colors bg-muted/20">
@@ -1005,22 +1124,14 @@ export default function Dashboard() {
                           <span className="inline-block bg-muted text-foreground font-semibold rounded-lg px-3 py-1 text-sm mb-2">
                             {lead.postcode}
                           </span>
-                          <h3 className="font-semibold text-foreground text-lg">
-                            {lead.job_type}
-                          </h3>
+                          <h3 className="font-semibold text-foreground text-lg">{lead.job_type}</h3>
                         </div>
                         <div className="text-right">
-                          <p className="text-secondary font-bold text-xl">
-                            {lead.display_value}
-                          </p>
-                          <p className="text-muted-foreground text-sm">
-                            {formatDate(lead.date)}
-                          </p>
+                          <p className="text-secondary font-bold text-xl">{lead.display_value}</p>
+                          <p className="text-muted-foreground text-sm">{formatDate(lead.date)}</p>
                         </div>
                       </div>
-                      <p className="font-medium text-foreground mb-2">
-                        {lead.customer_name}
-                      </p>
+                      <p className="font-medium text-foreground mb-2">{lead.customer_name}</p>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <MessageSquareX className="w-4 h-4" />
                         <span>Customer did not respond</span>
@@ -1040,30 +1151,12 @@ export default function Dashboard() {
                           <SelectValue placeholder="Update status" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="pending">
-                            <div className="flex items-center gap-2">
-                              <Clock className="w-4 h-4" />
-                              Pending
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="completed">
-                            <div className="flex items-center gap-2">
-                              <CheckCircle2 className="w-4 h-4 text-green-500" />
-                              Completed
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="lost">
-                            <div className="flex items-center gap-2">
-                              <XCircle className="w-4 h-4 text-destructive" />
-                              Lost to competitor
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="no_response">
-                            <div className="flex items-center gap-2">
-                              <MessageSquareX className="w-4 h-4" />
-                              No response
-                            </div>
-                          </SelectItem>
+                          <SelectItem value="pending"><div className="flex items-center gap-2"><Clock className="w-4 h-4" /> Pending</div></SelectItem>
+                          <SelectItem value="contacted"><div className="flex items-center gap-2"><PhoneOutgoing className="w-4 h-4 text-blue-500" /> Contacted</div></SelectItem>
+                          <SelectItem value="booked"><div className="flex items-center gap-2"><CalendarCheck className="w-4 h-4 text-purple-500" /> Booked</div></SelectItem>
+                          <SelectItem value="completed"><div className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-green-500" /> Completed</div></SelectItem>
+                          <SelectItem value="lost"><div className="flex items-center gap-2"><XCircle className="w-4 h-4 text-destructive" /> Lost to competitor</div></SelectItem>
+                          <SelectItem value="no_response"><div className="flex items-center gap-2"><MessageSquareX className="w-4 h-4" /> No response</div></SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
