@@ -22,7 +22,7 @@
     --secondary-foreground: 0 0% 100%;
 
     --muted: 210 20% 96%;
-    --muted-foreground: 210 15% 45%;
+    --muted-foreground: 210 15% 38%;
 
     --accent: 145 58% 47%;
     --accent-foreground: 0 0% 100%;
@@ -80,7 +80,7 @@
     --secondary-foreground: 0 0% 100%;
 
     --muted: 210 40% 18%;
-    --muted-foreground: 210 15% 65%;
+    --muted-foreground: 210 15% 75%;
 
     --accent: 145 58% 47%;
     --accent-foreground: 0 0% 100%;
@@ -269,6 +269,7 @@
   font-size: 0.875rem;
   letter-spacing: -0.006em;
   line-height: 1.55;
+  color: hsl(var(--muted-foreground) / 0.95);
 }
 
 /* ── Premium card surfaces ── */
@@ -301,7 +302,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: hsl(var(--muted-foreground) / 0.8);
+  color: hsl(var(--muted-foreground));
   padding: 0.875rem 1rem;
   border-bottom: 1px solid hsl(var(--border) / 0.5);
   background: hsl(var(--muted) / 0.3);
