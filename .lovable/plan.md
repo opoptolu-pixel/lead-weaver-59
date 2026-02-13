@@ -1,58 +1,45 @@
 
 
-## Add Meta Pixel InitiateCheckout Event on All Purchase Flows
+## Add Meta Pixel Purchase Event on Payment Success Pages
 
-### Why fire every time (not just once)
-InitiateCheckout is a behavioral intent signal, not an identity event like CompleteRegistration. Meta uses each firing to optimize ad delivery toward high-intent users and measure checkout abandonment rates. This is how Meta expects the event to work.
+### Why fire every purchase
+The `Purchase` event is Meta's primary revenue signal. Each firing tells Meta "this ad click generated GBP X in revenue," enabling accurate ROAS measurement, conversion optimization, and lookalike audience building from paying customers. Firing only once would hide repeat purchases from Meta's algorithm.
 
-### What changes (3 files)
+### What changes (2 files)
 
-**1. `src/pages/Leads.tsx` -- handleUnlock function (~line 764)**
-Right before `window.location.href = result.data.url`, fire the event:
+**1. `src/pages/PaymentSuccess.tsx` -- after successful verification (~line 62)**
+Right after `trackLeadUnlock(...)`, fire:
 
 ```typescript
 if (window.fbq) {
-  window.fbq('track', 'InitiateCheckout', {
+  window.fbq('track', 'Purchase', {
     content_name: 'lead_unlock',
     content_category: 'lead',
-    value: 20,
+    value: parseFloat(data.lead.display_value?.replace(/[^0-9.]/g, '') || '20'),
     currency: 'GBP',
   });
 }
 ```
 
-**2. `src/pages/Dashboard.tsx` -- handleBuyCredits function (~line 168)**
-Right before `window.location.href = data.url`, fire the event:
+**2. `src/pages/CreditsSuccess.tsx` -- after successful verification (~line 46)**
+Right after `trackCreditPurchase(...)`, fire:
 
 ```typescript
 if (window.fbq) {
-  window.fbq('track', 'InitiateCheckout', {
-    content_name: `credit_pack_${packSize}`,
+  window.fbq('track', 'Purchase', {
+    content_name: `credit_pack_${data.creditsAdded}`,
     content_category: 'credits',
-    value: packSize === '5' ? 90 : 170,
-    currency: 'GBP',
-  });
-}
-```
-
-**3. `src/components/Pricing.tsx` -- handlePurchase function (~line 89)**
-Right before `window.location.href = data.url`, fire the event:
-
-```typescript
-if (window.fbq) {
-  window.fbq('track', 'InitiateCheckout', {
-    content_name: tier.name,
-    content_category: 'credits',
-    value: parseFloat(tier.price.replace('£', '')),
+    value: data.amountPaid || data.creditsAdded * 1,
     currency: 'GBP',
   });
 }
 ```
 
 ### Technical details
-- Event: `InitiateCheckout` (standard Meta event)
-- Fires only when the Stripe checkout URL is successfully returned (not on validation errors or early returns)
-- Each flow passes relevant `content_name`, `content_category`, `value`, and `currency` for accurate attribution
+- Event: `Purchase` (standard Meta event)
+- Fires only after Stripe payment is verified server-side (not on page load alone)
+- Values are dynamic based on actual payment data returned from the backend
+- Both success pages are already in the Meta Pixel excluded routes list, but `window.fbq` may still be available from the prior page session -- the `if (window.fbq)` guard handles either case safely
 - No database changes needed
 - No new files needed
 
