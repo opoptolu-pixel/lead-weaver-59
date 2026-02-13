@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { trackInitiateCheckout } from "@/lib/analytics";
 import { Lock, MapPin, Calendar, PoundSterling, Loader2, Coins, User, Search, X, Briefcase, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -762,6 +763,7 @@ export default function Leads() {
 
     // Redirect to Stripe Checkout - reservation stays active for 5 minutes
     if (result.data?.url) {
+      trackInitiateCheckout({ contentName: 'lead_unlock', contentCategory: 'lead', value: 20 });
       if (window.fbq) {
         window.fbq('track', 'InitiateCheckout', {
           content_name: 'lead_unlock',

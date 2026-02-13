@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { trackInitiateCheckout } from "@/lib/analytics";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Phone,
@@ -166,6 +167,7 @@ export default function Dashboard() {
       if (data.error) throw new Error(data.error);
 
       if (data.url) {
+        trackInitiateCheckout({ contentName: `credit_pack_${packSize}`, contentCategory: 'credits', value: packSize === '5' ? 90 : 170 });
         if (window.fbq) {
           window.fbq('track', 'InitiateCheckout', {
             content_name: `credit_pack_${packSize}`,
