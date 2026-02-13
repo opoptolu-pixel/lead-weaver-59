@@ -7,6 +7,7 @@ import { RegistrationForm } from "@/components/RegistrationForm";
 import { FAQ } from "@/components/FAQ";
 import { Footer } from "@/components/Footer";
 import { SEOHead } from "@/components/SEOHead";
+import { MobileSignupBar } from "@/components/MobileSignupBar";
 
 const ForCleaners = () => {
   const structuredData = {
@@ -135,6 +136,7 @@ const ForCleaners = () => {
         <FAQ />
       </main>
       <Footer variant="cleaner" />
+      <MobileSignupBar />
     </div>
   );
 };
