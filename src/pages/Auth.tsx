@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Mail, Lock, Loader2, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -43,13 +43,14 @@ export default function Auth() {
   const [tokenVerifying, setTokenVerifying] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string; newPassword?: string }>({});
   const [needsMfaForReset, setNeedsMfaForReset] = useState(false);
-  
+  const verifyingRef = useRef(false);
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
 
   // Verify recovery token when arriving with token_hash
   useEffect(() => {
-    if (mode === "update-password" && tokenHash && tokenType === "recovery" && !tokenVerified && !tokenVerifying) {
+    if (mode === "update-password" && tokenHash && tokenType === "recovery" && !tokenVerified && !tokenVerifying && !verifyingRef.current) {
+      verifyingRef.current = true;
       setTokenVerifying(true);
       supabase.auth.verifyOtp({
         token_hash: tokenHash,
@@ -191,7 +192,8 @@ export default function Auth() {
 
   // Verify magic link token when arriving with magic-verify mode
   useEffect(() => {
-    if (mode === "magic-verify" && tokenHash && tokenType === "magiclink" && !tokenVerified && !tokenVerifying) {
+    if (mode === "magic-verify" && tokenHash && tokenType === "magiclink" && !tokenVerified && !tokenVerifying && !verifyingRef.current) {
+      verifyingRef.current = true;
       setTokenVerifying(true);
       supabase.auth.verifyOtp({
         token_hash: tokenHash,
@@ -219,7 +221,8 @@ export default function Auth() {
 
   // Verify signup confirmation token
   useEffect(() => {
-    if (mode === "confirm-signup" && tokenHash && tokenType === "signup" && !tokenVerified && !tokenVerifying) {
+    if (mode === "confirm-signup" && tokenHash && tokenType === "signup" && !tokenVerified && !tokenVerifying && !verifyingRef.current) {
+      verifyingRef.current = true;
       setTokenVerifying(true);
       supabase.auth.verifyOtp({
         token_hash: tokenHash,
