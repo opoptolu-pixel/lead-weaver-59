@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { trackCTAClick } from "@/lib/analytics";
+import { trackCTAClick, trackInitiateCheckout } from "@/lib/analytics";
 
 const pricingTiers = [
   {
@@ -87,6 +87,7 @@ export const Pricing = () => {
 
       if (data?.url) {
         trackCTAClick(tier.cta, "pricing_section");
+        trackInitiateCheckout({ contentName: tier.name, contentCategory: 'credits', value: parseFloat(tier.price.replace('£', '')) });
         if (window.fbq) {
           window.fbq('track', 'InitiateCheckout', {
             content_name: tier.name,

@@ -80,6 +80,9 @@ const Contact = () => {
         source: 'contact_form',
         subject: formData.subject,
       });
+      if (window.fbq) {
+        window.fbq('track', 'Contact');
+      }
 
       toast({
         title: "Message sent!",

@@ -44,6 +44,9 @@ export const RegistrationForm = () => {
 
       // Track as enquiry (not lead)
       trackEnquiry({ source: 'business_enquiry' });
+      if (window.fbq) {
+        window.fbq('track', 'Contact');
+      }
 
       toast({
         title: "Thanks for your interest!",

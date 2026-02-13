@@ -151,3 +151,19 @@ export const trackEmailClick = () => {
     event_label: 'email',
   });
 };
+
+// Track checkout initiation (mirrors Meta Pixel InitiateCheckout)
+export const trackInitiateCheckout = (params: {
+  contentName: string;
+  contentCategory: string;
+  value?: number;
+}) => {
+  trackEvent('begin_checkout', {
+    currency: 'GBP',
+    value: params.value || 0,
+    items: [{
+      item_name: params.contentName,
+      item_category: params.contentCategory,
+    }],
+  });
+};
