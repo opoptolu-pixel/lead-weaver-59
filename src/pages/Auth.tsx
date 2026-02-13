@@ -75,12 +75,12 @@ export default function Auth() {
     }
   }, [mode, tokenHash, tokenType, tokenVerified, tokenVerifying]);
 
-  // Redirect if already logged in (and not in 2FA or update-password mode)
+  // Redirect if already logged in (skip during special flows)
   useEffect(() => {
-    if (user && mode !== "2fa" && mode !== "update-password" && mode !== "magic-verify") {
+    if (user && mode !== "2fa" && mode !== "update-password" && mode !== "magic-verify" && !needsMfaForReset && !tokenHash) {
       navigate("/dashboard");
     }
-  }, [user, mode, navigate]);
+  }, [user, mode, navigate, needsMfaForReset, tokenHash]);
 
   const validateForm = () => {
     try {
