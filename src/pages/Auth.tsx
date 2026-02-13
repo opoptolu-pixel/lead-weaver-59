@@ -22,14 +22,14 @@ const emailSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
 });
 
-type AuthMode = "login" | "signup" | "forgot" | "magic" | "2fa" | "update-password";
+type AuthMode = "login" | "signup" | "forgot" | "magic" | "2fa" | "update-password" | "magic-verify";
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
   const modeParam = searchParams.get("mode");
   const tokenHash = searchParams.get("token_hash");
   const tokenType = searchParams.get("type");
-  const initialMode: AuthMode = modeParam === "signup" ? "signup" : modeParam === "update-password" ? "update-password" : "login";
+  const initialMode: AuthMode = modeParam === "signup" ? "signup" : modeParam === "update-password" ? "update-password" : modeParam === "magic-verify" ? "magic-verify" : "login";
   
   
   const [mode, setMode] = useState<AuthMode>(initialMode);
@@ -77,7 +77,7 @@ export default function Auth() {
 
   // Redirect if already logged in (and not in 2FA or update-password mode)
   useEffect(() => {
-    if (user && mode !== "2fa" && mode !== "update-password") {
+    if (user && mode !== "2fa" && mode !== "update-password" && mode !== "magic-verify") {
       navigate("/dashboard");
     }
   }, [user, mode, navigate]);
@@ -165,23 +165,57 @@ export default function Auth() {
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`,
-        },
-      });
-      
-      if (error) {
-        toast.error(error.message);
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-magic-link`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email,
+            redirectTo: `${window.location.origin}/auth`,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const data = await response.json();
+        toast.error(data.error || "Failed to send login link.");
         return;
       }
       
-      toast.success("Magic link sent! Check your email to sign in.");
+      toast.success("Login link sent! Check your email to sign in.");
     } finally {
       setLoading(false);
     }
   };
+
+  // Verify magic link token when arriving with magic-verify mode
+  useEffect(() => {
+    if (mode === "magic-verify" && tokenHash && tokenType === "magiclink" && !tokenVerified && !tokenVerifying) {
+      setTokenVerifying(true);
+      supabase.auth.verifyOtp({
+        token_hash: tokenHash,
+        type: "magiclink",
+      }).then(async ({ data, error }) => {
+        setTokenVerifying(false);
+        if (error) {
+          console.error("Magic link verification failed:", error);
+          toast.error("This login link is invalid or has expired. Please request a new one.");
+          setMode("magic");
+        } else {
+          // Check if MFA is required
+          const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+          if (aalData?.nextLevel === 'aal2' && aalData?.currentLevel === 'aal1') {
+            setMode("2fa");
+            toast.info("Please verify your 2FA to complete sign in.");
+          } else {
+            toast.success("Signed in successfully!");
+            navigate("/dashboard");
+          }
+        }
+      });
+    }
+  }, [mode, tokenHash, tokenType, tokenVerified, tokenVerifying]);
 
   const checkMFARequired = async (): Promise<boolean> => {
     try {
@@ -292,6 +326,7 @@ export default function Auth() {
       case "magic": return "Get Login Link";
       case "2fa": return "Two-Factor Authentication";
       case "update-password": return "Set New Password";
+      case "magic-verify": return "Verifying Login Link";
     }
   };
 
@@ -303,6 +338,7 @@ export default function Auth() {
       case "magic": return "We'll send you a secure link to sign in";
       case "2fa": return "Enter your authentication code";
       case "update-password": return "Enter your new password below";
+      case "magic-verify": return "Please wait while we verify your login link";
     }
   };
 
@@ -370,6 +406,12 @@ export default function Auth() {
                   </p>
                 </div>
 
+                {mode === "magic-verify" ? (
+                  <div className="flex flex-col items-center gap-4 py-8">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    <p className="text-muted-foreground">Verifying your login link...</p>
+                  </div>
+                ) : (
                 <form onSubmit={handleSubmit} className="space-y-5">
                   {mode === "update-password" ? (
                     <>
@@ -508,6 +550,7 @@ export default function Auth() {
                     )}
                   </Button>
                 </form>
+                )}
 
                 {(mode !== "forgot" && mode !== "magic" && mode !== "update-password") && (
                   <div className="mt-6 text-center">
