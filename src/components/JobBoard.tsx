@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useAutoScroll } from "@/hooks/useAutoScroll";
 import { ScrollReveal } from "@/components/ScrollReveal";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 interface Lead {
   id: string;
@@ -16,6 +16,7 @@ interface Lead {
 }
 
 export const JobBoard = () => {
+  const navigate = useNavigate();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -238,9 +239,7 @@ export const JobBoard = () => {
               variant="hero" 
               size="lg"
               className="shadow-glow"
-              onClick={() => {
-                document.getElementById("registration")?.scrollIntoView({ behavior: "smooth" });
-              }}
+              onClick={() => navigate("/auth?mode=signup")}
             >
               Join Cleanda Today
             </Button>
