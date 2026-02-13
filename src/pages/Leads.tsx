@@ -62,6 +62,7 @@ interface LeadsScrollContainerProps {
   onReservationExpired?: () => void;
   isSuspended?: boolean;
   isReverificationRequired?: boolean;
+  isProfileIncomplete?: boolean;
 }
 
 const INITIAL_VISIBLE_COUNT = 10;
@@ -82,6 +83,7 @@ const LeadsScrollContainer = ({
   onReservationExpired,
   isSuspended = false,
   isReverificationRequired = false,
+  isProfileIncomplete = false,
 }: LeadsScrollContainerProps) => {
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_COUNT);
   
@@ -189,6 +191,20 @@ const LeadsScrollContainer = ({
                         </Button>
                       );
                     }
+                    if (isProfileIncomplete) {
+                      return (
+                        <Link to="/settings">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="gap-2 text-amber-500 border-amber-500/30 hover:bg-amber-500/10"
+                          >
+                            <AlertCircle className="w-4 h-4" />
+                            Complete Profile
+                          </Button>
+                        </Link>
+                      );
+                    }
                     return userCredits > 0 ? (
                       <Button 
                         variant="cta" 
@@ -292,6 +308,19 @@ const LeadsScrollContainer = ({
                       <AlertCircle className="w-4 h-4" />
                       Re-verification Required
                     </Button>
+                  );
+                }
+                if (isProfileIncomplete) {
+                  return (
+                    <Link to="/settings">
+                      <Button 
+                        variant="outline" 
+                        className="w-full gap-2 text-amber-500 border-amber-500/30 hover:bg-amber-500/10"
+                      >
+                        <AlertCircle className="w-4 h-4" />
+                        Complete Profile
+                      </Button>
+                    </Link>
                   );
                 }
                 return userCredits > 0 ? (
@@ -962,6 +991,17 @@ export default function Leads() {
   }, [leads, advancedFilter]);
 
   const userCredits = profile?.credits || 0;
+  const isProfileIncomplete = profile ? (
+    !profile.business_name || !profile.contact_name || 
+    !profile.phone || !profile.postcode
+  ) : false;
+
+  // Refresh profile on mount to catch admin-side changes
+  useEffect(() => {
+    if (user) {
+      refreshProfile();
+    }
+  }, [user]);
   if (loading && leads.length === 0) {
     return <LeadsSkeleton />;
   }
@@ -1247,6 +1287,7 @@ export default function Leads() {
             onReservationExpired={() => fetchReservations(leads.map(l => l.id))}
             isSuspended={profile?.is_suspended || false}
             isReverificationRequired={profile?.verification_status === 'reverification_required'}
+            isProfileIncomplete={isProfileIncomplete}
           />
         )}
 
