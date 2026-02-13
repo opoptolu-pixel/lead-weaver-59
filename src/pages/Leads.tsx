@@ -63,6 +63,7 @@ interface LeadsScrollContainerProps {
   isSuspended?: boolean;
   isReverificationRequired?: boolean;
   isProfileIncomplete?: boolean;
+  isAuthenticated?: boolean;
 }
 
 const INITIAL_VISIBLE_COUNT = 10;
@@ -84,6 +85,7 @@ const LeadsScrollContainer = ({
   isSuspended = false,
   isReverificationRequired = false,
   isProfileIncomplete = false,
+  isAuthenticated = false,
 }: LeadsScrollContainerProps) => {
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_COUNT);
   
@@ -205,6 +207,20 @@ const LeadsScrollContainer = ({
                         </Link>
                       );
                     }
+                    if (!isAuthenticated) {
+                      return (
+                        <Link to="/auth">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="gap-2"
+                          >
+                            <Lock className="w-4 h-4" />
+                            Sign In to Unlock
+                          </Button>
+                        </Link>
+                      );
+                    }
                     return userCredits > 0 ? (
                       <Button 
                         variant="cta" 
@@ -319,6 +335,19 @@ const LeadsScrollContainer = ({
                       >
                         <AlertCircle className="w-4 h-4" />
                         Complete Profile
+                      </Button>
+                    </Link>
+                  );
+                }
+                if (!isAuthenticated) {
+                  return (
+                    <Link to="/auth">
+                      <Button 
+                        variant="outline" 
+                        className="w-full gap-2"
+                      >
+                        <Lock className="w-4 h-4" />
+                        Sign In to Unlock
                       </Button>
                     </Link>
                   );
@@ -1288,6 +1317,7 @@ export default function Leads() {
             isSuspended={profile?.is_suspended || false}
             isReverificationRequired={profile?.verification_status === 'reverification_required'}
             isProfileIncomplete={isProfileIncomplete}
+            isAuthenticated={!!user}
           />
         )}
 
