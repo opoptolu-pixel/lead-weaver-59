@@ -375,6 +375,39 @@ export default function Settings() {
           {/* Verification Status */}
           <VerificationStatusSection profile={profile} />
 
+          {/* Getting Started Info Banner */}
+          {profile && (!profile.is_verified) && (
+            <div className="bg-accent/50 border border-secondary/30 rounded-2xl p-6 mb-6">
+              <h2 className="font-heading text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-secondary" />
+                How to Start Buying Leads
+              </h2>
+              <ol className="space-y-3 text-sm text-foreground">
+                <li className="flex items-start gap-3">
+                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center text-xs font-bold">1</span>
+                  <div>
+                    <span className="font-medium">Complete your profile below</span>
+                    <p className="text-muted-foreground text-xs mt-0.5">Fill in your name, business name, phone number, and service area postcode — all four are required.</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center text-xs font-bold">2</span>
+                  <div>
+                    <span className="font-medium">Purchase your first 3 leads</span>
+                    <p className="text-muted-foreground text-xs mt-0.5">Once your profile is complete and phone is verified, you can unlock up to 3 leads straight away.</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center text-xs font-bold">3</span>
+                  <div>
+                    <span className="font-medium">Submit business documents to continue</span>
+                    <p className="text-muted-foreground text-xs mt-0.5">After 3 leads, you'll need to provide proof of address, certificate of incorporation, and insurance before purchasing more.</p>
+                  </div>
+                </li>
+              </ol>
+            </div>
+          )}
+
           {/* Profile form */}
           <div className="bg-card rounded-2xl border border-border p-6 md:p-8">
             <div className="space-y-6">
