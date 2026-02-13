@@ -7,7 +7,6 @@ const EXCLUDED_ROUTES = [
   "/admin",
   "/admin-login",
   "/dashboard",
-  "/leads",
   "/settings",
   "/billing",
   "/disputes",
@@ -15,7 +14,6 @@ const EXCLUDED_ROUTES = [
   "/verification",
   "/onboarding",
   "/support",
-  "/auth",
   "/credits-success",
   "/payment-success",
 ];
