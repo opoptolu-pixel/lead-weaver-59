@@ -166,6 +166,14 @@ export default function Dashboard() {
       if (data.error) throw new Error(data.error);
 
       if (data.url) {
+        if (window.fbq) {
+          window.fbq('track', 'InitiateCheckout', {
+            content_name: `credit_pack_${packSize}`,
+            content_category: 'credits',
+            value: packSize === '5' ? 90 : 170,
+            currency: 'GBP',
+          });
+        }
         window.location.href = data.url;
       }
     } catch (err) {

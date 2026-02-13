@@ -87,6 +87,14 @@ export const Pricing = () => {
 
       if (data?.url) {
         trackCTAClick(tier.cta, "pricing_section");
+        if (window.fbq) {
+          window.fbq('track', 'InitiateCheckout', {
+            content_name: tier.name,
+            content_category: 'credits',
+            value: parseFloat(tier.price.replace('£', '')),
+            currency: 'GBP',
+          });
+        }
         window.location.href = data.url;
       }
     } catch (error: any) {
