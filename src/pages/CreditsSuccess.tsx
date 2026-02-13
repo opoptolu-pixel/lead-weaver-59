@@ -44,6 +44,15 @@ export default function CreditsSuccess() {
           amount: data.amountPaid || data.creditsAdded * 1, // fallback if amount not returned
           credits: data.creditsAdded,
         });
+
+        if (window.fbq) {
+          window.fbq('track', 'Purchase', {
+            content_name: `credit_pack_${data.creditsAdded}`,
+            content_category: 'credits',
+            value: data.amountPaid || data.creditsAdded * 1,
+            currency: 'GBP',
+          });
+        }
         
         await refreshProfile();
         toast.success(`${data.creditsAdded} credits added to your account!`);

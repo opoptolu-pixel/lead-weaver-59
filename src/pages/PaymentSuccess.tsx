@@ -60,6 +60,15 @@ export default function PaymentSuccess() {
           leadValue: parseFloat(data.lead.display_value?.replace(/[^0-9.]/g, '') || '5'),
           jobType: data.lead.job_type,
         });
+
+        if (window.fbq) {
+          window.fbq('track', 'Purchase', {
+            content_name: 'lead_unlock',
+            content_category: 'lead',
+            value: parseFloat(data.lead.display_value?.replace(/[^0-9.]/g, '') || '20'),
+            currency: 'GBP',
+          });
+        }
         
         toast.success("Lead unlocked successfully!");
       } catch (err) {
