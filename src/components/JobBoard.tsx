@@ -5,8 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useAutoScroll } from "@/hooks/useAutoScroll";
 import { ScrollReveal } from "@/components/ScrollReveal";
-import { toast } from "sonner";
-import { trackLeadUnlock, trackCTAClick } from "@/lib/analytics";
+import { Link } from "react-router-dom";
 
 interface Lead {
   id: string;
@@ -19,46 +18,11 @@ interface Lead {
 export const JobBoard = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
-  const [unlockingId, setUnlockingId] = useState<string | null>(null);
   
   // Auto-scroll for desktop
   const desktopScroll = useAutoScroll({ speed: 25, pauseOnHover: true, pauseOnTouch: true });
   // Auto-scroll for mobile
   const mobileScroll = useAutoScroll({ speed: 25, pauseOnHover: true, pauseOnTouch: true });
-
-  const handleUnlockLead = async (leadId: string) => {
-    setUnlockingId(leadId);
-    try {
-      const { data, error } = await supabase.functions.invoke('unlock-lead', {
-        body: { leadId }
-      });
-
-      if (error) {
-        console.error("Unlock error:", error);
-        toast.error("Failed to start checkout. Please try again.");
-        return;
-      }
-
-      if (data?.url) {
-        // Track lead unlock initiation
-        const lead = leads.find(l => l.id === leadId);
-        if (lead) {
-          trackLeadUnlock({
-            leadValue: 20,
-            jobType: lead.job_type,
-          });
-        }
-        window.location.href = data.url;
-      } else if (data?.error) {
-        toast.error(data.error);
-      }
-    } catch (err) {
-      console.error("Unlock error:", err);
-      toast.error("Something went wrong. Please try again.");
-    } finally {
-      setUnlockingId(null);
-    }
-  };
 
   // Fetch initial leads
   useEffect(() => {
@@ -191,20 +155,16 @@ export const JobBoard = () => {
                         <div className="text-secondary font-bold text-lg">{lead.display_value}</div>
                         <div className="text-muted-foreground">{formatDate(lead.date)}</div>
                         <div className="text-center">
-                          <Button 
-                            variant="cta" 
-                            size="sm" 
-                            className="gap-2"
-                            onClick={() => handleUnlockLead(lead.id)}
-                            disabled={unlockingId === lead.id}
-                          >
-                            {unlockingId === lead.id ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
+                          <Link to="/auth">
+                            <Button 
+                              variant="cta" 
+                              size="sm" 
+                              className="gap-2"
+                            >
                               <Lock className="w-4 h-4" />
-                            )}
-                            Unlock £20
-                          </Button>
+                              Sign In to Unlock
+                            </Button>
+                          </Link>
                         </div>
                       </div>
                     ))}
@@ -245,19 +205,15 @@ export const JobBoard = () => {
                         <p className="text-muted-foreground text-sm">{formatDate(lead.date)}</p>
                       </div>
                     </div>
-                    <Button 
-                      variant="cta" 
-                      className="w-full gap-2"
-                      onClick={() => handleUnlockLead(lead.id)}
-                      disabled={unlockingId === lead.id}
-                    >
-                      {unlockingId === lead.id ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
+                    <Link to="/auth">
+                      <Button 
+                        variant="cta" 
+                        className="w-full gap-2"
+                      >
                         <Lock className="w-4 h-4" />
-                      )}
-                      Unlock £20
-                    </Button>
+                        Sign In to Unlock
+                      </Button>
+                    </Link>
                   </div>
                 ))}
               </div>
@@ -283,7 +239,6 @@ export const JobBoard = () => {
               size="lg"
               className="shadow-glow"
               onClick={() => {
-                trackCTAClick("Join Cleanda Today", "job_board_section");
                 document.getElementById("registration")?.scrollIntoView({ behavior: "smooth" });
               }}
             >

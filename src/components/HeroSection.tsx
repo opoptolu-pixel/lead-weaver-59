@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect, useTransition } from "react";
-import { Search, Sparkles, MapPin, Briefcase, Loader2, AlertCircle, Check, Star, Users, TrendingUp, Unlock } from "lucide-react";
+import { Search, Sparkles, MapPin, Briefcase, Loader2, AlertCircle, Check, Star, Users, TrendingUp, Lock as LockIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+
 
 interface LeadResult {
   id: string;
@@ -23,7 +23,7 @@ export const HeroSection = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isUnlocking, setIsUnlocking] = useState<string | null>(null);
+  
   const [leadResults, setLeadResults] = useState<LeadResult[]>([]);
   const [ukLocations, setUkLocations] = useState<UKLocation[]>([]);
   const [postcodePrefixes, setPostcodePrefixes] = useState<string[]>([]);
@@ -152,42 +152,6 @@ export const HeroSection = () => {
     }
   };
 
-  const handleLeadUnlock = async (e: React.MouseEvent, leadId: string) => {
-    // Prevent event bubbling and default behavior
-    e.preventDefault();
-    e.stopPropagation();
-    
-    console.log("[HeroSection] handleLeadUnlock called for lead:", leadId);
-    setIsUnlocking(leadId);
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('unlock-lead', {
-        body: { leadId }
-      });
-
-      console.log("[HeroSection] unlock-lead response:", { data, error });
-
-      if (error) {
-        console.error("Unlock error:", error);
-        toast.error("Failed to start checkout. Please try again.");
-        return;
-      }
-
-      if (data?.url) {
-        console.log("[HeroSection] Redirecting to Stripe:", data.url);
-        // Redirect to Stripe checkout
-        window.location.href = data.url;
-      } else if (data?.error) {
-        toast.error(data.error);
-      }
-    } catch (err) {
-      console.error("Unlock error:", err);
-      toast.error("Something went wrong. Please try again.");
-    } finally {
-      setIsUnlocking(null);
-    }
-  };
-
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
@@ -311,10 +275,14 @@ export const HeroSection = () => {
                               <button
                                 key={lead.id}
                                 type="button"
-                                onClick={(e) => handleLeadUnlock(e, lead.id)}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setShowSuggestions(false);
+                                  navigate("/leads");
+                                }}
                                 onMouseDown={(e) => e.stopPropagation()}
-                                disabled={isUnlocking === lead.id}
-                                className="w-full px-4 py-3 text-left hover:bg-muted transition-colors disabled:opacity-50"
+                                className="w-full px-4 py-3 text-left hover:bg-muted transition-colors"
                               >
                                 <div className="flex items-center justify-between">
                                   <div>
@@ -323,11 +291,7 @@ export const HeroSection = () => {
                                   </div>
                                   <div className="flex items-center gap-2">
                                     <span className="text-secondary font-semibold">{lead.display_value}</span>
-                                    {isUnlocking === lead.id ? (
-                                      <Loader2 className="w-4 h-4 animate-spin text-secondary" />
-                                    ) : (
-                                      <Unlock className="w-4 h-4 text-secondary" />
-                                    )}
+                                    <LockIcon className="w-4 h-4 text-secondary" />
                                   </div>
                                 </div>
                               </button>
