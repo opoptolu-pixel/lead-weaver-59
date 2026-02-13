@@ -62,15 +62,19 @@ export default function Auth() {
           toast.error("This reset link is invalid or has expired. Please request a new one.");
           setMode("forgot");
         } else {
-          // Check if MFA is enabled and needs AAL2
-          const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-          if (aalData?.nextLevel === 'aal2' && aalData?.currentLevel === 'aal1') {
-            setNeedsMfaForReset(true);
-            toast.info("Please verify your 2FA to continue resetting your password.");
-          } else {
-            setTokenVerified(true);
-            toast.success("Token verified! Please set your new password.");
+          // Only check MFA if user actually has enrolled factors
+          const { data: factorsData } = await supabase.auth.mfa.listFactors();
+          const hasVerifiedFactors = factorsData?.totp?.some(f => f.status === 'verified');
+          if (hasVerifiedFactors) {
+            const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+            if (aalData?.nextLevel === 'aal2' && aalData?.currentLevel === 'aal1') {
+              setNeedsMfaForReset(true);
+              toast.info("Please verify your 2FA to continue resetting your password.");
+              return;
+            }
           }
+          setTokenVerified(true);
+          toast.success("Token verified! Please set your new password.");
         }
       });
     }
@@ -205,15 +209,19 @@ export default function Auth() {
           toast.error("This login link is invalid or has expired. Please request a new one.");
           setMode("magic");
         } else {
-          // Check if MFA is required
-          const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-          if (aalData?.nextLevel === 'aal2' && aalData?.currentLevel === 'aal1') {
-            setMode("2fa");
-            toast.info("Please verify your 2FA to complete sign in.");
-          } else {
-            toast.success("Signed in successfully!");
-            navigate("/dashboard");
+          // Only check MFA if user actually has enrolled factors
+          const { data: factorsData } = await supabase.auth.mfa.listFactors();
+          const hasVerifiedFactors = factorsData?.totp?.some(f => f.status === 'verified');
+          if (hasVerifiedFactors) {
+            const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+            if (aalData?.nextLevel === 'aal2' && aalData?.currentLevel === 'aal1') {
+              setMode("2fa");
+              toast.info("Please verify your 2FA to complete sign in.");
+              return;
+            }
           }
+          toast.success("Signed in successfully!");
+          navigate("/dashboard");
         }
       });
     }
