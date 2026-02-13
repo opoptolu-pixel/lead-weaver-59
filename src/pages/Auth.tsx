@@ -251,13 +251,16 @@ export default function Auth() {
 
   const checkMFARequired = async (): Promise<boolean> => {
     try {
+      // Only require MFA if user actually has enrolled verified TOTP factors
+      const { data: factorsData } = await supabase.auth.mfa.listFactors();
+      const hasVerifiedFactors = factorsData?.totp?.some(f => f.status === 'verified');
+      if (!hasVerifiedFactors) return false;
+
       const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
       if (error) {
         console.error("Error checking MFA level:", error);
         return false;
       }
-      
-      // If next level requires AAL2 but current is AAL1, 2FA verification is needed
       return data.nextLevel === 'aal2' && data.currentLevel === 'aal1';
     } catch {
       return false;
