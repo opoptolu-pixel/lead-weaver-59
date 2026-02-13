@@ -175,15 +175,24 @@ export function usePageViewTracker() {
     const handleBeforeUnload = () => {
       if (lastPageViewIdRef.current) {
         const timeOnPage = Math.round((Date.now() - pageEnterTimeRef.current) / 1000);
-        // Use sendBeacon for reliable delivery on page unload
-        const payload = JSON.stringify({
-          id: lastPageViewIdRef.current,
-          time_on_page: timeOnPage,
-        });
-        navigator.sendBeacon?.(
-          `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/page_views?id=eq.${lastPageViewIdRef.current}`,
-          payload
+        // Use sendBeacon with proper headers for reliable delivery on page unload
+        const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/page_views?id=eq.${lastPageViewIdRef.current}`;
+        const blob = new Blob(
+          [JSON.stringify({ time_on_page: timeOnPage })],
+          { type: "application/json" }
         );
+        // sendBeacon doesn't support custom headers, so fall back to keepalive fetch
+        fetch(url, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            "Prefer": "return=minimal",
+          },
+          body: JSON.stringify({ time_on_page: timeOnPage }),
+          keepalive: true,
+        }).catch(() => {});
       }
     };
 
