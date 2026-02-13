@@ -82,6 +82,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         
+        // Handle password recovery event - redirect to update password form
+        if (event === 'PASSWORD_RECOVERY') {
+          window.location.href = '/auth?mode=update-password';
+          return;
+        }
+        
         // Fetch profile when user signs in or token refreshes
         if (session?.user) {
           // Use setTimeout to avoid potential auth deadlock

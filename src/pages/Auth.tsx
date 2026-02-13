@@ -22,25 +22,29 @@ const emailSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
 });
 
-type AuthMode = "login" | "signup" | "forgot" | "magic" | "2fa";
+type AuthMode = "login" | "signup" | "forgot" | "magic" | "2fa" | "update-password";
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
-  const initialMode = searchParams.get("mode") === "signup" ? "signup" : "login";
+  const modeParam = searchParams.get("mode");
+  const initialMode: AuthMode = modeParam === "signup" ? "signup" : modeParam === "update-password" ? "update-password" : "login";
+  
   
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [errors, setErrors] = useState<{ email?: string; password?: string; newPassword?: string }>({});
   
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
 
-  // Redirect if already logged in (and not in 2FA mode)
+  // Redirect if already logged in (and not in 2FA or update-password mode)
   useEffect(() => {
-    if (user && mode !== "2fa") {
+    if (user && mode !== "2fa" && mode !== "update-password") {
       navigate("/dashboard");
     }
   }, [user, mode, navigate]);
@@ -97,6 +101,32 @@ export default function Auth() {
     }
   };
 
+  const handleUpdatePassword = async () => {
+    if (newPassword.length < 6) {
+      setErrors({ newPassword: "Password must be at least 6 characters" });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setErrors({ newPassword: "Passwords do not match" });
+      return;
+    }
+    setErrors({});
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      toast.success("Password updated successfully! You can now sign in.");
+      setMode("login");
+      setNewPassword("");
+      setConfirmPassword("");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleMagicLink = async () => {
     if (!validateForm()) return;
 
@@ -145,6 +175,11 @@ export default function Auth() {
 
     if (mode === "magic") {
       await handleMagicLink();
+      return;
+    }
+
+    if (mode === "update-password") {
+      await handleUpdatePassword();
       return;
     }
 
@@ -213,6 +248,7 @@ export default function Auth() {
       case "forgot": return "Reset Password";
       case "magic": return "Get Login Link";
       case "2fa": return "Two-Factor Authentication";
+      case "update-password": return "Set New Password";
     }
   };
 
@@ -223,6 +259,7 @@ export default function Auth() {
       case "forgot": return "Enter your email to receive a reset link";
       case "magic": return "We'll send you a secure link to sign in";
       case "2fa": return "Enter your authentication code";
+      case "update-password": return "Enter your new password below";
     }
   };
 
@@ -278,49 +315,94 @@ export default function Auth() {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-5">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="you@example.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className={`pl-10 ${errors.email ? "border-destructive" : ""}`}
-                      />
-                    </div>
-                    {errors.email && (
-                      <p className="text-destructive text-sm">{errors.email}</p>
-                    )}
-                  </div>
-
-                  {(mode !== "forgot" && mode !== "magic") && (
-                    <div className="space-y-2">
-                      <Label htmlFor="password">Password</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                        <Input
-                          id="password"
-                          type={showPassword ? "text" : "password"}
-                          placeholder="••••••••"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          className={`pl-10 pr-10 ${errors.password ? "border-destructive" : ""}`}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                        >
-                          {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                        </button>
+                  {mode === "update-password" ? (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="newPassword">New Password</Label>
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                          <Input
+                            id="newPassword"
+                            type={showPassword ? "text" : "password"}
+                            placeholder="••••••••"
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            className={`pl-10 pr-10 ${errors.newPassword ? "border-destructive" : ""}`}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                          >
+                            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                          </button>
+                        </div>
                       </div>
-                      {errors.password && (
-                        <p className="text-destructive text-sm">{errors.password}</p>
+                      <div className="space-y-2">
+                        <Label htmlFor="confirmPassword">Confirm Password</Label>
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                          <Input
+                            id="confirmPassword"
+                            type={showPassword ? "text" : "password"}
+                            placeholder="••••••••"
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            className="pl-10"
+                          />
+                        </div>
+                      </div>
+                      {errors.newPassword && (
+                        <p className="text-destructive text-sm">{errors.newPassword}</p>
                       )}
-                    </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email</Label>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                          <Input
+                            id="email"
+                            type="email"
+                            placeholder="you@example.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className={`pl-10 ${errors.email ? "border-destructive" : ""}`}
+                          />
+                        </div>
+                        {errors.email && (
+                          <p className="text-destructive text-sm">{errors.email}</p>
+                        )}
+                      </div>
+
+                      {(mode !== "forgot" && mode !== "magic") && (
+                        <div className="space-y-2">
+                          <Label htmlFor="password">Password</Label>
+                          <div className="relative">
+                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                            <Input
+                              id="password"
+                              type={showPassword ? "text" : "password"}
+                              placeholder="••••••••"
+                              value={password}
+                              onChange={(e) => setPassword(e.target.value)}
+                              className={`pl-10 pr-10 ${errors.password ? "border-destructive" : ""}`}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowPassword(!showPassword)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                            >
+                              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                            </button>
+                          </div>
+                          {errors.password && (
+                            <p className="text-destructive text-sm">{errors.password}</p>
+                          )}
+                        </div>
+                      )}
+                    </>
                   )}
 
                   {mode === "login" && (
@@ -363,13 +445,15 @@ export default function Auth() {
                       "Create Account"
                     ) : mode === "magic" ? (
                       "Send Login Link"
+                    ) : mode === "update-password" ? (
+                      "Update Password"
                     ) : (
                       "Send Reset Link"
                     )}
                   </Button>
                 </form>
 
-                {(mode !== "forgot" && mode !== "magic") && (
+                {(mode !== "forgot" && mode !== "magic" && mode !== "update-password") && (
                   <div className="mt-6 text-center">
                     <p className="text-muted-foreground">
                       {mode === "login" ? "Don't have an account?" : "Already have an account?"}{" "}
