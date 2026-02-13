@@ -86,3 +86,24 @@ verify_jwt = false
 
 [functions.send-password-reset]
 verify_jwt = false
+
+[functions.send-magic-link]
+verify_jwt = false
+
+[functions.signup-with-confirmation]
+verify_jwt = false
+
+[functions.verify-phone-code]
+verify_jwt = false
+
+[functions.get-payment-methods]
+verify_jwt = false
+
+[functions.get-receipt]
+verify_jwt = false
+
+[functions.customer-portal]
+verify_jwt = false
+
+[functions.process-email-sequences]
+verify_jwt = false

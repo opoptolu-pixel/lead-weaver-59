@@ -127,7 +127,10 @@ export default function Auth() {
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-password-reset`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
           body: JSON.stringify({
             email,
             redirectTo: `${window.location.origin}/auth`,
@@ -185,7 +188,10 @@ export default function Auth() {
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-magic-link`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
           body: JSON.stringify({
             email,
             redirectTo: `${window.location.origin}/auth`,
@@ -343,7 +349,10 @@ export default function Auth() {
             `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/signup-with-confirmation`,
             {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: {
+                "Content-Type": "application/json",
+                "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+              },
               body: JSON.stringify({
                 email,
                 password,
