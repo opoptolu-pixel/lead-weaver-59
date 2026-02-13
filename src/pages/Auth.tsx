@@ -22,14 +22,14 @@ const emailSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
 });
 
-type AuthMode = "login" | "signup" | "forgot" | "magic" | "2fa" | "update-password" | "magic-verify";
+type AuthMode = "login" | "signup" | "forgot" | "magic" | "2fa" | "update-password" | "magic-verify" | "confirm-signup";
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
   const modeParam = searchParams.get("mode");
   const tokenHash = searchParams.get("token_hash");
   const tokenType = searchParams.get("type");
-  const initialMode: AuthMode = modeParam === "signup" ? "signup" : modeParam === "update-password" ? "update-password" : modeParam === "magic-verify" ? "magic-verify" : "login";
+  const initialMode: AuthMode = modeParam === "signup" ? "signup" : modeParam === "update-password" ? "update-password" : modeParam === "magic-verify" ? "magic-verify" : modeParam === "confirm-signup" ? "confirm-signup" : "login";
   
   
   const [mode, setMode] = useState<AuthMode>(initialMode);
@@ -77,7 +77,7 @@ export default function Auth() {
 
   // Redirect if already logged in (skip during special flows)
   useEffect(() => {
-    if (user && mode !== "2fa" && mode !== "update-password" && mode !== "magic-verify" && !needsMfaForReset && !tokenHash) {
+    if (user && mode !== "2fa" && mode !== "update-password" && mode !== "magic-verify" && mode !== "confirm-signup" && !needsMfaForReset && !tokenHash) {
       navigate("/dashboard");
     }
   }, [user, mode, navigate, needsMfaForReset, tokenHash]);
@@ -217,6 +217,27 @@ export default function Auth() {
     }
   }, [mode, tokenHash, tokenType, tokenVerified, tokenVerifying]);
 
+  // Verify signup confirmation token
+  useEffect(() => {
+    if (mode === "confirm-signup" && tokenHash && tokenType === "signup" && !tokenVerified && !tokenVerifying) {
+      setTokenVerifying(true);
+      supabase.auth.verifyOtp({
+        token_hash: tokenHash,
+        type: "signup",
+      }).then(async ({ data, error }) => {
+        setTokenVerifying(false);
+        if (error) {
+          console.error("Signup confirmation failed:", error);
+          toast.error("This confirmation link is invalid or has expired.");
+          setMode("login");
+        } else {
+          toast.success("Email confirmed! Welcome to Cleanda.");
+          navigate("/dashboard");
+        }
+      });
+    }
+  }, [mode, tokenHash, tokenType, tokenVerified, tokenVerifying]);
+
   const checkMFARequired = async (): Promise<boolean> => {
     try {
       const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
@@ -275,32 +296,51 @@ export default function Auth() {
         toast.success("Welcome back!");
         navigate("/dashboard");
       } else {
-        const { error } = await signUp(email, password);
-        if (error) {
-          if (error.message.includes("already registered")) {
-            toast.error("This email is already registered. Please sign in instead.");
-            setMode("login");
-          } else {
-            toast.error(error.message);
+        // Use custom signup edge function for branded confirmation email
+        setLoading(true);
+        try {
+          const response = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/signup-with-confirmation`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                email,
+                password,
+                redirectTo: `${window.location.origin}/auth`,
+              }),
+            }
+          );
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            if (response.status === 409 || data.error?.includes("already registered")) {
+              toast.error("This email is already registered. Please sign in instead.");
+              setMode("login");
+            } else {
+              toast.error(data.error || "Failed to create account.");
+            }
+            return;
           }
-          return;
+          
+          // Track signup conversion
+          trackCleanerSignup();
+          
+          // Fire Meta Pixel CompleteRegistration event
+          if (window.fbq) {
+            window.fbq('track', 'CompleteRegistration', {
+              content_name: 'cleaner_signup',
+              status: true,
+              currency: 'GBP',
+              value: 0,
+            });
+          }
+          
+          toast.success("Account created! Please check your email to confirm.");
+        } finally {
+          setLoading(false);
         }
-        
-        // Track signup conversion
-        trackCleanerSignup();
-        
-        // Fire Meta Pixel CompleteRegistration event
-        if (window.fbq) {
-          window.fbq('track', 'CompleteRegistration', {
-            content_name: 'cleaner_signup',
-            status: true,
-            currency: 'GBP',
-            value: 0,
-          });
-        }
-        
-        toast.success("Account created successfully!");
-        navigate("/dashboard");
       }
     } finally {
       setLoading(false);
@@ -327,6 +367,7 @@ export default function Auth() {
       case "2fa": return "Two-Factor Authentication";
       case "update-password": return "Set New Password";
       case "magic-verify": return "Verifying Login Link";
+      case "confirm-signup": return "Confirming Your Account";
     }
   };
 
@@ -339,6 +380,7 @@ export default function Auth() {
       case "2fa": return "Enter your authentication code";
       case "update-password": return "Enter your new password below";
       case "magic-verify": return "Please wait while we verify your login link";
+      case "confirm-signup": return "Please wait while we confirm your email";
     }
   };
 
@@ -406,10 +448,12 @@ export default function Auth() {
                   </p>
                 </div>
 
-                {mode === "magic-verify" ? (
+                {mode === "magic-verify" || mode === "confirm-signup" ? (
                   <div className="flex flex-col items-center gap-4 py-8">
                     <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                    <p className="text-muted-foreground">Verifying your login link...</p>
+                    <p className="text-muted-foreground">
+                      {mode === "confirm-signup" ? "Confirming your email..." : "Verifying your login link..."}
+                    </p>
                   </div>
                 ) : (
                 <form onSubmit={handleSubmit} className="space-y-5">
