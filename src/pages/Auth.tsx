@@ -49,7 +49,7 @@ export default function Auth() {
 
   // Verify recovery token when arriving with token_hash
   useEffect(() => {
-    if (mode === "update-password" && tokenHash && tokenType === "recovery" && !tokenVerified && !tokenVerifying && !verifyingRef.current) {
+    if (mode === "update-password" && tokenHash && tokenType === "recovery" && !verifyingRef.current) {
       verifyingRef.current = true;
       setTokenVerifying(true);
       supabase.auth.verifyOtp({
@@ -86,7 +86,8 @@ export default function Auth() {
         }
       });
     }
-  }, [mode, tokenHash, tokenType, tokenVerified, tokenVerifying]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, tokenHash, tokenType]);
 
   // Redirect if already logged in (skip during special flows)
   useEffect(() => {
@@ -164,7 +165,9 @@ export default function Auth() {
         toast.error(error.message);
         return;
       }
-      toast.success("Password updated successfully! You can now sign in.");
+      // Sign out so user must log in with their new password
+      await supabase.auth.signOut();
+      toast.success("Password updated successfully! Please sign in with your new password.");
       setMode("login");
       setNewPassword("");
       setConfirmPassword("");
