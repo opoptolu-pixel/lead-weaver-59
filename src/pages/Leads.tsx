@@ -762,6 +762,14 @@ export default function Leads() {
 
     // Redirect to Stripe Checkout - reservation stays active for 5 minutes
     if (result.data?.url) {
+      if (window.fbq) {
+        window.fbq('track', 'InitiateCheckout', {
+          content_name: 'lead_unlock',
+          content_category: 'lead',
+          value: 20,
+          currency: 'GBP',
+        });
+      }
       window.location.href = result.data.url;
     }
     setUnlockingLeadId(null);
