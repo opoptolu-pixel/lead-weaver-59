@@ -247,6 +247,16 @@ export default function Auth() {
         // Track signup conversion
         trackCleanerSignup();
         
+        // Fire Meta Pixel CompleteRegistration event
+        if (window.fbq) {
+          window.fbq('track', 'CompleteRegistration', {
+            content_name: 'cleaner_signup',
+            status: true,
+            currency: 'GBP',
+            value: 0,
+          });
+        }
+        
         toast.success("Account created successfully!");
         navigate("/dashboard");
       }
