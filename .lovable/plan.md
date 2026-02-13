@@ -1,55 +1,45 @@
+## Meta Pixel Installation
 
+### Strategy
 
-## Plan: Fix Old "Deep Clean" Branding and Password Reset Email
+Follow the exact same pattern as the existing Clarity Analytics component — a route-aware React component that only fires on public-facing pages and skips admin/dashboard routes.
 
-### Problem
-1. **Password reset emails** show "Deep-Clean-Co-UK" as the sender name and come from `no-reply@auth.lovable.cloud` with a Lovable-branded link -- going to spam
-2. The `admin_settings` database still has the old support email `support@deepcleanco.uk`
+### Pages WHERE the pixel WILL fire
 
-### Root Cause
-The password reset uses the **built-in auth email system** (`supabase.auth.resetPasswordForEmail()`), which sends from the default auth infrastructure with the old project name. This cannot be customized directly. To fix this, we need to **replace it with a custom password reset flow** that sends branded emails through Resend (your verified `cleanda.co.uk` domain).
+- `/` (Homepage)
+- `/for-cleaners` (Cleaner landing page)
+- `/request-cleaning` and `/request-cleaning/thank-you` (Customer funnel — critical for conversion tracking)
+- `/auth` (Sign in/Sign up — useful for tracking funnel drop-off)
+- `/leads` (Public lead browse page — useful for acquisition tracking)
 
-### What Will NOT Change
-Service type names like "Deep Clean (3+ Rooms)", "One-Off Deep Clean", "Post-Construction Deep Clean" are **legitimate cleaning service descriptions**, not old branding. These stay as-is.
+### Pages WHERE the pixel will NOT fire
 
----
+- `/dashboard`, `/settings`, `/billing`, `/performance`, `/disputes`, `/support`, `/verification`, `/onboarding` (Authenticated business pages)
+- `/admin/*`, `/admin-login` (All admin pages)
+- `/payment-success`, `/credits-success` (Post-payment pages — avoids double-counting conversions)
 
-### Changes
+### Implementation
 
-#### 1. New Edge Function: `send-password-reset` 
-A custom edge function that:
-- Generates a password reset link using the admin API
-- Sends a branded email through Resend using the existing `password_reset` email template
-- Sends from `hello@cleanda.co.uk` (your verified domain) instead of `no-reply@auth.lovable.cloud`
-- Sender name shows "Cleanda" not "Deep-Clean-Co-UK"
+**1. Create `src/components/MetaPixel.tsx**`
 
-#### 2. Update `src/pages/Auth.tsx`
-Replace the direct `supabase.auth.resetPasswordForEmail()` call with a call to the new `send-password-reset` edge function, so all password reset emails go through Resend.
+A new component mirroring the `ClarityAnalytics` pattern:
 
-#### 3. Update `supabase/config.toml`
-Add the new `send-password-reset` function config with `verify_jwt = false`.
+- Uses `useLocation()` to check the current route
+- Maintains the same `EXCLUDED_ROUTES` list used by Clarity (plus `/admin-login`)
+- On public routes: loads the Meta Pixel script once, then calls `fbq('track', 'PageView')` on every route change
+- On excluded routes: does nothing (no tracking, no script load)
+- Includes a `<noscript>` fallback image for non-JS environments
+- Adds TypeScript declarations for `window.fbq`
 
-#### 4. Database Fix: Update `admin_settings`
-Run a migration to update the `site_config` record, changing `supportEmail` from `support@deepcleanco.uk` to `hello@cleanda.co.uk`.
+**2. Update `src/App.tsx**`
 
----
+- Import the new `MetaPixel` component
+- Place it alongside `ClarityAnalytics` (right after the `<BrowserRouter>` tag)
 
 ### Technical Details
 
-**Custom Password Reset Flow:**
-
-```text
-User clicks "Forgot Password"
-  --> Calls send-password-reset edge function
-    --> Uses Supabase Admin API to generate reset link
-    --> Sends branded email via Resend (hello@cleanda.co.uk)
-    --> User receives email from "Cleanda" with cleanda.co.uk domain
-      --> Clicks link, redirected to /auth to set new password
-```
-
-**Why this fixes the spam issue:**
-- Emails will come from your verified `cleanda.co.uk` domain via Resend
-- Proper DKIM/SPF/DMARC already configured for that domain
-- No more `auth.lovable.cloud` sender that triggers spam filters
-- Sender name will be "Cleanda" instead of "Deep-Clean-Co-UK"
-
+- Pixel ID: `1204767561831151`
+- The script loads only once (checks `window.fbq` before injecting)
+- Subsequent route changes call `fbq('track', 'PageView')` without reloading the script
+- No performance impact on excluded routes — the script is never loaded there
+- The noscript fallback img tag is rendered in the component JSX for SPA compatibility
