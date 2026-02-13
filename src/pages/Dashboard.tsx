@@ -25,6 +25,7 @@ import {
   CreditCard,
   FileWarning,
   Home,
+  BedDouble,
   Headphones,
   PhoneOutgoing,
   CalendarCheck,
@@ -713,7 +714,7 @@ export default function Dashboard() {
                           )}
                           {lead.bedrooms && (
                             <span className="property-badge bg-purple-50 text-purple-700 dark:bg-purple-950/30 dark:text-purple-400">
-                              <User className="w-3 h-3" />
+                              <BedDouble className="w-3 h-3" />
                               {lead.bedrooms}
                             </span>
                           )}
@@ -945,7 +946,7 @@ export default function Dashboard() {
                       {(lead.property_type || lead.bedrooms || lead.frequency) && (
                         <div className="flex flex-wrap gap-2 mb-4">
                           {lead.property_type && <span className="property-badge bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400"><Home className="w-3 h-3" />{lead.property_type}</span>}
-                          {lead.bedrooms && <span className="property-badge bg-purple-50 text-purple-700 dark:bg-purple-950/30 dark:text-purple-400"><User className="w-3 h-3" />{lead.bedrooms}</span>}
+                          {lead.bedrooms && <span className="property-badge bg-purple-50 text-purple-700 dark:bg-purple-950/30 dark:text-purple-400"><BedDouble className="w-3 h-3" />{lead.bedrooms}</span>}
                           {lead.frequency && <span className="property-badge bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400"><Clock className="w-3 h-3" />{lead.frequency}</span>}
                         </div>
                       )}
@@ -1062,7 +1063,7 @@ export default function Dashboard() {
                       {(lead.property_type || lead.bedrooms || lead.frequency) && (
                         <div className="flex flex-wrap gap-2 mb-4">
                           {lead.property_type && <span className="property-badge bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400"><Home className="w-3 h-3" />{lead.property_type}</span>}
-                          {lead.bedrooms && <span className="property-badge bg-purple-50 text-purple-700 dark:bg-purple-950/30 dark:text-purple-400"><User className="w-3 h-3" />{lead.bedrooms}</span>}
+                          {lead.bedrooms && <span className="property-badge bg-purple-50 text-purple-700 dark:bg-purple-950/30 dark:text-purple-400"><BedDouble className="w-3 h-3" />{lead.bedrooms}</span>}
                           {lead.frequency && <span className="property-badge bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400"><Clock className="w-3 h-3" />{lead.frequency}</span>}
                         </div>
                       )}
