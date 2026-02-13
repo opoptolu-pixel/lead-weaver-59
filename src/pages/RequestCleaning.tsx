@@ -728,43 +728,25 @@ export default function RequestCleaning() {
                       )}
                     </div>
 
-                    {/* Toggleable Additional Details Section */}
-                    <div className="pt-2 border-t border-gray-100">
-                      <Collapsible open={showAdditionalDetails} onOpenChange={setShowAdditionalDetails}>
-                        <CollapsibleTrigger asChild>
-                          <button
-                            type="button"
-                            className="flex items-center justify-between w-full py-3 text-left group"
-                          >
-                            <div className="flex items-center gap-2">
-                              <MessageSquare className="w-4 h-4 text-primary" />
-                              <span className="text-sm font-medium text-gray-700 group-hover:text-primary transition-colors">
-                                Add more details
-                              </span>
-                              <span className="text-xs text-gray-400">(optional)</span>
-                            </div>
-                            {showAdditionalDetails ? (
-                              <ChevronUp className="w-4 h-4 text-gray-400" />
-                            ) : (
-                              <ChevronDown className="w-4 h-4 text-gray-400" />
-                            )}
-                          </button>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent className="overflow-hidden data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0">
-                          <div className="pb-2">
-                            <Textarea
-                              value={formData.additionalNotes}
-                              onChange={(e) => setFormData({ ...formData, additionalNotes: e.target.value })}
-                              placeholder="Tell us more about the job, e.g. specific areas to focus on, access instructions, or special requirements..."
-                              className="min-h-[100px] border-2 border-gray-200 focus:border-primary rounded-xl resize-none text-sm"
-                              maxLength={500}
-                            />
-                            <p className="text-xs text-gray-400 mt-1 text-right">
-                              {formData.additionalNotes.length}/500 characters
-                            </p>
-                          </div>
-                        </CollapsibleContent>
-                      </Collapsible>
+                    {/* Additional Details Section - always visible */}
+                    <div className="pt-4 border-t border-gray-100">
+                      <div className="flex items-center gap-2 mb-2">
+                        <MessageSquare className="w-4 h-4 text-primary" />
+                        <span className="text-sm font-medium text-gray-700">
+                          Add more details
+                        </span>
+                        <span className="text-xs text-muted-foreground">(optional)</span>
+                      </div>
+                      <Textarea
+                        value={formData.additionalNotes}
+                        onChange={(e) => setFormData({ ...formData, additionalNotes: e.target.value })}
+                        placeholder="Tell us more about the job, e.g. specific areas to focus on, access instructions, or special requirements..."
+                        className="min-h-[100px] border-2 border-gray-200 focus:border-primary rounded-xl resize-none text-sm"
+                        maxLength={500}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1 text-right">
+                        {formData.additionalNotes.length}/500 characters
+                      </p>
                     </div>
                   </div>
                 </div>
