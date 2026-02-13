@@ -9,7 +9,7 @@ const RequestCleaningThankYou = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Fire conversion event on page load
+  // Fire conversion events on page load
   useEffect(() => {
     const state = location.state as { jobType?: string; postcode?: string; estimatedValue?: string } | null;
     if (state?.jobType) {
@@ -17,6 +17,16 @@ const RequestCleaningThankYou = () => {
         jobType: state.jobType,
         postcode: state.postcode || '',
         estimatedValue: state.estimatedValue,
+      });
+    }
+
+    // Meta Pixel Lead event
+    if (window.fbq) {
+      window.fbq('track', 'Lead', {
+        content_name: state?.jobType || 'cleaning_request',
+        content_category: 'cleaning',
+        value: parseFloat(state?.estimatedValue?.replace(/[^0-9.]/g, '') || '100'),
+        currency: 'GBP',
       });
     }
   }, [location.state]);
