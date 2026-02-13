@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { BackToTop } from "@/components/BackToTop";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import ClarityAnalytics from "@/components/ClarityAnalytics";
+import MetaPixel from "@/components/MetaPixel";
 import { VisitorPresenceTracker } from "@/components/VisitorPresenceTracker";
 
 import { PageViewTracker } from "@/components/PageViewTracker";
@@ -78,6 +79,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <ClarityAnalytics />
+          <MetaPixel />
           <ScrollToTop />
           <BackToTop />
           <AuthProvider>
