@@ -31,9 +31,6 @@ Deno.serve(async (req) => {
       await supabaseAdmin.auth.admin.generateLink({
         type: "recovery",
         email,
-        options: {
-          redirectTo: redirectTo || undefined,
-        },
       });
 
     if (linkError) {
@@ -45,6 +42,24 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Extract token_hash from the action_link and build a direct app link
+    // The action_link looks like: https://xxx.supabase.co/auth/v1/verify?token=TOKEN&type=recovery&redirect_to=...
+    const actionLink = linkData?.properties?.action_link || "";
+    let tokenHash = "";
+    try {
+      const url = new URL(actionLink);
+      tokenHash = url.searchParams.get("token") || "";
+    } catch {
+      console.error("Failed to parse action_link:", actionLink);
+    }
+
+    // Build a direct link to our app's auth page with the token
+    const baseUrl = redirectTo || "https://lead-weaver-59.lovable.app";
+    const appOrigin = baseUrl.replace(/\/auth.*$/, "").replace(/\/$/, "");
+    const resetLink = `${appOrigin}/auth?mode=update-password&token_hash=${tokenHash}&type=recovery`;
+
+    console.log("Generated reset link for app:", resetLink);
+
     // Fetch the password_reset email template
     const { data: template } = await supabaseAdmin
       .from("email_templates")
@@ -53,9 +68,8 @@ Deno.serve(async (req) => {
       .eq("is_active", true)
       .single();
 
-    const resetLink = linkData?.properties?.action_link || redirectTo || "";
     const currentYear = new Date().getFullYear().toString();
-    const userName = email.split("@")[0]; // fallback name
+    const userName = email.split("@")[0];
 
     let htmlBody: string;
     let subject: string;
@@ -69,7 +83,6 @@ Deno.serve(async (req) => {
         .replace(/\{\{unsubscribe_url\}\}/g, "");
       subject = template.subject;
     } else {
-      // Fallback if template not found
       subject = "Reset Your Cleanda Password";
       htmlBody = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">

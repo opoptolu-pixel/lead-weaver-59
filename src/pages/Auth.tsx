@@ -27,6 +27,8 @@ type AuthMode = "login" | "signup" | "forgot" | "magic" | "2fa" | "update-passwo
 export default function Auth() {
   const [searchParams] = useSearchParams();
   const modeParam = searchParams.get("mode");
+  const tokenHash = searchParams.get("token_hash");
+  const tokenType = searchParams.get("type");
   const initialMode: AuthMode = modeParam === "signup" ? "signup" : modeParam === "update-password" ? "update-password" : "login";
   
   
@@ -37,10 +39,33 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [tokenVerified, setTokenVerified] = useState(false);
+  const [tokenVerifying, setTokenVerifying] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string; newPassword?: string }>({});
   
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
+
+  // Verify recovery token when arriving with token_hash
+  useEffect(() => {
+    if (mode === "update-password" && tokenHash && tokenType === "recovery" && !tokenVerified && !tokenVerifying) {
+      setTokenVerifying(true);
+      supabase.auth.verifyOtp({
+        token_hash: tokenHash,
+        type: "recovery",
+      }).then(({ data, error }) => {
+        setTokenVerifying(false);
+        if (error) {
+          console.error("Token verification failed:", error);
+          toast.error("This reset link is invalid or has expired. Please request a new one.");
+          setMode("forgot");
+        } else {
+          setTokenVerified(true);
+          toast.success("Token verified! Please set your new password.");
+        }
+      });
+    }
+  }, [mode, tokenHash, tokenType, tokenVerified, tokenVerifying]);
 
   // Redirect if already logged in (and not in 2FA or update-password mode)
   useEffect(() => {
