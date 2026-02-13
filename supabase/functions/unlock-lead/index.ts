@@ -161,7 +161,7 @@ serve(async (req) => {
       }
     }
 
-    const origin = req.headers.get("origin") || "https://lovableproject.com";
+    const origin = req.headers.get("origin") || "https://cleanda.co.uk";
 
     // Create a Stripe Checkout session for the lead unlock
     // Price ID for £20 lead unlock
