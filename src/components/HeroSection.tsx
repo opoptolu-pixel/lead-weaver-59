@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useTransition } from "react";
-import { Search, Sparkles, MapPin, Briefcase, Loader2, AlertCircle, Check, Star, Users, TrendingUp, Lock as LockIcon } from "lucide-react";
+import { Search, Sparkles, MapPin, Briefcase, Loader2, AlertCircle, Check, Star, Users, TrendingUp, Lock as LockIcon, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
@@ -341,6 +341,25 @@ export const HeroSection = () => {
               </Button>
             </div>
           </form>
+
+          {/* Mobile-first signup CTA */}
+          <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Button
+              variant="hero"
+              size="lg"
+              className="w-full sm:w-auto shadow-glow text-base font-semibold px-8"
+              onClick={() => navigate("/auth?mode=signup")}
+            >
+              Sign Up Free
+              <ArrowRight className="w-5 h-5 ml-2" />
+            </Button>
+            <span className="text-primary-foreground/60 text-sm">
+              Already have an account?{" "}
+              <button onClick={() => navigate("/auth")} className="text-secondary underline underline-offset-2 font-medium">
+                Sign In
+              </button>
+            </span>
+          </div>
 
           {/* Trust indicators - matching customer hero style */}
           {!showDropdown && (
