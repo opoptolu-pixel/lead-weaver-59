@@ -611,7 +611,7 @@ export default function RequestCleaning() {
                 </p>
 
                 <div className="flex-1">
-                  <div className="bg-gray-50 rounded-2xl border border-gray-200 divide-y divide-gray-200 overflow-hidden max-h-[400px] overflow-y-auto">
+                  <div className="bg-gray-50 rounded-2xl border border-gray-200 divide-y divide-gray-200 overflow-hidden">
                     {bedroomOptions.map((option) => {
                       const isSelected = formData.bedrooms === option.id;
                       return (
