@@ -1,30 +1,58 @@
 
 
-## Fire Meta Pixel CompleteRegistration on Business Signup
+## Add Meta Pixel InitiateCheckout Event on All Purchase Flows
 
-### What changes
-One file edit: `src/pages/Auth.tsx`
+### Why fire every time (not just once)
+InitiateCheckout is a behavioral intent signal, not an identity event like CompleteRegistration. Meta uses each firing to optimize ad delivery toward high-intent users and measure checkout abandonment rates. This is how Meta expects the event to work.
 
-After the successful `signUp()` call (line 248, right after `trackCleanerSignup()`), add:
+### What changes (3 files)
+
+**1. `src/pages/Leads.tsx` -- handleUnlock function (~line 764)**
+Right before `window.location.href = result.data.url`, fire the event:
 
 ```typescript
 if (window.fbq) {
-  window.fbq('track', 'CompleteRegistration', {
-    content_name: 'cleaner_signup',
-    status: true,
+  window.fbq('track', 'InitiateCheckout', {
+    content_name: 'lead_unlock',
+    content_category: 'lead',
+    value: 20,
     currency: 'GBP',
-    value: 0,
   });
 }
 ```
 
-### Why this only fires on signup (not login)
-The code is inside the `else` branch of the login/signup conditional (line 235: `} else {`), which only executes when `mode === "signup"`. Login goes through the `if (mode === "login")` branch above it. So the event will never fire on regular sign-ins.
+**2. `src/pages/Dashboard.tsx` -- handleBuyCredits function (~line 168)**
+Right before `window.location.href = data.url`, fire the event:
+
+```typescript
+if (window.fbq) {
+  window.fbq('track', 'InitiateCheckout', {
+    content_name: `credit_pack_${packSize}`,
+    content_category: 'credits',
+    value: packSize === '5' ? 90 : 170,
+    currency: 'GBP',
+  });
+}
+```
+
+**3. `src/components/Pricing.tsx` -- handlePurchase function (~line 89)**
+Right before `window.location.href = data.url`, fire the event:
+
+```typescript
+if (window.fbq) {
+  window.fbq('track', 'InitiateCheckout', {
+    content_name: tier.name,
+    content_category: 'credits',
+    value: parseFloat(tier.price.replace('£', '')),
+    currency: 'GBP',
+  });
+}
+```
 
 ### Technical details
-- File: `src/pages/Auth.tsx` (around line 248)
-- Event: `CompleteRegistration` (standard Meta event for signups)
-- Parameters: `content_name: 'cleaner_signup'`, `status: true`, `currency: 'GBP'`, `value: 0`
+- Event: `InitiateCheckout` (standard Meta event)
+- Fires only when the Stripe checkout URL is successfully returned (not on validation errors or early returns)
+- Each flow passes relevant `content_name`, `content_category`, `value`, and `currency` for accurate attribution
 - No database changes needed
 - No new files needed
 
