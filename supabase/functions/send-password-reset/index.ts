@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
     }
 
     // Build a direct link to our app's auth page with the token
-    const baseUrl = redirectTo || "https://lead-weaver-59.lovable.app";
+    const baseUrl = redirectTo || "https://cleanda.co.uk";
     const appOrigin = baseUrl.replace(/\/auth.*$/, "").replace(/\/$/, "");
     const resetLink = `${appOrigin}/auth?mode=update-password&token_hash=${tokenHash}&type=recovery`;
 

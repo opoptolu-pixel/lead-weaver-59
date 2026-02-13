@@ -83,7 +83,7 @@ serve(async (req) => {
       customerId = customers.data[0].id;
     }
 
-    const origin = req.headers.get("origin") || "https://lovableproject.com";
+    const origin = req.headers.get("origin") || "https://cleanda.co.uk";
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,

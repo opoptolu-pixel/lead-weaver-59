@@ -116,7 +116,7 @@ const getReferrerDomain = (referrer: string | null): string => {
     if (domain.includes("bing")) return "Bing";
     if (domain.includes("tiktok")) return "TikTok";
     if (domain.includes("youtube")) return "YouTube";
-    if (domain.includes("lovable")) return "Lovable (Preview)";
+    if (domain.includes("lovable")) return "Direct";
     return domain;
   } catch {
     return "Direct";

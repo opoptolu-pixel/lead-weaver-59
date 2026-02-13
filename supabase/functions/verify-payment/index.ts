@@ -98,7 +98,7 @@ serve(async (req) => {
         type: "magiclink",
         email: customerEmail,
         options: {
-          redirectTo: `${Deno.env.get("SUPABASE_URL")?.replace('.supabase.co', '.lovable.app')}/dashboard`,
+          redirectTo: "https://cleanda.co.uk/dashboard",
         },
       });
 
