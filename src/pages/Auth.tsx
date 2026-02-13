@@ -72,15 +72,24 @@ export default function Auth() {
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth`,
-      });
-      
-      if (error) {
-        toast.error(error.message);
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-password-reset`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email,
+            redirectTo: `${window.location.origin}/auth`,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const data = await response.json();
+        toast.error(data.error || "Failed to send reset email.");
         return;
       }
-      
+
       toast.success("Password reset email sent! Check your inbox.");
       setMode("login");
     } finally {
