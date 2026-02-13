@@ -42,6 +42,7 @@ export default function Auth() {
   const [tokenVerified, setTokenVerified] = useState(false);
   const [tokenVerifying, setTokenVerifying] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string; newPassword?: string }>({});
+  const [needsMfaForReset, setNeedsMfaForReset] = useState(false);
   
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
@@ -53,15 +54,22 @@ export default function Auth() {
       supabase.auth.verifyOtp({
         token_hash: tokenHash,
         type: "recovery",
-      }).then(({ data, error }) => {
+      }).then(async ({ data, error }) => {
         setTokenVerifying(false);
         if (error) {
           console.error("Token verification failed:", error);
           toast.error("This reset link is invalid or has expired. Please request a new one.");
           setMode("forgot");
         } else {
-          setTokenVerified(true);
-          toast.success("Token verified! Please set your new password.");
+          // Check if MFA is enabled and needs AAL2
+          const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+          if (aalData?.nextLevel === 'aal2' && aalData?.currentLevel === 'aal1') {
+            setNeedsMfaForReset(true);
+            toast.info("Please verify your 2FA to continue resetting your password.");
+          } else {
+            setTokenVerified(true);
+            toast.success("Token verified! Please set your new password.");
+          }
         }
       });
     }
@@ -323,6 +331,19 @@ export default function Auth() {
               <TwoFactorVerify 
                 onSuccess={handle2FASuccess} 
                 onCancel={handle2FACancel} 
+              />
+            ) : needsMfaForReset ? (
+              <TwoFactorVerify
+                onSuccess={() => {
+                  setNeedsMfaForReset(false);
+                  setTokenVerified(true);
+                  toast.success("Verified! Please set your new password.");
+                }}
+                onCancel={async () => {
+                  await supabase.auth.signOut();
+                  setNeedsMfaForReset(false);
+                  setMode("login");
+                }}
               />
             ) : (
               <>
