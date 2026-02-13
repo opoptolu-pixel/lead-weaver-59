@@ -62,15 +62,23 @@ export default function Auth() {
           toast.error("This reset link is invalid or has expired. Please request a new one.");
           setMode("forgot");
         } else {
-          // Only check MFA if user actually has enrolled factors
-          const { data: factorsData } = await supabase.auth.mfa.listFactors();
-          const hasVerifiedFactors = factorsData?.totp?.some(f => f.status === 'verified');
-          if (hasVerifiedFactors) {
-            const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-            if (aalData?.nextLevel === 'aal2' && aalData?.currentLevel === 'aal1') {
-              setNeedsMfaForReset(true);
-              toast.info("Please verify your 2FA to continue resetting your password.");
-              return;
+          // Only check MFA for admin users
+          const userId = data.user?.id;
+          let isAdmin = false;
+          if (userId) {
+            const { data: roleData } = await supabase.from('user_roles').select('role').eq('user_id', userId);
+            isAdmin = roleData?.some(r => r.role === 'admin' || r.role === 'super_admin') ?? false;
+          }
+          if (isAdmin) {
+            const { data: factorsData } = await supabase.auth.mfa.listFactors();
+            const hasVerifiedFactors = factorsData?.totp?.some(f => f.status === 'verified');
+            if (hasVerifiedFactors) {
+              const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+              if (aalData?.nextLevel === 'aal2' && aalData?.currentLevel === 'aal1') {
+                setNeedsMfaForReset(true);
+                toast.info("Please verify your 2FA to continue resetting your password.");
+                return;
+              }
             }
           }
           setTokenVerified(true);
@@ -209,15 +217,23 @@ export default function Auth() {
           toast.error("This login link is invalid or has expired. Please request a new one.");
           setMode("magic");
         } else {
-          // Only check MFA if user actually has enrolled factors
-          const { data: factorsData } = await supabase.auth.mfa.listFactors();
-          const hasVerifiedFactors = factorsData?.totp?.some(f => f.status === 'verified');
-          if (hasVerifiedFactors) {
-            const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-            if (aalData?.nextLevel === 'aal2' && aalData?.currentLevel === 'aal1') {
-              setMode("2fa");
-              toast.info("Please verify your 2FA to complete sign in.");
-              return;
+          // Only check MFA for admin users
+          const userId = data.user?.id;
+          let isAdmin = false;
+          if (userId) {
+            const { data: roleData } = await supabase.from('user_roles').select('role').eq('user_id', userId);
+            isAdmin = roleData?.some(r => r.role === 'admin' || r.role === 'super_admin') ?? false;
+          }
+          if (isAdmin) {
+            const { data: factorsData } = await supabase.auth.mfa.listFactors();
+            const hasVerifiedFactors = factorsData?.totp?.some(f => f.status === 'verified');
+            if (hasVerifiedFactors) {
+              const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+              if (aalData?.nextLevel === 'aal2' && aalData?.currentLevel === 'aal1') {
+                setMode("2fa");
+                toast.info("Please verify your 2FA to complete sign in.");
+                return;
+              }
             }
           }
           toast.success("Signed in successfully!");
@@ -251,7 +267,14 @@ export default function Auth() {
 
   const checkMFARequired = async (): Promise<boolean> => {
     try {
-      // Only require MFA if user actually has enrolled verified TOTP factors
+      // Only require MFA for admin users
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) return false;
+
+      const { data: roleData } = await supabase.from('user_roles').select('role').eq('user_id', currentUser.id);
+      const isAdmin = roleData?.some(r => r.role === 'admin' || r.role === 'super_admin') ?? false;
+      if (!isAdmin) return false;
+
       const { data: factorsData } = await supabase.auth.mfa.listFactors();
       const hasVerifiedFactors = factorsData?.totp?.some(f => f.status === 'verified');
       if (!hasVerifiedFactors) return false;
