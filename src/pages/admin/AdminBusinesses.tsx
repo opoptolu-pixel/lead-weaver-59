@@ -123,7 +123,10 @@ interface LoginHistoryEntry {
   city: string | null;
 }
 
-type StatusFilter = "all" | "active" | "suspended" | "unverified";
+type StatusFilter = "all" | "active" | "suspended" | "unverified" | "incomplete";
+
+const isOnboardingIncomplete = (b: Business) =>
+  !b.business_name || !b.contact_name || !b.phone || !b.postcode;
 
 export default function AdminBusinesses() {
   const { getDateFilter, dateRange } = useAdmin();
@@ -652,6 +655,8 @@ export default function AdminBusinesses() {
         return b.is_suspended;
       case "unverified":
         return !b.is_verified && !b.is_suspended;
+      case "incomplete":
+        return isOnboardingIncomplete(b);
       default:
         return true;
     }
@@ -737,6 +742,7 @@ export default function AdminBusinesses() {
     unverified: businesses.filter((b) => !b.is_verified && !b.is_suspended).length,
     suspended: businesses.filter((b) => b.is_suspended).length,
     totalCredits: businesses.reduce((sum, b) => sum + (b.credits || 0), 0),
+    incomplete: businesses.filter(isOnboardingIncomplete).length,
   };
 
   return (
@@ -762,7 +768,7 @@ export default function AdminBusinesses() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
         <div className="bg-card rounded-xl border border-border p-4">
           <p className="text-sm text-muted-foreground">Total Businesses</p>
           <p className="text-2xl font-bold text-foreground">{stats.total}</p>
@@ -774,6 +780,10 @@ export default function AdminBusinesses() {
         <div className="bg-card rounded-xl border border-border p-4">
           <p className="text-sm text-muted-foreground">Pending Verification</p>
           <p className="text-2xl font-bold text-amber-500">{stats.unverified}</p>
+        </div>
+        <div className="bg-card rounded-xl border border-border p-4">
+          <p className="text-sm text-muted-foreground">Incomplete Onboarding</p>
+          <p className="text-2xl font-bold text-orange-500">{stats.incomplete}</p>
         </div>
         <div className="bg-card rounded-xl border border-border p-4">
           <p className="text-sm text-muted-foreground">Suspended</p>
@@ -802,6 +812,9 @@ export default function AdminBusinesses() {
             </TabsTrigger>
             <TabsTrigger value="unverified">
               Unverified ({businesses.filter(b => !b.is_verified && !b.is_suspended).length})
+            </TabsTrigger>
+            <TabsTrigger value="incomplete" className="text-orange-500">
+              Incomplete ({stats.incomplete})
             </TabsTrigger>
             <TabsTrigger value="suspended" className="text-destructive">
               Suspended ({businesses.filter(b => b.is_suspended).length})
@@ -849,6 +862,9 @@ export default function AdminBusinesses() {
                             {business.business_name || business.contact_name || "Unnamed"}
                             {business.is_suspended && (
                               <AlertTriangle className="w-4 h-4 text-destructive" />
+                            )}
+                            {isOnboardingIncomplete(business) && (
+                              <Badge className="bg-orange-500/20 text-orange-600 dark:text-orange-400 text-[10px] px-1.5 py-0">Onboarding Incomplete</Badge>
                             )}
                           </p>
                           <p className="text-sm text-muted-foreground">
