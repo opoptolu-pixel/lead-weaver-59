@@ -20,7 +20,7 @@ const EXCLUDED_ROUTES = [
   "/support",
 ];
 
-// Minimum seconds between recording the same page path
+// Minimum ms between recording the same page path
 const DEDUP_INTERVAL_MS = 30_000;
 
 // ── Helpers ──────────────────────────────────────────────
@@ -35,25 +35,18 @@ const getOrCreate = (key: string, factory: () => string): string => {
   return val;
 };
 
-const getVisitorId = () =>
-  getOrCreate("visitor_id", () => `visitor_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`);
+const uid = () => `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
-const getSessionId = () =>
-  getOrCreate("session_id", () => `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`);
+const getVisitorId = () => getOrCreate("visitor_id", () => `visitor_${uid()}`);
+const getSessionId = () => getOrCreate("session_id", () => `session_${uid()}`);
 
-interface CachedGeo {
-  city: string;
-  region: string;
-  country: string;
-}
+interface CachedGeo { city: string; region: string; country: string }
 
 const getCachedGeolocation = (): CachedGeo | null => {
   try {
     const cached = sessionStorage.getItem("visitor_geolocation");
     return cached ? JSON.parse(cached) : null;
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 };
 
 const getDeviceType = (ua: string): "desktop" | "mobile" | "tablet" => {
@@ -79,25 +72,42 @@ const getPageTitle = (path: string): string =>
 
 // ── Deduplication ────────────────────────────────────────
 
-/** Returns true if this page was recently recorded (prevents remount duplicates). */
 const isDuplicate = (path: string): boolean => {
   try {
-    const key = "pv_last_recorded";
-    const raw = sessionStorage.getItem(key);
+    const raw = sessionStorage.getItem("pv_last_recorded");
     if (raw) {
       const { path: lastPath, ts } = JSON.parse(raw);
-      if (lastPath === path && Date.now() - ts < DEDUP_INTERVAL_MS) {
-        return true;
-      }
+      if (lastPath === path && Date.now() - ts < DEDUP_INTERVAL_MS) return true;
     }
   } catch { /* ignore */ }
   return false;
 };
 
-const markRecorded = (path: string) => {
+const markRecorded = (path: string, id: string) => {
   try {
-    sessionStorage.setItem("pv_last_recorded", JSON.stringify({ path, ts: Date.now() }));
+    sessionStorage.setItem("pv_last_recorded", JSON.stringify({ path, ts: Date.now(), id }));
   } catch { /* ignore */ }
+};
+
+// ── Direct REST insert (bypasses .select() RLS issue) ────
+
+const insertPageViewDirect = async (row: Record<string, unknown>): Promise<boolean> => {
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/page_views`;
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        "Prefer": "return=minimal",
+      },
+      body: JSON.stringify(row),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 };
 
 // ── Hook ─────────────────────────────────────────────────
@@ -108,70 +118,59 @@ export function usePageViewTracker() {
   const pageEnterTimeRef = useRef<number>(Date.now());
   const lastPageViewIdRef = useRef<string | null>(null);
 
-  const updateTimeOnPage = useCallback(async (pageViewId: string, timeOnPage: number) => {
-    try {
-      await supabase
-        .from("page_views")
-        .update({ time_on_page: timeOnPage })
-        .eq("id", pageViewId);
-    } catch (error) {
-      console.warn("Failed to update time on page:", error);
-    }
+  const updateTimeOnPage = useCallback((pageViewId: string, timeOnPage: number) => {
+    const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/page_views?id=eq.${pageViewId}`;
+    fetch(url, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        "Prefer": "return=minimal",
+      },
+      body: JSON.stringify({ time_on_page: timeOnPage }),
+      keepalive: true,
+    }).catch(() => {});
   }, []);
 
   const recordPageView = useCallback(async (pagePath: string): Promise<string | null> => {
-    // Dedup: skip if this exact page was recorded very recently
-    if (isDuplicate(pagePath)) {
-      return null;
-    }
+    if (isDuplicate(pagePath)) return null;
 
+    // Generate a UUID client-side so we can reference it for time_on_page updates
+    const id = crypto.randomUUID();
     const visitorId = getVisitorId();
     const sessionId = getSessionId();
     const userAgent = navigator.userAgent;
-    const deviceType = getDeviceType(userAgent);
     const geo = getCachedGeolocation();
-    const pageTitle = getPageTitle(pagePath);
 
-    try {
-      const { data, error } = await supabase
-        .from("page_views")
-        .insert({
-          visitor_id: visitorId,
-          session_id: sessionId,
-          page_path: pagePath,
-          page_title: pageTitle,
-          device_type: deviceType,
-          referrer: document.referrer || null,
-          city: geo?.city || null,
-          region: geo?.region || null,
-          country: geo?.country || null,
-          user_agent: userAgent,
-          time_on_page: 0,
-        })
-        .select("id")
-        .single();
+    const ok = await insertPageViewDirect({
+      id,
+      visitor_id: visitorId,
+      session_id: sessionId,
+      page_path: pagePath,
+      page_title: getPageTitle(pagePath),
+      device_type: getDeviceType(userAgent),
+      referrer: document.referrer || null,
+      city: geo?.city || null,
+      region: geo?.region || null,
+      country: geo?.country || null,
+      user_agent: userAgent,
+      time_on_page: 0,
+    });
 
-      if (error) {
-        console.warn("Failed to record page view:", error);
-        return null;
-      }
-
-      markRecorded(pagePath);
-      return data?.id || null;
-    } catch (error) {
-      console.warn("Failed to record page view:", error);
-      return null;
+    if (ok) {
+      markRecorded(pagePath, id);
+      return id;
     }
+    return null;
   }, []);
 
   useEffect(() => {
     const currentPath = location.pathname;
 
-    // Check if route should be excluded
     const isExcludedRoute = EXCLUDED_ROUTES.some(
       (route) => currentPath === route || currentPath.startsWith(`${route}/`)
     );
-
     if (isExcludedRoute) return;
 
     // Update time on previous page if navigating away
@@ -180,7 +179,6 @@ export function usePageViewTracker() {
       updateTimeOnPage(lastPageViewIdRef.current, timeOnPage);
     }
 
-    // Record new page view
     lastPageRef.current = currentPath;
     pageEnterTimeRef.current = Date.now();
 
@@ -188,28 +186,15 @@ export function usePageViewTracker() {
       if (id) lastPageViewIdRef.current = id;
     });
 
-    // Update time on page when user leaves the site
+    // Update time on page when user leaves
     const handleBeforeUnload = () => {
       if (lastPageViewIdRef.current) {
         const timeOnPage = Math.round((Date.now() - pageEnterTimeRef.current) / 1000);
-        const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/page_views?id=eq.${lastPageViewIdRef.current}`;
-        fetch(url, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-            Prefer: "return=minimal",
-          },
-          body: JSON.stringify({ time_on_page: timeOnPage }),
-          keepalive: true,
-        }).catch(() => {});
+        updateTimeOnPage(lastPageViewIdRef.current, timeOnPage);
       }
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [location.pathname, recordPageView, updateTimeOnPage]);
 }
