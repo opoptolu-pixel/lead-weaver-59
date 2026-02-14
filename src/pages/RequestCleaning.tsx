@@ -226,6 +226,9 @@ export default function RequestCleaning() {
           medium: leadSourceData.medium,
           campaign: leadSourceData.campaign,
           utmData: leadSourceData.utm_data,
+          // Fallback attribution data for in-app browsers
+          browserReferrer: document.referrer || null,
+          browserUserAgent: navigator.userAgent || null,
         },
       });
 

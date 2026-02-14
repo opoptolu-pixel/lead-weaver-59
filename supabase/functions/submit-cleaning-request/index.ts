@@ -73,6 +73,9 @@ interface CleaningRequest {
     referrer: string | null;
     captured_at: string | null;
   };
+  // Fallback attribution
+  browserReferrer?: string | null;
+  browserUserAgent?: string | null;
 }
 
 // Job Value Bands for Phase 2 Analytics (thresholds in pence)
@@ -408,8 +411,28 @@ serve(async (req) => {
       return pc.toUpperCase();
     };
 
-    // Determine lead source from UTM data or default to website
-    const leadSource = body.source || "website";
+    // Determine lead source - with fallback detection for in-app browsers
+    let leadSource = body.source || "direct";
+    
+    // If source is "direct", try to detect Facebook/Instagram from referrer or user agent
+    if (leadSource === "direct" || leadSource === "website") {
+      const ref = (body.browserReferrer || body.utmData?.referrer || "").toLowerCase();
+      const ua = (body.browserUserAgent || "").toLowerCase();
+      
+      // Check referrer for Facebook/Instagram domains
+      const isFacebookReferrer = ref.includes("facebook.com") || ref.includes("fb.com") || 
+                                  ref.includes("instagram.com") || ref.includes("l.instagram.com") ||
+                                  ref.includes("lm.facebook.com") || ref.includes("m.facebook.com");
+      
+      // Check user agent for Facebook/Instagram in-app browser
+      const isFacebookUA = ua.includes("fb_iab") || ua.includes("fbav/") || 
+                           ua.includes("instagram") || ua.includes("fban/");
+      
+      if (isFacebookReferrer || isFacebookUA) {
+        leadSource = ua.includes("instagram") ? "facebook_organic" : "facebook";
+        console.log(`[SUBMIT-CLEANING] Fallback attribution: detected ${leadSource} from ${isFacebookReferrer ? 'referrer' : 'user-agent'}`);
+      }
+    }
     
     // Build job notes: combine customer additional notes with job description and campaign info
     let jobNotes = "";
