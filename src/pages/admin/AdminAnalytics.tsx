@@ -1344,20 +1344,128 @@ export default function AdminAnalytics() {
                   <Download className="h-4 w-4 mr-2" />Export CSV
                 </Button>
               </div>
+
+              {/* Source Breakdown Over Time - Stacked Bar Chart */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-secondary" />
+                    Lead Sources Over Time
+                  </CardTitle>
+                  <CardDescription>Daily breakdown of leads by acquisition channel</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {(() => {
+                    const dateSourceMap = new Map<string, Record<string, number>>();
+                    const allSources = new Set<string>();
+                    
+                    allLeads.forEach(lead => {
+                      const date = new Date(lead.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+                      const source = (lead as any).source || 'Unknown';
+                      allSources.add(source);
+                      
+                      if (!dateSourceMap.has(date)) dateSourceMap.set(date, {});
+                      const dayData = dateSourceMap.get(date)!;
+                      dayData[source] = (dayData[source] || 0) + 1;
+                    });
+                    
+                    const sourceColors: Record<string, string> = {
+                      facebook: "hsl(220, 80%, 55%)",
+                      facebook_organic: "hsl(280, 65%, 60%)",
+                      facebook_ads: "hsl(200, 80%, 50%)",
+                      google_organic: "hsl(142, 76%, 36%)",
+                      google_ads: "hsl(30, 80%, 55%)",
+                      direct: "hsl(var(--muted-foreground))",
+                      referral: "hsl(340, 70%, 55%)",
+                      tiktok: "hsl(170, 80%, 45%)",
+                      organic: "hsl(100, 60%, 45%)",
+                    };
+                    
+                    const chartData = Array.from(dateSourceMap.entries())
+                      .map(([date, sources]) => ({ date, ...sources }))
+                      .reverse();
+                    
+                    const sourceList = Array.from(allSources);
+                    
+                    if (chartData.length === 0) {
+                      return <p className="text-center text-muted-foreground py-8">No lead data for this period</p>;
+                    }
+                    
+                    return (
+                      <div className="h-[350px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={chartData}>
+                            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                            <XAxis dataKey="date" className="text-xs" />
+                            <YAxis className="text-xs" allowDecimals={false} />
+                            <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }} />
+                            {sourceList.map((source, i) => (
+                              <Bar 
+                                key={source} 
+                                dataKey={source} 
+                                stackId="a"
+                                fill={sourceColors[source] || COLORS[i % COLORS.length]} 
+                                name={source.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                              />
+                            ))}
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    );
+                  })()}
+                </CardContent>
+              </Card>
+
+              {/* Source Summary Cards */}
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                {leadsBySource
+                  .sort((a, b) => b.leads - a.leads)
+                  .slice(0, 8)
+                  .map((src) => (
+                    <Card key={src.source}>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium capitalize">
+                          {src.source.replace(/_/g, ' ')}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-2xl font-bold">{src.leads}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="secondary">{src.purchased} purchased</Badge>
+                          {src.refunded > 0 && (
+                            <Badge variant="destructive">{src.refunded} refunded</Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {src.leads > 0 ? Math.round((src.purchased / src.leads) * 100) : 0}% purchase rate
+                        </p>
+                      </CardContent>
+                    </Card>
+                  ))}
+              </div>
+
               <div className="grid gap-6 md:grid-cols-2">
                 <Card>
                   <CardHeader><CardTitle>Leads by Source</CardTitle></CardHeader>
                   <CardContent>
                     <div className="h-[300px]">
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={leadsBySource}>
-                          <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                          <XAxis dataKey="source" className="text-xs" />
-                          <YAxis className="text-xs" />
+                        <PieChart>
+                          <Pie
+                            data={leadsBySource}
+                            dataKey="leads"
+                            nameKey="source"
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={100}
+                            label={({ source, leads }) => `${source} (${leads})`}
+                          >
+                            {leadsBySource.map((_, index) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
                           <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }} />
-                          <Bar dataKey="leads" fill="hsl(var(--primary))" name="Received" />
-                          <Bar dataKey="purchased" fill="hsl(var(--secondary))" name="Purchased" />
-                        </BarChart>
+                        </PieChart>
                       </ResponsiveContainer>
                     </div>
                   </CardContent>
