@@ -1,35 +1,28 @@
 
 
-## UTM Lead Source Breakdown on Acquisition Tab
+## Add "This Month" Date Preset and Make Businesses Page Ignore Date Filter
 
-The **Acquisition tab** already has lead source charts (stacked bar, pie chart, source cards). This is the natural place to add a detailed UTM breakdown since it's where all attribution data lives.
+### 1. Add "This Month" to the date range options
 
-### What will be added
+A new preset called "thismonth" will be added between "Last 30 days" and "Last Month" in the date picker. It will filter from the 1st of the current month through today.
 
-**1. UTM Campaign Breakdown Table**
-A new card below the existing source charts showing leads grouped by UTM campaign, medium, and source from the `utm_data` JSONB column. This will display:
-- Campaign name
-- Source / Medium
-- Total leads
-- Purchased count
-- Purchase rate
-- Refund count
+### 2. Make the Businesses page always show all-time data
 
-**2. UTM Source/Medium Summary Chart**
-A horizontal bar chart showing lead volume by source/medium combination (e.g., "facebook / cpc", "google / organic"), giving you a more granular view than the current top-level source field.
+The Businesses page currently filters by the global date range. It will be updated to always fetch all businesses regardless of the selected date range, so you always see the full directory.
 
-**3. Referrer Breakdown Table**
-A compact table showing the top referrer domains extracted from `utm_data.referrer`, so you can see which websites are driving traffic.
-
-### Data handling
-- The query will fetch `utm_data` alongside existing lead fields
-- For leads without `utm_data` (older leads), the display will fall back to the existing `source` field
-- All charts respect the global admin date filter
-
-### Technical details
+### Technical Details
 
 **Files to modify:**
-- `src/pages/admin/AdminAnalytics.tsx` — Add UTM breakdown section to the Acquisition tab content, extend the lead query to include `utm_data`, and add processing logic to aggregate by campaign/medium/referrer
 
-**No database changes needed** — the `utm_data` JSONB column already exists.
+1. **`src/contexts/AdminContext.tsx`**
+   - Add `"thismonth"` to the `DateRangePreset` type
+   - Add a `case "thismonth"` in the `getDateFilter` switch that sets `start = startOfMonth(now)` and `end = endOfDay(now)`
+
+2. **`src/components/admin/AdminTopBar.tsx`**
+   - Add `<SelectItem value="thismonth">This Month</SelectItem>` in both the mobile and desktop select dropdowns, positioned after "Last 30 days" and before "Last Month"
+
+3. **`src/pages/admin/AdminBusinesses.tsx`**
+   - Remove the `dateRange` dependency from both `useEffect` hooks (the data fetch and realtime subscription)
+   - Remove the date filtering (`.gte` / `.lte` on `created_at`) from `fetchBusinesses()` so it always fetches all businesses
+   - Remove the unused `getDateFilter` and `dateRange` imports from `useAdmin()`
 
