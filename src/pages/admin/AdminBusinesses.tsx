@@ -58,7 +58,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { useAdmin } from "@/contexts/AdminContext";
+import { useAdmin } from "@/contexts/AdminContext"; // used for admin check only
 import { usePagination } from "@/hooks/usePagination";
 import { PaginationControls } from "@/components/admin/PaginationControls";
 import { exportToCsv } from "@/lib/exportCsv";
@@ -132,7 +132,7 @@ const isOnboardingIncomplete = (b: Business) =>
   !b.business_name || !b.contact_name || !b.phone || !b.postcode;
 
 export default function AdminBusinesses() {
-  const { getDateFilter, dateRange } = useAdmin();
+  const _admin = useAdmin(); // keep provider connection but businesses always show all-time
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -189,7 +189,7 @@ export default function AdminBusinesses() {
 
   useEffect(() => {
     fetchBusinesses();
-  }, [dateRange]);
+  }, []);
 
   // Real-time subscription for live updates
   useEffect(() => {
@@ -212,16 +212,12 @@ export default function AdminBusinesses() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [dateRange]);
+  }, []);
 
   const fetchBusinesses = async () => {
-    const { start, end } = getDateFilter();
-    
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
-      .gte("created_at", start.toISOString())
-      .lte("created_at", end.toISOString())
       .order("created_at", { ascending: false });
 
     if (error) {

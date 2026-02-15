@@ -128,6 +128,7 @@ export default function AdminTopBar({ title, onMenuClick }: AdminTopBarProps) {
                   <SelectItem value="7d">Last 7 days</SelectItem>
                   <SelectItem value="14d">Last 14 days</SelectItem>
                   <SelectItem value="30d">Last 30 days</SelectItem>
+                  <SelectItem value="thismonth">This Month</SelectItem>
                   <SelectItem value="lastmonth">Last Month</SelectItem>
                   <SelectItem value="alltime">All time</SelectItem>
                   <SelectItem value="custom">Custom</SelectItem>
@@ -171,6 +172,7 @@ export default function AdminTopBar({ title, onMenuClick }: AdminTopBarProps) {
               <SelectItem value="7d">Last 7 days</SelectItem>
               <SelectItem value="14d">Last 14 days</SelectItem>
               <SelectItem value="30d">Last 30 days</SelectItem>
+              <SelectItem value="thismonth">This Month</SelectItem>
               <SelectItem value="lastmonth">Last Month</SelectItem>
               <SelectItem value="alltime">All time</SelectItem>
               <SelectItem value="custom">Custom</SelectItem>
