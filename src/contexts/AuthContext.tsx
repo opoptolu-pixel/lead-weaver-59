@@ -19,6 +19,9 @@ interface Profile {
   is_suspended: boolean | null;
   suspension_reason: string | null;
   risk_score: number | null;
+  is_closed: boolean | null;
+  closed_at: string | null;
+  closed_reason: string | null;
 }
 
 interface AuthContextType {
@@ -105,6 +108,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     
+    // Check if account is closed
+    if (!error && data.user) {
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("is_closed")
+        .eq("user_id", data.user.id)
+        .maybeSingle();
+      
+      if (profileData?.is_closed) {
+        await supabase.auth.signOut();
+        return { error: new Error("This account has been closed. Please contact support at hello@cleanda.co.uk if you wish to reopen it.") };
+      }
+    }
+
     // Update last_login and track login history on successful login
     if (!error && data.user) {
       const now = new Date().toISOString();
@@ -126,7 +143,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ipAddress = geoData.ip || null;
           city = geoData.city || null;
           country = geoData.country || null;
-          // Log accuracy info for debugging
           if (geoData.accuracy === 'low') {
             console.log("Geolocation note:", geoData.accuracy_note);
           }

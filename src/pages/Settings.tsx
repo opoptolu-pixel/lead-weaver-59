@@ -15,7 +15,20 @@ import {
   AlertCircle,
   Circle,
   ChevronRight,
+  XOctagon,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -218,6 +231,8 @@ export default function Settings() {
   const [whatsappOptin, setWhatsappOptin] = useState(false);
   const [emailPreferences, setEmailPreferences] = useState<EmailPreferences>(defaultEmailPreferences);
   const [saving, setSaving] = useState(false);
+  const [closingAccount, setClosingAccount] = useState(false);
+  const [closeReason, setCloseReason] = useState("");
   const [testingWhatsapp, setTestingWhatsapp] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -609,19 +624,94 @@ export default function Settings() {
             </div>
           </div>
 
-          {/* Danger zone */}
+          {/* Danger zone - Close Account */}
           <div className="mt-8 p-6 rounded-2xl border border-destructive/30 bg-destructive/5">
-            <h2 className="font-heading text-lg font-semibold text-foreground mb-2">
-              Danger Zone
+            <h2 className="font-heading text-lg font-semibold text-foreground mb-2 flex items-center gap-2">
+              <XOctagon className="w-5 h-5 text-destructive" />
+              Close Account
             </h2>
             <p className="text-muted-foreground text-sm mb-4">
-              Need to delete your account? Contact our support team and we'll help you.
+              Closing your account will prevent you from logging in, purchasing leads, or receiving any communications from us. Your data will be preserved and the account can be reopened by contacting support.
             </p>
-            <a href="mailto:hello@cleanda.co.uk">
-              <Button variant="outline" size="sm">
-                Contact Support
-              </Button>
-            </a>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm">
+                  Close My Account
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you sure you want to close your account?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will immediately log you out and prevent future logins. You will no longer receive any emails, SMS notifications, or lead alerts. Your data will be preserved and you can contact support to reopen your account.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="my-4">
+                  <label className="text-sm font-medium text-foreground mb-2 block">
+                    Reason for closing (optional)
+                  </label>
+                  <Textarea
+                    placeholder="Let us know why you're leaving..."
+                    value={closeReason}
+                    onChange={(e) => setCloseReason(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    disabled={closingAccount}
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      if (!user) return;
+                      setClosingAccount(true);
+                      try {
+                        const { error } = await supabase
+                          .from("profiles")
+                          .update({
+                            is_closed: true,
+                            closed_at: new Date().toISOString(),
+                            closed_reason: closeReason || null,
+                          })
+                          .eq("user_id", user.id);
+
+                        if (error) throw error;
+
+                        // Log the closure
+                        await supabase.from("activity_logs").insert({
+                          user_id: user.id,
+                          action: "account_closed",
+                          entity_type: "business",
+                          entity_id: user.id,
+                          details: {
+                            reason: closeReason || "No reason provided",
+                            closed_by: "self",
+                          },
+                        });
+
+                        toast.success("Your account has been closed. You will be logged out.");
+                        
+                        // Sign out after a brief delay
+                        setTimeout(async () => {
+                          await supabase.auth.signOut();
+                          navigate("/");
+                        }, 1500);
+                      } catch (error) {
+                        console.error("Error closing account:", error);
+                        toast.error("Failed to close account. Please try again.");
+                        setClosingAccount(false);
+                      }
+                    }}
+                  >
+                    {closingAccount ? (
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    ) : null}
+                    Yes, Close My Account
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
       </main>

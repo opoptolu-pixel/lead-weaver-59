@@ -86,6 +86,9 @@ interface Business {
   created_at: string;
   last_login: string | null;
   email?: string | null;
+  is_closed: boolean | null;
+  closed_at: string | null;
+  closed_reason: string | null;
 }
 
 interface PurchaseHistory {
@@ -123,7 +126,7 @@ interface LoginHistoryEntry {
   city: string | null;
 }
 
-type StatusFilter = "all" | "active" | "suspended" | "unverified" | "incomplete";
+type StatusFilter = "all" | "active" | "suspended" | "unverified" | "incomplete" | "closed";
 
 const isOnboardingIncomplete = (b: Business) =>
   !b.business_name || !b.contact_name || !b.phone || !b.postcode;
@@ -650,15 +653,18 @@ export default function AdminBusinesses() {
   const statusFilteredBusinesses = businesses.filter((b) => {
     switch (statusFilter) {
       case "active":
-        return !b.is_suspended && b.is_verified;
+        return !b.is_suspended && b.is_verified && !b.is_closed;
       case "suspended":
-        return b.is_suspended;
+        return b.is_suspended && !b.is_closed;
       case "unverified":
-        return !b.is_verified && !b.is_suspended;
+        return !b.is_verified && !b.is_suspended && !b.is_closed;
       case "incomplete":
-        return isOnboardingIncomplete(b);
+        return isOnboardingIncomplete(b) && !b.is_closed;
+      case "closed":
+        return b.is_closed;
       default:
-        return true;
+        // "all" excludes closed accounts
+        return !b.is_closed;
     }
   });
 
@@ -692,6 +698,9 @@ export default function AdminBusinesses() {
   };
 
   const getVerificationBadge = (business: Business) => {
+    if (business.is_closed) {
+      return <Badge className="bg-muted text-muted-foreground">Closed</Badge>;
+    }
     if (business.is_suspended) {
       return <Badge variant="destructive">Suspended</Badge>;
     }
@@ -737,12 +746,13 @@ export default function AdminBusinesses() {
 
   // Calculate stats
   const stats = {
-    total: businesses.length,
-    verified: businesses.filter((b) => b.is_verified).length,
-    unverified: businesses.filter((b) => !b.is_verified && !b.is_suspended).length,
-    suspended: businesses.filter((b) => b.is_suspended).length,
-    totalCredits: businesses.reduce((sum, b) => sum + (b.credits || 0), 0),
-    incomplete: businesses.filter(isOnboardingIncomplete).length,
+    total: businesses.filter(b => !b.is_closed).length,
+    verified: businesses.filter((b) => b.is_verified && !b.is_closed).length,
+    unverified: businesses.filter((b) => !b.is_verified && !b.is_suspended && !b.is_closed).length,
+    suspended: businesses.filter((b) => b.is_suspended && !b.is_closed).length,
+    totalCredits: businesses.filter(b => !b.is_closed).reduce((sum, b) => sum + (b.credits || 0), 0),
+    incomplete: businesses.filter(b => isOnboardingIncomplete(b) && !b.is_closed).length,
+    closed: businesses.filter(b => b.is_closed).length,
   };
 
   return (
@@ -805,19 +815,22 @@ export default function AdminBusinesses() {
         }}>
           <TabsList>
             <TabsTrigger value="all">
-              All ({businesses.length})
+              All ({stats.total})
             </TabsTrigger>
             <TabsTrigger value="active">
-              Active ({businesses.filter(b => !b.is_suspended && b.is_verified).length})
+              Active ({stats.verified})
             </TabsTrigger>
             <TabsTrigger value="unverified">
-              Unverified ({businesses.filter(b => !b.is_verified && !b.is_suspended).length})
+              Unverified ({stats.unverified})
             </TabsTrigger>
             <TabsTrigger value="incomplete" className="text-orange-500">
               Incomplete ({stats.incomplete})
             </TabsTrigger>
             <TabsTrigger value="suspended" className="text-destructive">
-              Suspended ({businesses.filter(b => b.is_suspended).length})
+              Suspended ({stats.suspended})
+            </TabsTrigger>
+            <TabsTrigger value="closed" className="text-muted-foreground">
+              Closed ({stats.closed})
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -939,22 +952,81 @@ export default function AdminBusinesses() {
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuSeparator />
-                            {business.is_suspended ? (
+                            {business.is_closed ? (
                               <DropdownMenuItem
-                                onClick={() => handleUnsuspend(business)}
+                                onClick={async () => {
+                                  const { error } = await supabase
+                                    .from("profiles")
+                                    .update({ is_closed: false, closed_at: null, closed_reason: null })
+                                    .eq("id", business.id);
+                                  if (error) {
+                                    toast.error("Failed to reopen account");
+                                    return;
+                                  }
+                                  await supabase.from("activity_logs").insert({
+                                    user_id: business.user_id,
+                                    action: "account_reopened",
+                                    entity_type: "business",
+                                    entity_id: business.user_id,
+                                    details: { reopened_by: "admin" },
+                                  });
+                                  toast.success("Account reopened");
+                                  fetchBusinesses();
+                                }}
                                 className="text-green-500"
                               >
                                 <CheckCircle className="w-4 h-4 mr-2" />
-                                Unsuspend
+                                Reopen Account
                               </DropdownMenuItem>
                             ) : (
-                              <DropdownMenuItem
-                                onClick={() => openSuspendDialog(business)}
-                                className="text-destructive"
-                              >
-                                <Ban className="w-4 h-4 mr-2" />
-                                Suspend
-                              </DropdownMenuItem>
+                              <>
+                                {business.is_suspended ? (
+                                  <DropdownMenuItem
+                                    onClick={() => handleUnsuspend(business)}
+                                    className="text-green-500"
+                                  >
+                                    <CheckCircle className="w-4 h-4 mr-2" />
+                                    Unsuspend
+                                  </DropdownMenuItem>
+                                ) : (
+                                  <DropdownMenuItem
+                                    onClick={() => openSuspendDialog(business)}
+                                    className="text-destructive"
+                                  >
+                                    <Ban className="w-4 h-4 mr-2" />
+                                    Suspend
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem
+                                  onClick={async () => {
+                                    const { error } = await supabase
+                                      .from("profiles")
+                                      .update({ 
+                                        is_closed: true, 
+                                        closed_at: new Date().toISOString(), 
+                                        closed_reason: "Closed by admin" 
+                                      })
+                                      .eq("id", business.id);
+                                    if (error) {
+                                      toast.error("Failed to close account");
+                                      return;
+                                    }
+                                    await supabase.from("activity_logs").insert({
+                                      user_id: business.user_id,
+                                      action: "account_closed",
+                                      entity_type: "business",
+                                      entity_id: business.user_id,
+                                      details: { closed_by: "admin" },
+                                    });
+                                    toast.success("Account closed");
+                                    fetchBusinesses();
+                                  }}
+                                  className="text-muted-foreground"
+                                >
+                                  <XCircle className="w-4 h-4 mr-2" />
+                                  Close Account
+                                </DropdownMenuItem>
+                              </>
                             )}
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -1012,8 +1084,24 @@ export default function AdminBusinesses() {
               </TabsList>
 
               <TabsContent value="details" className="space-y-4 mt-4">
+                {/* Closed Account Warning */}
+                {selectedBusiness.is_closed && (
+                  <div className="bg-muted border border-border rounded-lg p-4 flex items-start gap-3">
+                    <XCircle className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-foreground">Account Closed</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {selectedBusiness.closed_reason || "No reason provided"}
+                        {selectedBusiness.closed_at && (
+                          <> — Closed on {format(new Date(selectedBusiness.closed_at), "d MMM yyyy HH:mm")}</>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Suspended Warning */}
-                {selectedBusiness.is_suspended && (
+                {selectedBusiness.is_suspended && !selectedBusiness.is_closed && (
                   <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 flex items-start gap-3">
                     <AlertTriangle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
                     <div>
