@@ -1,57 +1,35 @@
 
 
-## Google Ads / GA4 Event Audit and Fix
+## UTM Lead Source Breakdown on Acquisition Tab
 
-### Current Status
+The **Acquisition tab** already has lead source charts (stacked bar, pie chart, source cards). This is the natural place to add a detailed UTM breakdown since it's where all attribution data lives.
 
-Google Analytics 4 (GA4) **is installed** in `index.html` with measurement ID `G-DECLEHV54G`. The core gtag script loads correctly and a utility file (`src/lib/analytics.ts`) provides helper functions for firing events.
+### What will be added
 
-### Event Comparison: Meta Pixel vs GA4
+**1. UTM Campaign Breakdown Table**
+A new card below the existing source charts showing leads grouped by UTM campaign, medium, and source from the `utm_data` JSONB column. This will display:
+- Campaign name
+- Source / Medium
+- Total leads
+- Purchased count
+- Purchase rate
+- Refund count
 
-| Event | Meta Pixel | GA4 | Status |
-|-------|-----------|-----|--------|
-| PageView (public pages) | Tracked | Tracked | OK |
-| Lead (cleaning request submitted) | Tracked | Tracked | OK |
-| CompleteRegistration (cleaner signup) | Tracked | Tracked | OK |
-| InitiateCheckout (unlock/credit click) | Tracked in 3 places | **Not tracked** | MISSING |
-| Purchase - Lead Unlock | Tracked | Tracked | OK |
-| Purchase - Credit Pack | Tracked | Tracked | OK |
-| Enquiry (contact form) | Not tracked | Tracked | Minor gap (FB side) |
+**2. UTM Source/Medium Summary Chart**
+A horizontal bar chart showing lead volume by source/medium combination (e.g., "facebook / cpc", "google / organic"), giving you a more granular view than the current top-level source field.
 
-### What Needs Fixing
+**3. Referrer Breakdown Table**
+A compact table showing the top referrer domains extracted from `utm_data.referrer`, so you can see which websites are driving traffic.
 
-**1. Add `InitiateCheckout` GA4 event** -- This is the only significant missing event. Meta Pixel fires `InitiateCheckout` in three places when users click to unlock a lead or buy credits, but GA4 has no equivalent.
+### Data handling
+- The query will fetch `utm_data` alongside existing lead fields
+- For leads without `utm_data` (older leads), the display will fall back to the existing `source` field
+- All charts respect the global admin date filter
 
-I will:
-- Add a `trackInitiateCheckout` function to `src/lib/analytics.ts`
-- Call it alongside the existing `fbq('track', 'InitiateCheckout')` calls in:
-  - `src/pages/Leads.tsx` (lead unlock button)
-  - `src/pages/Dashboard.tsx` (credit purchase button)
-  - `src/components/Pricing.tsx` (pricing CTA buttons)
+### Technical details
 
-**2. Add `Enquiry` Meta Pixel event** (minor) -- GA4 tracks contact form submissions as enquiries, but Meta Pixel does not. I will add `fbq('track', 'Contact')` alongside the existing `trackEnquiry()` calls in:
-  - `src/pages/Contact.tsx`
-  - `src/components/RegistrationForm.tsx`
+**Files to modify:**
+- `src/pages/admin/AdminAnalytics.tsx` — Add UTM breakdown section to the Acquisition tab content, extend the lead query to include `utm_data`, and add processing logic to aggregate by campaign/medium/referrer
 
-### Technical Details
-
-New function in `analytics.ts`:
-```typescript
-export const trackInitiateCheckout = (params: {
-  contentName: string;
-  contentCategory: string;
-  value?: number;
-}) => {
-  trackEvent('begin_checkout', {
-    currency: 'GBP',
-    value: params.value || 0,
-    items: [{
-      item_name: params.contentName,
-      item_category: params.contentCategory,
-    }],
-  });
-};
-```
-
-This uses `begin_checkout` which is Google's recommended event name for checkout initiation, making it available as a conversion in Google Ads without custom event setup.
+**No database changes needed** — the `utm_data` JSONB column already exists.
 
