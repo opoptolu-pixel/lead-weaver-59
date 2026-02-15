@@ -84,27 +84,35 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // For onboarding sequences, check if user has completed their profile
+        // For onboarding sequences, check profile completion and closed status
         if (sequence.name === "Incomplete Onboarding Follow-up") {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("business_name, phone, postcode")
-            .eq("user_id", enrollment.recipient_email) // Check by email via auth
-            .maybeSingle();
-
-          // Try to find by email in auth.users -> profiles
+          // Find the user by email
           const { data: authUsers } = await supabase.auth.admin.listUsers();
           const matchingUser = authUsers?.users?.find(u => u.email === enrollment.recipient_email);
           
           if (matchingUser) {
             const { data: userProfile } = await supabase
               .from("profiles")
-              .select("business_name, phone, postcode")
+              .select("business_name, phone, postcode, is_closed")
               .eq("user_id", matchingUser.id)
               .maybeSingle();
 
+            // Skip closed accounts
+            if (userProfile?.is_closed) {
+              await supabase
+                .from("email_sequence_enrollments")
+                .update({
+                  status: "completed",
+                  completed_at: new Date().toISOString(),
+                  next_send_at: null,
+                })
+                .eq("id", enrollment.id);
+              logStep("Account closed, stopping sequence", { email: enrollment.recipient_email });
+              continue;
+            }
+
+            // Skip if user completed onboarding
             if (userProfile?.business_name && userProfile?.phone && userProfile?.postcode) {
-              // User completed onboarding - cancel the sequence
               await supabase
                 .from("email_sequence_enrollments")
                 .update({
