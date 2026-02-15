@@ -3,7 +3,7 @@ import { useAuth } from "./AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { startOfDay, endOfDay, subDays, subMonths, startOfMonth } from "date-fns";
 
-export type DateRangePreset = "today" | "yesterday" | "3d" | "7d" | "14d" | "30d" | "lastmonth" | "alltime" | "custom";
+export type DateRangePreset = "today" | "yesterday" | "3d" | "7d" | "14d" | "30d" | "thismonth" | "lastmonth" | "alltime" | "custom";
 
 interface AdminContextType {
   isAdmin: boolean;
@@ -106,6 +106,9 @@ export function AdminProvider({ children }: { children: ReactNode }) {
           break;
         case "30d":
           start = startOfDay(subDays(now, 30));
+          break;
+        case "thismonth":
+          start = startOfMonth(now);
           break;
         case "lastmonth":
           const lastMonth = subMonths(now, 1);
