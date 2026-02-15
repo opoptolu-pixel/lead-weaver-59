@@ -162,11 +162,28 @@ serve(async (req) => {
 
     const origin = req.headers.get("origin") || "https://cleanda.co.uk";
 
+    // Look up existing Stripe customer by email (so saved cards are pre-filled)
+    let stripeCustomerId: string | undefined;
+    let userEmail: string | undefined;
+    if (userId) {
+      const { data: { user: authUser } } = await supabaseClient.auth.admin.getUserById(userId);
+      userEmail = authUser?.email ?? undefined;
+      if (userEmail) {
+        const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
+        if (customers.data.length > 0) {
+          stripeCustomerId = customers.data[0].id;
+          logStep("Existing Stripe customer found", { stripeCustomerId });
+        }
+      }
+    }
+
     // Create a Stripe Checkout session for the lead unlock
     // Price ID for £20 lead unlock
     const LEAD_UNLOCK_PRICE_ID = "price_1ShICWHaP2wEKuykqMEyAcKq";
 
     const session = await stripe.checkout.sessions.create({
+      customer: stripeCustomerId,
+      customer_email: stripeCustomerId ? undefined : userEmail,
       line_items: [
         {
           price: LEAD_UNLOCK_PRICE_ID,
@@ -181,8 +198,6 @@ serve(async (req) => {
         postcode: lead.postcode,
         job_type: lead.job_type,
       },
-      // Allow customer to enter their email - this will be used to create their account
-      customer_creation: "always",
       payment_intent_data: {
         metadata: {
           lead_id: leadId,
