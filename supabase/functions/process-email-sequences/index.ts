@@ -75,13 +75,48 @@ Deno.serve(async (req) => {
         // Check the parent sequence is still active
         const { data: sequence } = await supabase
           .from("email_sequences")
-          .select("status")
+          .select("status, name")
           .eq("id", enrollment.sequence_id)
           .maybeSingle();
 
         if (!sequence || sequence.status !== "active") {
           logStep("Sequence not active, skipping", { sequenceId: enrollment.sequence_id });
           continue;
+        }
+
+        // For onboarding sequences, check if user has completed their profile
+        if (sequence.name === "Incomplete Onboarding Follow-up") {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("business_name, phone, postcode")
+            .eq("user_id", enrollment.recipient_email) // Check by email via auth
+            .maybeSingle();
+
+          // Try to find by email in auth.users -> profiles
+          const { data: authUsers } = await supabase.auth.admin.listUsers();
+          const matchingUser = authUsers?.users?.find(u => u.email === enrollment.recipient_email);
+          
+          if (matchingUser) {
+            const { data: userProfile } = await supabase
+              .from("profiles")
+              .select("business_name, phone, postcode")
+              .eq("user_id", matchingUser.id)
+              .maybeSingle();
+
+            if (userProfile?.business_name && userProfile?.phone && userProfile?.postcode) {
+              // User completed onboarding - cancel the sequence
+              await supabase
+                .from("email_sequence_enrollments")
+                .update({
+                  status: "completed",
+                  completed_at: new Date().toISOString(),
+                  next_send_at: null,
+                })
+                .eq("id", enrollment.id);
+              logStep("User completed onboarding, cancelling sequence", { email: enrollment.recipient_email });
+              continue;
+            }
+          }
         }
 
         // Replace variables
@@ -91,6 +126,7 @@ Deno.serve(async (req) => {
           .replace(/\{\{customer_name\}\}/g, enrollment.recipient_name || "there")
           .replace(/\{\{business_name\}\}/g, enrollment.recipient_name || "Business")
           .replace(/\{\{current_year\}\}/g, currentYear)
+          .replace(/\{\{onboarding_url\}\}/g, "https://cleanda.co.uk/onboarding")
           .replace(/\{\{unsubscribe_url\}\}/g, `${supabaseUrl}/functions/v1/unsubscribe?email=${encodeURIComponent(enrollment.recipient_email)}`);
 
         let subject = step.subject
