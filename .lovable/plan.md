@@ -1,28 +1,20 @@
 
 
-## Add "This Month" Date Preset and Make Businesses Page Ignore Date Filter
+## Fix: "Failed to open payment management" on Billing Page
 
-### 1. Add "This Month" to the date range options
+### Root Cause
 
-A new preset called "thismonth" will be added between "Last 30 days" and "Last Month" in the date picker. It will filter from the 1st of the current month through today.
+Both the `customer-portal` and `get-payment-methods` edge functions are crashing on startup with `ReferenceError: serve is not defined`. They call `serve()` but never import it.
 
-### 2. Make the Businesses page always show all-time data
+### Fix
 
-The Businesses page currently filters by the global date range. It will be updated to always fetch all businesses regardless of the selected date range, so you always see the full directory.
+Add the missing import to both files:
 
-### Technical Details
+**1. `supabase/functions/customer-portal/index.ts`**
+- Add `import { serve } from "https://deno.land/std@0.190.0/http/server.ts";` at the top
 
-**Files to modify:**
+**2. `supabase/functions/get-payment-methods/index.ts`**
+- Add `import { serve } from "https://deno.land/std@0.190.0/http/server.ts";` at the top
 
-1. **`src/contexts/AdminContext.tsx`**
-   - Add `"thismonth"` to the `DateRangePreset` type
-   - Add a `case "thismonth"` in the `getDateFilter` switch that sets `start = startOfMonth(now)` and `end = endOfDay(now)`
-
-2. **`src/components/admin/AdminTopBar.tsx`**
-   - Add `<SelectItem value="thismonth">This Month</SelectItem>` in both the mobile and desktop select dropdowns, positioned after "Last 30 days" and before "Last Month"
-
-3. **`src/pages/admin/AdminBusinesses.tsx`**
-   - Remove the `dateRange` dependency from both `useEffect` hooks (the data fetch and realtime subscription)
-   - Remove the date filtering (`.gte` / `.lte` on `created_at`) from `fetchBusinesses()` so it always fetches all businesses
-   - Remove the unused `getDateFilter` and `dateRange` imports from `useAdmin()`
+No other changes are needed. Once deployed, both the "Manage Payment Methods" button and the saved cards section will work correctly.
 
