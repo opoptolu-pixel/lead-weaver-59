@@ -173,7 +173,8 @@ serve(async (req) => {
         .select("*")
         .eq("whatsapp_optin", true)
         .not("phone", "is", null)
-        .not("postcode", "is", null);
+        .not("postcode", "is", null)
+        .or("is_closed.is.null,is_closed.eq.false");
 
       if (profilesError) {
         throw new Error(`Error fetching profiles: ${profilesError.message}`);
@@ -260,8 +261,8 @@ serve(async (req) => {
         throw new Error(`Profile not found: ${profileError?.message}`);
       }
 
-      if (!profile.phone || !profile.whatsapp_optin) {
-        logStep("User not opted in or no phone", { userId });
+      if (!profile.phone || !profile.whatsapp_optin || profile.is_closed) {
+        logStep("User not opted in, no phone, or account closed", { userId });
         return new Response(JSON.stringify({ success: true, skipped: true }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });

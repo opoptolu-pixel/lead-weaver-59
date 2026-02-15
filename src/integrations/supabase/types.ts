@@ -991,11 +991,14 @@ export type Database = {
         Row: {
           address_verified: boolean
           business_name: string | null
+          closed_at: string | null
+          closed_reason: string | null
           contact_name: string | null
           created_at: string
           credits: number
           granted_credits: number
           id: string
+          is_closed: boolean | null
           is_suspended: boolean | null
           is_verified: boolean
           last_login: string | null
@@ -1013,11 +1016,14 @@ export type Database = {
         Insert: {
           address_verified?: boolean
           business_name?: string | null
+          closed_at?: string | null
+          closed_reason?: string | null
           contact_name?: string | null
           created_at?: string
           credits?: number
           granted_credits?: number
           id?: string
+          is_closed?: boolean | null
           is_suspended?: boolean | null
           is_verified?: boolean
           last_login?: string | null
@@ -1035,11 +1041,14 @@ export type Database = {
         Update: {
           address_verified?: boolean
           business_name?: string | null
+          closed_at?: string | null
+          closed_reason?: string | null
           contact_name?: string | null
           created_at?: string
           credits?: number
           granted_credits?: number
           id?: string
+          is_closed?: boolean | null
           is_suspended?: boolean | null
           is_verified?: boolean
           last_login?: string | null
