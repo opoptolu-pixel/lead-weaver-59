@@ -121,6 +121,28 @@ interface LeadDetail {
   job_status?: string;
   booked_date?: string;
   lost_reason?: string;
+  source?: string;
+  utm_data?: any;
+}
+
+interface UtmCampaignRow {
+  campaign: string;
+  source: string;
+  medium: string;
+  leads: number;
+  purchased: number;
+  purchaseRate: number;
+  refunded: number;
+}
+
+interface UtmSourceMediumRow {
+  label: string;
+  leads: number;
+}
+
+interface ReferrerRow {
+  domain: string;
+  leads: number;
 }
 
 interface BuyerDetail {
@@ -184,6 +206,9 @@ export default function AdminAnalytics() {
   const [allLeads, setAllLeads] = useState<LeadDetail[]>([]);
   const [allBuyers, setAllBuyers] = useState<BuyerDetail[]>([]);
   const [upcomingBookings, setUpcomingBookings] = useState<any[]>([]);
+  const [utmCampaigns, setUtmCampaigns] = useState<UtmCampaignRow[]>([]);
+  const [utmSourceMediums, setUtmSourceMediums] = useState<UtmSourceMediumRow[]>([]);
+  const [utmReferrers, setUtmReferrers] = useState<ReferrerRow[]>([]);
   
   // Dialog states
   const [selectedCity, setSelectedCity] = useState<CityStats | null>(null);
@@ -352,7 +377,7 @@ export default function AdminAnalytics() {
     // Fetch leads with more details
     const { data: leads } = await supabase
       .from("leads")
-      .select("id, source, postcode, is_unlocked, unlocked_by, refunded_at, created_at, unlocked_at, lead_status, job_type, display_value, credit_type, job_status, customer_name, customer_phone, customer_email, booked_date, lost_reason")
+      .select("id, source, postcode, is_unlocked, unlocked_by, refunded_at, created_at, unlocked_at, lead_status, job_type, display_value, credit_type, job_status, customer_name, customer_phone, customer_email, booked_date, lost_reason, utm_data")
       .gte("created_at", startISO)
       .lte("created_at", endISO);
 
@@ -370,6 +395,70 @@ export default function AdminAnalytics() {
         if (lead.refunded_at) stats.refunded++;
       });
       setLeadsBySource(Array.from(sourceMap.entries()).map(([source, data]) => ({ source, ...data })));
+
+      // UTM Campaign breakdown
+      const campaignMap = new Map<string, { source: string; medium: string; leads: number; purchased: number; refunded: number }>();
+      const sourceMediumMap = new Map<string, number>();
+      const referrerMap = new Map<string, number>();
+
+      leads.forEach((lead) => {
+        const utm = lead.utm_data as any;
+        if (utm && typeof utm === 'object') {
+          // Campaign breakdown
+          const campaign = utm.utm_campaign || '(no campaign)';
+          const utmSource = utm.utm_source || utm.detected_source || lead.source || '(direct)';
+          const utmMedium = utm.utm_medium || '(none)';
+          const key = `${campaign}||${utmSource}||${utmMedium}`;
+          
+          if (!campaignMap.has(key)) {
+            campaignMap.set(key, { source: utmSource, medium: utmMedium, leads: 0, purchased: 0, refunded: 0 });
+          }
+          const cs = campaignMap.get(key)!;
+          cs.leads++;
+          if (lead.is_unlocked) cs.purchased++;
+          if (lead.refunded_at) cs.refunded++;
+
+          // Source/Medium combo
+          const smLabel = `${utmSource} / ${utmMedium}`;
+          sourceMediumMap.set(smLabel, (sourceMediumMap.get(smLabel) || 0) + 1);
+
+          // Referrer domain
+          if (utm.referrer) {
+            try {
+              const domain = new URL(utm.referrer).hostname.replace('www.', '');
+              referrerMap.set(domain, (referrerMap.get(domain) || 0) + 1);
+            } catch {}
+          }
+        }
+      });
+
+      setUtmCampaigns(
+        Array.from(campaignMap.entries())
+          .map(([key, data]) => ({
+            campaign: key.split('||')[0],
+            source: data.source,
+            medium: data.medium,
+            leads: data.leads,
+            purchased: data.purchased,
+            purchaseRate: data.leads > 0 ? Math.round((data.purchased / data.leads) * 100) : 0,
+            refunded: data.refunded,
+          }))
+          .sort((a, b) => b.leads - a.leads)
+      );
+
+      setUtmSourceMediums(
+        Array.from(sourceMediumMap.entries())
+          .map(([label, leads]) => ({ label, leads }))
+          .sort((a, b) => b.leads - a.leads)
+          .slice(0, 15)
+      );
+
+      setUtmReferrers(
+        Array.from(referrerMap.entries())
+          .map(([domain, leads]) => ({ domain, leads }))
+          .sort((a, b) => b.leads - a.leads)
+          .slice(0, 10)
+      );
 
       // Top postcodes
       const postcodeMap = new Map<string, { leads: number; purchased: number }>();
@@ -1498,6 +1587,110 @@ export default function AdminAnalytics() {
                   </CardContent>
                 </Card>
               </div>
+
+              {/* UTM Source/Medium Chart */}
+              {utmSourceMediums.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Globe2 className="w-5 h-5 text-secondary" />
+                      UTM Source / Medium Breakdown
+                    </CardTitle>
+                    <CardDescription>Lead volume by source/medium combination from UTM data</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[320px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={utmSourceMediums} layout="vertical" margin={{ left: 120 }}>
+                          <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                          <XAxis type="number" allowDecimals={false} />
+                          <YAxis type="category" dataKey="label" width={110} className="text-xs" />
+                          <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }} />
+                          <Bar dataKey="leads" fill="hsl(var(--secondary))" radius={[0, 4, 4, 0]} name="Leads" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* UTM Campaign Breakdown Table */}
+              {utmCampaigns.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Megaphone className="w-5 h-5 text-secondary" />
+                      UTM Campaign Breakdown
+                    </CardTitle>
+                    <CardDescription>Leads grouped by UTM campaign, source, and medium</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="max-h-96 overflow-y-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Campaign</TableHead>
+                            <TableHead>Source / Medium</TableHead>
+                            <TableHead className="text-right">Leads</TableHead>
+                            <TableHead className="text-right">Purchased</TableHead>
+                            <TableHead className="text-right">Rate</TableHead>
+                            <TableHead className="text-right">Refunds</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {utmCampaigns.map((row, idx) => (
+                            <TableRow key={idx}>
+                              <TableCell className="font-medium max-w-[200px] truncate">{row.campaign}</TableCell>
+                              <TableCell className="text-muted-foreground text-sm">{row.source} / {row.medium}</TableCell>
+                              <TableCell className="text-right font-medium">{row.leads}</TableCell>
+                              <TableCell className="text-right">{row.purchased}</TableCell>
+                              <TableCell className="text-right">
+                                <Badge variant={row.purchaseRate >= 30 ? "default" : "secondary"}>{row.purchaseRate}%</Badge>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {row.refunded > 0 ? <Badge variant="destructive">{row.refunded}</Badge> : <span className="text-muted-foreground">0</span>}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Referrer Breakdown Table */}
+              {utmReferrers.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <ArrowUpRight className="w-5 h-5 text-secondary" />
+                      Top Referrer Domains
+                    </CardTitle>
+                    <CardDescription>Websites driving traffic, extracted from referrer headers</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Domain</TableHead>
+                          <TableHead className="text-right">Leads</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {utmReferrers.map((row, idx) => (
+                          <TableRow key={idx}>
+                            <TableCell className="font-medium">{row.domain}</TableCell>
+                            <TableCell className="text-right">
+                              <Badge variant="secondary">{row.leads}</Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
 
             {/* MARKETPLACE TAB */}
