@@ -411,10 +411,10 @@ serve(async (req) => {
       return pc.toUpperCase();
     };
 
-    // Determine lead source - with fallback detection for in-app browsers
+    // Determine lead source - with fallback detection for in-app browsers and organic search
     let leadSource = body.source || "direct";
     
-    // If source is "direct", try to detect Facebook/Instagram from referrer or user agent
+    // If source is "direct" or "website", try to detect from referrer or user agent
     if (leadSource === "direct" || leadSource === "website") {
       const ref = (body.browserReferrer || body.utmData?.referrer || "").toLowerCase();
       const ua = (body.browserUserAgent || "").toLowerCase();
@@ -428,9 +428,44 @@ serve(async (req) => {
       const isFacebookUA = ua.includes("fb_iab") || ua.includes("fbav/") || 
                            ua.includes("instagram") || ua.includes("fban/");
       
+      // Check referrer for Google organic search
+      const isGoogleOrganic = ref.includes("google.com") || ref.includes("google.co.uk");
+      
+      // Check referrer for other search engines
+      const isBingOrganic = ref.includes("bing.com");
+      const isYahooOrganic = ref.includes("yahoo.com") || ref.includes("yahoo.co.uk");
+      const isDuckDuckGo = ref.includes("duckduckgo.com");
+      
+      // Check for TikTok
+      const isTikTok = ref.includes("tiktok.com") || ua.includes("tiktok") || ua.includes("bytedance");
+      
       if (isFacebookReferrer || isFacebookUA) {
         leadSource = ua.includes("instagram") ? "facebook_organic" : "facebook";
-        console.log(`[SUBMIT-CLEANING] Fallback attribution: detected ${leadSource} from ${isFacebookReferrer ? 'referrer' : 'user-agent'}`);
+        console.log(`[SUBMIT-CLEANING] Fallback attribution: detected ${leadSource}`);
+      } else if (isGoogleOrganic) {
+        leadSource = "google_organic";
+        console.log(`[SUBMIT-CLEANING] Fallback attribution: detected google_organic from referrer`);
+      } else if (isBingOrganic) {
+        leadSource = "bing_organic";
+        console.log(`[SUBMIT-CLEANING] Fallback attribution: detected bing_organic`);
+      } else if (isYahooOrganic) {
+        leadSource = "yahoo_organic";
+      } else if (isDuckDuckGo) {
+        leadSource = "duckduckgo_organic";
+      } else if (isTikTok) {
+        leadSource = "tiktok";
+      } else if (ref && ref.length > 0) {
+        // Has external referrer but not a known source
+        try {
+          const refHost = new URL(ref).hostname;
+          // Don't mark our own site as referral
+          if (!refHost.includes("cleanda") && !refHost.includes("lovable")) {
+            leadSource = "referral";
+            console.log(`[SUBMIT-CLEANING] Fallback attribution: referral from ${refHost}`);
+          }
+        } catch {
+          // Invalid URL, keep as direct
+        }
       }
     }
     
@@ -456,6 +491,20 @@ serve(async (req) => {
     // Convert to null if empty
     const finalJobNotes = jobNotes.trim() || null;
 
+    // Build full UTM attribution data for storage
+    const utmDataJson = {
+      utm_source: body.utmData?.utm_source || null,
+      utm_medium: body.utmData?.utm_medium || null,
+      utm_campaign: body.utmData?.utm_campaign || null,
+      utm_content: body.utmData?.utm_content || null,
+      utm_term: body.utmData?.utm_term || null,
+      landing_page: body.utmData?.landing_page || null,
+      referrer: body.browserReferrer || body.utmData?.referrer || null,
+      user_agent: body.browserUserAgent || null,
+      detected_source: leadSource,
+      captured_at: body.utmData?.captured_at || new Date().toISOString(),
+    };
+
     // Insert lead into database with enhanced metadata
     const { data, error } = await supabase.from("leads").insert({
       customer_name: body.customerName,
@@ -472,10 +521,11 @@ serve(async (req) => {
       outcome_status: "pending",
       job_notes: finalJobNotes,
       admin_notes: adminNotes,
-      quality_score: phase === 2 ? 80 : 70, // Phase 2 jobs get higher quality score
+      quality_score: phase === 2 ? 80 : 70,
       property_type: body.propertyType || null,
       bedrooms: body.bedrooms || null,
       frequency: body.frequency || null,
+      utm_data: utmDataJson,
     }).select().single();
 
     if (error) {

@@ -755,6 +755,7 @@ export type Database = {
           unlocked_at: string | null
           unlocked_by: string | null
           updated_at: string
+          utm_data: Json | null
           validated_at: string | null
           value: number
         }
@@ -798,6 +799,7 @@ export type Database = {
           unlocked_at?: string | null
           unlocked_by?: string | null
           updated_at?: string
+          utm_data?: Json | null
           validated_at?: string | null
           value: number
         }
@@ -841,6 +843,7 @@ export type Database = {
           unlocked_at?: string | null
           unlocked_by?: string | null
           updated_at?: string
+          utm_data?: Json | null
           validated_at?: string | null
           value?: number
         }
