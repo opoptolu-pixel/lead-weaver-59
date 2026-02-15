@@ -13,7 +13,7 @@ const logStep = (step: string, details?: any) => {
   console.log(`[PROCESS-SCHEDULED-EMAILS] ${step}${detailsStr}`);
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
