@@ -247,7 +247,23 @@ export default function RequestCleaning() {
       });
     } catch (error: any) {
       console.error("Error submitting request:", error);
-      toast.error(error.message || "Failed to submit request. Please try again.");
+      
+      // Client-side fallback: save to failed_submissions table so no data is lost
+      try {
+        await supabase.from("failed_submissions").insert({
+          form_data: {
+            ...formData,
+            customerAddress: formData.postcode,
+            preferredDate: formData.dateFrom,
+            source: getLeadSource().source,
+          },
+          error_message: error.message || "Edge function failed",
+        });
+        toast.error("We saved your request but encountered an issue. Our team will process it shortly.");
+      } catch (fallbackError) {
+        console.error("Fallback save also failed:", fallbackError);
+        toast.error(error.message || "Failed to submit request. Please try again.");
+      }
     } finally {
       setIsSubmitting(false);
     }

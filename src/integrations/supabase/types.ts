@@ -632,6 +632,42 @@ export type Database = {
         }
         Relationships: []
       }
+      failed_submissions: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          form_data: Json
+          id: string
+          recovered_at: string | null
+          recovered_lead_id: string | null
+          retry_count: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          form_data: Json
+          id?: string
+          recovered_at?: string | null
+          recovered_lead_id?: string | null
+          retry_count?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          form_data?: Json
+          id?: string
+          recovered_at?: string | null
+          recovered_lead_id?: string | null
+          retry_count?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       fraud_flags: {
         Row: {
           created_at: string
