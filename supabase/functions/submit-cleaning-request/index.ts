@@ -314,6 +314,13 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check endpoint
+  if (req.method === "GET") {
+    return new Response(JSON.stringify({ status: "healthy", function: "submit-cleaning-request", timestamp: new Date().toISOString() }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
     // Check rate limit
     const clientIP = getClientIP(req);
