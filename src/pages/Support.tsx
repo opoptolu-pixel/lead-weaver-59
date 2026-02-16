@@ -141,7 +141,10 @@ export default function Support() {
       .channel(`live-chat-${liveChatTicket.id}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "support_messages", filter: `ticket_id=eq.${liveChatTicket.id}` }, (payload) => {
         const msg = payload.new as Message;
-        setLiveChatMessages((prev) => [...prev, msg]);
+        setLiveChatMessages((prev) => {
+          if (prev.some((m) => m.id === msg.id)) return prev;
+          return [...prev, msg];
+        });
         if (msg.sender_type === "admin") {
           supabase.from("support_messages").update({ is_read: true }).eq("id", msg.id).then();
         }
@@ -159,7 +162,10 @@ export default function Support() {
       .channel(`ticket-messages-${selectedTicket.id}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "support_messages", filter: `ticket_id=eq.${selectedTicket.id}` }, (payload) => {
         const msg = payload.new as Message;
-        setMessages((prev) => [...prev, msg]);
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === msg.id)) return prev;
+          return [...prev, msg];
+        });
         if (msg.sender_type === "admin") {
           supabase.from("support_messages").update({ is_read: true }).eq("id", msg.id).then();
         }

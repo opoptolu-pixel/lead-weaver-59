@@ -72,7 +72,10 @@ export default function AdminSupport() {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "support_messages" }, (payload) => {
         const msg = payload.new as Message;
         if (selectedTicket && msg.ticket_id === selectedTicket.id) {
-          setMessages((prev) => [...prev, msg]);
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === msg.id)) return prev;
+            return [...prev, msg];
+          });
         }
         // Refresh ticket list for updated_at
         fetchTickets();
