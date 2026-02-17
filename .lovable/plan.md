@@ -1,31 +1,36 @@
 
 
-## Fix: Auto-Use Saved Payment Methods for Lead Unlocks
+## Update Marketing Email Sender to support@cleanda.co.uk
 
-### Problem
+### What Changes
 
-When a user unlocks a lead directly (not via credits), the `unlock-lead` edge function creates a Stripe Checkout session without linking to the user's existing Stripe customer record. This forces them to re-enter card details every time, even if they already have a saved card.
+Change the "from" address for **marketing/bulk emails only** to `support@cleanda.co.uk`, while keeping `hello@cleanda.co.uk` for all transactional emails (confirmations, receipts, verification, password resets).
 
-The `buy-credits` function already handles this correctly -- it looks up the Stripe customer by email and passes `customer: customerId` to the session.
+### Which Functions Change
 
-### Fix
-
-Update `supabase/functions/unlock-lead/index.ts` to look up the existing Stripe customer (by email) and pass it to the checkout session, just like `buy-credits` does.
+| Function | Current From | New From | Type |
+|---|---|---|---|
+| `send-campaign` | hello@cleanda.co.uk | **support@cleanda.co.uk** | Marketing |
+| `process-email-sequences` | hello@cleanda.co.uk | **support@cleanda.co.uk** | Marketing |
+| `process-scheduled-emails` | hello@cleanda.co.uk | No change | Transactional |
+| `send-email` | hello@cleanda.co.uk | No change | Transactional |
+| `submit-cleaning-request` | hello@cleanda.co.uk | No change | Transactional |
+| `insurance-expiry-reminder` | hello@cleanda.co.uk | No change | Transactional |
 
 ### Technical Details
 
-**File: `supabase/functions/unlock-lead/index.ts`**
+**send-campaign/index.ts**
+- Change `FROM_EMAIL` from `"hello@cleanda.co.uk"` to `"support@cleanda.co.uk"`
+- Display name stays `Cleanda`
 
-When creating the Stripe Checkout session (around line 169), add customer lookup logic:
+**process-email-sequences/index.ts**
+- Change `FROM_EMAIL` from `"Cleanda <hello@cleanda.co.uk>"` to `"Cleanda <support@cleanda.co.uk>"`
 
-1. If the user is authenticated, retrieve their email from the auth user object
-2. Look up the existing Stripe customer by email: `stripe.customers.list({ email, limit: 1 })`
-3. If found, pass `customer: customerId` to the checkout session
-4. If not found, pass `customer_email: userEmail` instead of `customer_creation: "always"`
-5. Remove the unconditional `customer_creation: "always"` line
+### Pre-requisite (Your Action Needed)
 
-This ensures:
-- Returning customers see their saved cards pre-filled in Stripe Checkout
-- New customers still get prompted to enter their details
-- The behavior matches the `buy-credits` function exactly
+Before these changes take effect, you need to **verify `support@cleanda.co.uk` in Resend**:
+1. Go to your Resend dashboard
+2. The domain `cleanda.co.uk` is already verified, so `support@` should work immediately -- but confirm there are no sender restrictions set up
+
+No database changes required. Only two edge function files are modified.
 
