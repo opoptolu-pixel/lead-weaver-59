@@ -196,52 +196,66 @@ serve(async (req) => {
 
     if (updateError) throw new Error(`Failed to unlock lead: ${updateError.message}`);
     
-    // If no row was updated, the lead was already purchased by someone else
+    // If no row was updated, the lead was already unlocked
     if (!updatedLead) {
-      logStep("Lead already purchased by another user - initiating refund", { leadId, userId });
-      
-      // Get the payment intent to refund
-      const paymentIntent = session.payment_intent as Stripe.PaymentIntent | null;
-      let refundSuccess = false;
-      let refundId: string | null = null;
-      let refundError: string | null = null;
-      
-      if (paymentIntent?.id) {
-        try {
-          const refund = await stripe.refunds.create({
-            payment_intent: paymentIntent.id,
-            reason: "duplicate",
-          });
-          refundSuccess = true;
-          refundId = refund.id;
-          logStep("Refund issued successfully", { paymentIntentId: paymentIntent.id, refundId });
-        } catch (err: any) {
-          refundError = err.message;
-          logStep("Refund failed - manual intervention required", { error: refundError });
+      // Check if the SAME user already owns this lead (e.g. page refresh, retry)
+      const { data: existingLead } = await supabaseClient
+        .from("leads")
+        .select("id, unlocked_by")
+        .eq("id", leadId)
+        .eq("is_unlocked", true)
+        .maybeSingle();
+
+      if (existingLead?.unlocked_by === userId) {
+        // Same user re-verifying — this is NOT a duplicate purchase, just a retry/refresh
+        logStep("Same user re-verification detected, returning success", { leadId, userId });
+        // Skip refund, fall through to return lead details
+      } else {
+        // Different user already bought it — issue refund
+        logStep("Lead already purchased by DIFFERENT user - initiating refund", { leadId, userId, actualOwner: existingLead?.unlocked_by });
+        
+        const paymentIntent = session.payment_intent as Stripe.PaymentIntent | null;
+        let refundSuccess = false;
+        let refundId: string | null = null;
+        let refundError: string | null = null;
+        
+        if (paymentIntent?.id) {
+          try {
+            const refund = await stripe.refunds.create({
+              payment_intent: paymentIntent.id,
+              reason: "duplicate",
+            });
+            refundSuccess = true;
+            refundId = refund.id;
+            logStep("Refund issued successfully", { paymentIntentId: paymentIntent.id, refundId });
+          } catch (err: any) {
+            refundError = err.message;
+            logStep("Refund failed - manual intervention required", { error: refundError });
+          }
         }
+        
+        await supabaseClient.from("activity_logs").insert({
+          user_id: userId,
+          entity_type: "refund",
+          entity_id: leadId,
+          action: "auto_refund_duplicate",
+          details: {
+            reason: "duplicate_lead_purchase_different_user",
+            lead_id: leadId,
+            session_id: sessionId,
+            payment_intent_id: paymentIntent?.id || null,
+            refund_id: refundId,
+            refund_success: refundSuccess,
+            refund_error: refundError,
+            amount: "£20",
+            customer_email: customerEmail,
+            actual_owner: existingLead?.unlocked_by,
+          },
+        });
+        logStep("Refund event logged to activity_logs");
+        
+        throw new Error("This lead was just purchased by another user. Your payment has been refunded.");
       }
-      
-      // Log refund event to activity_logs for admin visibility
-      await supabaseClient.from("activity_logs").insert({
-        user_id: userId,
-        entity_type: "refund",
-        entity_id: leadId,
-        action: "auto_refund_duplicate",
-        details: {
-          reason: "duplicate_lead_purchase",
-          lead_id: leadId,
-          session_id: sessionId,
-          payment_intent_id: paymentIntent?.id || null,
-          refund_id: refundId,
-          refund_success: refundSuccess,
-          refund_error: refundError,
-          amount: "£20",
-          customer_email: customerEmail,
-        },
-      });
-      logStep("Refund event logged to activity_logs");
-      
-      throw new Error("This lead was just purchased by another user. Your payment has been refunded.");
     }
     
     logStep("Lead unlocked successfully", { leadId, userId });
