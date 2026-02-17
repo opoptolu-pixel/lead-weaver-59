@@ -119,6 +119,7 @@ serve(async (req) => {
     const emailPayload: any = {
       from: FROM_EMAIL,
       to: [to],
+      reply_to: replyTo || SUPPORT_EMAIL,
       subject: subject,
       html: html,
       text: plainText, // Plain text version improves deliverability
