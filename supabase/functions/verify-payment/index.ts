@@ -258,41 +258,45 @@ serve(async (req) => {
       }
     }
     
-    logStep("Lead unlocked successfully", { leadId, userId });
-    
-    // Complete the reservation (mark as completed, not expired)
-    await supabaseClient.rpc('complete_lead_reservation', { p_lead_id: leadId });
-    logStep("Lead reservation completed");
+    // Only run post-purchase side effects if the lead was NEWLY unlocked (not a re-verification)
+    if (updatedLead) {
+      logStep("Lead unlocked successfully", { leadId, userId });
+      
+      // Complete the reservation (mark as completed, not expired)
+      await supabaseClient.rpc('complete_lead_reservation', { p_lead_id: leadId });
+      logStep("Lead reservation completed");
 
-    // Fetch the business profile for activity logging
-    const { data: profile } = await supabaseClient
-      .from("profiles")
-      .select("business_name, contact_name")
-      .eq("user_id", userId)
-      .maybeSingle();
+      // Fetch the business profile for activity logging
+      const { data: profile } = await supabaseClient
+        .from("profiles")
+        .select("business_name, contact_name")
+        .eq("user_id", userId)
+        .maybeSingle();
 
-    // Log the purchase activity
-    await supabaseClient.from("activity_logs").insert({
-      user_id: userId,
-      entity_type: "lead",
-      entity_id: leadId,
-      action: "purchase",
-      details: {
-        payment_method: "stripe",
-        session_id: sessionId,
-        business_name: profile?.business_name || "Unknown Business",
-        contact_name: profile?.contact_name || customerEmail,
-        is_new_user: isNewUser,
-        amount_paid: "£20",
-      },
-    });
-    logStep("Purchase activity logged");
+      // Log the purchase activity
+      await supabaseClient.from("activity_logs").insert({
+        user_id: userId,
+        entity_type: "lead",
+        entity_id: leadId,
+        action: "purchase",
+        details: {
+          payment_method: "stripe",
+          session_id: sessionId,
+          business_name: profile?.business_name || "Unknown Business",
+          contact_name: profile?.contact_name || customerEmail,
+          is_new_user: isNewUser,
+          amount_paid: "£20",
+        },
+      });
+      logStep("Purchase activity logged");
 
-    // Increment leads_purchased counter on profile
-    const { error: profileUpdateError } = await supabaseClient.rpc('increment_leads_purchased', { user_uuid: userId });
-    if (profileUpdateError) {
-      // Non-blocking - just log the error
-      logStep("Failed to increment leads_purchased (non-blocking)", { error: profileUpdateError.message });
+      // Increment leads_purchased counter on profile
+      const { error: profileUpdateError } = await supabaseClient.rpc('increment_leads_purchased', { user_uuid: userId });
+      if (profileUpdateError) {
+        logStep("Failed to increment leads_purchased (non-blocking)", { error: profileUpdateError.message });
+      }
+    } else {
+      logStep("Re-verification: skipping side effects (activity log, counter increment, reservation)", { leadId, userId });
     }
 
     // Fetch the full lead details to return to the user

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { CheckCircle, Loader2, AlertCircle, Phone, Mail, MapPin, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,12 +27,16 @@ interface VerifyResponse {
   error?: string;
 }
 
+// Track which sessions have already been verified in this browser tab
+const verifiedSessions = new Set<string>();
+
 export default function PaymentSuccess() {
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<VerifyResponse | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const verifyingRef = useRef(false);
 
   const sessionId = searchParams.get("session_id");
   const leadId = searchParams.get("lead_id");
@@ -45,6 +49,20 @@ export default function PaymentSuccess() {
         return;
       }
 
+      // Idempotency: prevent duplicate calls from StrictMode, re-renders, or refreshes
+      const idempotencyKey = `${sessionId}_${leadId}`;
+      if (verifyingRef.current || verifiedSessions.has(idempotencyKey)) {
+        const cached = sessionStorage.getItem(`payment_result_${idempotencyKey}`);
+        if (cached) {
+          setResult(JSON.parse(cached));
+          setLoading(false);
+        }
+        return;
+      }
+
+      verifyingRef.current = true;
+      verifiedSessions.add(idempotencyKey);
+
       try {
         const { data, error: invokeError } = await supabase.functions.invoke("verify-payment", {
           body: { sessionId, leadId },
@@ -54,6 +72,8 @@ export default function PaymentSuccess() {
         if (data.error) throw new Error(data.error);
 
         setResult(data);
+        // Cache result so page refreshes don't re-call verify-payment
+        sessionStorage.setItem(`payment_result_${idempotencyKey}`, JSON.stringify(data));
         
         // Track lead unlock conversion in GA4
         trackLeadUnlock({
@@ -75,6 +95,7 @@ export default function PaymentSuccess() {
         console.error("Verification error:", err);
         setError(err instanceof Error ? err.message : "Failed to verify payment");
       } finally {
+        verifyingRef.current = false;
         setLoading(false);
       }
     };
