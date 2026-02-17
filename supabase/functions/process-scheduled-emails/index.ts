@@ -8,6 +8,35 @@ const corsHeaders = {
 
 const FROM_EMAIL = "Cleanda <hello@cleanda.co.uk>";
 const RESEND_API_URL = "https://api.resend.com/emails";
+const SUPPORT_EMAIL = "hello@cleanda.co.uk";
+const UNSUBSCRIBE_EMAIL = "unsubscribe@cleanda.co.uk";
+const SUPABASE_PROJECT_URL = "https://jqyhiekqqcffiwpctzsi.supabase.co";
+
+const generateUnsubscribeUrl = (email: string): string => {
+  const token = btoa(email);
+  return `${SUPABASE_PROJECT_URL}/functions/v1/unsubscribe?email=${encodeURIComponent(email)}&token=${token}`;
+};
+
+const htmlToPlainText = (html: string): string => {
+  return html
+    .replace(/<style[^>]*>.*?<\/style>/gis, '')
+    .replace(/<script[^>]*>.*?<\/script>/gis, '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<\/div>/gi, '\n')
+    .replace(/<\/tr>/gi, '\n')
+    .replace(/<\/h[1-6]>/gi, '\n\n')
+    .replace(/<a[^>]*href="([^"]*)"[^>]*>([^<]*)<\/a>/gi, '$2 ($1)')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+};
 
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -81,7 +110,10 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Send the email
+        const unsubscribeUrl = generateUnsubscribeUrl(scheduled.recipient_email);
+        const plainText = htmlToPlainText(scheduled.html_body);
+
+        // Send the email with full deliverability headers
         const response = await fetch(RESEND_API_URL, {
           method: "POST",
           headers: {
@@ -91,8 +123,18 @@ Deno.serve(async (req) => {
           body: JSON.stringify({
             from: FROM_EMAIL,
             to: [scheduled.recipient_email],
+            reply_to: SUPPORT_EMAIL,
             subject: scheduled.subject,
             html: scheduled.html_body,
+            text: plainText,
+            headers: {
+              "List-Unsubscribe": `<${unsubscribeUrl}>, <mailto:${UNSUBSCRIBE_EMAIL}?subject=Unsubscribe%20${encodeURIComponent(scheduled.recipient_email)}>`,
+              "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+              "Organization": "Cleanda Ltd",
+              "X-Mailer": "Cleanda Mailer",
+              "X-Entity-Ref-ID": `cleanda-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              "Feedback-ID": `${scheduled.template_name || 'scheduled'}:cleanda:leads:service`,
+            },
           }),
         });
 

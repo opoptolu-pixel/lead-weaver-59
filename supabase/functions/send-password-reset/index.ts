@@ -107,6 +107,17 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Generate plain text for deliverability
+    const plainText = htmlBody
+      .replace(/<style[^>]*>.*?<\/style>/gis, '')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p>/gi, '\n\n')
+      .replace(/<a[^>]*href="([^"]*)"[^>]*>([^<]*)<\/a>/gi, '$2 ($1)')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+
     const resendRes = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -116,8 +127,15 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         from: "Cleanda <hello@cleanda.co.uk>",
         to: [email],
+        reply_to: "hello@cleanda.co.uk",
         subject,
         html: htmlBody,
+        text: plainText,
+        headers: {
+          "Organization": "Cleanda Ltd",
+          "X-Mailer": "Cleanda Mailer",
+          "X-Entity-Ref-ID": `cleanda-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        },
       }),
     });
 
