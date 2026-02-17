@@ -9,7 +9,7 @@ const corsHeaders = {
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const FROM_EMAIL = "hello@cleanda.co.uk";
+const FROM_EMAIL = "support@cleanda.co.uk";
 const UNSUBSCRIBE_EMAIL = "unsubscribe@cleanda.co.uk";
 const BATCH_SIZE = 50;
 
