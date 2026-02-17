@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const FROM_EMAIL = "Cleanda <hello@cleanda.co.uk>";
+const FROM_EMAIL = "Cleanda <support@cleanda.co.uk>";
 const RESEND_API_URL = "https://api.resend.com/emails";
 
 const logStep = (step: string, details?: any) => {
