@@ -1,95 +1,54 @@
 
-# Bounced Emails Blacklist
+# Verification Results & What Needs Fixing
 
-## What We're Building
+## What I Confirmed Works Correctly
 
-A suppression list system that automatically blocks future emails to addresses that have permanently bounced, protecting your domain reputation with email providers like Gmail and Outlook. Sending to known bad addresses is one of the top reasons domains get flagged as spam.
+- The **Suppressions tab** is live, visible, and renders perfectly — summary cards, table, search, and Add Email dialog all functional
+- The `email_suppressions` database table is created with correct RLS policies
+- The `resend-webhook` code logic is correct for bounces and complaints
 
-## How It Works
+## Root Cause: Why the List is Empty & Open Tracking is Broken
 
-```text
-Email bounces (hard bounce)
-        │
-        ▼
-Resend Webhook fires "email.bounced"
-        │
-        ▼
-resend-webhook function detects hard bounce
-        │
-        ▼
-Auto-adds email to "email_suppressions" table
-        │
-        ▼
-send-email / process-email-sequences /        
-process-scheduled-emails all check table     
-        │
-        ▼
-Email is silently skipped — domain stays clean
+**The Resend webhook is not sending events to your function.** The edge function logs show zero webhook calls ever received — meaning Resend's dashboard is either pointing to the wrong URL, or webhook events (opened, clicked, delivered) are not enabled. The bounce events that exist in `email_logs` were written by an earlier version of the webhook, but recent events (opens, clicks) are simply never arriving.
+
+**Additionally**, two permanent bounces that occurred before the suppression feature was built are sitting in `email_logs` but were never backfilled into `email_suppressions`:
+- `elsieylpuis@hotmail.com` — Permanent bounce
+- `test-magic-link@cleanda.co.uk` — Permanent bounce (internal test address)
+
+## What This Plan Will Do
+
+### 1. Backfill Existing Permanent Bounces into Suppressions
+Insert the 2 known permanent-bounce addresses from `email_logs` into `email_suppressions` via a one-time data migration. This immediately populates the suppression list with real data you can verify.
+
+### 2. Improve Webhook Reliability & Logging
+The webhook code currently has a subtle issue: if Resend sends the `email.opened` event but the `resend_id` in the payload doesn't match any row in `email_logs` (e.g. due to sequence emails logged differently), the update silently does nothing. We will:
+- Add a `rows_updated` check after each update so the logs clearly show whether the update actually affected a row
+- Add fallback lookup by `recipient_email` if `resend_id` match fails
+- Make `email.clicked` also update `status` to `"clicked"` (currently it doesn't set a status)
+- Log the full count of matching rows for easier Resend dashboard debugging
+
+### 3. Provide the Correct Webhook URL
+The webhook URL to configure in Resend's dashboard (under Webhooks) must be:
 ```
-
-## Changes Required
-
-### 1. New Database Table: `email_suppressions`
-A new table to store suppressed/blacklisted email addresses with the reason and timestamp.
-
+https://jqyhiekqqcffiwpctzsi.supabase.co/functions/v1/resend-webhook
 ```
-email_suppressions
-├── id (uuid)
-├── email (text, unique)
-├── reason (text) — "hard_bounce", "complained", "manual"
-├── bounce_type (text) — "permanent", "temporary", etc.
-├── source_resend_id (text) — which email caused it
-├── suppressed_at (timestamp)
-├── notes (text) — admin notes
-└── created_at (timestamp)
-```
+Events to enable: `email.delivered`, `email.opened`, `email.clicked`, `email.bounced`, `email.complained`
 
-RLS: Admins only (read/write). Service role for webhook inserts.
+No code changes are needed for this — it's a Resend dashboard configuration step.
 
-### 2. Update `resend-webhook` Function
-When a **hard/permanent bounce** event arrives from Resend, automatically insert the email into `email_suppressions`. The webhook already receives `data.bounce.type` — we'll use this to distinguish:
-- `permanent` → add to blacklist
-- `temporary` (soft bounce like mailbox full) → log only, don't suppress
+## Files to Change
 
-For `email.complained` events, also add to suppressions with reason `complained`.
-
-### 3. Update All 3 Email-Sending Functions
-Add a suppression check before sending in each function:
-
-- **`send-email/index.ts`** — Already checks unsubscribe list. Add parallel check on `email_suppressions`.
-- **`process-email-sequences/index.ts`** — Currently has no suppression check. Add it before the Resend API call.
-- **`process-scheduled-emails/index.ts`** — Currently only checks unsubscribes. Add suppression check.
-
-### 4. New Admin UI: `EmailSuppressionsPanel` Component
-A new tab in the Email Templates admin page ("Suppressions") showing:
-- Table of all suppressed emails with reason, date, and source
-- Ability to manually add an email to the suppression list
-- Ability to remove an email from the list (un-suppress) with a confirmation dialog
-- Badge counts: hard bounces vs complaints vs manual
-
-### 5. Add "Suppressions" Tab to `AdminEmailTemplates.tsx`
-Add a fourth tab alongside Templates / Scheduled / Delivery Tracking.
-
-## Technical Detail
-
-**Bounce type detection in the webhook:**
-Resend sends `data.bounce.type` as one of:
-- `"permanent"` — hard bounce, address doesn't exist → suppress
-- `"temporary"` — soft bounce, transient issue → don't suppress
-- `null` / unknown → treat as hard bounce to be safe
-
-**No duplicate inserts:** The `email` column will have a UNIQUE constraint, so if the same address bounces multiple times the insert will use `ON CONFLICT DO NOTHING` (no errors, just silently ignored).
-
-**Impact on existing unsubscribe flow:** The suppression check is independent of the unsubscribe list — both will be checked. A suppressed address cannot receive email even if somehow still "subscribed".
-
-## Files to Create / Modify
-
-| File | Action |
+| File | What Changes |
 |---|---|
-| Database migration | Create `email_suppressions` table + RLS |
-| `supabase/functions/resend-webhook/index.ts` | Auto-add hard bounces & complaints to suppressions |
-| `supabase/functions/send-email/index.ts` | Check suppressions before sending |
-| `supabase/functions/process-email-sequences/index.ts` | Check suppressions before sending |
-| `supabase/functions/process-scheduled-emails/index.ts` | Check suppressions before sending |
-| `src/components/admin/EmailSuppressionsPanel.tsx` | New component — suppression list UI |
-| `src/pages/admin/AdminEmailTemplates.tsx` | Add "Suppressions" tab |
+| Database (data insert) | Backfill `elsieylpuis@hotmail.com` and `test-magic-link@cleanda.co.uk` into `email_suppressions` |
+| `supabase/functions/resend-webhook/index.ts` | Add rows-updated check, fix `email.clicked` status, improve fallback lookup, better logging |
+
+## What You'll See After
+
+- The Suppressions tab will show **2 hard bounces** immediately after the data fix
+- Future bounces/complaints from Resend will auto-populate as soon as the webhook URL is correctly configured in Resend's dashboard
+- Open/click tracking will work once Resend events are flowing (requires verifying the webhook URL in Resend dashboard)
+
+## Important: Resend Dashboard Action Required
+
+After this plan is implemented, you will need to log into your **Resend dashboard → Webhooks** and verify the endpoint URL is set to the URL above. This cannot be done by code — it requires a manual check in Resend's UI.
