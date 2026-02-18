@@ -826,7 +826,7 @@ export default function AdminEmailSequences() {
           <div className="bg-muted/50 px-6 py-3 border-b flex-shrink-0 space-y-1.5 text-sm">
             <div className="flex items-center gap-2">
               <span className="text-muted-foreground w-12 text-xs font-medium">From</span>
-              <span className="text-foreground">Cleanda &lt;hello@cleanda.co.uk&gt;</span>
+              <span className="text-foreground">Cleanda &lt;support@cleanda.co.uk&gt;</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-muted-foreground w-12 text-xs font-medium">To</span>
