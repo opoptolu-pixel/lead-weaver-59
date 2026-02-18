@@ -86,10 +86,10 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Build a direct link to our app
-    const baseUrl = redirectTo || "https://cleanda.co.uk";
-    const appOrigin = baseUrl.replace(/\/auth.*$/, "").replace(/\/$/, "");
-    const confirmLink = `${appOrigin}/auth?mode=confirm-signup&token_hash=${tokenHash}&type=signup`;
+    // Always use the production domain for confirmation links in emails
+    // This ensures users always land on the real site, not a preview URL
+    const PRODUCTION_URL = "https://cleanda.co.uk";
+    const confirmLink = `${PRODUCTION_URL}/auth?mode=confirm-signup&token_hash=${tokenHash}&type=signup`;
 
     console.log("Generated confirmation link for:", email);
 
