@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
             <p style="color: #94a3b8; font-size: 13px; line-height: 1.6;">If you didn't request this, you can safely ignore this email.</p>
           </div>
           <div style="text-align: center; padding: 16px; color: #94a3b8; font-size: 12px;">
-            <p style="margin: 0;">© ${currentYear} Cleanda Ltd. All rights reserved.</p>
+            <p style="margin: 0; line-height: 1.6;">Cleanda is a trading name of Orbit Shade Limited (Company No. 15337705)<br>First Floor, Swan Buildings, 20 Swan Street, Manchester, M4 5JW<br>&copy; ${currentYear} Orbit Shade Limited. All rights reserved.<br><a href="https://cleanda.co.uk/privacy-policy" style="color: #94a3b8;">Privacy Policy</a></p>
           </div>
         </div>
       `;

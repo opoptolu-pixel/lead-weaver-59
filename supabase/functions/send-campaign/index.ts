@@ -110,7 +110,7 @@ serve(async (req: Request) => {
           "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
           "Precedence": "bulk",
           "Feedback-ID": "campaign:cleanda:subscribers:marketing",
-          "Organization": "Cleanda Ltd",
+           "Organization": "Orbit Shade Limited",
         },
       });
 
@@ -182,7 +182,7 @@ serve(async (req: Request) => {
               "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
               "Precedence": "bulk",
               "Feedback-ID": "campaign:cleanda:subscribers:marketing",
-              "Organization": "Cleanda Ltd",
+              "Organization": "Orbit Shade Limited",
             },
           });
 

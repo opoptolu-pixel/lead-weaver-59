@@ -169,9 +169,12 @@ serve(async (req) => {
     
     <p>If you have already renewed your insurance, please upload the new certificate at your earliest convenience.</p>
     
-    <p style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #888888;">
-      You are receiving this because you are a registered Cleanda partner.<br>
-      Cleanda Ltd ${currentYear}
+    <p style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #888888; line-height: 1.6;">
+      You are receiving this because you are a registered Cleanda partner.<br><br>
+      Cleanda is a trading name of Orbit Shade Limited (Company No. 15337705)<br>
+      First Floor, Swan Buildings, 20 Swan Street, Manchester, M4 5JW<br><br>
+      &copy; ${currentYear} Orbit Shade Limited. All rights reserved.<br>
+      <a href="https://cleanda.co.uk/privacy-policy" style="color: #888888;">Privacy Policy</a>
     </p>
   </div>
 </body>
