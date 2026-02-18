@@ -89,23 +89,34 @@ Deno.serve(async (req) => {
       try {
         logStep("Sending scheduled email", { id: scheduled.id, to: scheduled.recipient_email });
 
-        // Check if recipient has unsubscribed before sending
-        const { data: subscriber } = await supabase
-          .from("email_subscribers")
-          .select("is_active, unsubscribed_at")
-          .eq("email", scheduled.recipient_email)
-          .maybeSingle();
+        // Check if recipient has unsubscribed or is suppressed before sending
+        const [subscriberResult, suppressionResult] = await Promise.all([
+          supabase
+            .from("email_subscribers")
+            .select("is_active, unsubscribed_at")
+            .eq("email", scheduled.recipient_email)
+            .maybeSingle(),
+          supabase
+            .from("email_suppressions")
+            .select("id, reason")
+            .eq("email", scheduled.recipient_email.toLowerCase().trim())
+            .maybeSingle(),
+        ]);
 
-        if (subscriber && (!subscriber.is_active || subscriber.unsubscribed_at)) {
+        if (subscriberResult.data && (!subscriberResult.data.is_active || subscriberResult.data.unsubscribed_at)) {
           logStep("Skipping unsubscribed recipient", { email: scheduled.recipient_email });
-          
-          // Mark as cancelled instead of sending
           await supabase
             .from("scheduled_emails")
-            .update({
-              status: "cancelled",
-              error_message: "Recipient has unsubscribed",
-            })
+            .update({ status: "cancelled", error_message: "Recipient has unsubscribed" })
+            .eq("id", scheduled.id);
+          continue;
+        }
+
+        if (suppressionResult.data) {
+          logStep("Skipping suppressed recipient", { email: scheduled.recipient_email, reason: suppressionResult.data.reason });
+          await supabase
+            .from("scheduled_emails")
+            .update({ status: "cancelled", error_message: `Recipient is suppressed: ${suppressionResult.data.reason}` })
             .eq("id", scheduled.id);
           continue;
         }
