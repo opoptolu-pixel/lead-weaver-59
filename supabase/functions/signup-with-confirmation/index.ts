@@ -34,18 +34,8 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Check if user already exists
-    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-    const userExists = existingUsers?.users?.some(u => u.email === email);
-    
-    if (userExists) {
-      return new Response(
-        JSON.stringify({ error: "This email is already registered. Please sign in instead." }),
-        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
     // Create user WITHOUT auto-confirming email
+    // If the email already exists, createUser will return an error we handle below
     const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
@@ -54,7 +44,12 @@ Deno.serve(async (req) => {
 
     if (createError) {
       console.error("Create user error:", createError);
-      if (createError.message?.includes("already been registered")) {
+      // Supabase returns this message for duplicate emails
+      if (
+        createError.message?.includes("already been registered") ||
+        createError.message?.includes("already exists") ||
+        createError.status === 422
+      ) {
         return new Response(
           JSON.stringify({ error: "This email is already registered. Please sign in instead." }),
           { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
