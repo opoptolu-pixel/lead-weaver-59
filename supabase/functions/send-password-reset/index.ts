@@ -92,7 +92,12 @@ Deno.serve(async (req) => {
           <p>We received a request to reset your password. Click the button below:</p>
           <p><a href="${resetLink}" style="display: inline-block; background-color: #0B3D2E; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 4px;">Reset My Password</a></p>
           <p>This link expires in 24 hours.</p>
-          <p style="font-size: 12px; color: #888;">Cleanda Ltd ${currentYear}</p>
+          <p style="font-size: 12px; color: #888; line-height: 1.6;">
+            Cleanda is a trading name of Orbit Shade Limited (Company No. 15337705)<br>
+            First Floor, Swan Buildings, 20 Swan Street, Manchester, M4 5JW<br>
+            &copy; ${currentYear} Orbit Shade Limited. All rights reserved.<br>
+            <a href="https://cleanda.co.uk/privacy-policy" style="color: #888;">Privacy Policy</a>
+          </p>
         </div>
       `;
     }
@@ -132,7 +137,7 @@ Deno.serve(async (req) => {
         html: htmlBody,
         text: plainText,
         headers: {
-          "Organization": "Cleanda Ltd",
+          "Organization": "Orbit Shade Limited",
           "X-Mailer": "Cleanda Mailer",
           "X-Entity-Ref-ID": `cleanda-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         },

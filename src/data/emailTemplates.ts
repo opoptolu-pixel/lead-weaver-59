@@ -12,6 +12,24 @@ export interface EmailTemplateData {
   body: string;
 }
 
+// Standardised footer blocks
+const CUSTOMER_FOOTER = `
+    <p style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #888888; line-height: 1.6;">
+      Cleanda is a trading name of Orbit Shade Limited (Company No. 15337705)<br>
+      First Floor, Swan Buildings, 20 Swan Street, Manchester, M4 5JW<br><br>
+      &copy; {{current_year}} Orbit Shade Limited. All rights reserved.<br>
+      <a href="{{unsubscribe_url}}" style="color: #888888;">Unsubscribe</a> | <a href="https://cleanda.co.uk/privacy-policy" style="color: #888888;">Privacy Policy</a>
+    </p>`;
+
+const PARTNER_FOOTER = `
+    <p style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #888888; line-height: 1.6;">
+      You are receiving this because you are a registered Cleanda partner.<br><br>
+      Cleanda is a trading name of Orbit Shade Limited (Company No. 15337705)<br>
+      First Floor, Swan Buildings, 20 Swan Street, Manchester, M4 5JW<br><br>
+      &copy; {{current_year}} Orbit Shade Limited. All rights reserved.<br>
+      <a href="{{unsubscribe_url}}" style="color: #888888;">Unsubscribe</a> | <a href="https://cleanda.co.uk/privacy-policy" style="color: #888888;">Privacy Policy</a>
+    </p>`;
+
 export const DEFAULT_EMAIL_TEMPLATES: EmailTemplateData[] = [
   {
     name: "cleaning_request_confirmation",
@@ -46,11 +64,7 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplateData[] = [
     3. Enjoy a sparkling clean space</p>
     
     <p>Questions? Just reply to this email.</p>
-    
-    <p style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #888888;">
-      Cleanda Ltd {{current_year}}<br>
-      <a href="{{unsubscribe_url}}" style="color: #888888;">Unsubscribe</a>
-    </p>
+    ${CUSTOMER_FOOTER}
   </div>
 </body>
 </html>`,
@@ -85,12 +99,7 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplateData[] = [
     <p><a href="{{dashboard_url}}" style="display: inline-block; background-color: #0B3D2E; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 4px;">View Lead & Unlock</a></p>
     
     <p style="font-size: 14px; color: #666666;">Leads are available on a first-come, first-served basis. Use 1 credit to unlock full customer details.</p>
-    
-    <p style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #888888;">
-      You are receiving this because you are a registered Cleanda partner.<br>
-      Cleanda Ltd {{current_year}}<br>
-      <a href="{{unsubscribe_url}}" style="color: #888888;">Unsubscribe</a>
-    </p>
+    ${PARTNER_FOOTER}
   </div>
 </body>
 </html>`,
@@ -123,11 +132,7 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplateData[] = [
     <p><a href="{{dashboard_url}}" style="display: inline-block; background-color: #0B3D2E; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 4px;">Go to Your Dashboard</a></p>
     
     <p>Need help? Reply to this email anytime.</p>
-    
-    <p style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #888888;">
-      Cleanda Ltd {{current_year}}<br>
-      <a href="{{unsubscribe_url}}" style="color: #888888;">Unsubscribe</a>
-    </p>
+    ${PARTNER_FOOTER}
   </div>
 </body>
 </html>`,
@@ -166,12 +171,7 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplateData[] = [
     <p style="background-color: #fff3e0; padding: 12px; border-radius: 4px;"><strong>Tip:</strong> Call within the first hour to increase your chance of winning this job.</p>
     
     <p><a href="{{dashboard_url}}" style="display: inline-block; background-color: #0B3D2E; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 4px;">View in Dashboard</a></p>
-    
-    <p style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #888888;">
-      You are receiving this because you are a registered Cleanda partner.<br>
-      Cleanda Ltd {{current_year}}<br>
-      <a href="{{unsubscribe_url}}" style="color: #888888;">Unsubscribe</a>
-    </p>
+    ${PARTNER_FOOTER}
   </div>
 </body>
 </html>`,
@@ -200,11 +200,13 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplateData[] = [
     <p style="background-color: #fff3e0; padding: 12px; border-radius: 4px;">This link will expire in {{expiry_hours}} hours for security reasons.</p>
     
     <p>If you did not request this password reset, you can safely ignore this email. Your password will remain unchanged.</p>
-    
-    <p style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #888888;">
-      This is an automated security email from Cleanda.<br>
-      Cleanda Ltd {{current_year}}<br>
-      <a href="{{unsubscribe_url}}" style="color: #888888;">Unsubscribe</a>
+
+    <p style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #888888; line-height: 1.6;">
+      This is an automated security email from Cleanda.<br><br>
+      Cleanda is a trading name of Orbit Shade Limited (Company No. 15337705)<br>
+      First Floor, Swan Buildings, 20 Swan Street, Manchester, M4 5JW<br><br>
+      &copy; {{current_year}} Orbit Shade Limited. All rights reserved.<br>
+      <a href="{{unsubscribe_url}}" style="color: #888888;">Unsubscribe</a> | <a href="https://cleanda.co.uk/privacy-policy" style="color: #888888;">Privacy Policy</a>
     </p>
   </div>
 </body>
@@ -235,11 +237,7 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplateData[] = [
     - Build your reputation on our platform</p>
     
     <p><a href="{{dashboard_url}}" style="display: inline-block; background-color: #0B3D2E; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 4px;">Start Finding Leads</a></p>
-    
-    <p style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #888888;">
-      Cleanda Ltd {{current_year}}<br>
-      <a href="{{unsubscribe_url}}" style="color: #888888;">Unsubscribe</a>
-    </p>
+    ${PARTNER_FOOTER}
   </div>
 </body>
 </html>`,
@@ -271,11 +269,7 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplateData[] = [
     <p>Your credits are ready to use. Start unlocking leads now!</p>
     
     <p><a href="{{dashboard_url}}" style="display: inline-block; background-color: #0B3D2E; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 4px;">Browse Leads</a></p>
-    
-    <p style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #888888;">
-      Cleanda Ltd {{current_year}}<br>
-      <a href="{{unsubscribe_url}}" style="color: #888888;">Unsubscribe</a>
-    </p>
+    ${PARTNER_FOOTER}
   </div>
 </body>
 </html>`,
@@ -307,11 +301,7 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplateData[] = [
     <p>We aim to resolve all disputes within 3-5 business days. We will email you with the outcome.</p>
     
     <p><a href="{{dashboard_url}}" style="display: inline-block; background-color: #0B3D2E; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 4px;">View Dispute Status</a></p>
-    
-    <p style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #888888;">
-      Cleanda Ltd {{current_year}}<br>
-      <a href="{{unsubscribe_url}}" style="color: #888888;">Unsubscribe</a>
-    </p>
+    ${PARTNER_FOOTER}
   </div>
 </body>
 </html>`,
@@ -344,11 +334,7 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplateData[] = [
     <p>{{resolution_details}}</p>
     
     <p><a href="{{dashboard_url}}" style="display: inline-block; background-color: #0B3D2E; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 4px;">View Your Account</a></p>
-    
-    <p style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #888888;">
-      Cleanda Ltd {{current_year}}<br>
-      <a href="{{unsubscribe_url}}" style="color: #888888;">Unsubscribe</a>
-    </p>
+    ${PARTNER_FOOTER}
   </div>
 </body>
 </html>`,
@@ -383,12 +369,7 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplateData[] = [
     3. Keep your verification status active</p>
     
     <p><a href="https://cleanda.co.uk/settings/verification" style="display: inline-block; background-color: #0B3D2E; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 4px;">Upload New Insurance</a></p>
-    
-    <p style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #888888;">
-      You are receiving this because you are a registered Cleanda partner.<br>
-      Cleanda Ltd {{current_year}}<br>
-      <a href="{{unsubscribe_url}}" style="color: #888888;">Unsubscribe</a>
-    </p>
+    ${PARTNER_FOOTER}
   </div>
 </body>
 </html>`,

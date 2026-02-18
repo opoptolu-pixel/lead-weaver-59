@@ -127,7 +127,7 @@ serve(async (req) => {
         // RFC 8058 one-click unsubscribe (required by Gmail for bulk senders)
         "List-Unsubscribe": `<${unsubscribeUrl}>, <mailto:${UNSUBSCRIBE_EMAIL}?subject=Unsubscribe%20${encodeURIComponent(to)}>`,
         "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-        "Organization": "Cleanda Ltd",
+        "Organization": "Orbit Shade Limited",
         "X-Mailer": "Cleanda Mailer",
         "X-Entity-Ref-ID": `cleanda-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       },

@@ -258,16 +258,16 @@ const handler = async (req: Request): Promise<Response> => {
     <p>Best regards,<br>The Cleanda Team</p>
     
     <p style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #888888;">
-      Cleanda Ltd ${new Date().getFullYear()}<br>
-      A trading name of Orbit Shade Ltd (Company No. 15337705)<br>
-      128 City Road, London, EC1V 2NX<br>
-      <a href="${unsubscribeUrl}" style="color: #888888;">Unsubscribe</a>
+      Cleanda is a trading name of Orbit Shade Limited (Company No. 15337705)<br>
+      First Floor, Swan Buildings, 20 Swan Street, Manchester, M4 5JW<br><br>
+      &copy; ${new Date().getFullYear()} Orbit Shade Limited. All rights reserved.<br>
+      <a href="${unsubscribeUrl}" style="color: #888888;">Unsubscribe</a> | <a href="https://cleanda.co.uk/privacy-policy" style="color: #888888;">Privacy Policy</a>
     </p>
   </div>
 </body>
 </html>`;
       
-      const userPlainText = `Thank You, ${name}!\n\nWe have received your message and will get back to you within 1-2 business days.\n\nYour message summary:\nSubject: ${subject}\n${message.substring(0, 200)}${message.length > 200 ? "..." : ""}\n\nIf your inquiry is urgent, please call us at 07757 188 197.\n\nBest regards,\nThe Cleanda Team\n\nCleanda Ltd ${new Date().getFullYear()}\nUnsubscribe: ${unsubscribeUrl}`;
+      const userPlainText = `Thank You, ${name}!\n\nWe have received your message and will get back to you within 1-2 business days.\n\nYour message summary:\nSubject: ${subject}\n${message.substring(0, 200)}${message.length > 200 ? "..." : ""}\n\nIf your inquiry is urgent, please call us at 07757 188 197.\n\nBest regards,\nThe Cleanda Team\n\nCleanda is a trading name of Orbit Shade Limited (Company No. 15337705)\nFirst Floor, Swan Buildings, 20 Swan Street, Manchester, M4 5JW\nUnsubscribe: ${unsubscribeUrl}`;
       
       const userEmailResponse = await resend.emails.send({
         from: "Cleanda <hello@cleanda.co.uk>",
@@ -278,7 +278,7 @@ const handler = async (req: Request): Promise<Response> => {
         headers: {
           "List-Unsubscribe": `<${unsubscribeUrl}>, <mailto:unsubscribe@cleanda.co.uk?subject=Unsubscribe>`,
           "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-          "Organization": "Cleanda Ltd",
+          "Organization": "Orbit Shade Limited",
         },
       });
 

@@ -137,7 +137,8 @@ const generatePDFReceipt = (data: {
   doc.setFont("helvetica", "normal");
   const footerY = 250;
   doc.text("Thank you for your purchase!", pageWidth / 2, footerY, { align: "center" });
-  doc.text("Cleanda Ltd • support@cleanda.com", pageWidth / 2, footerY + 10, { align: "center" });
+  doc.text("Cleanda (a trading name of Orbit Shade Limited)", pageWidth / 2, footerY + 10, { align: "center" });
+  doc.text("First Floor, Swan Buildings, 20 Swan Street, Manchester, M4 5JW", pageWidth / 2, footerY + 17, { align: "center" });
   doc.text("This is an official receipt for your records.", pageWidth / 2, footerY + 20, { align: "center" });
   
   // Return base64 PDF

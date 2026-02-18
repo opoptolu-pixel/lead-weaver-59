@@ -130,7 +130,7 @@ Deno.serve(async (req) => {
             headers: {
               "List-Unsubscribe": `<${unsubscribeUrl}>, <mailto:${UNSUBSCRIBE_EMAIL}?subject=Unsubscribe%20${encodeURIComponent(scheduled.recipient_email)}>`,
               "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-              "Organization": "Cleanda Ltd",
+              "Organization": "Orbit Shade Limited",
               "X-Mailer": "Cleanda Mailer",
               "X-Entity-Ref-ID": `cleanda-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
               "Feedback-ID": `${scheduled.template_name || 'scheduled'}:cleanda:leads:service`,

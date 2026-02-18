@@ -172,8 +172,11 @@ const generateConfirmationEmail = (
     
     <p>Questions? Just reply to this email.</p>
     
-    <p style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #888888;">
-      Cleanda Ltd ${currentYear}
+    <p style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #888888; line-height: 1.6;">
+      Cleanda is a trading name of Orbit Shade Limited (Company No. 15337705)<br>
+      First Floor, Swan Buildings, 20 Swan Street, Manchester, M4 5JW<br><br>
+      &copy; ${currentYear} Orbit Shade Limited. All rights reserved.<br>
+      <a href="https://cleanda.co.uk/privacy-policy" style="color: #888888;">Privacy Policy</a>
     </p>
   </div>
 </body>
@@ -273,7 +276,7 @@ const sendConfirmationEmail = async (
         html: html,
         text: plainText,
         headers: {
-          "Organization": "Cleanda Ltd",
+          "Organization": "Orbit Shade Limited",
         },
       }),
     });
