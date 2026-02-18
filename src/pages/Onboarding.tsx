@@ -60,9 +60,14 @@ export default function Onboarding() {
     }
   }, [user, authLoading, navigate]);
 
-  // Redirect if already onboarded
+  // Redirect if already onboarded (all 4 required fields present)
   useEffect(() => {
-    if (profile?.business_name && profile?.phone && profile?.postcode) {
+    if (
+      profile?.contact_name &&
+      profile?.business_name &&
+      profile?.phone &&
+      profile?.postcode
+    ) {
       navigate("/dashboard");
     }
   }, [profile, navigate]);
