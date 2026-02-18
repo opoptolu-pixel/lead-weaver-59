@@ -372,10 +372,10 @@ export default function Auth() {
             }
             return;
           }
-          
+
           // Track signup conversion
           trackCleanerSignup();
-          
+
           // Fire Meta Pixel CompleteRegistration event
           if (window.fbq) {
             window.fbq('track', 'CompleteRegistration', {
@@ -385,8 +385,19 @@ export default function Auth() {
               value: 0,
             });
           }
-          
-          toast.success("Account created! Please check your email to confirm.");
+
+          // Sign the user in immediately using the session returned from the edge function
+          if (data.session?.access_token && data.session?.refresh_token) {
+            await supabase.auth.setSession({
+              access_token: data.session.access_token,
+              refresh_token: data.session.refresh_token,
+            });
+            navigate("/onboarding");
+          } else {
+            // Fallback: session not returned, ask them to sign in
+            toast.success("Account created! Please sign in.");
+            setMode("login");
+          }
         } finally {
           setLoading(false);
         }
