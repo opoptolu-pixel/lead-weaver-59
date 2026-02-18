@@ -443,17 +443,6 @@ export default function Onboarding() {
             </div>
           </div>
 
-          {/* Skip link */}
-          {currentStep < TOTAL_STEPS && (
-            <p className="text-center mt-6">
-              <button
-                onClick={() => navigate("/dashboard")}
-                className="text-primary-foreground/60 hover:text-primary-foreground text-sm underline"
-              >
-                Skip for now, I'll complete later
-              </button>
-            </p>
-          )}
         </div>
       </main>
 

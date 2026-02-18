@@ -425,6 +425,7 @@ export default function Leads() {
   const { user, profile, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+
   const initialSearch = searchParams.get("search") || "";
   const initialPrefixes = searchParams.get("prefixes")?.split(',').filter(Boolean) || [];
   
@@ -457,7 +458,22 @@ export default function Leads() {
   // Database-backed lead reservation tracking
   const { reserveLead, releaseLead, isLeadReserved, checkLeadReservation, visitorId, myActiveCheckout, reservedLeads, fetchReservations } = useLeadReservations(user?.id);
 
-  // Get unique job types from leads for filter dropdown
+  // Gate: redirect to onboarding if profile is incomplete
+  useEffect(() => {
+    if (!user) {
+      navigate("/auth");
+    } else if (profile) {
+      const isProfileComplete =
+        profile.contact_name &&
+        profile.business_name &&
+        profile.phone &&
+        profile.postcode;
+      if (!isProfileComplete) {
+        navigate("/onboarding");
+      }
+    }
+  }, [user, profile, navigate]);
+
   const jobTypes = useMemo(() => {
     const types = new Set(leads.map(l => l.job_type));
     return Array.from(types).sort();

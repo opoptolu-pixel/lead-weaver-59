@@ -103,12 +103,21 @@ export default function Dashboard() {
   const [bookingLeadId, setBookingLeadId] = useState<string | null>(null);
   const [bookingDate, setBookingDate] = useState<Date | undefined>(undefined);
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
-  // Redirect if not logged in
+  // Redirect if not logged in or profile incomplete
   useEffect(() => {
     if (!authLoading && !user) {
       navigate("/auth");
+    } else if (!authLoading && user && profile) {
+      const isProfileComplete =
+        profile.contact_name &&
+        profile.business_name &&
+        profile.phone &&
+        profile.postcode;
+      if (!isProfileComplete) {
+        navigate("/onboarding");
+      }
     }
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, profile, navigate]);
 
   // Fetch unlocked leads using secure function with time-limited access
   useEffect(() => {
