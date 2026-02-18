@@ -48,12 +48,14 @@ import {
   Send,
   BarChart3,
   Calendar,
+  ShieldBan,
 } from "lucide-react";
 import { format } from "date-fns";
 import { VariableAutocompleteTextarea } from "@/components/admin/VariableAutocompleteTextarea";
 import { EmailLogsPanel } from "@/components/admin/EmailLogsPanel";
 import { EmailDeliverabilityDashboard } from "@/components/admin/EmailDeliverabilityDashboard";
 import { ScheduledEmailsPanel } from "@/components/admin/ScheduledEmailsPanel";
+import { EmailSuppressionsPanel } from "@/components/admin/EmailSuppressionsPanel";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface EmailTemplate {
@@ -2310,6 +2312,10 @@ export default function AdminEmailTemplates() {
               <BarChart3 className="w-4 h-4" />
               Delivery Tracking
             </TabsTrigger>
+            <TabsTrigger value="suppressions" className="flex items-center gap-2">
+              <ShieldBan className="w-4 h-4" />
+              Suppressions
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="templates" className="space-y-6">
@@ -2478,6 +2484,10 @@ export default function AdminEmailTemplates() {
           <TabsContent value="logs" className="space-y-6">
             <EmailDeliverabilityDashboard />
             <EmailLogsPanel />
+          </TabsContent>
+
+          <TabsContent value="suppressions">
+            <EmailSuppressionsPanel />
           </TabsContent>
         </Tabs>
       </div>

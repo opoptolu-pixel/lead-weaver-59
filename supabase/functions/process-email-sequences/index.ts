@@ -128,6 +128,27 @@ Deno.serve(async (req) => {
           }
         }
 
+        // Check if recipient is suppressed before sending
+        const { data: suppressed } = await supabase
+          .from("email_suppressions")
+          .select("id, reason")
+          .eq("email", enrollment.recipient_email.toLowerCase().trim())
+          .maybeSingle();
+
+        if (suppressed) {
+          logStep("Skipping suppressed recipient", { email: enrollment.recipient_email, reason: suppressed.reason });
+          // Mark enrollment as completed to stop future sends to this address
+          await supabase
+            .from("email_sequence_enrollments")
+            .update({
+              status: "completed",
+              completed_at: new Date().toISOString(),
+              next_send_at: null,
+            })
+            .eq("id", enrollment.id);
+          continue;
+        }
+
         // Replace variables
         const currentYear = new Date().getFullYear().toString();
         let htmlBody = step.body

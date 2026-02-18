@@ -596,6 +596,39 @@ export type Database = {
         }
         Relationships: []
       }
+      email_suppressions: {
+        Row: {
+          bounce_type: string | null
+          created_at: string
+          email: string
+          id: string
+          notes: string | null
+          reason: string
+          source_resend_id: string | null
+          suppressed_at: string
+        }
+        Insert: {
+          bounce_type?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          notes?: string | null
+          reason?: string
+          source_resend_id?: string | null
+          suppressed_at?: string
+        }
+        Update: {
+          bounce_type?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          notes?: string | null
+          reason?: string
+          source_resend_id?: string | null
+          suppressed_at?: string
+        }
+        Relationships: []
+      }
       email_templates: {
         Row: {
           body: string

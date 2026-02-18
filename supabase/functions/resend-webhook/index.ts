@@ -29,6 +29,7 @@ serve(async (req) => {
 
     const { type, data } = payload;
     const resendId = data?.email_id;
+    const recipientEmail = data?.to?.[0] || data?.email;
 
     if (!resendId) {
       logStep("No email_id in payload, skipping");
@@ -39,6 +40,9 @@ serve(async (req) => {
     }
 
     let updateData: Record<string, any> = {};
+    let shouldSuppress = false;
+    let suppressReason = "";
+    let bounceType = "";
 
     switch (type) {
       case "email.delivered":
@@ -59,16 +63,29 @@ serve(async (req) => {
         };
         break;
       case "email.bounced":
+        bounceType = data?.bounce?.type || "permanent";
         updateData = {
           status: "bounced",
           bounced_at: new Date().toISOString(),
-          bounce_type: data?.bounce?.type || "unknown",
+          bounce_type: bounceType,
         };
+        // Suppress on permanent bounces (or unknown — treat as permanent to be safe)
+        if (bounceType !== "temporary") {
+          shouldSuppress = true;
+          suppressReason = "hard_bounce";
+          logStep("Hard bounce detected — will suppress", { email: recipientEmail, bounceType });
+        } else {
+          logStep("Soft/temporary bounce — no suppression", { email: recipientEmail });
+        }
         break;
       case "email.complained":
         updateData = {
           status: "complained",
         };
+        // Always suppress on spam complaints
+        shouldSuppress = true;
+        suppressReason = "complained";
+        logStep("Spam complaint — will suppress", { email: recipientEmail });
         break;
       default:
         logStep("Unknown event type", { type });
@@ -89,6 +106,44 @@ serve(async (req) => {
       logStep("Error updating email log", { error: error.message });
     } else {
       logStep("Email log updated successfully");
+    }
+
+    // Auto-add to suppression list if warranted
+    if (shouldSuppress && recipientEmail) {
+      logStep("Adding to suppression list", { email: recipientEmail, reason: suppressReason });
+
+      // Look up the recipient email from email_logs if not in payload
+      let emailToSuppress = recipientEmail;
+      if (!emailToSuppress) {
+        const { data: logRow } = await supabase
+          .from("email_logs")
+          .select("recipient_email")
+          .eq("resend_id", resendId)
+          .maybeSingle();
+        emailToSuppress = logRow?.recipient_email;
+      }
+
+      if (emailToSuppress) {
+        const { error: suppressError } = await supabase
+          .from("email_suppressions")
+          .insert({
+            email: emailToSuppress.toLowerCase().trim(),
+            reason: suppressReason,
+            bounce_type: bounceType || null,
+            source_resend_id: resendId,
+            suppressed_at: new Date().toISOString(),
+          })
+          .onConflict("email")
+          .ignore();
+
+        if (suppressError) {
+          logStep("Error inserting suppression (may already exist)", { error: suppressError.message });
+        } else {
+          logStep("Suppression added successfully", { email: emailToSuppress });
+        }
+      } else {
+        logStep("Could not determine recipient email for suppression");
+      }
     }
 
     return new Response(JSON.stringify({ received: true }), {

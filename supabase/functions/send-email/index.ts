@@ -85,20 +85,39 @@ serve(async (req) => {
     // Generate plain text version if not provided
     const plainText = text || htmlToPlainText(html);
 
-    // Check if recipient has unsubscribed (skip for test emails)
+    // Check if recipient has unsubscribed or is suppressed (skip for test emails)
     if (!isTest) {
-      const { data: subscriber } = await supabase
-        .from("email_subscribers")
-        .select("is_active, unsubscribed_at")
-        .eq("email", to)
-        .maybeSingle();
+      const [subscriberResult, suppressionResult] = await Promise.all([
+        supabase
+          .from("email_subscribers")
+          .select("is_active, unsubscribed_at")
+          .eq("email", to)
+          .maybeSingle(),
+        supabase
+          .from("email_suppressions")
+          .select("id, reason")
+          .eq("email", to.toLowerCase().trim())
+          .maybeSingle(),
+      ]);
 
-      if (subscriber && (!subscriber.is_active || subscriber.unsubscribed_at)) {
+      if (subscriberResult.data && (!subscriberResult.data.is_active || subscriberResult.data.unsubscribed_at)) {
         logStep("Skipping unsubscribed recipient", { to });
         return new Response(JSON.stringify({ 
           success: false, 
           skipped: true, 
           reason: "Recipient has unsubscribed" 
+        }), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+
+      if (suppressionResult.data) {
+        logStep("Skipping suppressed recipient", { to, reason: suppressionResult.data.reason });
+        return new Response(JSON.stringify({ 
+          success: false, 
+          skipped: true, 
+          reason: `Recipient is suppressed: ${suppressionResult.data.reason}` 
         }), {
           status: 200,
           headers: { "Content-Type": "application/json", ...corsHeaders },
