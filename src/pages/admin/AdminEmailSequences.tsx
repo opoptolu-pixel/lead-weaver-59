@@ -55,6 +55,7 @@ import {
   Send,
   UserPlus,
   Archive,
+  Eye,
 } from "lucide-react";
 import { format } from "date-fns";
 import { VariableAutocompleteTextarea } from "@/components/admin/VariableAutocompleteTextarea";
@@ -129,6 +130,9 @@ export default function AdminEmailSequences() {
   const [stepBody, setStepBody] = useState("");
   const [stepDelayDays, setStepDelayDays] = useState(0);
   const [stepDelayHours, setStepDelayHours] = useState(0);
+
+  // Preview
+  const [previewStep, setPreviewStep] = useState<SequenceStep | null>(null);
 
   // Enrollments
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
@@ -531,6 +535,9 @@ export default function AdminEmailSequences() {
                                 checked={step.is_active}
                                 onCheckedChange={() => toggleStepActive(step)}
                               />
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" title="Preview email" onClick={() => setPreviewStep(step)}>
+                                <Eye className="w-4 h-4" />
+                              </Button>
                               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openStepEdit(step)}>
                                 <Pencil className="w-4 h-4" />
                               </Button>
@@ -795,6 +802,51 @@ export default function AdminEmailSequences() {
                 {editingStep ? "Save Step" : "Add Step"}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Email Preview Dialog */}
+      <Dialog open={!!previewStep} onOpenChange={(open) => !open && setPreviewStep(null)}>
+        <DialogContent className="max-w-3xl h-[85vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="px-6 py-4 border-b flex-shrink-0">
+            <div className="flex items-center justify-between">
+              <div className="min-w-0 flex-1">
+                <DialogTitle className="flex items-center gap-2 text-base">
+                  <Eye className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  Preview — Step {previewStep?.step_order}
+                </DialogTitle>
+                <DialogDescription className="mt-0.5 truncate">
+                  <span className="font-medium text-foreground">{previewStep?.subject}</span>
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          {/* Simulated email client chrome */}
+          <div className="bg-muted/50 px-6 py-3 border-b flex-shrink-0 space-y-1.5 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground w-12 text-xs font-medium">From</span>
+              <span className="text-foreground">Cleanda &lt;hello@cleanda.co.uk&gt;</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground w-12 text-xs font-medium">To</span>
+              <span className="text-foreground">{"{{contact_name}}"} &lt;recipient@example.com&gt;</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground w-12 text-xs font-medium">Subject</span>
+              <span className="font-medium text-foreground">{previewStep?.subject}</span>
+            </div>
+          </div>
+          {/* HTML rendered preview */}
+          <div className="flex-1 overflow-hidden">
+            {previewStep && (
+              <iframe
+                srcDoc={previewStep.body}
+                title="Email preview"
+                className="w-full h-full border-0"
+                sandbox="allow-same-origin"
+              />
+            )}
           </div>
         </DialogContent>
       </Dialog>
