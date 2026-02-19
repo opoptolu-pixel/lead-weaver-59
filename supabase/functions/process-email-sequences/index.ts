@@ -92,11 +92,25 @@ Deno.serve(async (req) => {
           const matchingUser = authUsers?.users?.find(u => u.email === enrollment.recipient_email);
           
           if (matchingUser) {
-            const { data: userProfile } = await supabase
+          const { data: userProfile } = await supabase
               .from("profiles")
-              .select("business_name, phone, postcode, is_closed")
+              .select("business_name, phone, postcode, is_closed, is_verified")
               .eq("user_id", matchingUser.id)
               .maybeSingle();
+
+            // Skip verified accounts — they've completed the process
+            if (userProfile?.is_verified) {
+              await supabase
+                .from("email_sequence_enrollments")
+                .update({
+                  status: "completed",
+                  completed_at: new Date().toISOString(),
+                  next_send_at: null,
+                })
+                .eq("id", enrollment.id);
+              logStep("Business verified, stopping sequence", { email: enrollment.recipient_email });
+              continue;
+            }
 
             // Skip closed accounts
             if (userProfile?.is_closed) {
