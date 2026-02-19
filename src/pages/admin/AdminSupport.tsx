@@ -160,8 +160,6 @@ export default function AdminSupport() {
       setSelectedTicket({ ...selectedTicket, status: "in_progress" });
     }
 
-    // Refresh messages to ensure consistency
-    await fetchMessages(selectedTicket.id);
     setNewMessage("");
     setSending(false);
   };
