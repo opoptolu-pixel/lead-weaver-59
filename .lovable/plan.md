@@ -1,77 +1,86 @@
 
-# Fix: Double Message on Admin Reply
+# Fix: Verified Businesses Receiving Onboarding Sequence Emails
 
-## Root Cause
+## The Problem
 
-In `src/pages/admin/AdminSupport.tsx`, the `sendMessage` function (lines 135–167) has a race condition that causes the sent message to appear twice:
+In `supabase/functions/process-email-sequences/index.ts`, the "Incomplete Onboarding Follow-up" check (lines 88-129) only stops the sequence if a user has completed their profile fields (business_name, phone, postcode). But it never checks `is_verified`.
 
-1. The admin sends a message — it is inserted into the database.
-2. The Supabase Realtime channel (`admin-tickets`) receives the `INSERT` event and appends the message to local state.
-3. **Also inside `sendMessage`**, line 164 calls `await fetchMessages(selectedTicket.id)` which does a full database re-fetch and calls `setMessages(data || [])` — replacing state with all messages including the new one.
+A verified business has those fields filled in AND `is_verified = true`. The current logic would correctly cancel for them — BUT the sequence was enrolled *before* verification was complete, so the `auto_enroll_onboarding_sequence` trigger fired when the profile was created (when those fields were still empty). Now the user is verified, but since they filled in their profile, the existing check *should* work... unless the trigger enrolled them and the fields were later filled but the enrollment never got cleaned up.
 
-Both paths add the same message to the UI. The deduplication guard (`if (prev.some((m) => m.id === msg.id)) return prev`) on the realtime listener would only catch the duplicate if the message was already in state before the listener fires. Since `fetchMessages` **replaces** state entirely (not appends), the realtime event arrives slightly after and sees the message isn't "some"d into state by ID yet in that render cycle — or vice versa — causing both to succeed.
+Looking at the live data — there are 2 verified businesses still active in the queue:
+- `SAPOUMA cleaning limited` (nicolesapouma6@gmail.com) — `is_verified: true`
+- `Radiant Space Services` (info@radiantspaceservices.co.uk) — `is_verified: true`
+
+Both have `business_name`, `phone`, and `postcode` filled in AND `is_verified = true`. The current check at line 116 should have caught them:
+```
+if (userProfile?.business_name && userProfile?.phone && userProfile?.postcode) → cancel
+```
+
+The issue is that the check only runs for the **"Incomplete Onboarding Follow-up"** sequence by name. But if someone enrolled them into a different sequence, or the sequence name was ever different, verified users slip through.
+
+**Additionally — a fundamental gap:** the current logic doesn't check `is_verified` at all. Even if a business completes verification *after* enrolling, future sequence steps will still fire because `is_verified` is never evaluated.
 
 ## The Fix
 
-Remove the `await fetchMessages(selectedTicket.id)` call from inside `sendMessage`. The Realtime subscription already handles appending new messages to the UI instantly. The full re-fetch is redundant and is the source of the duplicate.
+Two changes are needed:
 
-The only state update needed after a successful insert is:
-- Clear `newMessage` — already done on line 165
-- Set `sending = false` — already done on line 166
-- Optionally update the ticket status to `in_progress` — already done on lines 158–161
+### 1. Add `is_verified` check inside the onboarding sequence guard (edge function)
 
-## Technical Details
-
-### File to Change
-`src/pages/admin/AdminSupport.tsx`
-
-### Change Required
-Remove line 163-164:
-```
-// Refresh messages to ensure consistency
-await fetchMessages(selectedTicket.id);
-```
-
-The `sendMessage` function will become:
+In the profile check block, add `is_verified` to the select and add an early-exit if `is_verified` is true:
 
 ```typescript
-const sendMessage = async () => {
-  if (!newMessage.trim() || !selectedTicket || !adminId) return;
-  setSending(true);
-  
-  const { error } = await supabase.from("support_messages").insert({
-    ticket_id: selectedTicket.id,
-    sender_id: adminId,
-    sender_type: "admin",
-    message: newMessage.trim(),
-  });
+const { data: userProfile } = await supabase
+  .from("profiles")
+  .select("business_name, phone, postcode, is_closed, is_verified")
+  .eq("user_id", matchingUser.id)
+  .maybeSingle();
 
-  if (error) {
-    console.error("Failed to send message:", error);
-    toast({
-      title: "Failed to send message",
-      description: error.message,
-      variant: "destructive",
-    });
-    setSending(false);
-    return;
-  }
-
-  // If ticket is still "open", move to in_progress
-  if (selectedTicket.status === "open") {
-    await supabase.from("support_tickets").update({ status: "in_progress" }).eq("id", selectedTicket.id);
-    setSelectedTicket({ ...selectedTicket, status: "in_progress" });
-  }
-
-  setNewMessage("");
-  setSending(false);
-};
+// Skip verified accounts
+if (userProfile?.is_verified) {
+  await supabase
+    .from("email_sequence_enrollments")
+    .update({
+      status: "completed",
+      completed_at: new Date().toISOString(),
+      next_send_at: null,
+    })
+    .eq("id", enrollment.id);
+  logStep("Business verified, stopping sequence", { email: enrollment.recipient_email });
+  continue;
+}
 ```
 
-The Realtime subscription (lines 69–83) already handles adding the new message to the UI immediately — with its deduplication check (`if (prev.some((m) => m.id === msg.id)) return prev`) — so no message will be lost.
+This check is placed **before** the existing onboarding completion check and the closed account check, so verified businesses exit immediately.
 
-## Why This is Safe
+### 2. Fix the two currently-active verified enrollments in the database
 
-- The realtime listener fires almost instantly after the DB insert, so there is no perceptible delay in the message appearing.
-- The deduplication guard on the realtime listener ensures no duplicates even in edge cases.
-- The `fetchMessages` full re-fetch was only needed if realtime wasn't in place — it's now redundant.
+The two verified businesses currently in the active queue need to be immediately marked as completed so they don't receive an email when the cron job next fires (within minutes):
+
+```sql
+UPDATE email_sequence_enrollments
+SET 
+  status = 'completed',
+  completed_at = now(),
+  next_send_at = null
+WHERE status = 'active'
+  AND recipient_email IN (
+    SELECT u.email 
+    FROM auth.users u
+    JOIN profiles p ON p.user_id = u.id
+    WHERE p.is_verified = true
+  );
+```
+
+## Files to Change
+
+- `supabase/functions/process-email-sequences/index.ts` — add `is_verified` check
+
+## Database Fix
+
+Run a one-time data fix via the insert tool to mark verified businesses' active enrollments as completed.
+
+## Why This Fully Resolves It
+
+- Any business that becomes verified in the future will be caught before the next email fires, even if they were enrolled before verification
+- The `is_verified` check runs before the profile completeness check, so it exits earlier and more clearly
+- The current two affected enrollments are cleaned up immediately
