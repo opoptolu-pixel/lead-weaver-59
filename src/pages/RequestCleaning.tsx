@@ -39,7 +39,7 @@ import { trackCleaningRequest, trackFormStep } from "@/lib/analytics";
 import { useUtmTracking, getLeadSource } from "@/hooks/useUtmTracking";
 
 // Phase 1 + Phase 2 Job Types - Bundled jobs that exceed £100
-const cleaningTypes = [
+const fullCleaningTypes = [
   // Phase 1 - Core Services (£100+) - Most popular at top
   { id: "end-of-tenancy", label: "End of Tenancy Clean", icon: Home, color: "bg-indigo-100 text-indigo-600", value: "from £150", phase: 1 },
   { id: "airbnb-refresh", label: "Airbnb / Short-Let Refresh", icon: Building2, color: "bg-teal-100 text-teal-600", value: "from £130", phase: 1 },
@@ -56,6 +56,15 @@ const cleaningTypes = [
   { id: "post-construction", label: "Post-Construction Deep Clean", icon: Truck, color: "bg-slate-100 text-slate-600", value: "from £200", phase: 2 },
   { id: "large-window-interior", label: "Large Property Window + Interior", icon: Home, color: "bg-sky-100 text-sky-600", value: "from £180", phase: 2 },
   { id: "multi-room-upholstery", label: "Multi-Room + Upholstery Deep Clean", icon: Sofa, color: "bg-purple-100 text-purple-600", value: "from £160", phase: 2 },
+];
+
+// Simplified variant - 5 key services
+const simplifiedCleaningTypes = [
+  { id: "end-of-tenancy", label: "End of Tenancy Clean", icon: Home, color: "bg-indigo-100 text-indigo-600", value: "from £150", phase: 1 },
+  { id: "move-in-out", label: "Move-In / Move-Out Clean", icon: Truck, color: "bg-orange-100 text-orange-600", value: "from £140", phase: 1 },
+  { id: "one-off-deep", label: "One-Off Deep Clean", icon: Sparkles, color: "bg-cyan-100 text-cyan-600", value: "from £100", phase: 1 },
+  { id: "weekly-routine", label: "Weekly Routine Clean", icon: Calendar, color: "bg-green-100 text-green-600", value: "from £80", phase: 1 },
+  { id: "post-construction", label: "Post-Construction Deep Clean", icon: Truck, color: "bg-slate-100 text-slate-600", value: "from £200", phase: 2 },
 ];
 
 const TOTAL_STEPS = 6;
@@ -107,12 +116,19 @@ export default function RequestCleaning() {
   // Initialize UTM tracking for attribution
   useUtmTracking();
   
+  // Form variant state
+  const [formVariant, setFormVariant] = useState<'full' | 'simplified'>('full');
+  const [variantLoaded, setVariantLoaded] = useState(false);
+
+  // Derive active cleaning types from variant
+  const cleaningTypes = formVariant === 'simplified' ? simplifiedCleaningTypes : fullCleaningTypes;
+
   // Initialize state directly from location.state - runs once before first render
   const [currentStep, setCurrentStep] = useState(() => {
     const navState = location.state as { type?: string; postcode?: string } | null;
     const typeParam = navState?.type || "";
     const postcodeParam = (navState?.postcode || "").toUpperCase();
-    const matchedType = cleaningTypes.find(t => t.id === typeParam);
+    const matchedType = fullCleaningTypes.find(t => t.id === typeParam);
     
     if (matchedType && postcodeParam) {
       const cleaned = postcodeParam.replace(/\s+/g, '');
@@ -130,7 +146,7 @@ export default function RequestCleaning() {
     const navState = location.state as { type?: string; postcode?: string } | null;
     const typeParam = navState?.type || "";
     const postcodeParam = (navState?.postcode || "").toUpperCase();
-    const matchedType = cleaningTypes.find(t => t.id === typeParam);
+    const matchedType = fullCleaningTypes.find(t => t.id === typeParam);
     
     return {
       jobType: matchedType?.label || "",
@@ -159,6 +175,28 @@ export default function RequestCleaning() {
   // Scroll to top on page load only
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
+  }, []);
+
+  // Fetch form variant setting
+  useEffect(() => {
+    const fetchVariant = async () => {
+      try {
+        const { data } = await supabase
+          .from("admin_settings")
+          .select("value")
+          .eq("key", "request_form_variant")
+          .maybeSingle();
+        
+        if (data?.value && typeof data.value === 'object' && 'variant' in data.value) {
+          setFormVariant((data.value as { variant: string }).variant === 'simplified' ? 'simplified' : 'full');
+        }
+      } catch (err) {
+        console.error("Failed to fetch form variant:", err);
+      } finally {
+        setVariantLoaded(true);
+      }
+    };
+    fetchVariant();
   }, []);
 
   const progress = (currentStep / TOTAL_STEPS) * 100;
@@ -471,7 +509,7 @@ export default function RequestCleaning() {
                   What type of cleaning do you need?
                 </h2>
                 <p className="text-gray-500 text-center mb-8">
-                  Select a service package (all jobs £100+)
+                  Select a service package{formVariant === 'full' ? ' (all jobs £100+)' : ''}
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
