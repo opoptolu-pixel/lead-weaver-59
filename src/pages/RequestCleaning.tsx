@@ -512,6 +512,11 @@ export default function RequestCleaning() {
                   Select a service package{formVariant === 'full' ? ' (all jobs £100+)' : ''}
                 </p>
 
+                {!variantLoaded ? (
+                  <div className="flex items-center justify-center py-16">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                  </div>
+                ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
                   {cleaningTypes.map((type) => {
                     const Icon = type.icon;
@@ -547,6 +552,7 @@ export default function RequestCleaning() {
                     );
                   })}
                 </div>
+                )}
               </div>
             )}
 
