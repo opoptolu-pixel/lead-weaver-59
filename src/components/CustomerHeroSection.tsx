@@ -6,10 +6,10 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { trackCTAClick } from "@/lib/analytics";
-
+import { Json } from "@/integrations/supabase/types";
 
 // Cleaning types matching request cleaning page
-const cleaningTypes = [
+const fullCleaningTypes = [
   { id: "carpet-2-3-rooms", label: "Carpet Cleaning (2-3 Rooms)" },
   { id: "sofa-carpet", label: "Sofa + Carpet Cleaning" },
   { id: "sofa-mattress", label: "Sofa + Mattress Cleaning" },
@@ -26,6 +26,14 @@ const cleaningTypes = [
   { id: "multi-room-upholstery", label: "Multi-Room + Upholstery Deep Clean" },
 ];
 
+const simplifiedCleaningTypes = [
+  { id: "end-of-tenancy", label: "End of Tenancy Clean" },
+  { id: "move-in-out", label: "Move-In / Move-Out Clean" },
+  { id: "one-off-deep", label: "One-Off Deep Clean" },
+  { id: "weekly-routine", label: "Weekly Routine Clean" },
+  { id: "post-construction", label: "Post-Construction Deep Clean" },
+];
+
 interface UKLocation {
   postcode: string;
   area: string;
@@ -33,10 +41,13 @@ interface UKLocation {
 }
 
 export const CustomerHeroSection = () => {
-  const [selectedType, setSelectedType] = useState(cleaningTypes[0]);
+  const [formVariant, setFormVariant] = useState<'full' | 'simplified'>('full');
+  const cleaningTypes = formVariant === 'simplified' ? simplifiedCleaningTypes : fullCleaningTypes;
+
+  const [selectedType, setSelectedType] = useState(fullCleaningTypes[0]);
   const [isTypeOpen, setIsTypeOpen] = useState(false);
   const [postcode, setPostcode] = useState("");
-  const [selectedCity, setSelectedCity] = useState<string | null>(null); // Track if a city was selected
+  const [selectedCity, setSelectedCity] = useState<string | null>(null);
   const [showPostcodeSuggestions, setShowPostcodeSuggestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [ukLocations, setUkLocations] = useState<UKLocation[]>([]);
@@ -58,6 +69,30 @@ export const CustomerHeroSection = () => {
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Fetch form variant setting
+  useEffect(() => {
+    const fetchVariant = async () => {
+      try {
+        const { data } = await supabase
+          .from("admin_settings")
+          .select("value")
+          .eq("key", "request_form_variant")
+          .maybeSingle();
+        
+        if (data?.value && typeof data.value === 'object' && 'variant' in (data.value as Record<string, Json>)) {
+          const variant = (data.value as { variant: string }).variant;
+          setFormVariant(variant === 'simplified' ? 'simplified' : 'full');
+          // Update selected type to first of active list
+          const types = variant === 'simplified' ? simplifiedCleaningTypes : fullCleaningTypes;
+          setSelectedType(types[0]);
+        }
+      } catch (err) {
+        console.error("Failed to fetch form variant:", err);
+      }
+    };
+    fetchVariant();
   }, []);
 
   // Fetch UK locations based on postcode search

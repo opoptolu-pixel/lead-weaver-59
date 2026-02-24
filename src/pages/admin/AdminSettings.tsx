@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import TwoFactorSetup from "@/components/admin/TwoFactorSetup";
 
@@ -67,6 +68,10 @@ export default function AdminSettings() {
     creditPackLarge: "50",
   });
 
+  // Form variant state
+  const [formVariant, setFormVariant] = useState<'full' | 'simplified'>('full');
+  const [savingVariant, setSavingVariant] = useState(false);
+
   // System preferences state
   const [systemPrefs, setSystemPrefs] = useState({
     emailNotifications: true,
@@ -79,6 +84,7 @@ export default function AdminSettings() {
   useEffect(() => {
     fetchUsers();
     fetchEmailTemplates();
+    fetchFormVariant();
   }, []);
 
   const fetchEmailTemplates = async () => {
@@ -96,6 +102,41 @@ export default function AdminSettings() {
       toast.error("Failed to load email templates");
     } finally {
       setLoadingTemplates(false);
+    }
+  };
+
+  const fetchFormVariant = async () => {
+    try {
+      const { data } = await supabase
+        .from("admin_settings")
+        .select("value")
+        .eq("key", "request_form_variant")
+        .maybeSingle();
+      
+      if (data?.value && typeof data.value === 'object' && 'variant' in (data.value as Record<string, unknown>)) {
+        setFormVariant((data.value as { variant: string }).variant === 'simplified' ? 'simplified' : 'full');
+      }
+    } catch (err) {
+      console.error("Failed to fetch form variant:", err);
+    }
+  };
+
+  const handleSaveFormVariant = async (variant: 'full' | 'simplified') => {
+    setSavingVariant(true);
+    try {
+      const { error } = await supabase
+        .from("admin_settings")
+        .update({ value: { variant } })
+        .eq("key", "request_form_variant");
+      
+      if (error) throw error;
+      setFormVariant(variant);
+      toast.success(`Form switched to ${variant === 'full' ? 'Full Menu' : 'Simplified Menu'}`);
+    } catch (error) {
+      console.error("Error saving form variant:", error);
+      toast.error("Failed to save form variant");
+    } finally {
+      setSavingVariant(false);
     }
   };
 
@@ -496,6 +537,58 @@ export default function AdminSettings() {
                   Save Changes
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Form Configuration */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Request Form Configuration</CardTitle>
+              <CardDescription>Control which service options are shown on Step 1 of the customer request form</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => handleSaveFormVariant('full')}
+                  disabled={savingVariant}
+                  className={cn(
+                    "p-4 rounded-xl border-2 text-left transition-all",
+                    formVariant === 'full'
+                      ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                      : "border-border hover:border-primary/50"
+                  )}
+                >
+                  <p className="font-semibold text-foreground">Full Menu</p>
+                  <p className="text-sm text-muted-foreground mt-1">14 service types — carpet, sofa, deep clean, commercial, etc.</p>
+                  {formVariant === 'full' && (
+                    <Badge className="mt-2 bg-primary/20 text-primary border-primary/30">Active</Badge>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSaveFormVariant('simplified')}
+                  disabled={savingVariant}
+                  className={cn(
+                    "p-4 rounded-xl border-2 text-left transition-all",
+                    formVariant === 'simplified'
+                      ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                      : "border-border hover:border-primary/50"
+                  )}
+                >
+                  <p className="font-semibold text-foreground">Simplified Menu</p>
+                  <p className="text-sm text-muted-foreground mt-1">5 key services — end of tenancy, move-in/out, deep clean, weekly, post-construction</p>
+                  {formVariant === 'simplified' && (
+                    <Badge className="mt-2 bg-primary/20 text-primary border-primary/30">Active</Badge>
+                  )}
+                </button>
+              </div>
+              {savingVariant && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Saving...
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
