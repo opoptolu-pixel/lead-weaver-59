@@ -117,8 +117,8 @@ export default function RequestCleaning() {
   useUtmTracking();
   
   // Form variant state
-  const [formVariant, setFormVariant] = useState<'full' | 'simplified'>('full');
-  const [variantLoaded, setVariantLoaded] = useState(false);
+  const [formVariant, setFormVariant] = useState<'full' | 'simplified' | null>(null);
+  const variantLoaded = formVariant !== null;
 
   // Derive active cleaning types from variant
   const cleaningTypes = formVariant === 'simplified' ? simplifiedCleaningTypes : fullCleaningTypes;
@@ -189,11 +189,12 @@ export default function RequestCleaning() {
         
         if (data?.value && typeof data.value === 'object' && 'variant' in data.value) {
           setFormVariant((data.value as { variant: string }).variant === 'simplified' ? 'simplified' : 'full');
+        } else {
+          setFormVariant('full');
         }
       } catch (err) {
         console.error("Failed to fetch form variant:", err);
-      } finally {
-        setVariantLoaded(true);
+        setFormVariant('full');
       }
     };
     fetchVariant();
