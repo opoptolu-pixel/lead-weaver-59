@@ -250,7 +250,7 @@ export default function AdminAnalytics() {
 
   useEffect(() => {
     fetchAnalytics();
-  }, [dateRange]);
+  }, [dateRange, getDateFilter]);
 
   const extractCityFromPostcode = (postcode: string): { city: string; region: string } => {
     // UK postcode area to city mapping

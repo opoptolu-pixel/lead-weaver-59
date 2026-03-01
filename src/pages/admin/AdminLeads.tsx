@@ -193,7 +193,7 @@ export default function AdminLeads() {
 
   useEffect(() => {
     fetchLeads();
-  }, [statusFilter, dateRange]);
+  }, [statusFilter, dateRange, getDateFilter]);
 
   // Real-time subscription for live updates
   useEffect(() => {

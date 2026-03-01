@@ -77,7 +77,7 @@ export default function AdminInquiries() {
 
   useEffect(() => {
     fetchInquiries();
-  }, [dateRange]);
+  }, [dateRange, getDateFilter]);
 
   // Real-time subscription for live updates
   useEffect(() => {

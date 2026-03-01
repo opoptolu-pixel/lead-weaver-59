@@ -110,7 +110,7 @@ export default function AdminVerifications() {
 
   useEffect(() => {
     fetchDocuments();
-  }, [dateRange]);
+  }, [dateRange, getDateFilter]);
 
   // Real-time subscription for live updates
   useEffect(() => {

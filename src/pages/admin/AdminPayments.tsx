@@ -77,7 +77,7 @@ export default function AdminPayments() {
 
   useEffect(() => {
     fetchData();
-  }, [dateRange]);
+  }, [dateRange, getDateFilter]);
 
   // Real-time subscription for live updates
   useEffect(() => {
