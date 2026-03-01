@@ -140,7 +140,7 @@ export default function AdminActivityLogs() {
 
   useEffect(() => {
     fetchLogs();
-  }, [dateRange]);
+  }, [dateRange, getDateFilter]);
 
   useEffect(() => {
     const channel = supabase

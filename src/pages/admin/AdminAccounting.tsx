@@ -131,7 +131,7 @@ export default function AdminAccounting() {
   // Fetch transactions data
   useEffect(() => {
     fetchTransactions();
-  }, [dateRange]);
+  }, [dateRange, getDateFilter]);
 
   const fetchTransactions = async () => {
     if (!dateRange.from || !dateRange.to) return;

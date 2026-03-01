@@ -154,7 +154,7 @@ export default function AdminOverview() {
     fetchChartData();
     fetchPreviousPeriodStats();
     fetchTodayAccounting();
-  }, [dateRange]);
+  }, [dateRange, getDateFilter]);
 
   const fetchTodayAccounting = async () => {
     const todayStart = new Date();

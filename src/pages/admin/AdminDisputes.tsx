@@ -120,7 +120,7 @@ export default function AdminDisputes() {
 
   useEffect(() => {
     fetchDisputes();
-  }, [dateRange]);
+  }, [dateRange, getDateFilter]);
 
   // Real-time subscription for live updates
   useEffect(() => {

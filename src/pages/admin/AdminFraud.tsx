@@ -84,7 +84,7 @@ export default function AdminFraud() {
 
   useEffect(() => {
     fetchData();
-  }, [dateRange]);
+  }, [dateRange, getDateFilter]);
 
   // Real-time subscription for live updates
   useEffect(() => {
