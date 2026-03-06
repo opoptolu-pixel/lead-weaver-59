@@ -182,10 +182,11 @@ export default function AdminOverview() {
     // Filter to only purchased credits for revenue calculations
     const todayPaidPurchases = todayPurchases?.filter(p => p.credit_type !== 'granted') || [];
 
-    // Fetch today's refunds
+    // Fetch today's refunds (only for leads that were actually unlocked/purchased)
     const { data: todayRefunds } = await supabase
       .from("leads")
       .select("id")
+      .eq("is_unlocked", true)
       .gte("refunded_at", todayStart.toISOString())
       .lte("refunded_at", todayEnd.toISOString());
 
@@ -202,6 +203,7 @@ export default function AdminOverview() {
     const { data: yesterdayRefunds } = await supabase
       .from("leads")
       .select("id")
+      .eq("is_unlocked", true)
       .gte("refunded_at", yesterdayStart.toISOString())
       .lte("refunded_at", yesterdayEnd.toISOString());
 
@@ -218,6 +220,7 @@ export default function AdminOverview() {
     const { data: mtdRefunds } = await supabase
       .from("leads")
       .select("id")
+      .eq("is_unlocked", true)
       .gte("refunded_at", mtdStart.toISOString())
       .lte("refunded_at", todayEnd.toISOString());
 
