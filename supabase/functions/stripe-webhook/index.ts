@@ -33,6 +33,180 @@ serve(async (req) => {
     const event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
     logStep("Event received", { type: event.type, id: event.id });
 
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false } }
+    );
+
+    // ─── checkout.session.completed ───────────────────────────────────
+    // Server-side lead unlock: ensures the lead is unlocked even if
+    // the browser redirect to /payment-success fails.
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const leadId = session.metadata?.lead_id;
+      const customerEmail = session.customer_details?.email;
+
+      logStep("checkout.session.completed", { leadId, customerEmail, sessionId: session.id });
+
+      if (leadId && session.payment_status === "paid") {
+        // Check if lead is already unlocked (verify-payment may have beaten us)
+        const { data: lead } = await supabaseClient
+          .from("leads")
+          .select("id, is_unlocked, unlocked_by")
+          .eq("id", leadId)
+          .maybeSingle();
+
+        if (lead && !lead.is_unlocked) {
+          // Resolve the user
+          let userId: string | null = session.metadata?.user_id || null;
+
+          if (!userId && customerEmail) {
+            const { data: existingUsers } = await supabaseClient.auth.admin.listUsers();
+            const found = existingUsers?.users?.find(u => u.email === customerEmail);
+            if (found) {
+              userId = found.id;
+            } else {
+              // Create user (same flow as verify-payment)
+              const securePassword = crypto.randomUUID() + crypto.randomUUID();
+              const { data: newUser, error: createError } = await supabaseClient.auth.admin.createUser({
+                email: customerEmail,
+                password: securePassword,
+                email_confirm: true,
+              });
+              if (!createError && newUser.user) {
+                userId = newUser.user.id;
+                logStep("New user created via webhook", { userId });
+
+                // Send magic link email
+                try {
+                  const resendApiKey = Deno.env.get("RESEND_API_KEY");
+                  if (resendApiKey) {
+                    const { Resend } = await import("npm:resend@2.0.0");
+                    const resend = new Resend(resendApiKey);
+
+                    const { data: magicLinkData } = await supabaseClient.auth.admin.generateLink({
+                      type: "magiclink",
+                      email: customerEmail,
+                      options: { redirectTo: "https://cleanda.co.uk/dashboard" },
+                    });
+
+                    const magicLink = magicLinkData?.properties?.action_link;
+                    if (magicLink) {
+                      await resend.emails.send({
+                        from: "Cleanda <hello@cleanda.co.uk>",
+                        to: [customerEmail],
+                        subject: "Welcome to Cleanda - Access Your Account",
+                        html: `
+                          <!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+                          <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+                            <div style="background: linear-gradient(135deg, #0B3D2E 0%, #145A44 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+                              <h1 style="color: #ffffff; margin: 0; font-size: 28px;">Welcome to Cleanda!</h1>
+                              <p style="color: #7DD3A8; margin: 8px 0 0 0; font-size: 14px;">Partner Network</p>
+                            </div>
+                            <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e5e5; border-top: none; border-radius: 0 0 12px 12px;">
+                              <p style="font-size: 16px; margin-bottom: 20px;">Thank you for your purchase! Your lead has been unlocked and your account is ready.</p>
+                              <p style="font-size: 16px; margin-bottom: 25px;">Click the button below to securely access your dashboard:</p>
+                              <div style="text-align: center; margin: 30px 0;">
+                                <a href="${magicLink}" style="background: linear-gradient(135deg, #0B3D2E 0%, #145A44 100%); color: white; padding: 14px 40px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; display: inline-block;">Access Your Dashboard</a>
+                              </div>
+                              <p style="font-size: 14px; color: #666; margin-top: 25px;">This magic link will expire in 24 hours.</p>
+                              <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 25px 0;">
+                              <p style="font-size: 12px; color: #999; text-align: center;">© ${new Date().getFullYear()} Cleanda · All rights reserved</p>
+                            </div>
+                          </body></html>
+                        `,
+                      });
+                      logStep("Welcome email sent via webhook");
+                    }
+                  }
+                } catch (emailErr: any) {
+                  logStep("Welcome email failed via webhook (non-blocking)", { error: emailErr.message });
+                }
+              } else {
+                logStep("Failed to create user via webhook", { error: createError?.message });
+              }
+            }
+          }
+
+          if (userId) {
+            // Unlock the lead atomically
+            const { data: updatedLead, error: updateError } = await supabaseClient
+              .from("leads")
+              .update({
+                is_unlocked: true,
+                unlocked_by: userId,
+                unlocked_at: new Date().toISOString(),
+                lead_status: "purchased",
+                outcome_status: "purchased",
+              })
+              .eq("id", leadId)
+              .eq("is_unlocked", false)
+              .select("id")
+              .maybeSingle();
+
+            if (updateError) {
+              logStep("Failed to unlock lead via webhook", { error: updateError.message });
+            } else if (updatedLead) {
+              logStep("Lead unlocked via webhook", { leadId, userId });
+
+              // Complete reservation
+              await supabaseClient.rpc("complete_lead_reservation", { p_lead_id: leadId });
+
+              // Increment leads_purchased
+              await supabaseClient.rpc("increment_leads_purchased", { user_uuid: userId });
+
+              // Log activity
+              const { data: profile } = await supabaseClient
+                .from("profiles")
+                .select("business_name, contact_name")
+                .eq("user_id", userId)
+                .maybeSingle();
+
+              await supabaseClient.from("activity_logs").insert({
+                user_id: userId,
+                entity_type: "lead",
+                entity_id: leadId,
+                action: "purchase",
+                details: {
+                  payment_method: "stripe",
+                  session_id: session.id,
+                  business_name: profile?.business_name || "Unknown Business",
+                  contact_name: profile?.contact_name || customerEmail,
+                  amount_paid: "£20",
+                  source: "stripe_webhook_checkout_completed",
+                },
+              });
+
+              // Fire-and-forget SMS notification
+              try {
+                const smsUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-sms-notification`;
+                fetch(smsUrl, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+                  },
+                  body: JSON.stringify({ type: "lead_unlocked", leadId, userId }),
+                }).catch(err => logStep("SMS via webhook failed (non-blocking)", { error: err.message }));
+              } catch (_) { /* non-blocking */ }
+
+              logStep("All post-purchase side effects completed via webhook");
+            } else {
+              logStep("Lead was unlocked between check and update (race with verify-payment, safe)", { leadId });
+            }
+          } else {
+            logStep("Could not resolve userId for checkout session", { leadId, customerEmail });
+          }
+        } else if (lead?.is_unlocked) {
+          logStep("Lead already unlocked (verify-payment handled it)", { leadId, owner: lead.unlocked_by });
+        }
+      } else {
+        logStep("Skipping checkout.session.completed — no lead_id or not paid", { leadId, paymentStatus: session.payment_status });
+      }
+    }
+
+    // ─── charge.refunded ──────────────────────────────────────────────
     if (event.type === "charge.refunded") {
       const charge = event.data.object as Stripe.Charge;
       const paymentIntentId = charge.payment_intent as string | null;
@@ -41,14 +215,7 @@ serve(async (req) => {
 
       logStep("Processing refund", { paymentIntentId, customerEmail, amountRefunded });
 
-      const supabaseClient = createClient(
-        Deno.env.get("SUPABASE_URL") ?? "",
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-        { auth: { persistSession: false } }
-      );
-
       // Try to find the lead via checkout session metadata
-      // Search for the checkout session that created this payment intent
       if (paymentIntentId) {
         const sessions = await stripe.checkout.sessions.list({
           payment_intent: paymentIntentId,
@@ -62,7 +229,6 @@ serve(async (req) => {
           const credits = session.metadata?.credits;
 
           if (leadId) {
-            // This was a lead purchase refund
             const { error } = await supabaseClient
               .from("leads")
               .update({
@@ -78,7 +244,6 @@ serve(async (req) => {
               logStep("Lead marked as refunded", { leadId });
             }
 
-            // Log to activity_logs
             if (userId) {
               await supabaseClient.from("activity_logs").insert({
                 user_id: userId,
@@ -95,16 +260,12 @@ serve(async (req) => {
               logStep("Activity log created for lead refund");
             }
           } else if (credits) {
-            // This was a credit purchase refund
             logStep("Credit purchase refund detected", { credits, userId });
 
             if (userId) {
-              // Deduct credits that were refunded
               const creditCount = parseInt(credits, 10);
               if (!isNaN(creditCount) && creditCount > 0) {
-                const { error } = await supabaseClient.rpc("increment_leads_purchased", { user_uuid: userId });
-                // Note: We log it but don't deduct credits automatically to avoid issues
-                // Admin should review credit refunds manually
+                await supabaseClient.rpc("increment_leads_purchased", { user_uuid: userId });
               }
 
               await supabaseClient.from("activity_logs").insert({
