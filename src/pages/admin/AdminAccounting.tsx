@@ -84,6 +84,16 @@ interface GrantedCredit {
   grantedBy: string;
 }
 
+interface CreditPurchase {
+  id: string;
+  date: string;
+  creditsAdded: number;
+  amountPaid: number;
+  businessName: string | null;
+  contactName: string | null;
+  stripeSessionId: string | null;
+}
+
 export default function AdminAccounting() {
   const { toast } = useToast();
   const { getDateFilter, dateRange: dateRangePreset, customStartDate, customEndDate } = useAdmin();
@@ -96,6 +106,7 @@ export default function AdminAccounting() {
   const [showPrintView, setShowPrintView] = useState(false);
   const [yoyTransactions, setYoyTransactions] = useState<Transaction[]>([]);
   const [grantedCredits, setGrantedCredits] = useState<GrantedCredit[]>([]);
+  const [creditPurchases, setCreditPurchases] = useState<CreditPurchase[]>([]);
 
   // Get date range from global context
   const dateRange = useMemo(() => {
@@ -289,6 +300,35 @@ export default function AdminAccounting() {
         });
         setGrantedCredits(grantedCreditsData);
       }
+
+      // Fetch credit pack purchases from activity_logs
+      const { data: creditPurchaseData, error: creditPurchaseError } = await supabase
+        .from("activity_logs")
+        .select("id, created_at, details, user_id")
+        .eq("action", "credits_purchased")
+        .gte("created_at", dateRange.from.toISOString())
+        .lte("created_at", dateRange.to.toISOString())
+        .order("created_at", { ascending: false });
+
+      if (creditPurchaseError) {
+        console.error("Error fetching credit purchases:", creditPurchaseError);
+      } else {
+        const creditPurchasesData: CreditPurchase[] = (creditPurchaseData || []).map(log => {
+          const details = (typeof log.details === 'object' && log.details !== null) 
+            ? log.details as Record<string, unknown> 
+            : {};
+          return {
+            id: log.id,
+            date: log.created_at,
+            creditsAdded: Number(details.credits_added) || 0,
+            amountPaid: Number(details.amount_paid) || (Number(details.credits_added) || 0) * LEAD_PRICE,
+            businessName: String(details.business_name || "Unknown Business"),
+            contactName: details.contact_name ? String(details.contact_name) : null,
+            stripeSessionId: details.stripe_session_id ? String(details.stripe_session_id) : null,
+          };
+        });
+        setCreditPurchases(creditPurchasesData);
+      }
     } catch (error: any) {
       toast({
         title: "Error loading transactions",
@@ -336,6 +376,29 @@ export default function AdminAccounting() {
       byBusiness,
     };
   }, [grantedCredits]);
+
+  // Calculate credit purchase metrics
+  const creditPurchaseMetrics = useMemo(() => {
+    const totalCredits = creditPurchases.reduce((sum, cp) => sum + cp.creditsAdded, 0);
+    const totalRevenue = creditPurchases.reduce((sum, cp) => sum + cp.amountPaid, 0);
+    
+    // Group by business
+    const byBusiness = creditPurchases.reduce((acc, cp) => {
+      const business = cp.businessName || "Unknown";
+      if (!acc[business]) acc[business] = { credits: 0, revenue: 0, count: 0 };
+      acc[business].credits += cp.creditsAdded;
+      acc[business].revenue += cp.amountPaid;
+      acc[business].count += 1;
+      return acc;
+    }, {} as Record<string, { credits: number; revenue: number; count: number }>);
+
+    return {
+      totalCredits,
+      totalRevenue,
+      purchaseCount: creditPurchases.length,
+      byBusiness,
+    };
+  }, [creditPurchases]);
 
   // Calculate KPIs
   const kpis = useMemo(() => {
@@ -1186,6 +1249,76 @@ export default function AdminAccounting() {
                       <strong>Note:</strong> Granted credits represent free value given to businesses (goodwill, compensation, promos). 
                       The "Est. Actual Cash Revenue" subtracts this from Net Revenue to approximate real cash received.
                     </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Credit Pack Purchases Summary */}
+            <Card className="border-blue-500/30 bg-blue-500/5">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Coins className="h-5 w-5 text-blue-500" />
+                      Credit Pack Purchases
+                    </CardTitle>
+                    <CardDescription>Revenue from credit pack purchases (separate from per-lead payments)</CardDescription>
+                  </div>
+                  <Badge variant="outline" className="border-blue-500/50 text-blue-600">
+                    {creditPurchaseMetrics.purchaseCount} purchases
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {creditPurchaseMetrics.purchaseCount === 0 ? (
+                  <div className="text-center py-6 text-muted-foreground">
+                    <Coins className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                    <p>No credit pack purchases in this period</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg text-center">
+                        <p className="text-3xl font-bold text-blue-600">{creditPurchaseMetrics.totalCredits}</p>
+                        <p className="text-sm text-muted-foreground">Credits Purchased</p>
+                      </div>
+                      <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg text-center">
+                        <p className="text-3xl font-bold text-blue-600">£{creditPurchaseMetrics.totalRevenue.toLocaleString()}</p>
+                        <p className="text-sm text-muted-foreground">Revenue from Packs</p>
+                      </div>
+                      <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg text-center">
+                        <p className="text-3xl font-bold text-green-600">£{(kpis.actualCashRevenue + creditPurchaseMetrics.totalRevenue).toLocaleString()}</p>
+                        <p className="text-sm text-muted-foreground">Total Cash Revenue</p>
+                      </div>
+                    </div>
+
+                    {/* Top Buyers */}
+                    {Object.keys(creditPurchaseMetrics.byBusiness).length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                          <Building2 className="h-4 w-4 text-muted-foreground" />
+                          Top Credit Buyers
+                        </h4>
+                        <div className="space-y-2">
+                          {Object.entries(creditPurchaseMetrics.byBusiness)
+                            .sort((a, b) => b[1].revenue - a[1].revenue)
+                            .slice(0, 5)
+                            .map(([business, data]) => (
+                              <div key={business} className="flex items-center justify-between p-2 bg-muted/30 rounded">
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="outline" className="text-xs">{data.count}x</Badge>
+                                  <span className="text-sm font-medium truncate max-w-[200px]">{business}</span>
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-sm font-bold">{data.credits} credits</span>
+                                  <span className="text-sm text-muted-foreground ml-2">(£{data.revenue})</span>
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    )}
                   </>
                 )}
               </CardContent>
