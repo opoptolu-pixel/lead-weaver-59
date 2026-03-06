@@ -1,56 +1,39 @@
 
 
-# Hybrid Request Form - Step 1 Variant Toggle
+## Investigation Findings
 
-## Overview
-Add an alternative "simplified" Step 1 to the customer request cleaning form, controlled by an admin setting. The simplified variant shows 5 service types instead of the current 14. An admin toggle in Settings lets you switch between them.
+I investigated the database, Stripe payments, and accounting code. Here is what I found:
 
-## What Changes
+### Issue 1: Three £20 credit purchases (£60 total) are not reflected in accounting
 
-### 1. Database: Store the active form variant
-- Add a new row in `admin_settings` with key `request_form_variant`
-- Value: `{ "variant": "full" }` (default) or `{ "variant": "simplified" }`
+There are 3 recent successful Stripe payments of £20 each from customer `cus_U4jkmVuUPS2Qd7`, but:
+- **Zero** `credits_purchased` activity logs exist in the database
+- **Zero** `verify-credits` edge function logs exist (the function was never called)
+- The `stripe-webhook` function has **no logs at all** -- meaning it has never received any events from Stripe
 
-### 2. Request Cleaning Page (`src/pages/RequestCleaning.tsx`)
-- Add a second array `simplifiedCleaningTypes` with the 5 services:
-  - End of Tenancy Clean
-  - Move-In / Move-Out Clean
-  - One-Off Deep Clean
-  - Weekly Routine Clean (new type)
-  - Post-Construction Deep Clean
-- On mount, fetch `request_form_variant` from `admin_settings` (public read not needed -- we'll use the edge function or a simple anon-friendly approach since this is a public page)
-- Render the appropriate list in Step 1 based on the fetched variant
-- All other steps (2-6) remain unchanged
+This means the customer paid £60 via Stripe but the credits were never added to their account. The `verify-credits` function (called client-side from `/credits-success`) apparently failed silently, and the webhook backup never fired because `checkout.session.completed` is not configured on the Stripe webhook endpoint.
 
-### 3. Customer Hero Section (`src/components/CustomerHeroSection.tsx`)
-- The hero dropdown also lists cleaning types -- it will also respect the variant setting so the homepage dropdown matches Step 1
+### Issue 2: The £20 refund is not showing in accounting
 
-### 4. Admin Settings Page (`src/pages/admin/AdminSettings.tsx`)
-- Add a "Form Configuration" card inside the "Site Config" tab
-- Simple toggle/radio with two options:
-  - **Full Menu** (14 services) -- current default
-  - **Simplified Menu** (5 services)
-- Saves to `admin_settings` table with key `request_form_variant`
+The lead `a3cd7898` was refunded (activity log confirms `auto_refund_duplicate` with `refund_success: true` and `refund_id: pyr_1T1cBnHaP2wEKuykl59342kH`), but the lead's `refunded_at` column is still `NULL`. The accounting page determines refund status by checking `refunded_at`, so this refund is invisible.
 
-## Technical Details
+### Plan
 
-### New cleaning type to add
-```
-{ id: "weekly-routine", label: "Weekly Routine Clean", icon: Calendar, color: "bg-green-100 text-green-600", value: "from £80" }
-```
-Note: Weekly Routine Clean is below the current GBP100 minimum. The subtitle text on Step 1 will adapt -- the simplified variant won't say "all jobs GBP100+" since weekly routine starts lower.
+**1. Fix the missing refund on lead `a3cd7898`**
+- Run a data update to set `refunded_at` and `outcome_status = 'refunded'` on the lead that was already refunded in Stripe but not updated in the database.
 
-### Data flow
-- Admin saves variant choice to `admin_settings` (key: `request_form_variant`)
-- The request cleaning page reads it on load (via a quick query) and picks which array to render
-- Since `admin_settings` requires admin auth for SELECT, we'll add a permissive RLS policy for this specific key, or fetch it via a lightweight edge function. The simplest approach: add a permissive SELECT policy on `admin_settings` for rows where `key = 'request_form_variant'` so the public page can read it without auth.
+**2. Add credit purchase handling to the `checkout.session.completed` webhook**
+- The current webhook handler only unlocks leads (checks for `lead_id` in metadata). It does not handle credit purchases (which have `credits` in metadata instead of `lead_id`).
+- Add logic: if `session.metadata.credits` exists and `session.metadata.user_id` exists, add the credits to the user's profile and log a `credits_purchased` activity -- the same thing `verify-credits` does, but as a server-side fallback.
 
-### Files to modify
-- `src/pages/RequestCleaning.tsx` -- add simplified types array, fetch variant, conditionally render
-- `src/components/CustomerHeroSection.tsx` -- same variant logic for the homepage dropdown
-- `src/pages/admin/AdminSettings.tsx` -- add toggle UI in Site Config tab
-- Database migration: insert default setting row + add public read RLS for this specific key
+**3. Add credit purchase tracking to the accounting page**
+- The accounting page currently only tracks lead transactions. It does not query or display credit purchase revenue separately.
+- Add a query for `credits_purchased` activity logs and include credit pack purchases as revenue line items, so the £40 (or £60) in credit purchases shows up in the financial overview.
 
-### Edge cases
-- If the setting doesn't exist yet, default to "full" (current behavior)
-- The `submit-cleaning-request` edge function already accepts any `jobType` string, so new types work without backend changes
+**4. Configure Stripe webhook**
+- You still need to add `checkout.session.completed` to your Stripe webhook endpoint at `dashboard.stripe.com`. Without this, the server-side fallback will never fire.
+
+### Immediate data fix needed
+- Update lead `a3cd7898` to set `refunded_at` and `outcome_status`
+- Manually verify and add the 3 credit purchases to the correct user's profile if they haven't been applied
+
