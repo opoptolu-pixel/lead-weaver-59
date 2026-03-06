@@ -51,6 +51,31 @@ serve(async (req) => {
 
     logStep("Adding credits", { userId, creditsToAdd });
 
+    // Idempotency check: see if credits were already added for this session
+    const { data: existingLog } = await supabaseClient
+      .from("activity_logs")
+      .select("id, details")
+      .eq("user_id", userId)
+      .eq("action", "credits_purchased")
+      .filter("details->>stripe_session_id", "eq", sessionId)
+      .maybeSingle();
+
+    if (existingLog) {
+      const existingDetails = (typeof existingLog.details === 'object' && existingLog.details !== null)
+        ? existingLog.details as Record<string, unknown>
+        : {};
+      logStep("Credits already added for this session (idempotent)", { sessionId });
+      return new Response(JSON.stringify({
+        success: true,
+        creditsAdded: Number(existingDetails.credits_added) || creditsToAdd,
+        totalCredits: Number(existingDetails.credits_total) || 0,
+        amountPaid: (session.amount_total || 0) / 100,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
     // Get current credits
     const { data: profile, error: profileError } = await supabaseClient
       .from("profiles")
@@ -91,8 +116,10 @@ serve(async (req) => {
         credits_total: newCredits,
         payment_method: "stripe",
         stripe_session_id: sessionId,
+        amount_paid: (session.amount_total || 0) / 100,
         business_name: businessProfile?.business_name || "Unknown Business",
         contact_name: businessProfile?.contact_name || null,
+        source: "verify_credits",
       },
     });
     logStep("Credit purchase activity logged");
@@ -101,6 +128,7 @@ serve(async (req) => {
       success: true,
       creditsAdded: creditsToAdd,
       totalCredits: newCredits,
+      amountPaid: (session.amount_total || 0) / 100,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,

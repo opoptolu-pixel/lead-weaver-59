@@ -201,8 +201,73 @@ serve(async (req) => {
         } else if (lead?.is_unlocked) {
           logStep("Lead already unlocked (verify-payment handled it)", { leadId, owner: lead.unlocked_by });
         }
+      } else if (!leadId && session.metadata?.credits && session.metadata?.user_id) {
+        // ─── Credit purchase fallback ─────────────────────────────────
+        const creditsToAdd = parseInt(session.metadata.credits, 10);
+        const creditUserId = session.metadata.user_id;
+
+        if (session.payment_status === "paid" && creditsToAdd > 0) {
+          logStep("Processing credit purchase via webhook", { creditUserId, creditsToAdd });
+
+          // Check if credits were already added (idempotency via activity_logs)
+          const { data: existingLog } = await supabaseClient
+            .from("activity_logs")
+            .select("id")
+            .eq("user_id", creditUserId)
+            .eq("action", "credits_purchased")
+            .filter("details->>stripe_session_id", "eq", session.id)
+            .maybeSingle();
+
+          if (existingLog) {
+            logStep("Credits already added for this session (idempotent skip)", { sessionId: session.id });
+          } else {
+            // Get current credits
+            const { data: profile, error: profileError } = await supabaseClient
+              .from("profiles")
+              .select("credits, business_name, contact_name")
+              .eq("user_id", creditUserId)
+              .single();
+
+            if (profileError) {
+              logStep("Failed to fetch profile for credit purchase", { error: profileError.message });
+            } else {
+              const currentCredits = profile?.credits || 0;
+              const newCredits = currentCredits + creditsToAdd;
+
+              const { error: updateError } = await supabaseClient
+                .from("profiles")
+                .update({ credits: newCredits })
+                .eq("user_id", creditUserId);
+
+              if (updateError) {
+                logStep("Failed to update credits via webhook", { error: updateError.message });
+              } else {
+                logStep("Credits added via webhook", { currentCredits, creditsToAdd, newCredits });
+
+                // Log activity
+                await supabaseClient.from("activity_logs").insert({
+                  user_id: creditUserId,
+                  entity_type: "business",
+                  entity_id: creditUserId,
+                  action: "credits_purchased",
+                  details: {
+                    credits_added: creditsToAdd,
+                    credits_total: newCredits,
+                    payment_method: "stripe",
+                    stripe_session_id: session.id,
+                    amount_paid: (session.amount_total || 0) / 100,
+                    business_name: profile?.business_name || "Unknown Business",
+                    contact_name: profile?.contact_name || null,
+                    source: "stripe_webhook_checkout_completed",
+                  },
+                });
+                logStep("Credit purchase activity logged via webhook");
+              }
+            }
+          }
+        }
       } else {
-        logStep("Skipping checkout.session.completed — no lead_id or not paid", { leadId, paymentStatus: session.payment_status });
+        logStep("Skipping checkout.session.completed — no lead_id or credits metadata, or not paid", { leadId, paymentStatus: session.payment_status });
       }
     }
 
