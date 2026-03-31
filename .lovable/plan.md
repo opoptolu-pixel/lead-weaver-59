@@ -1,39 +1,70 @@
 
 
-## Investigation Findings
+## Store Actual Amount Paid Per Lead + Price Change to £12
 
-I investigated the database, Stripe payments, and accounting code. Here is what I found:
+### Problem
+Revenue calculations use a hardcoded `LEAD_PRICE = 20` constant. Changing it to 12 would retroactively misreport historical £20 sales. We need to store the actual price paid on each lead so accounting is always accurate.
 
-### Issue 1: Three £20 credit purchases (£60 total) are not reflected in accounting
+### Approach
 
-There are 3 recent successful Stripe payments of £20 each from customer `cus_U4jkmVuUPS2Qd7`, but:
-- **Zero** `credits_purchased` activity logs exist in the database
-- **Zero** `verify-credits` edge function logs exist (the function was never called)
-- The `stripe-webhook` function has **no logs at all** -- meaning it has never received any events from Stripe
+**Phase 1: Database — Add `amount_paid` column to `leads` table**
 
-This means the customer paid £60 via Stripe but the credits were never added to their account. The `verify-credits` function (called client-side from `/credits-success`) apparently failed silently, and the webhook backup never fired because `checkout.session.completed` is not configured on the Stripe webhook endpoint.
+Add a new nullable integer column `amount_paid` (in pounds) to the `leads` table, defaulting to NULL. Then backfill all existing unlocked leads with `amount_paid = 20` (since every historical purchase was £20). Going forward, new purchases at £12 will store `amount_paid = 12`.
 
-### Issue 2: The £20 refund is not showing in accounting
+**Phase 2: Edge functions — Write `amount_paid` on purchase**
 
-The lead `a3cd7898` was refunded (activity log confirms `auto_refund_duplicate` with `refund_success: true` and `refund_id: pyr_1T1cBnHaP2wEKuykl59342kH`), but the lead's `refunded_at` column is still `NULL`. The accounting page determines refund status by checking `refunded_at`, so this refund is invisible.
+Update these 4 edge functions to set `amount_paid` when unlocking a lead:
 
-### Plan
+| File | Change |
+|------|--------|
+| `supabase/functions/verify-payment/index.ts` | Add `amount_paid: 12` to the lead update; change log `"£20"` → `"£12"` |
+| `supabase/functions/stripe-webhook/index.ts` | Add `amount_paid: 12` to the lead update; change log `"£20"` → `"£12"` |
+| `supabase/functions/unlock-lead/index.ts` | Set `amount_paid: 12` on the lead update (credit-based unlock) |
+| `supabase/functions/use-credit/index.ts` | Set `amount_paid: 12` on the lead update (if applicable) |
 
-**1. Fix the missing refund on lead `a3cd7898`**
-- Run a data update to set `refunded_at` and `outcome_status = 'refunded'` on the lead that was already refunded in Stripe but not updated in the database.
+Also update `deduct_credit_atomic` DB function to set `amount_paid = 12` on the lead.
 
-**2. Add credit purchase handling to the `checkout.session.completed` webhook**
-- The current webhook handler only unlocks leads (checks for `lead_id` in metadata). It does not handle credit purchases (which have `credits` in metadata instead of `lead_id`).
-- Add logic: if `session.metadata.credits` exists and `session.metadata.user_id` exists, add the credits to the user's profile and log a `credits_purchased` activity -- the same thing `verify-credits` does, but as a server-side fallback.
+**Phase 3: Admin dashboards — Use `amount_paid` instead of constant**
 
-**3. Add credit purchase tracking to the accounting page**
-- The accounting page currently only tracks lead transactions. It does not query or display credit purchase revenue separately.
-- Add a query for `credits_purchased` activity logs and include credit pack purchases as revenue line items, so the £40 (or £60) in credit purchases shows up in the financial overview.
+| File | Change |
+|------|--------|
+| `AdminAccounting.tsx` | Replace `LEAD_PRICE` constant with `lead.amount_paid \|\| 20` fallback; sum actual amounts instead of `count * 20` |
+| `AdminOverview.tsx` | Replace all `* 20` revenue/refund calculations with sum of `amount_paid` from query results |
+| `AdminAnalytics.tsx` | Replace `* 20` spend calculations with sum of `amount_paid` |
+| `AdminPayments.tsx` | Use `lead.amount_paid \|\| 20` instead of hardcoded `amount: 20` |
+| `Billing.tsx` | Use `lead.amount_paid \|\| 20` instead of hardcoded `amount: 20` |
+| `ConversionNotifications.tsx` | Use `amount_paid` from lead data instead of `"+£20"` |
+| `LiveCheckoutsPanel.tsx` | Change `* 20` to `* 12` (checkout estimates, not historical) |
 
-**4. Configure Stripe webhook**
-- You still need to add `checkout.session.completed` to your Stripe webhook endpoint at `dashboard.stripe.com`. Without this, the server-side fallback will never fire.
+**Phase 4: Frontend pricing — Update £20 → £12 everywhere**
 
-### Immediate data fix needed
-- Update lead `a3cd7898` to set `refunded_at` and `outcome_status`
-- Manually verify and add the 3 credit purchases to the correct user's profile if they haven't been applied
+| File | Change |
+|------|--------|
+| `Pricing.tsx` | Pay As You Go: £12; 5-pack: £50 (£10/lead, save £10); 10-pack: £90 (£9/lead, save £30); new Stripe price IDs |
+| `HeroSection.tsx` | "£20 Per Lead" → "£12 Per Lead" |
+| `ServicesGrid.tsx` | "£20 to unlock" → "£12 to unlock" |
+| `Leads.tsx` | All "£20" references → "£12" |
+| `ForCleaners.tsx` | SEO/FAQ pricing text |
+| `Dashboard.tsx` | Credit pack modal prices |
+| `AdminLeads.tsx` | "Paid £20" → "Paid £12" |
+
+**Phase 5: Stripe — New price objects**
+
+Create 3 new Stripe prices:
+- Pay As You Go: £12
+- 5 Lead Bundle: £50
+- 10 Lead Bundle: £90
+
+Update `buy-credits/index.ts` and `unlock-lead/index.ts` with new price IDs.
+
+**Phase 6: Fix existing build errors**
+
+| File | Fix |
+|------|-----|
+| `ErrorBoundary.tsx` | `process.env.NODE_ENV` → `import.meta.env.DEV` |
+| `useCheckoutActivity.ts` | `NodeJS.Timeout` → `ReturnType<typeof setTimeout>` |
+| `useLeadReservations.ts` | `NodeJS.Timeout` → `ReturnType<typeof setTimeout>` |
+
+### Key detail
+The `|| 20` fallback ensures any lead missing `amount_paid` (pre-migration edge case) still reports correctly. The backfill migration sets all existing unlocked leads to 20, so the fallback is just a safety net.
 
