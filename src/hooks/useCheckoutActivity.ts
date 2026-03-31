@@ -12,7 +12,7 @@ const RESERVATION_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 export const useCheckoutActivity = () => {
   const [activeCheckouts, setActiveCheckouts] = useState<CheckoutSession[]>([]);
   const [checkoutCount, setCheckoutCount] = useState(0);
-  const timeoutCheckRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutCheckRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Filter out expired checkouts (older than 5 minutes)
   const filterExpiredCheckouts = useCallback((sessions: CheckoutSession[]) => {
