@@ -33,7 +33,7 @@ export const useLeadReservations = (userId?: string) => {
   const [reservedLeads, setReservedLeads] = useState<Map<string, LeadReservation>>(new Map());
   const [myActiveCheckout, setMyActiveCheckout] = useState<MyActiveCheckout | null>(null);
   const visitorIdRef = useRef<string>(getOrCreateVisitorId(userId));
-  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const refreshIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Fetch all active reservations from database
   const fetchReservations = useCallback(async (leadIds: string[]) => {
