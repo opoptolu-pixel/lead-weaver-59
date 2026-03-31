@@ -786,6 +786,7 @@ export type Database = {
       leads: {
         Row: {
           admin_notes: string | null
+          amount_paid: number | null
           auto_publish_at: string | null
           bedrooms: string | null
           booked_date: string | null
@@ -830,6 +831,7 @@ export type Database = {
         }
         Insert: {
           admin_notes?: string | null
+          amount_paid?: number | null
           auto_publish_at?: string | null
           bedrooms?: string | null
           booked_date?: string | null
@@ -874,6 +876,7 @@ export type Database = {
         }
         Update: {
           admin_notes?: string | null
+          amount_paid?: number | null
           auto_publish_at?: string | null
           bedrooms?: string | null
           booked_date?: string | null
