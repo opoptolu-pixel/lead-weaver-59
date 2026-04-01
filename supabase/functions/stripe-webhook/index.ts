@@ -139,6 +139,7 @@ serve(async (req) => {
                 unlocked_at: new Date().toISOString(),
                 lead_status: "purchased",
                 outcome_status: "purchased",
+                amount_paid: 12,
               })
               .eq("id", leadId)
               .eq("is_unlocked", false)
