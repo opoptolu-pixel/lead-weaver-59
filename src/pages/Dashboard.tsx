@@ -559,10 +559,10 @@ export default function Dashboard() {
                     >
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-semibold text-lg text-foreground">5 Credits</span>
-                        <span className="text-secondary font-bold text-xl">£90</span>
+                        <span className="text-secondary font-bold text-xl">£50</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground text-sm">£18 per lead</span>
+                        <span className="text-muted-foreground text-sm">£10 per lead</span>
                         <span className="text-secondary text-sm font-medium">Save £10</span>
                       </div>
                       {buyingCredits === "5" && (
