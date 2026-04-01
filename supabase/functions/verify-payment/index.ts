@@ -248,7 +248,7 @@ serve(async (req) => {
             refund_id: refundId,
             refund_success: refundSuccess,
             refund_error: refundError,
-            amount: "£20",
+            amount: "£12",
             customer_email: customerEmail,
             actual_owner: existingLead?.unlocked_by,
           },
