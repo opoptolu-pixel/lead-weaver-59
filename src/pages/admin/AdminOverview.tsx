@@ -237,20 +237,20 @@ export default function AdminOverview() {
 
     const todayPurchaseCount = todayPaidPurchases.length;
     const todayRefundCount = todayRefunds?.length || 0;
-    const todayRevenue = todayPurchaseCount * 20;
-    const todayRefundAmount = todayRefundCount * 20;
+    const todayRevenue = todayPurchaseCount * 12;
+    const todayRefundAmount = todayRefundCount * 12;
     const netRevenue = todayRevenue - todayRefundAmount;
     const refundRate = todayPurchaseCount > 0 ? Math.round((todayRefundCount / todayPurchaseCount) * 100) : 0;
 
     const yesterdayPurchaseCount = yesterdayPaidPurchases.length;
     const yesterdayRefundCount = yesterdayRefunds?.length || 0;
-    const yesterdayNet = (yesterdayPurchaseCount * 20) - (yesterdayRefundCount * 20);
+    const yesterdayNet = (yesterdayPurchaseCount * 12) - (yesterdayRefundCount * 12);
 
     const mtdPurchaseCount = mtdPaidPurchases.length;
     const mtdRefundCount = mtdRefunds?.length || 0;
-    const mtdRevenue = (mtdPurchaseCount * 20) - (mtdRefundCount * 20);
+    const mtdRevenue = (mtdPurchaseCount * 12) - (mtdRefundCount * 12);
 
-    const pendingDisputeValue = (pendingDisputes?.length || 0) * 20;
+    const pendingDisputeValue = (pendingDisputes?.length || 0) * 12;
     const outstandingCredits = profiles?.reduce((sum, p) => sum + (p.credits || 0), 0) || 0;
 
     setTodayAccounting({
