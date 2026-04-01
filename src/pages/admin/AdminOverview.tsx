@@ -146,7 +146,7 @@ export default function AdminOverview() {
   });
 
   // Calculate net profit (revenue - refunds - ad spend)
-  const netProfit = stats.revenue - (stats.refundsIssued * 20) - adMetrics.totalSpend;
+  const netProfit = stats.revenue - (stats.refundsIssued * 12) - adMetrics.totalSpend;
   const costPerLead = stats.leadsPurchased > 0 ? adMetrics.totalSpend / stats.leadsPurchased : 0;
 
   useEffect(() => {
