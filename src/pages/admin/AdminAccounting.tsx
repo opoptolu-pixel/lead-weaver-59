@@ -324,7 +324,7 @@ export default function AdminAccounting() {
             id: log.id,
             date: log.created_at,
             creditsAdded: Number(details.credits_added) || 0,
-            amountPaid: Number(details.amount_paid) || (Number(details.credits_added) || 0) * LEAD_PRICE,
+            amountPaid: Number(details.amount_paid) || 0,
             businessName: String(details.business_name || "Unknown Business"),
             contactName: details.contact_name ? String(details.contact_name) : null,
             stripeSessionId: details.stripe_session_id ? String(details.stripe_session_id) : null,
