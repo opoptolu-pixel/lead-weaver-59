@@ -217,7 +217,8 @@ serve(async (req) => {
     const customerEmail = purchaserEmail || user.email;
     const customers = await stripe.customers.list({ email: customerEmail, limit: 1 });
     
-    // Generate PDF receipt data - use fixed lead price of £20
+    // Generate PDF receipt data - use actual amount_paid or fallback
+    const leadPrice = (lead as any).amount_paid || DEFAULT_LEAD_PRICE_POUNDS;
     const receiptData = {
       receiptId: lead.id.substring(0, 8),
       date: lead.unlocked_at || new Date().toISOString(),
