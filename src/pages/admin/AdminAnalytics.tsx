@@ -910,7 +910,7 @@ export default function AdminAnalytics() {
                             ? ((adMetrics.totalConversions * 12) / adMetrics.totalSpend).toFixed(2) 
                             : "0"}x
                         </p>
-                        <p className="text-sm text-muted-foreground">Based on £20/lead revenue</p>
+                        <p className="text-sm text-muted-foreground">Based on £12/lead revenue</p>
                       </CardContent>
                     </Card>
                   </div>
