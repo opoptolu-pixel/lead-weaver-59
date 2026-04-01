@@ -124,7 +124,7 @@ export default function AdminPayments() {
       // Fetch purchased leads (these are actual purchases)
       const { data: leadsData, error: leadsError } = await supabase
         .from("leads")
-        .select("id, unlocked_by, unlocked_at, job_type, postcode, value, lead_status, refunded_at, credit_type")
+        .select("id, unlocked_by, unlocked_at, job_type, postcode, value, lead_status, refunded_at, credit_type, amount_paid")
         .eq("is_unlocked", true)
         .gte("unlocked_at", startISO)
         .lte("unlocked_at", endISO)
