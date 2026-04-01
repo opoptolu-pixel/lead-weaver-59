@@ -483,9 +483,9 @@ export default function AdminAccounting() {
   const yoyKpis = useMemo(() => {
     // Only count purchased credits as revenue
     const purchasedYoyTxns = yoyTransactions.filter(t => t.creditType === "purchased");
-    const grossRevenue = purchasedYoyTxns.length * LEAD_PRICE;
+    const grossRevenue = purchasedYoyTxns.reduce((s, t) => s + t.amount, 0);
     const refundedTxns = purchasedYoyTxns.filter(t => t.status === "refunded");
-    const refundsIssued = refundedTxns.length * LEAD_PRICE;
+    const refundsIssued = refundedTxns.reduce((s, t) => s + t.amount, 0);
     const netRevenue = grossRevenue - refundsIssued;
     const refundRate = yoyTransactions.length > 0 ? (yoyTransactions.filter(t => t.status === "refunded").length / yoyTransactions.length) * 100 : 0;
     
@@ -577,8 +577,8 @@ export default function AdminAccounting() {
       
       // Only count purchased credits as revenue (exclude granted)
       const purchasedDayTxns = dayTxns.filter(t => t.creditType === "purchased");
-      const gross = purchasedDayTxns.length * LEAD_PRICE;
-      const refunds = purchasedDayTxns.filter(t => t.status === "refunded").length * LEAD_PRICE;
+      const gross = purchasedDayTxns.reduce((s, t) => s + t.amount, 0);
+      const refunds = purchasedDayTxns.filter(t => t.status === "refunded").reduce((s, t) => s + t.amount, 0);
       
       return {
         date: format(day, "MMM dd"),
@@ -632,8 +632,8 @@ export default function AdminAccounting() {
         return txDate >= weekStart && txDate < (weekEnd || dateRange.to!);
       });
       
-      const gross = weekTxns.length * LEAD_PRICE;
-      const refunds = weekTxns.filter(t => t.status === "refunded").length * LEAD_PRICE;
+      const gross = weekTxns.reduce((s, t) => s + t.amount, 0);
+      const refunds = weekTxns.filter(t => t.status === "refunded").reduce((s, t) => s + t.amount, 0);
       
       return {
         week: format(weekStart, "MMM dd"),
@@ -658,8 +658,8 @@ export default function AdminAccounting() {
         return txDate >= monthStart && txDate < (monthEnd || dateRange.to!);
       });
       
-      const gross = monthTxns.length * LEAD_PRICE;
-      const refunds = monthTxns.filter(t => t.status === "refunded").length * LEAD_PRICE;
+      const gross = monthTxns.reduce((s, t) => s + t.amount, 0);
+      const refunds = monthTxns.filter(t => t.status === "refunded").reduce((s, t) => s + t.amount, 0);
       
       return {
         month: format(monthStart, "MMM yyyy"),
@@ -689,8 +689,8 @@ export default function AdminAccounting() {
         }
       }
       const existing = locationMap.get(prefix) || { gross: 0, refunds: 0, leads: 0 };
-      existing.gross += LEAD_PRICE;
-      if (t.status === "refunded") existing.refunds += LEAD_PRICE;
+      existing.gross += t.amount;
+      if (t.status === "refunded") existing.refunds += t.amount;
       existing.leads += 1;
       locationMap.set(prefix, existing);
     });
@@ -711,8 +711,8 @@ export default function AdminAccounting() {
     transactions.forEach(t => {
       const jobType = t.jobType || "Unknown";
       const existing = jobTypeMap.get(jobType) || { gross: 0, refunds: 0, leads: 0 };
-      existing.gross += LEAD_PRICE;
-      if (t.status === "refunded") existing.refunds += LEAD_PRICE;
+      existing.gross += t.amount;
+      if (t.status === "refunded") existing.refunds += t.amount;
       existing.leads += 1;
       jobTypeMap.set(jobType, existing);
     });
@@ -742,10 +742,10 @@ export default function AdminAccounting() {
         netContribution: 0,
       };
       
-      existing.revenue += LEAD_PRICE;
+      existing.revenue += t.amount;
       existing.leadsPurchased += 1;
       if (t.status === "refunded") {
-        existing.refunds += LEAD_PRICE;
+        existing.refunds += t.amount;
       }
       
       businessMap.set(name, existing);
@@ -785,7 +785,7 @@ export default function AdminAccounting() {
       const name = t.businessName || "Unknown";
       const existing = businessMap.get(name) || { count: 0, amount: 0 };
       existing.count += 1;
-      existing.amount += LEAD_PRICE;
+      existing.amount += t.amount;
       businessMap.set(name, existing);
     });
     
@@ -802,7 +802,7 @@ export default function AdminAccounting() {
       const reason = t.refundReason || "Unspecified";
       const existing = reasonMap.get(reason) || { count: 0, amount: 0 };
       existing.count += 1;
-      existing.amount += LEAD_PRICE;
+      existing.amount += t.amount;
       reasonMap.set(reason, existing);
     });
     
@@ -1189,7 +1189,7 @@ export default function AdminAccounting() {
                       </div>
                       <div className="p-4 bg-teal-500/10 border border-teal-500/20 rounded-lg text-center">
                         <p className="text-3xl font-bold text-teal-600">£{grantedCreditsMetrics.totalValue.toLocaleString()}</p>
-                        <p className="text-sm text-muted-foreground">Total Value (@ £{LEAD_PRICE}/credit)</p>
+                        <p className="text-sm text-muted-foreground">Total Value (@ £12/credit)</p>
                       </div>
                       <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg text-center">
                         <p className="text-3xl font-bold text-green-600">£{Math.max(0, kpis.actualCashRevenue).toLocaleString()}</p>
@@ -2322,7 +2322,7 @@ export default function AdminAccounting() {
                   <CardTitle className="text-sm font-medium">Avg Refund</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">£{LEAD_PRICE}</div>
+                  <div className="text-2xl font-bold">£12</div>
                 </CardContent>
               </Card>
             </div>
@@ -2640,7 +2640,7 @@ export default function AdminAccounting() {
                     </div>
                     <div className="flex justify-between py-2 border-b">
                       <span className="text-muted-foreground">Lead Price</span>
-                      <span className="font-medium">£{LEAD_PRICE}</span>
+                      <span className="font-medium">£12</span>
                     </div>
                     <div className="flex justify-between py-2 border-b">
                       <span className="text-muted-foreground">Total Refunds Issued</span>
