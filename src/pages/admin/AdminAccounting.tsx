@@ -367,7 +367,7 @@ export default function AdminAccounting() {
         acc[business] = { credits: 0, value: 0 };
       }
       acc[business].credits += gc.creditsAdded;
-      acc[business].value += gc.creditsAdded * LEAD_PRICE;
+      acc[business].value += gc.creditsAdded * 12;
       return acc;
     }, {} as Record<string, { credits: number; value: number }>);
 
