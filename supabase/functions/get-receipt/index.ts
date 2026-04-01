@@ -174,7 +174,7 @@ serve(async (req) => {
     // First get the lead to verify it exists and is unlocked
     const { data: lead, error: leadError } = await supabaseClient
       .from("leads")
-      .select("id, job_type, postcode, unlocked_at, unlocked_by, value")
+      .select("id, job_type, postcode, unlocked_at, unlocked_by, value, amount_paid")
       .eq("id", leadId)
       .single();
 
