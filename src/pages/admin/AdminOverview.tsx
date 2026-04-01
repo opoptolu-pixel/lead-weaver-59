@@ -356,7 +356,7 @@ export default function AdminOverview() {
 
     const prevLeadsReceived = prevLeads?.length || 0;
     const prevLeadsPurchased = prevUnlocked?.length || 0;
-    const prevRevenue = prevPaidUnlocked.length * 20;
+    const prevRevenue = prevPaidUnlocked.length * 12;
     const prevBuyers = new Set(prevUnlocked?.map(l => l.unlocked_by) || []);
 
     setPreviousStats({
