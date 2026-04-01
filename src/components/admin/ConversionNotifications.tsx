@@ -134,8 +134,8 @@ export function ConversionNotifications() {
                   <span className="text-sm text-muted-foreground">
                     {lead.job_type} in {lead.postcode}
                   </span>
-                  <span className="text-xs text-secondary font-medium mt-0.5">
-                    +£20 revenue
+                   <span className="text-xs text-secondary font-medium mt-0.5">
+                    +£12 revenue
                   </span>
                 </div>
               </div>,

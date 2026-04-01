@@ -286,7 +286,7 @@ serve(async (req) => {
           business_name: profile?.business_name || "Unknown Business",
           contact_name: profile?.contact_name || customerEmail,
           is_new_user: isNewUser,
-          amount_paid: "£20",
+          amount_paid: "£12",
         },
       });
       logStep("Purchase activity logged");

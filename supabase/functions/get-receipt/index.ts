@@ -224,7 +224,7 @@ serve(async (req) => {
       date: lead.unlocked_at || new Date().toISOString(),
       jobType: lead.job_type,
       postcode: lead.postcode,
-      amount: LEAD_PRICE_POUNDS,
+      amount: leadPrice,
       customerEmail: customerEmail,
       businessName: profile?.business_name || undefined,
     };
