@@ -99,7 +99,7 @@ export default function Billing() {
       try {
         const { data, error } = await supabase
           .from("leads")
-          .select("id, job_type, postcode, unlocked_at")
+          .select("id, job_type, postcode, unlocked_at, amount_paid")
           .eq("unlocked_by", user.id)
           .order("unlocked_at", { ascending: false });
 
