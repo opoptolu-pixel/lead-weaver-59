@@ -355,7 +355,7 @@ export default function AdminAccounting() {
         acc[reason] = { credits: 0, value: 0, count: 0 };
       }
       acc[reason].credits += gc.creditsAdded;
-      acc[reason].value += gc.creditsAdded * LEAD_PRICE;
+      acc[reason].value += gc.creditsAdded * 12;
       acc[reason].count += 1;
       return acc;
     }, {} as Record<string, { credits: number; value: number; count: number }>);
