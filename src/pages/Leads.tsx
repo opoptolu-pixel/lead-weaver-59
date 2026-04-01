@@ -1129,8 +1129,8 @@ export default function Leads() {
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto mb-8">
             Real leads from homeowners looking for cleaning services. 
             {userCredits > 0 
-              ? ` Use your ${userCredits} credits or pay £20 per lead.`
-              : " Unlock for just £20 each or buy credits to save."}
+              ? ` Use your ${userCredits} credits or pay £12 per lead.`
+              : " Unlock for just £12 each or buy credits to save."}
           </p>
 
           {/* Search bar */}
