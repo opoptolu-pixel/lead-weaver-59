@@ -95,7 +95,7 @@ const ForCleaners = () => {
           {
             "@type": "Offer",
             "name": "Single Lead",
-            "price": "20.00",
+            "price": "12.00",
             "priceCurrency": "GBP",
             "availability": "https://schema.org/InStock"
           },
