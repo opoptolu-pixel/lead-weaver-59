@@ -346,7 +346,7 @@ export default function AdminAccounting() {
   // Calculate granted credits metrics
   const grantedCreditsMetrics = useMemo(() => {
     const totalCreditsGranted = grantedCredits.reduce((sum, gc) => sum + gc.creditsAdded, 0);
-    const totalValue = totalCreditsGranted * LEAD_PRICE;
+    const totalValue = totalCreditsGranted * 12; // Use current price for granted credit valuation
     
     // Group by reason
     const byReason = grantedCredits.reduce((acc, gc) => {
