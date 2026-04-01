@@ -36,7 +36,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAdmin } from "@/contexts/AdminContext";
 import { useAdSpend } from "@/hooks/useAdSpend";
 
-const LEAD_PRICE = 20; // £20 per lead
+const DEFAULT_LEAD_PRICE = 20; // Fallback for leads without amount_paid
 
 const CHART_COLORS = [
   "hsl(var(--primary))",
