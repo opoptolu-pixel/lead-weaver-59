@@ -518,7 +518,7 @@ export default function AdminOverview() {
     const leadsPurchased = unlockedLeadsInRange?.length || 0;
     // Revenue only from paid credits (excludes granted)
     const paidLeadsPurchased = paidLeadsInRange.length;
-    const revenue = paidLeadsPurchased * 20;
+    const revenue = paidLeadsPurchased * 12;
     
     const uniqueBuyers = new Set(unlockedLeadsInRange?.map(l => l.unlocked_by) || []);
     const activeBuyers = uniqueBuyers.size;

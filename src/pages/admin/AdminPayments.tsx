@@ -145,7 +145,7 @@ export default function AdminPayments() {
         id: lead.id,
         business_name: profileMap.get(lead.unlocked_by) || "Unknown Business",
         lead_id: lead.id,
-        amount: 20, // Lead price is £20
+        amount: (lead as any).amount_paid || 20,
         status: lead.refunded_at ? "refunded" : "purchased",
         unlocked_at: lead.unlocked_at || "",
         job_type: lead.job_type,

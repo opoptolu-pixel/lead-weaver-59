@@ -186,7 +186,7 @@ export default function Billing() {
     }
   };
 
-  const totalSpend = purchases.length * 20;
+  const totalSpend = purchases.reduce((sum, p) => sum + p.amount, 0);
 
   if (authLoading) {
     return (
