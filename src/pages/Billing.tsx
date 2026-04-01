@@ -111,7 +111,7 @@ export default function Billing() {
           lead_id: lead.id.substring(0, 8),
           job_type: lead.job_type,
           postcode: lead.postcode,
-          amount: 20, // £20 per lead
+          amount: (lead as any).amount_paid || 20,
           created_at: lead.unlocked_at || "",
         }));
 
