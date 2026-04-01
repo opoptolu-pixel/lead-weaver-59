@@ -109,7 +109,7 @@ const ForCleaners = () => {
           {
             "@type": "Offer",
             "name": "10 Credit Pack",
-            "price": "170.00",
+            "price": "90.00",
             "priceCurrency": "GBP",
             "availability": "https://schema.org/InStock"
           }
