@@ -162,7 +162,8 @@ export default function AdminAccounting() {
           lead_status,
           postcode,
           job_type,
-          credit_type
+          credit_type,
+          amount_paid
         `)
         .eq("is_unlocked", true)
         .gte("unlocked_at", dateRange.from.toISOString())
