@@ -457,9 +457,9 @@ export default function AdminAccounting() {
   const previousKpis = useMemo(() => {
     // Only count purchased credits as revenue
     const purchasedPrevTxns = previousTransactions.filter(t => t.creditType === "purchased");
-    const grossRevenue = purchasedPrevTxns.length * LEAD_PRICE;
+    const grossRevenue = purchasedPrevTxns.reduce((sum, t) => sum + t.amount, 0);
     const refundedTxns = purchasedPrevTxns.filter(t => t.status === "refunded");
-    const refundsIssued = refundedTxns.length * LEAD_PRICE;
+    const refundsIssued = refundedTxns.reduce((sum, t) => sum + t.amount, 0);
     const netRevenue = grossRevenue - refundsIssued;
     const refundRate = previousTransactions.length > 0 ? (previousTransactions.filter(t => t.status === "refunded").length / previousTransactions.length) * 100 : 0;
     
