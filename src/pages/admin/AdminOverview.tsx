@@ -394,7 +394,7 @@ export default function AdminOverview() {
           current.leads += 1;
           // Only count revenue from paid leads (not granted)
           if (lead.is_unlocked && lead.credit_type !== 'granted') {
-            current.revenue += 20;
+            current.revenue += 12;
           }
         }
       });
