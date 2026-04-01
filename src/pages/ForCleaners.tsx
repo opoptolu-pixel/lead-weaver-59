@@ -122,7 +122,7 @@ const ForCleaners = () => {
     <div className="min-h-screen bg-background">
       <SEOHead
         title="Cleaning Leads for Professional Cleaners | Grow Your Business | Cleanda"
-        description="Get exclusive cleaning job leads in your area. No monthly fees, no contracts - pay only £20 per lead. Leads worth £100+. Join 500+ UK cleaners growing their business."
+        description="Get exclusive cleaning job leads in your area. No monthly fees, no contracts - pay only £12 per lead. Leads worth £100+. Join 500+ UK cleaners growing their business."
         canonical="https://cleanda.co.uk/for-cleaners"
         structuredData={structuredData}
       />

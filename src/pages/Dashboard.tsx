@@ -596,7 +596,7 @@ export default function Dashboard() {
                     </button>
                   </div>
                   <p className="text-muted-foreground text-xs text-center mt-4">
-                    Or pay £20 per lead without credits
+                    Or pay £12 per lead without credits
                   </p>
                 </DialogContent>
               </Dialog>

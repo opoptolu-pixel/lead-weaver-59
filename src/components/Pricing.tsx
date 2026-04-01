@@ -121,7 +121,7 @@ export const Pricing = () => {
             Pricing & Lead Credits
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            All leads are a flat £20 — no hidden fees. Save more with bundles.
+            All leads are a flat £12 — no hidden fees. Save more with bundles.
           </p>
         </div>
 
