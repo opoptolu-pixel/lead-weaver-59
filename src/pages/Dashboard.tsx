@@ -181,7 +181,7 @@ export default function Dashboard() {
           window.fbq('track', 'InitiateCheckout', {
             content_name: `credit_pack_${packSize}`,
             content_category: 'credits',
-            value: packSize === '5' ? 90 : 170,
+            value: packSize === '5' ? 50 : 90,
             currency: 'GBP',
           });
         }
