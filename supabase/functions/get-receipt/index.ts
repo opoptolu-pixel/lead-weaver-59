@@ -8,8 +8,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Lead purchase price is fixed at £20
-const LEAD_PRICE_POUNDS = 20;
+// Default lead price fallback for historical purchases
+const DEFAULT_LEAD_PRICE_POUNDS = 20;
 
 // Helper function for text-based logo
 const drawTextLogo = (doc: jsPDF, accentGreen: number[]) => {
