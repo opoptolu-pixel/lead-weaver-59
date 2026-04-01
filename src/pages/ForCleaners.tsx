@@ -29,7 +29,7 @@ const ForCleaners = () => {
             "name": "What is the cost per lead?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Each lead costs £20 or you can buy credit packs for savings. 5 credits cost £90 (£18/lead) and 10 credits cost £170 (£17/lead)."
+              "text": "Each lead costs £12 or you can buy credit packs for savings. 5 credits cost £50 (£10/lead) and 10 credits cost £90 (£9/lead)."
             }
           },
           {
