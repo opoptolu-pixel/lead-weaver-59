@@ -366,7 +366,7 @@ export const HeroSection = () => {
             <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-primary-foreground/70 text-sm">
               <div className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-secondary" />
-                <span>£20 Per Lead</span>
+                <span>£12 Per Lead</span>
               </div>
               <div className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-secondary" />

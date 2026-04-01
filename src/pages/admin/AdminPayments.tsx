@@ -124,7 +124,7 @@ export default function AdminPayments() {
       // Fetch purchased leads (these are actual purchases)
       const { data: leadsData, error: leadsError } = await supabase
         .from("leads")
-        .select("id, unlocked_by, unlocked_at, job_type, postcode, value, lead_status, refunded_at, credit_type")
+        .select("id, unlocked_by, unlocked_at, job_type, postcode, value, lead_status, refunded_at, credit_type, amount_paid")
         .eq("is_unlocked", true)
         .gte("unlocked_at", startISO)
         .lte("unlocked_at", endISO)
@@ -145,7 +145,7 @@ export default function AdminPayments() {
         id: lead.id,
         business_name: profileMap.get(lead.unlocked_by) || "Unknown Business",
         lead_id: lead.id,
-        amount: 20, // Lead price is £20
+        amount: (lead as any).amount_paid || 20,
         status: lead.refunded_at ? "refunded" : "purchased",
         unlocked_at: lead.unlocked_at || "",
         job_type: lead.job_type,

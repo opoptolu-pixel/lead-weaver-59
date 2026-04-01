@@ -99,7 +99,7 @@ export default function Billing() {
       try {
         const { data, error } = await supabase
           .from("leads")
-          .select("id, job_type, postcode, unlocked_at")
+          .select("id, job_type, postcode, unlocked_at, amount_paid")
           .eq("unlocked_by", user.id)
           .order("unlocked_at", { ascending: false });
 
@@ -111,7 +111,7 @@ export default function Billing() {
           lead_id: lead.id.substring(0, 8),
           job_type: lead.job_type,
           postcode: lead.postcode,
-          amount: 20, // £20 per lead
+          amount: (lead as any).amount_paid || 20,
           created_at: lead.unlocked_at || "",
         }));
 
@@ -186,7 +186,7 @@ export default function Billing() {
     }
   };
 
-  const totalSpend = purchases.length * 20;
+  const totalSpend = purchases.reduce((sum, p) => sum + p.amount, 0);
 
   if (authLoading) {
     return (

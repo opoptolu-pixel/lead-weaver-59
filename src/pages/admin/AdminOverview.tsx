@@ -146,7 +146,7 @@ export default function AdminOverview() {
   });
 
   // Calculate net profit (revenue - refunds - ad spend)
-  const netProfit = stats.revenue - (stats.refundsIssued * 20) - adMetrics.totalSpend;
+  const netProfit = stats.revenue - (stats.refundsIssued * 12) - adMetrics.totalSpend;
   const costPerLead = stats.leadsPurchased > 0 ? adMetrics.totalSpend / stats.leadsPurchased : 0;
 
   useEffect(() => {
@@ -237,20 +237,20 @@ export default function AdminOverview() {
 
     const todayPurchaseCount = todayPaidPurchases.length;
     const todayRefundCount = todayRefunds?.length || 0;
-    const todayRevenue = todayPurchaseCount * 20;
-    const todayRefundAmount = todayRefundCount * 20;
+    const todayRevenue = todayPurchaseCount * 12;
+    const todayRefundAmount = todayRefundCount * 12;
     const netRevenue = todayRevenue - todayRefundAmount;
     const refundRate = todayPurchaseCount > 0 ? Math.round((todayRefundCount / todayPurchaseCount) * 100) : 0;
 
     const yesterdayPurchaseCount = yesterdayPaidPurchases.length;
     const yesterdayRefundCount = yesterdayRefunds?.length || 0;
-    const yesterdayNet = (yesterdayPurchaseCount * 20) - (yesterdayRefundCount * 20);
+    const yesterdayNet = (yesterdayPurchaseCount * 12) - (yesterdayRefundCount * 12);
 
     const mtdPurchaseCount = mtdPaidPurchases.length;
     const mtdRefundCount = mtdRefunds?.length || 0;
-    const mtdRevenue = (mtdPurchaseCount * 20) - (mtdRefundCount * 20);
+    const mtdRevenue = (mtdPurchaseCount * 12) - (mtdRefundCount * 12);
 
-    const pendingDisputeValue = (pendingDisputes?.length || 0) * 20;
+    const pendingDisputeValue = (pendingDisputes?.length || 0) * 12;
     const outstandingCredits = profiles?.reduce((sum, p) => sum + (p.credits || 0), 0) || 0;
 
     setTodayAccounting({
@@ -356,7 +356,7 @@ export default function AdminOverview() {
 
     const prevLeadsReceived = prevLeads?.length || 0;
     const prevLeadsPurchased = prevUnlocked?.length || 0;
-    const prevRevenue = prevPaidUnlocked.length * 20;
+    const prevRevenue = prevPaidUnlocked.length * 12;
     const prevBuyers = new Set(prevUnlocked?.map(l => l.unlocked_by) || []);
 
     setPreviousStats({
@@ -394,7 +394,7 @@ export default function AdminOverview() {
           current.leads += 1;
           // Only count revenue from paid leads (not granted)
           if (lead.is_unlocked && lead.credit_type !== 'granted') {
-            current.revenue += 20;
+            current.revenue += 12;
           }
         }
       });
@@ -518,7 +518,7 @@ export default function AdminOverview() {
     const leadsPurchased = unlockedLeadsInRange?.length || 0;
     // Revenue only from paid credits (excludes granted)
     const paidLeadsPurchased = paidLeadsInRange.length;
-    const revenue = paidLeadsPurchased * 20;
+    const revenue = paidLeadsPurchased * 12;
     
     const uniqueBuyers = new Set(unlockedLeadsInRange?.map(l => l.unlocked_by) || []);
     const activeBuyers = uniqueBuyers.size;

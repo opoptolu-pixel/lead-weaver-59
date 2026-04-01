@@ -78,7 +78,7 @@ export const ServicesGrid = () => {
 
         {/* Bottom Note */}
         <p className="text-center text-muted-foreground text-sm mt-8">
-          All jobs are pre-qualified and verified before being listed. Each lead costs just £20 to unlock.
+          All jobs are pre-qualified and verified before being listed. Each lead costs just £12 to unlock.
         </p>
       </div>
     </section>

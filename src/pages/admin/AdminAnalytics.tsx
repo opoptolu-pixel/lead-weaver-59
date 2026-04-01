@@ -644,7 +644,7 @@ export default function AdminAnalytics() {
               name: profile.business_name || "Unnamed Business",
               postcode: profile.postcode || "Unknown",
               purchases: purchaseData.purchases,
-              spend: purchaseData.purchases * 20,
+              spend: purchaseData.purchases * 12,
               refundRate: purchaseData.purchases > 0 ? Math.round((purchaseData.refunds / purchaseData.purchases) * 100) : 0,
               conversionRate,
               avgResponseTime,
@@ -672,7 +672,7 @@ export default function AdminAnalytics() {
               const stats = buyerCityMap.get(key)!;
               stats.buyers++;
               stats.totalPurchases += purchaseData.purchases;
-              stats.totalSpend += purchaseData.purchases * 20;
+              stats.totalSpend += purchaseData.purchases * 12;
             }
             
             return buyerData;
@@ -907,7 +907,7 @@ export default function AdminAnalytics() {
                       <CardContent>
                         <p className="text-3xl font-bold text-purple-600">
                           {adMetrics.totalSpend > 0 
-                            ? ((adMetrics.totalConversions * 20) / adMetrics.totalSpend).toFixed(2) 
+                            ? ((adMetrics.totalConversions * 12) / adMetrics.totalSpend).toFixed(2) 
                             : "0"}x
                         </p>
                         <p className="text-sm text-muted-foreground">Based on £20/lead revenue</p>

@@ -250,7 +250,7 @@ const LeadsScrollContainer = ({
                         ) : (
                           <Lock className="w-4 h-4" />
                         )}
-                        Unlock £20
+                        Unlock £12
                       </Button>
                     );
                   })()}
@@ -379,7 +379,7 @@ const LeadsScrollContainer = ({
                     ) : (
                       <Lock className="w-4 h-4" />
                     )}
-                    Unlock for £20
+                    Unlock for £12
                   </Button>
                 );
               })()}

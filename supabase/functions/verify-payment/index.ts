@@ -188,6 +188,7 @@ serve(async (req) => {
         unlocked_at: new Date().toISOString(),
         lead_status: "purchased",
         outcome_status: "purchased",
+        amount_paid: 12,
       })
       .eq("id", leadId)
       .eq("is_unlocked", false) // Critical: Only update if NOT already unlocked
@@ -247,7 +248,7 @@ serve(async (req) => {
             refund_id: refundId,
             refund_success: refundSuccess,
             refund_error: refundError,
-            amount: "£20",
+            amount: "£12",
             customer_email: customerEmail,
             actual_owner: existingLead?.unlocked_by,
           },
@@ -285,7 +286,7 @@ serve(async (req) => {
           business_name: profile?.business_name || "Unknown Business",
           contact_name: profile?.contact_name || customerEmail,
           is_new_user: isNewUser,
-          amount_paid: "£20",
+          amount_paid: "£12",
         },
       });
       logStep("Purchase activity logged");

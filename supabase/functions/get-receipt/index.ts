@@ -8,8 +8,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Lead purchase price is fixed at £20
-const LEAD_PRICE_POUNDS = 20;
+// Default lead price fallback for historical purchases
+const DEFAULT_LEAD_PRICE_POUNDS = 20;
 
 // Helper function for text-based logo
 const drawTextLogo = (doc: jsPDF, accentGreen: number[]) => {
@@ -174,7 +174,7 @@ serve(async (req) => {
     // First get the lead to verify it exists and is unlocked
     const { data: lead, error: leadError } = await supabaseClient
       .from("leads")
-      .select("id, job_type, postcode, unlocked_at, unlocked_by, value")
+      .select("id, job_type, postcode, unlocked_at, unlocked_by, value, amount_paid")
       .eq("id", leadId)
       .single();
 
@@ -217,13 +217,14 @@ serve(async (req) => {
     const customerEmail = purchaserEmail || user.email;
     const customers = await stripe.customers.list({ email: customerEmail, limit: 1 });
     
-    // Generate PDF receipt data - use fixed lead price of £20
+    // Generate PDF receipt data - use actual amount_paid or fallback
+    const leadPrice = (lead as any).amount_paid || DEFAULT_LEAD_PRICE_POUNDS;
     const receiptData = {
       receiptId: lead.id.substring(0, 8),
       date: lead.unlocked_at || new Date().toISOString(),
       jobType: lead.job_type,
       postcode: lead.postcode,
-      amount: LEAD_PRICE_POUNDS,
+      amount: leadPrice,
       customerEmail: customerEmail,
       businessName: profile?.business_name || undefined,
     };

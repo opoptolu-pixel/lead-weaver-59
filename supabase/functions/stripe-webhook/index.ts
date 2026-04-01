@@ -139,6 +139,7 @@ serve(async (req) => {
                 unlocked_at: new Date().toISOString(),
                 lead_status: "purchased",
                 outcome_status: "purchased",
+                amount_paid: 12,
               })
               .eq("id", leadId)
               .eq("is_unlocked", false)
@@ -173,7 +174,7 @@ serve(async (req) => {
                   session_id: session.id,
                   business_name: profile?.business_name || "Unknown Business",
                   contact_name: profile?.contact_name || customerEmail,
-                  amount_paid: "£20",
+                  amount_paid: "£12",
                   source: "stripe_webhook_checkout_completed",
                 },
               });

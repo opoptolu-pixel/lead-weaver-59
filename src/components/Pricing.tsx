@@ -12,9 +12,9 @@ const pricingTiers = [
     name: "Pay As You Go",
     icon: Zap,
     description: "Perfect for getting started",
-    price: "£20",
+    price: "£12",
     priceLabel: "per lead",
-    priceId: "price_1ShICWHaP2wEKuykqMEyAcKq",
+    priceId: "price_1THCAEHaP2wEKuykuJrsMvtC",
     features: [
       "No upfront commitment",
       "Pay only for leads you want",
@@ -28,13 +28,13 @@ const pricingTiers = [
     name: "5 Lead Bundle",
     icon: Package,
     description: "Best value for regular cleaners",
-    price: "£90",
+    price: "£50",
     priceLabel: "for 5 leads",
-    priceId: "price_1ShIOvHaP2wEKuykcLfnYe6p",
+    priceId: "price_1THCDaHaP2wEKuykfK8DIdJD",
     saveLabel: "Save £10",
     features: [
       "5 lead credits",
-      "Only £18 per lead",
+      "Only £10 per lead",
       "Priority lead access",
       "Credits never expire",
       "WhatsApp + Email delivery",
@@ -46,13 +46,13 @@ const pricingTiers = [
     name: "10 Lead Bundle",
     icon: Crown,
     description: "For growing cleaning businesses",
-    price: "£170",
+    price: "£90",
     priceLabel: "for 10 leads",
-    priceId: "price_1ShIRMHaP2wEKuykOtPHqxo4",
+    priceId: "price_1THCDsHaP2wEKuyk10drGMnB",
     saveLabel: "Save £30",
     features: [
       "10 lead credits",
-      "Only £17 per lead",
+      "Only £9 per lead",
       "First access to new leads",
       "Credits never expire",
       "All delivery channels",
@@ -121,7 +121,7 @@ export const Pricing = () => {
             Pricing & Lead Credits
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            All leads are a flat £20 — no hidden fees. Save more with bundles.
+            All leads are a flat £12 — no hidden fees. Save more with bundles.
           </p>
         </div>
 

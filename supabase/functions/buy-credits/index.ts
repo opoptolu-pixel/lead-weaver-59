@@ -14,15 +14,15 @@ const logStep = (step: string, details?: any) => {
 
 // Credit pack configurations by priceId
 const CREDIT_PACKS_BY_PRICE = {
-  "price_1ShICWHaP2wEKuykqMEyAcKq": { credits: 1, name: "Pay As You Go" },
-  "price_1ShIOvHaP2wEKuykcLfnYe6p": { credits: 5, name: "5 Credit Pack" },
-  "price_1ShIRMHaP2wEKuykOtPHqxo4": { credits: 10, name: "10 Credit Pack" },
+  "price_1THCAEHaP2wEKuykuJrsMvtC": { credits: 1, name: "Pay As You Go" },
+  "price_1THCDaHaP2wEKuykfK8DIdJD": { credits: 5, name: "5 Credit Pack" },
+  "price_1THCDsHaP2wEKuyk10drGMnB": { credits: 10, name: "10 Credit Pack" },
 };
 
 // Legacy support by pack size
 const CREDIT_PACKS_BY_SIZE = {
-  "5": "price_1ShIOvHaP2wEKuykcLfnYe6p",
-  "10": "price_1ShIRMHaP2wEKuykOtPHqxo4",
+  "5": "price_1THCDaHaP2wEKuykfK8DIdJD",
+  "10": "price_1THCDsHaP2wEKuyk10drGMnB",
 };
 
 serve(async (req) => {

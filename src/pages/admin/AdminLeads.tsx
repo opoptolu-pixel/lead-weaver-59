@@ -131,7 +131,7 @@ const KANBAN_COLUMNS = [
     value: "purchased", 
     label: "Purchased (Locked)", 
     color: "bg-purple-500/20 text-purple-500",
-    description: "Paid £20 and locked to one cleaner"
+    description: "Paid £12 and locked to one cleaner"
   },
   { 
     value: "expired", 

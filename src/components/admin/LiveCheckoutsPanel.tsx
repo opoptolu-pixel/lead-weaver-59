@@ -151,7 +151,7 @@ export const LiveCheckoutsPanel = ({ activeCheckouts, checkoutCount }: LiveCheck
 
       {checkoutCount > 0 && (
         <p className="text-xs text-muted-foreground text-center mt-4">
-          Potential revenue: <span className="font-semibold text-green-500">£{checkoutCount * 20}</span>
+          Potential revenue: <span className="font-semibold text-green-500">£{checkoutCount * 12}</span>
         </p>
       )}
     </div>

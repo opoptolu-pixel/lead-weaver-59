@@ -179,8 +179,8 @@ serve(async (req) => {
     }
 
     // Create a Stripe Checkout session for the lead unlock
-    // Price ID for £20 lead unlock
-    const LEAD_UNLOCK_PRICE_ID = "price_1ShICWHaP2wEKuykqMEyAcKq";
+    // Price ID for £12 lead unlock
+    const LEAD_UNLOCK_PRICE_ID = "price_1THCAEHaP2wEKuykuJrsMvtC";
 
     const session = await stripe.checkout.sessions.create({
       customer: stripeCustomerId,

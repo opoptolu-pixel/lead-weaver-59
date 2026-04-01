@@ -36,7 +36,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAdmin } from "@/contexts/AdminContext";
 import { useAdSpend } from "@/hooks/useAdSpend";
 
-const LEAD_PRICE = 20; // £20 per lead
+const DEFAULT_LEAD_PRICE = 20; // Fallback for leads without amount_paid
 
 const CHART_COLORS = [
   "hsl(var(--primary))",
@@ -162,7 +162,8 @@ export default function AdminAccounting() {
           lead_status,
           postcode,
           job_type,
-          credit_type
+          credit_type,
+          amount_paid
         `)
         .eq("is_unlocked", true)
         .gte("unlocked_at", dateRange.from.toISOString())
@@ -186,7 +187,8 @@ export default function AdminAccounting() {
             lead_status,
             postcode,
             job_type,
-            credit_type
+            credit_type,
+            amount_paid
           `)
           .eq("is_unlocked", true)
           .gte("unlocked_at", previousDateRange.from.toISOString())
@@ -210,7 +212,8 @@ export default function AdminAccounting() {
           lead_status,
           postcode,
           job_type,
-          credit_type
+          credit_type,
+          amount_paid
         `)
         .eq("is_unlocked", true)
         .gte("unlocked_at", yoyFrom.toISOString())
@@ -232,7 +235,7 @@ export default function AdminAccounting() {
         date: lead.unlocked_at || "",
         leadId: lead.id,
         businessName: profileMap.get(lead.unlocked_by!) || "Unknown Business",
-        amount: LEAD_PRICE,
+        amount: (lead as any).amount_paid || DEFAULT_LEAD_PRICE,
         status: lead.refunded_at ? "refunded" : "paid",
         refundReason: lead.refund_reason,
         refundedAt: lead.refunded_at,
@@ -246,7 +249,7 @@ export default function AdminAccounting() {
         date: lead.unlocked_at || "",
         leadId: lead.id,
         businessName: profileMap.get(lead.unlocked_by!) || "Unknown Business",
-        amount: LEAD_PRICE,
+        amount: (lead as any).amount_paid || DEFAULT_LEAD_PRICE,
         status: lead.refunded_at ? "refunded" : "paid",
         refundReason: lead.refund_reason,
         refundedAt: lead.refunded_at,
@@ -260,7 +263,7 @@ export default function AdminAccounting() {
         date: lead.unlocked_at || "",
         leadId: lead.id,
         businessName: profileMap.get(lead.unlocked_by!) || "Unknown Business",
-        amount: LEAD_PRICE,
+        amount: (lead as any).amount_paid || DEFAULT_LEAD_PRICE,
         status: lead.refunded_at ? "refunded" : "paid",
         refundReason: lead.refund_reason,
         refundedAt: lead.refunded_at,
@@ -321,7 +324,7 @@ export default function AdminAccounting() {
             id: log.id,
             date: log.created_at,
             creditsAdded: Number(details.credits_added) || 0,
-            amountPaid: Number(details.amount_paid) || (Number(details.credits_added) || 0) * LEAD_PRICE,
+            amountPaid: Number(details.amount_paid) || 0,
             businessName: String(details.business_name || "Unknown Business"),
             contactName: details.contact_name ? String(details.contact_name) : null,
             stripeSessionId: details.stripe_session_id ? String(details.stripe_session_id) : null,
@@ -343,7 +346,7 @@ export default function AdminAccounting() {
   // Calculate granted credits metrics
   const grantedCreditsMetrics = useMemo(() => {
     const totalCreditsGranted = grantedCredits.reduce((sum, gc) => sum + gc.creditsAdded, 0);
-    const totalValue = totalCreditsGranted * LEAD_PRICE;
+    const totalValue = totalCreditsGranted * 12; // Use current price for granted credit valuation
     
     // Group by reason
     const byReason = grantedCredits.reduce((acc, gc) => {
@@ -352,7 +355,7 @@ export default function AdminAccounting() {
         acc[reason] = { credits: 0, value: 0, count: 0 };
       }
       acc[reason].credits += gc.creditsAdded;
-      acc[reason].value += gc.creditsAdded * LEAD_PRICE;
+      acc[reason].value += gc.creditsAdded * 12;
       acc[reason].count += 1;
       return acc;
     }, {} as Record<string, { credits: number; value: number; count: number }>);
@@ -364,7 +367,7 @@ export default function AdminAccounting() {
         acc[business] = { credits: 0, value: 0 };
       }
       acc[business].credits += gc.creditsAdded;
-      acc[business].value += gc.creditsAdded * LEAD_PRICE;
+      acc[business].value += gc.creditsAdded * 12;
       return acc;
     }, {} as Record<string, { credits: number; value: number }>);
 
@@ -406,14 +409,14 @@ export default function AdminAccounting() {
     const purchasedTxns = transactions.filter(t => t.creditType === "purchased");
     const grantedTxns = transactions.filter(t => t.creditType === "granted");
     
-    // Gross revenue = only from purchased credits (actual cash payments)
-    const grossRevenue = purchasedTxns.length * LEAD_PRICE;
-    const grantedLeadsValue = grantedTxns.length * LEAD_PRICE;
+    // Gross revenue = sum of actual amounts paid by purchased credit leads
+    const grossRevenue = purchasedTxns.reduce((sum, t) => sum + t.amount, 0);
+    const grantedLeadsValue = grantedTxns.reduce((sum, t) => sum + t.amount, 0);
     
     // Refunds - only count refunds from purchased leads for cash calculations
     const refundedTxns = transactions.filter(t => t.status === "refunded");
     const refundedPurchasedTxns = purchasedTxns.filter(t => t.status === "refunded");
-    const refundsIssued = refundedPurchasedTxns.length * LEAD_PRICE;
+    const refundsIssued = refundedPurchasedTxns.reduce((sum, t) => sum + t.amount, 0);
     
     // Net revenue = cash received minus cash refunded
     const netRevenue = grossRevenue - refundsIssued;
@@ -454,9 +457,9 @@ export default function AdminAccounting() {
   const previousKpis = useMemo(() => {
     // Only count purchased credits as revenue
     const purchasedPrevTxns = previousTransactions.filter(t => t.creditType === "purchased");
-    const grossRevenue = purchasedPrevTxns.length * LEAD_PRICE;
+    const grossRevenue = purchasedPrevTxns.reduce((sum, t) => sum + t.amount, 0);
     const refundedTxns = purchasedPrevTxns.filter(t => t.status === "refunded");
-    const refundsIssued = refundedTxns.length * LEAD_PRICE;
+    const refundsIssued = refundedTxns.reduce((sum, t) => sum + t.amount, 0);
     const netRevenue = grossRevenue - refundsIssued;
     const refundRate = previousTransactions.length > 0 ? (previousTransactions.filter(t => t.status === "refunded").length / previousTransactions.length) * 100 : 0;
     
@@ -480,9 +483,9 @@ export default function AdminAccounting() {
   const yoyKpis = useMemo(() => {
     // Only count purchased credits as revenue
     const purchasedYoyTxns = yoyTransactions.filter(t => t.creditType === "purchased");
-    const grossRevenue = purchasedYoyTxns.length * LEAD_PRICE;
+    const grossRevenue = purchasedYoyTxns.reduce((s, t) => s + t.amount, 0);
     const refundedTxns = purchasedYoyTxns.filter(t => t.status === "refunded");
-    const refundsIssued = refundedTxns.length * LEAD_PRICE;
+    const refundsIssued = refundedTxns.reduce((s, t) => s + t.amount, 0);
     const netRevenue = grossRevenue - refundsIssued;
     const refundRate = yoyTransactions.length > 0 ? (yoyTransactions.filter(t => t.status === "refunded").length / yoyTransactions.length) * 100 : 0;
     
@@ -574,8 +577,8 @@ export default function AdminAccounting() {
       
       // Only count purchased credits as revenue (exclude granted)
       const purchasedDayTxns = dayTxns.filter(t => t.creditType === "purchased");
-      const gross = purchasedDayTxns.length * LEAD_PRICE;
-      const refunds = purchasedDayTxns.filter(t => t.status === "refunded").length * LEAD_PRICE;
+      const gross = purchasedDayTxns.reduce((s, t) => s + t.amount, 0);
+      const refunds = purchasedDayTxns.filter(t => t.status === "refunded").reduce((s, t) => s + t.amount, 0);
       
       return {
         date: format(day, "MMM dd"),
@@ -629,8 +632,8 @@ export default function AdminAccounting() {
         return txDate >= weekStart && txDate < (weekEnd || dateRange.to!);
       });
       
-      const gross = weekTxns.length * LEAD_PRICE;
-      const refunds = weekTxns.filter(t => t.status === "refunded").length * LEAD_PRICE;
+      const gross = weekTxns.reduce((s, t) => s + t.amount, 0);
+      const refunds = weekTxns.filter(t => t.status === "refunded").reduce((s, t) => s + t.amount, 0);
       
       return {
         week: format(weekStart, "MMM dd"),
@@ -655,8 +658,8 @@ export default function AdminAccounting() {
         return txDate >= monthStart && txDate < (monthEnd || dateRange.to!);
       });
       
-      const gross = monthTxns.length * LEAD_PRICE;
-      const refunds = monthTxns.filter(t => t.status === "refunded").length * LEAD_PRICE;
+      const gross = monthTxns.reduce((s, t) => s + t.amount, 0);
+      const refunds = monthTxns.filter(t => t.status === "refunded").reduce((s, t) => s + t.amount, 0);
       
       return {
         month: format(monthStart, "MMM yyyy"),
@@ -686,8 +689,8 @@ export default function AdminAccounting() {
         }
       }
       const existing = locationMap.get(prefix) || { gross: 0, refunds: 0, leads: 0 };
-      existing.gross += LEAD_PRICE;
-      if (t.status === "refunded") existing.refunds += LEAD_PRICE;
+      existing.gross += t.amount;
+      if (t.status === "refunded") existing.refunds += t.amount;
       existing.leads += 1;
       locationMap.set(prefix, existing);
     });
@@ -708,8 +711,8 @@ export default function AdminAccounting() {
     transactions.forEach(t => {
       const jobType = t.jobType || "Unknown";
       const existing = jobTypeMap.get(jobType) || { gross: 0, refunds: 0, leads: 0 };
-      existing.gross += LEAD_PRICE;
-      if (t.status === "refunded") existing.refunds += LEAD_PRICE;
+      existing.gross += t.amount;
+      if (t.status === "refunded") existing.refunds += t.amount;
       existing.leads += 1;
       jobTypeMap.set(jobType, existing);
     });
@@ -739,10 +742,10 @@ export default function AdminAccounting() {
         netContribution: 0,
       };
       
-      existing.revenue += LEAD_PRICE;
+      existing.revenue += t.amount;
       existing.leadsPurchased += 1;
       if (t.status === "refunded") {
-        existing.refunds += LEAD_PRICE;
+        existing.refunds += t.amount;
       }
       
       businessMap.set(name, existing);
@@ -782,7 +785,7 @@ export default function AdminAccounting() {
       const name = t.businessName || "Unknown";
       const existing = businessMap.get(name) || { count: 0, amount: 0 };
       existing.count += 1;
-      existing.amount += LEAD_PRICE;
+      existing.amount += t.amount;
       businessMap.set(name, existing);
     });
     
@@ -799,7 +802,7 @@ export default function AdminAccounting() {
       const reason = t.refundReason || "Unspecified";
       const existing = reasonMap.get(reason) || { count: 0, amount: 0 };
       existing.count += 1;
-      existing.amount += LEAD_PRICE;
+      existing.amount += t.amount;
       reasonMap.set(reason, existing);
     });
     
@@ -1186,7 +1189,7 @@ export default function AdminAccounting() {
                       </div>
                       <div className="p-4 bg-teal-500/10 border border-teal-500/20 rounded-lg text-center">
                         <p className="text-3xl font-bold text-teal-600">£{grantedCreditsMetrics.totalValue.toLocaleString()}</p>
-                        <p className="text-sm text-muted-foreground">Total Value (@ £{LEAD_PRICE}/credit)</p>
+                        <p className="text-sm text-muted-foreground">Total Value (@ £12/credit)</p>
                       </div>
                       <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg text-center">
                         <p className="text-3xl font-bold text-green-600">£{Math.max(0, kpis.actualCashRevenue).toLocaleString()}</p>
@@ -2319,7 +2322,7 @@ export default function AdminAccounting() {
                   <CardTitle className="text-sm font-medium">Avg Refund</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">£{LEAD_PRICE}</div>
+                  <div className="text-2xl font-bold">£12</div>
                 </CardContent>
               </Card>
             </div>
@@ -2637,7 +2640,7 @@ export default function AdminAccounting() {
                     </div>
                     <div className="flex justify-between py-2 border-b">
                       <span className="text-muted-foreground">Lead Price</span>
-                      <span className="font-medium">£{LEAD_PRICE}</span>
+                      <span className="font-medium">£12</span>
                     </div>
                     <div className="flex justify-between py-2 border-b">
                       <span className="text-muted-foreground">Total Refunds Issued</span>

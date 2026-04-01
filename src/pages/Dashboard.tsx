@@ -176,12 +176,12 @@ export default function Dashboard() {
       if (data.error) throw new Error(data.error);
 
       if (data.url) {
-        trackInitiateCheckout({ contentName: `credit_pack_${packSize}`, contentCategory: 'credits', value: packSize === '5' ? 90 : 170 });
+        trackInitiateCheckout({ contentName: `credit_pack_${packSize}`, contentCategory: 'credits', value: packSize === '5' ? 50 : 90 });
         if (window.fbq) {
           window.fbq('track', 'InitiateCheckout', {
             content_name: `credit_pack_${packSize}`,
             content_category: 'credits',
-            value: packSize === '5' ? 90 : 170,
+            value: packSize === '5' ? 50 : 90,
             currency: 'GBP',
           });
         }
@@ -559,10 +559,10 @@ export default function Dashboard() {
                     >
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-semibold text-lg text-foreground">5 Credits</span>
-                        <span className="text-secondary font-bold text-xl">£90</span>
+                        <span className="text-secondary font-bold text-xl">£50</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground text-sm">£18 per lead</span>
+                        <span className="text-muted-foreground text-sm">£10 per lead</span>
                         <span className="text-secondary text-sm font-medium">Save £10</span>
                       </div>
                       {buyingCredits === "5" && (
@@ -582,10 +582,10 @@ export default function Dashboard() {
                       </div>
                       <div className="flex items-center justify-between mb-2 pt-1">
                         <span className="font-semibold text-lg text-foreground">10 Credits</span>
-                        <span className="text-secondary font-bold text-xl mr-1">£170</span>
+                        <span className="text-secondary font-bold text-xl mr-1">£90</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground text-sm">£17 per lead</span>
+                        <span className="text-muted-foreground text-sm">£9 per lead</span>
                         <span className="text-secondary text-sm font-medium">Save £30</span>
                       </div>
                       {buyingCredits === "10" && (
@@ -596,7 +596,7 @@ export default function Dashboard() {
                     </button>
                   </div>
                   <p className="text-muted-foreground text-xs text-center mt-4">
-                    Or pay £20 per lead without credits
+                    Or pay £12 per lead without credits
                   </p>
                 </DialogContent>
               </Dialog>
