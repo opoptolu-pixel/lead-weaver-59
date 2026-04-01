@@ -176,7 +176,7 @@ export default function Dashboard() {
       if (data.error) throw new Error(data.error);
 
       if (data.url) {
-        trackInitiateCheckout({ contentName: `credit_pack_${packSize}`, contentCategory: 'credits', value: packSize === '5' ? 90 : 170 });
+        trackInitiateCheckout({ contentName: `credit_pack_${packSize}`, contentCategory: 'credits', value: packSize === '5' ? 50 : 90 });
         if (window.fbq) {
           window.fbq('track', 'InitiateCheckout', {
             content_name: `credit_pack_${packSize}`,
