@@ -409,14 +409,14 @@ export default function AdminAccounting() {
     const purchasedTxns = transactions.filter(t => t.creditType === "purchased");
     const grantedTxns = transactions.filter(t => t.creditType === "granted");
     
-    // Gross revenue = only from purchased credits (actual cash payments)
-    const grossRevenue = purchasedTxns.length * LEAD_PRICE;
-    const grantedLeadsValue = grantedTxns.length * LEAD_PRICE;
+    // Gross revenue = sum of actual amounts paid by purchased credit leads
+    const grossRevenue = purchasedTxns.reduce((sum, t) => sum + t.amount, 0);
+    const grantedLeadsValue = grantedTxns.reduce((sum, t) => sum + t.amount, 0);
     
     // Refunds - only count refunds from purchased leads for cash calculations
     const refundedTxns = transactions.filter(t => t.status === "refunded");
     const refundedPurchasedTxns = purchasedTxns.filter(t => t.status === "refunded");
-    const refundsIssued = refundedPurchasedTxns.length * LEAD_PRICE;
+    const refundsIssued = refundedPurchasedTxns.reduce((sum, t) => sum + t.amount, 0);
     
     // Net revenue = cash received minus cash refunded
     const netRevenue = grossRevenue - refundsIssued;
