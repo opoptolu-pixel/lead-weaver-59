@@ -115,6 +115,8 @@ interface LeadDetail {
   is_unlocked: boolean;
   unlocked_at?: string;
   refunded_at?: string;
+  credit_type?: string | null;
+  amount_paid?: number | null;
   customer_name?: string;
   customer_phone?: string;
   customer_email?: string;
@@ -157,6 +159,8 @@ interface BuyerDetail {
   bookedJobs: number;
   completedJobs: number;
 }
+
+const getStoredLeadAmount = (amountPaid: number | null | undefined) => amountPaid ?? 20;
 
 export default function AdminAnalytics() {
   const { getDateFilter, dateRange } = useAdmin();
@@ -220,6 +224,14 @@ export default function AdminAnalytics() {
   const [marketplaceSearch, setMarketplaceSearch] = useState("");
   const [bookingSearch, setBookingSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  const paidLeadRevenue = useMemo(
+    () => allLeads.reduce((sum, lead) => {
+      if (!lead.is_unlocked || lead.credit_type === "granted") return sum;
+      return sum + getStoredLeadAmount(lead.amount_paid);
+    }, 0),
+    [allLeads]
+  );
 
   // Live visitor location stats
   const liveVisitorLocations = useMemo(() => {
@@ -377,7 +389,7 @@ export default function AdminAnalytics() {
     // Fetch leads with more details
     const { data: leads } = await supabase
       .from("leads")
-      .select("id, source, postcode, is_unlocked, unlocked_by, refunded_at, created_at, unlocked_at, lead_status, job_type, display_value, credit_type, job_status, customer_name, customer_phone, customer_email, booked_date, lost_reason, utm_data")
+      .select("id, source, postcode, is_unlocked, unlocked_by, refunded_at, created_at, unlocked_at, lead_status, job_type, display_value, credit_type, amount_paid, job_status, customer_name, customer_phone, customer_email, booked_date, lost_reason, utm_data")
       .gte("created_at", startISO)
       .lte("created_at", endISO);
 
@@ -501,7 +513,7 @@ export default function AdminAnalytics() {
           stats.purchased++;
           // Only count revenue from paid leads, not granted
           if ((lead as any).credit_type !== 'granted') {
-            stats.revenue += 20;
+            stats.revenue += getStoredLeadAmount((lead as any).amount_paid);
           }
         }
         if (lead.refunded_at) {
@@ -566,7 +578,7 @@ export default function AdminAnalytics() {
     // Include job_status for conversion metrics
     const { data: purchasedLeadsData } = await supabase
       .from("leads")
-      .select("unlocked_by, refunded_at, job_status, created_at, unlocked_at")
+      .select("unlocked_by, refunded_at, credit_type, amount_paid, job_status, created_at, unlocked_at")
       .eq("is_unlocked", true)
       .gte("unlocked_at", startISO)
       .lte("unlocked_at", endISO);
@@ -575,6 +587,7 @@ export default function AdminAnalytics() {
       // Aggregate purchases by user with enhanced metrics
       const buyerPurchaseMap = new Map<string, { 
         purchases: number; 
+        spend: number;
         refunds: number; 
         booked: number;
         completed: number;
@@ -587,6 +600,7 @@ export default function AdminAnalytics() {
         if (!buyerPurchaseMap.has(lead.unlocked_by)) {
           buyerPurchaseMap.set(lead.unlocked_by, { 
             purchases: 0, 
+            spend: 0,
             refunds: 0,
             booked: 0,
             completed: 0,
@@ -596,6 +610,9 @@ export default function AdminAnalytics() {
         }
         const stats = buyerPurchaseMap.get(lead.unlocked_by)!;
         stats.purchases++;
+        if (lead.credit_type !== 'granted') {
+          stats.spend += getStoredLeadAmount(lead.amount_paid);
+        }
         if (lead.refunded_at) stats.refunds++;
         if (lead.job_status === 'booked' || lead.job_status === 'completed') stats.booked++;
         if (lead.job_status === 'completed') stats.completed++;
@@ -626,6 +643,7 @@ export default function AdminAnalytics() {
           const buyersWithStats: BuyerDetail[] = profiles.map(profile => {
             const purchaseData = buyerPurchaseMap.get(profile.user_id) || { 
               purchases: 0, 
+              spend: 0,
               refunds: 0,
               booked: 0,
               completed: 0,
@@ -644,7 +662,7 @@ export default function AdminAnalytics() {
               name: profile.business_name || "Unnamed Business",
               postcode: profile.postcode || "Unknown",
               purchases: purchaseData.purchases,
-              spend: purchaseData.purchases * 12,
+              spend: purchaseData.spend,
               refundRate: purchaseData.purchases > 0 ? Math.round((purchaseData.refunds / purchaseData.purchases) * 100) : 0,
               conversionRate,
               avgResponseTime,
@@ -672,7 +690,7 @@ export default function AdminAnalytics() {
               const stats = buyerCityMap.get(key)!;
               stats.buyers++;
               stats.totalPurchases += purchaseData.purchases;
-              stats.totalSpend += purchaseData.purchases * 12;
+              stats.totalSpend += purchaseData.spend;
             }
             
             return buyerData;
@@ -907,10 +925,10 @@ export default function AdminAnalytics() {
                       <CardContent>
                         <p className="text-3xl font-bold text-purple-600">
                           {adMetrics.totalSpend > 0 
-                            ? ((adMetrics.totalConversions * 12) / adMetrics.totalSpend).toFixed(2) 
+                            ? (paidLeadRevenue / adMetrics.totalSpend).toFixed(2) 
                             : "0"}x
                         </p>
-                        <p className="text-sm text-muted-foreground">Based on £12/lead revenue</p>
+                        <p className="text-sm text-muted-foreground">Based on actual paid lead revenue</p>
                       </CardContent>
                     </Card>
                   </div>

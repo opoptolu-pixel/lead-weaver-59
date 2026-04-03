@@ -88,6 +88,8 @@ interface PeriodComparison {
   activeBuyers: number;
 }
 
+const getLeadAmountPaid = (amountPaid: number | null | undefined) => amountPaid ?? 20;
+
 const VALUE_BAND_COLORS = {
   "£100–£140": "hsl(var(--muted-foreground))",
   "£150–£200": "hsl(var(--secondary))",
@@ -111,8 +113,10 @@ export default function AdminOverview() {
     paidLeadsPurchased: 0,
     grantedLeadsPurchased: 0,
     revenue: 0,
+    grantedLeadValue: 0,
     activeBuyers: 0,
     refundsIssued: 0,
+    refundAmount: 0,
     disputesOpen: 0,
     fraudFlags: 0,
     avgJobValue: 0,
@@ -146,7 +150,7 @@ export default function AdminOverview() {
   });
 
   // Calculate net profit (revenue - refunds - ad spend)
-  const netProfit = stats.revenue - (stats.refundsIssued * 12) - adMetrics.totalSpend;
+  const netProfit = stats.revenue - stats.refundAmount - adMetrics.totalSpend;
   const costPerLead = stats.leadsPurchased > 0 ? adMetrics.totalSpend / stats.leadsPurchased : 0;
 
   useEffect(() => {
@@ -174,7 +178,7 @@ export default function AdminOverview() {
     // Fetch today's purchases (only purchased credits, not granted)
     const { data: todayPurchases } = await supabase
       .from("leads")
-      .select("id, credit_type")
+      .select("id, credit_type, amount_paid")
       .gte("unlocked_at", todayStart.toISOString())
       .lte("unlocked_at", todayEnd.toISOString())
       .not("unlocked_by", "is", null);
@@ -185,7 +189,7 @@ export default function AdminOverview() {
     // Fetch today's refunds (only for leads that were actually unlocked/purchased)
     const { data: todayRefunds } = await supabase
       .from("leads")
-      .select("id")
+      .select("id, credit_type, amount_paid")
       .eq("is_unlocked", true)
       .gte("refunded_at", todayStart.toISOString())
       .lte("refunded_at", todayEnd.toISOString());
@@ -193,7 +197,7 @@ export default function AdminOverview() {
     // Fetch yesterday's data for comparison (only purchased credits)
     const { data: yesterdayPurchases } = await supabase
       .from("leads")
-      .select("id, credit_type")
+      .select("id, credit_type, amount_paid")
       .gte("unlocked_at", yesterdayStart.toISOString())
       .lte("unlocked_at", yesterdayEnd.toISOString())
       .not("unlocked_by", "is", null);
@@ -202,7 +206,7 @@ export default function AdminOverview() {
 
     const { data: yesterdayRefunds } = await supabase
       .from("leads")
-      .select("id")
+      .select("id, credit_type, amount_paid")
       .eq("is_unlocked", true)
       .gte("refunded_at", yesterdayStart.toISOString())
       .lte("refunded_at", yesterdayEnd.toISOString());
@@ -210,7 +214,7 @@ export default function AdminOverview() {
     // Fetch MTD purchases and refunds (only purchased credits)
     const { data: mtdPurchases } = await supabase
       .from("leads")
-      .select("id, credit_type")
+      .select("id, credit_type, amount_paid")
       .gte("unlocked_at", mtdStart.toISOString())
       .lte("unlocked_at", todayEnd.toISOString())
       .not("unlocked_by", "is", null);
@@ -219,7 +223,7 @@ export default function AdminOverview() {
 
     const { data: mtdRefunds } = await supabase
       .from("leads")
-      .select("id")
+      .select("id, credit_type, amount_paid")
       .eq("is_unlocked", true)
       .gte("refunded_at", mtdStart.toISOString())
       .lte("refunded_at", todayEnd.toISOString());
@@ -227,7 +231,7 @@ export default function AdminOverview() {
     // Fetch pending disputes value
     const { data: pendingDisputes } = await supabase
       .from("disputes")
-      .select("id")
+      .select("lead_id")
       .eq("status", "open");
 
     // Fetch total outstanding credits across all users
@@ -236,21 +240,35 @@ export default function AdminOverview() {
       .select("credits");
 
     const todayPurchaseCount = todayPaidPurchases.length;
-    const todayRefundCount = todayRefunds?.length || 0;
-    const todayRevenue = todayPurchaseCount * 12;
-    const todayRefundAmount = todayRefundCount * 12;
+    const todayPaidRefunds = (todayRefunds || []).filter(r => r.credit_type !== 'granted');
+    const todayRefundCount = todayPaidRefunds.length;
+    const todayRevenue = todayPaidPurchases.reduce((sum, lead) => sum + getLeadAmountPaid(lead.amount_paid), 0);
+    const todayRefundAmount = todayPaidRefunds.reduce((sum, lead) => sum + getLeadAmountPaid(lead.amount_paid), 0);
     const netRevenue = todayRevenue - todayRefundAmount;
     const refundRate = todayPurchaseCount > 0 ? Math.round((todayRefundCount / todayPurchaseCount) * 100) : 0;
 
     const yesterdayPurchaseCount = yesterdayPaidPurchases.length;
-    const yesterdayRefundCount = yesterdayRefunds?.length || 0;
-    const yesterdayNet = (yesterdayPurchaseCount * 12) - (yesterdayRefundCount * 12);
+    const yesterdayPaidRefunds = (yesterdayRefunds || []).filter(r => r.credit_type !== 'granted');
+    const yesterdayRefundCount = yesterdayPaidRefunds.length;
+    const yesterdayRevenue = yesterdayPaidPurchases.reduce((sum, lead) => sum + getLeadAmountPaid(lead.amount_paid), 0);
+    const yesterdayRefundAmount = yesterdayPaidRefunds.reduce((sum, lead) => sum + getLeadAmountPaid(lead.amount_paid), 0);
+    const yesterdayNet = yesterdayRevenue - yesterdayRefundAmount;
 
-    const mtdPurchaseCount = mtdPaidPurchases.length;
-    const mtdRefundCount = mtdRefunds?.length || 0;
-    const mtdRevenue = (mtdPurchaseCount * 12) - (mtdRefundCount * 12);
+    const mtdPaidRefunds = (mtdRefunds || []).filter(r => r.credit_type !== 'granted');
+    const mtdRevenue = mtdPaidPurchases.reduce((sum, lead) => sum + getLeadAmountPaid(lead.amount_paid), 0)
+      - mtdPaidRefunds.reduce((sum, lead) => sum + getLeadAmountPaid(lead.amount_paid), 0);
 
-    const pendingDisputeValue = (pendingDisputes?.length || 0) * 12;
+    let pendingDisputeValue = 0;
+    const pendingDisputeLeadIds = (pendingDisputes || []).map(dispute => dispute.lead_id).filter(Boolean);
+    if (pendingDisputeLeadIds.length > 0) {
+      const { data: disputedLeads } = await supabase
+        .from("leads")
+        .select("id, amount_paid")
+        .in("id", pendingDisputeLeadIds);
+
+      pendingDisputeValue = (disputedLeads || []).reduce((sum, lead) => sum + getLeadAmountPaid(lead.amount_paid), 0);
+    }
+
     const outstandingCredits = profiles?.reduce((sum, p) => sum + (p.credits || 0), 0) || 0;
 
     setTodayAccounting({
@@ -346,7 +364,7 @@ export default function AdminOverview() {
 
     const { data: prevUnlocked } = await supabase
       .from("leads")
-      .select("id, unlocked_by, credit_type")
+      .select("id, unlocked_by, credit_type, amount_paid")
       .gte("unlocked_at", prevStart.toISOString())
       .lte("unlocked_at", prevEnd.toISOString())
       .not("unlocked_by", "is", null);
@@ -356,7 +374,7 @@ export default function AdminOverview() {
 
     const prevLeadsReceived = prevLeads?.length || 0;
     const prevLeadsPurchased = prevUnlocked?.length || 0;
-    const prevRevenue = prevPaidUnlocked.length * 12;
+    const prevRevenue = prevPaidUnlocked.reduce((sum, lead) => sum + getLeadAmountPaid(lead.amount_paid), 0);
     const prevBuyers = new Set(prevUnlocked?.map(l => l.unlocked_by) || []);
 
     setPreviousStats({
@@ -372,7 +390,7 @@ export default function AdminOverview() {
     
     const { data: leads } = await supabase
       .from("leads")
-      .select("created_at, unlocked_at, is_unlocked, value, postcode, job_type, refunded_at, credit_type")
+      .select("created_at, unlocked_at, is_unlocked, value, postcode, job_type, refunded_at, credit_type, amount_paid")
       .gte("created_at", start.toISOString())
       .lte("created_at", end.toISOString());
 
@@ -394,7 +412,7 @@ export default function AdminOverview() {
           current.leads += 1;
           // Only count revenue from paid leads (not granted)
           if (lead.is_unlocked && lead.credit_type !== 'granted') {
-            current.revenue += 12;
+            current.revenue += getLeadAmountPaid(lead.amount_paid);
           }
         }
       });
@@ -485,7 +503,7 @@ export default function AdminOverview() {
 
     const { data: unlockedLeadsInRange } = await supabase
       .from("leads")
-      .select("id, unlocked_by, value, display_value, refunded_at, credit_type")
+      .select("id, unlocked_by, value, display_value, refunded_at, credit_type, amount_paid")
       .gte("unlocked_at", startISO)
       .lte("unlocked_at", endISO)
       .not("unlocked_by", "is", null);
@@ -518,13 +536,16 @@ export default function AdminOverview() {
     const leadsPurchased = unlockedLeadsInRange?.length || 0;
     // Revenue only from paid credits (excludes granted)
     const paidLeadsPurchased = paidLeadsInRange.length;
-    const revenue = paidLeadsPurchased * 12;
+    const revenue = paidLeadsInRange.reduce((sum, lead) => sum + getLeadAmountPaid(lead.amount_paid), 0);
     
     const uniqueBuyers = new Set(unlockedLeadsInRange?.map(l => l.unlocked_by) || []);
     const activeBuyers = uniqueBuyers.size;
     
     // Refunds from paid leads only
     const refundsIssued = paidLeadsInRange.filter(l => l.refunded_at !== null).length;
+    const refundAmount = paidLeadsInRange
+      .filter(l => l.refunded_at !== null)
+      .reduce((sum, lead) => sum + getLeadAmountPaid(lead.amount_paid), 0);
     
     const disputesOpen = disputes?.filter(d => d.status === "open").length || 0;
     const pendingFraud = fraudFlags?.filter(f => f.status === "pending").length || 0;
@@ -562,6 +583,9 @@ export default function AdminOverview() {
 
     // Count granted leads
     const grantedLeadsPurchased = (unlockedLeadsInRange?.length || 0) - paidLeadsInRange.length;
+    const grantedLeadValue = (unlockedLeadsInRange || [])
+      .filter(l => l.credit_type === 'granted')
+      .reduce((sum, lead) => sum + getLeadAmountPaid(lead.amount_paid), 0);
 
     // Job outcome stats (from purchased leads)
     const purchasedLeadsList = leads?.filter(l => l.is_unlocked) || [];
@@ -579,8 +603,10 @@ export default function AdminOverview() {
       paidLeadsPurchased,
       grantedLeadsPurchased,
       revenue,
+      grantedLeadValue,
       activeBuyers,
       refundsIssued,
+      refundAmount,
       disputesOpen,
       fraudFlags: pendingFraud,
       avgJobValue,
@@ -797,7 +823,7 @@ export default function AdminOverview() {
             </div>
             <p className="text-2xl font-bold text-foreground">{stats.paidLeadsPurchased}</p>
             <p className="text-sm text-muted-foreground">
-              £{stats.paidLeadsPurchased * 20} revenue
+              £{stats.revenue.toLocaleString()} revenue
             </p>
             {/* Progress bar */}
             <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
@@ -827,7 +853,7 @@ export default function AdminOverview() {
             </div>
             <p className="text-2xl font-bold text-foreground">{stats.grantedLeadsPurchased}</p>
             <p className="text-sm text-muted-foreground">
-              £{stats.grantedLeadsPurchased * 20} value (no revenue)
+              £{stats.grantedLeadValue.toLocaleString()} value (no revenue)
             </p>
             {/* Progress bar */}
             <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
