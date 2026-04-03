@@ -1,0 +1,1 @@
+UPDATE leads SET amount_paid = 20 WHERE id = '5e368e45-8aff-4f1d-89c5-064752886fc6' AND amount_paid IS NULL;
