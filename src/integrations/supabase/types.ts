@@ -2649,6 +2649,10 @@ export type Database = {
         Args: { p_decision: string; p_job_id: string; p_notes?: string }
         Returns: boolean
       }
+      approve_cleaner_payout: {
+        Args: { p_payout_id: string }
+        Returns: boolean
+      }
       check_lead_reservation: {
         Args: { p_lead_id: string; p_visitor_id: string }
         Returns: {
@@ -2796,6 +2800,15 @@ export type Database = {
       offer_job_to_cleaner: {
         Args: { p_cleaner_id: string; p_job_id: string }
         Returns: Json
+      }
+      record_customer_payment: {
+        Args: {
+          p_method: string
+          p_paid_at?: string
+          p_payment_id: string
+          p_reference: string
+        }
+        Returns: boolean
       }
       replace_my_cleaner_availability: {
         Args: { p_windows: Json }
