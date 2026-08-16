@@ -2498,6 +2498,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_override_job_stage: {
+        Args: { p_job_id: string; p_reason: string; p_target_status: string }
+        Returns: boolean
+      }
+      admin_review_job_completion: {
+        Args: { p_decision: string; p_job_id: string; p_notes?: string }
+        Returns: boolean
+      }
       check_lead_reservation: {
         Args: { p_lead_id: string; p_visitor_id: string }
         Returns: {
