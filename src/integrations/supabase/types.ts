@@ -273,6 +273,79 @@ export type Database = {
           },
         ]
       }
+      cleaner_job_notifications: {
+        Row: {
+          assignment_id: string
+          attempts: number
+          channel: string
+          cleaner_id: string
+          created_at: string
+          id: string
+          job_id: string
+          last_error: string | null
+          notification_type: string
+          provider_reference: string | null
+          scheduled_for: string
+          sent_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assignment_id: string
+          attempts?: number
+          channel: string
+          cleaner_id: string
+          created_at?: string
+          id?: string
+          job_id: string
+          last_error?: string | null
+          notification_type: string
+          provider_reference?: string | null
+          scheduled_for: string
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assignment_id?: string
+          attempts?: number
+          channel?: string
+          cleaner_id?: string
+          created_at?: string
+          id?: string
+          job_id?: string
+          last_error?: string | null
+          notification_type?: string
+          provider_reference?: string | null
+          scheduled_for?: string
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cleaner_job_notifications_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "job_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cleaner_job_notifications_cleaner_id_fkey"
+            columns: ["cleaner_id"]
+            isOneToOne: false
+            referencedRelation: "cleaner_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cleaner_job_notifications_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cleaner_payouts: {
         Row: {
           amount_pence: number
