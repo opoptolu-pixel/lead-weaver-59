@@ -89,6 +89,16 @@ interface Quote {
   version: number;
 }
 
+interface CustomerPayment {
+  id: string;
+  job_id: string;
+  amount_pence: number;
+  status: string;
+  provider: string | null;
+  provider_reference: string | null;
+  paid_at: string | null;
+}
+
 interface Job {
   id: string;
   reference: string;
@@ -208,6 +218,7 @@ export default function AdminServiceRequests() {
   const location = useLocation();
   const [requests, setRequests] = useState<ManagedRequest[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [customerPayments, setCustomerPayments] = useState<CustomerPayment[]>([]);
   const [cleaners, setCleaners] = useState<Cleaner[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -261,7 +272,7 @@ export default function AdminServiceRequests() {
 
   const fetchData = async () => {
     if (!loadedOnce.current) setLoading(true);
-    const [requestResult, initialJobResult, cleanerResult] = await Promise.all([
+    const [requestResult, initialJobResult, cleanerResult, paymentResult] = await Promise.all([
       db
         .from("service_requests")
         .select(
@@ -290,6 +301,10 @@ export default function AdminServiceRequests() {
         .select(
           "id,full_name,postcode,phone,application_status,operational_status,verification_status,payout_status,experience_summary,admin_notes,has_transport,created_at",
         )
+        .order("created_at", { ascending: false }),
+      db
+        .from("customer_payments")
+        .select("id,job_id,amount_pence,status,provider,provider_reference,paid_at")
         .order("created_at", { ascending: false }),
     ]);
 
@@ -322,11 +337,17 @@ export default function AdminServiceRequests() {
       );
     }
 
-    if (requestResult.error || jobResult.error || cleanerResult.error) {
+    if (
+      requestResult.error ||
+      jobResult.error ||
+      cleanerResult.error ||
+      paymentResult.error
+    ) {
       toast.error(
-        requestResult.error?.message ||
+          requestResult.error?.message ||
           jobResult.error?.message ||
           cleanerResult.error?.message ||
+          paymentResult.error?.message ||
           "Could not load managed operations",
       );
     } else {
@@ -335,6 +356,7 @@ export default function AdminServiceRequests() {
       setRequests(nextRequests);
       setJobs(nextJobs);
       setCleaners(cleanerResult.data || []);
+      setCustomerPayments((paymentResult.data as CustomerPayment[]) || []);
       setSelected((current) => current ? nextRequests.find((request) => request.id === current.id) || current : null);
       setSelectedJob((current) => current ? nextJobs.find((job) => job.id === current.id) || current : null);
     }
@@ -804,6 +826,20 @@ export default function AdminServiceRequests() {
     start: startOfWeek(startOfMonth(calendarMonth), { weekStartsOn: 1 }),
     end: endOfWeek(endOfMonth(calendarMonth), { weekStartsOn: 1 }),
   });
+  const selectedBookingJob = selected
+    ? jobs.find((job) => job.service_request_id === selected.id) || null
+    : null;
+  const selectedBookingPayment = selectedBookingJob
+    ? customerPayments.find(
+        (payment) =>
+          payment.job_id === selectedBookingJob.id && payment.status === "paid",
+      ) || null
+    : null;
+  const latestSelectedQuote = selected
+    ? [...(selected.quotes || [])].sort((a, b) => b.version - a.version)[0] || null
+    : null;
+  const awaitingOnlinePayment =
+    !selectedBookingJob && latestSelectedQuote?.status === "sent";
 
   return (
     <AdminLayout title={pageTitle}>
@@ -1517,8 +1553,71 @@ export default function AdminServiceRequests() {
                   />
                 </div>
               </div>
+              {selectedBookingJob && (
+                <div className="space-y-4 rounded-xl border border-emerald-300 bg-emerald-50 p-5 text-emerald-950">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2 font-semibold">
+                        <CheckCircle2 className="h-5 w-5" />
+                        Booking confirmed
+                      </div>
+                      <p className="mt-1 text-sm">
+                        This request has already been converted into a job. Quote and payment actions are locked.
+                      </p>
+                    </div>
+                    <Badge className="bg-emerald-700 text-white">accepted</Badge>
+                  </div>
+                  <div className="grid gap-3 text-sm sm:grid-cols-2">
+                    <div>
+                      <p className="text-emerald-800">Job reference</p>
+                      <p className="font-semibold">{selectedBookingJob.reference}</p>
+                    </div>
+                    <div>
+                      <p className="text-emerald-800">Job status</p>
+                      <p className="font-semibold">
+                        {selectedBookingJob.status.replace(/_/g, " ")}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-emerald-800">Customer payment</p>
+                      <p className="font-semibold">
+                        {selectedBookingPayment
+                          ? `${money(selectedBookingPayment.amount_pence)} paid via ${selectedBookingPayment.provider || "recorded payment"}`
+                          : "Job created — payment record loading"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-emerald-800">Payment details</p>
+                      <p className="font-semibold">
+                        {selectedBookingPayment?.paid_at
+                          ? new Date(selectedBookingPayment.paid_at).toLocaleString("en-GB")
+                          : "Confirmed"}
+                        {selectedBookingPayment?.provider_reference
+                          ? ` · ••••${selectedBookingPayment.provider_reference.slice(-4)}`
+                          : ""}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => openJob(selectedBookingJob)}
+                    className="border-emerald-700 bg-white text-emerald-900 hover:bg-emerald-100"
+                  >
+                    View job
+                  </Button>
+                </div>
+              )}
+              {!selectedBookingJob && (
               <div className="space-y-3 border-t pt-5">
                 <h3 className="font-semibold">Quote economics</h3>
+                {awaitingOnlinePayment && (
+                  <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
+                    <p className="font-semibold">Awaiting customer payment</p>
+                    <p>
+                      The secure Stripe payment link has been sent. A job will be created automatically when Stripe confirms payment.
+                    </p>
+                  </div>
+                )}
                 <div className="grid gap-3 sm:grid-cols-3">
                   <div>
                     <Label>Customer price (£)</Label>
@@ -1593,6 +1692,7 @@ export default function AdminServiceRequests() {
                   recorded together.
                 </p>
               </div>
+              )}
             </div>
           )}
         </DialogContent>
