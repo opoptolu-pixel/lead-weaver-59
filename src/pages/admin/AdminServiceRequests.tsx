@@ -198,6 +198,14 @@ const KANBAN_COLUMNS = [
   { title: "Completed", statuses: ["completed", "closed"], target: "completed" },
   { title: "Issues", statuses: ["issue", "cancelled"], target: "issue" },
 ] as const;
+const REQUEST_KANBAN_COLUMNS = [
+  { title: "New", statuses: ["new"], target: "new" },
+  { title: "Contacted", statuses: ["contacted"], target: "contacted" },
+  { title: "Qualified", statuses: ["qualified"], target: "qualified" },
+  { title: "Quoted", statuses: ["quoted"], target: "quoted" },
+  { title: "Booked", statuses: ["accepted"], target: "accepted" },
+  { title: "Closed / Lost", statuses: ["declined", "lost", "cancelled"], target: "lost" },
+] as const;
 
 export default function AdminServiceRequests() {
   const location = useLocation();
@@ -207,6 +215,7 @@ export default function AdminServiceRequests() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [statusFilter, setStatusFilter] = useState("active");
+  const [requestView, setRequestView] = useState<"list" | "kanban">("list");
   const [selected, setSelected] = useState<ManagedRequest | null>(null);
   const [adminNotes, setAdminNotes] = useState("");
   const [customerPrice, setCustomerPrice] = useState("");
@@ -243,6 +252,9 @@ export default function AdminServiceRequests() {
   const [draggedJobId, setDraggedJobId] = useState<string | null>(null);
   const [stageOverride, setStageOverride] = useState<{ job: Job; target: string } | null>(null);
   const [stageReason, setStageReason] = useState("");
+  const [draggedRequestId, setDraggedRequestId] = useState<string | null>(null);
+  const [requestMove, setRequestMove] = useState<{ request: ManagedRequest; target: string } | null>(null);
+  const [requestStageReason, setRequestStageReason] = useState("");
 
   useEffect(() => {
     const timer = window.setInterval(() => setLiveNow(Date.now()), 30_000);
@@ -736,6 +748,29 @@ export default function AdminServiceRequests() {
     await fetchData();
   };
 
+  const requestRequestStageOverride = (request: ManagedRequest, target: string) => {
+    if (request.status === target || (target === "lost" && ["declined","lost","cancelled"].includes(request.status))) return;
+    setRequestMove({ request, target });
+    setRequestStageReason("");
+  };
+
+  const confirmRequestStageOverride = async () => {
+    if (!requestMove) return;
+    if (requestStageReason.trim().length < 5) return toast.error("Enter an audit reason of at least 5 characters.");
+    setSaving(true);
+    const { data, error } = await db.rpc("admin_override_service_request_stage", {
+      p_request_id: requestMove.request.id,
+      p_target_status: requestMove.target,
+      p_reason: requestStageReason.trim(),
+    });
+    setSaving(false);
+    if (error || !data) return toast.error(error?.message || "Request stage could not be changed.");
+    toast.success("Cleaning request stage updated and audited.");
+    setRequestMove(null);
+    setRequestStageReason("");
+    await fetchData();
+  };
+
   const updateCleaner = async (
     cleaner: Cleaner,
     updates: Record<string, unknown>,
@@ -806,32 +841,16 @@ export default function AdminServiceRequests() {
 
         <Tabs value={requestedSection}>
           <TabsContent value="requests" className="space-y-4">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-56">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {[
-                  "active",
-                  "all",
-                  "new",
-                  "contacted",
-                  "qualified",
-                  "quoted",
-                  "accepted",
-                  "declined",
-                  "lost",
-                  "cancelled",
-                ].map((status) => (
-                  <SelectItem key={status} value={status}>
-                    {status.replace(/_/g, " ")}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              {requestView === "list" ? <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full sm:w-56"><SelectValue /></SelectTrigger>
+                <SelectContent>{["active","all","new","contacted","qualified","quoted","accepted","declined","lost","cancelled"].map((status) => <SelectItem key={status} value={status}>{status.replace(/_/g," ")}</SelectItem>)}</SelectContent>
+              </Select> : <p className="text-sm text-muted-foreground">Drag cards to valid stages. Booked requires quote acceptance and job creation.</p>}
+              <div className="flex rounded-lg border bg-card p-1"><Button size="sm" variant={requestView === "list" ? "secondary" : "ghost"} onClick={() => setRequestView("list")}><List className="mr-2 h-4 w-4" />List</Button><Button size="sm" variant={requestView === "kanban" ? "secondary" : "ghost"} onClick={() => setRequestView("kanban")}><Columns3 className="mr-2 h-4 w-4" />Kanban</Button></div>
+            </div>
             {loading ? (
               <Loader2 className="h-7 w-7 animate-spin" />
-            ) : (
+            ) : requestView === "list" ? (
               visibleRequests.map((request) => (
                 <div
                   key={request.id}
@@ -877,7 +896,7 @@ export default function AdminServiceRequests() {
                   </div>
                 </div>
               ))
-            )}
+            ) : <div className="overflow-x-auto pb-3"><div className="grid min-w-[1440px] grid-cols-6 gap-3">{REQUEST_KANBAN_COLUMNS.map((column) => { const columnRequests=requests.filter((request)=>(column.statuses as readonly string[]).includes(request.status)); return <section key={column.title} onDragOver={(event)=>event.preventDefault()} onDrop={()=>{const request=requests.find((item)=>item.id===draggedRequestId);if(request)requestRequestStageOverride(request,column.target);setDraggedRequestId(null);}} className="min-h-[420px] rounded-xl border bg-muted/30"><div className="flex items-center justify-between border-b px-3 py-3"><h3 className="font-semibold">{column.title}</h3><Badge variant="outline">{columnRequests.length}</Badge></div><div className="space-y-3 p-3">{columnRequests.map((request)=><button key={request.id} type="button" draggable onDragStart={()=>setDraggedRequestId(request.id)} onDragEnd={()=>setDraggedRequestId(null)} onClick={()=>openRequest(request)} className="w-full cursor-grab rounded-lg border bg-card p-3 text-left shadow-sm transition hover:border-secondary active:cursor-grabbing"><div className="flex items-start justify-between gap-2"><strong className="text-sm">{request.reference}</strong><Badge className={requestStatusClasses[request.status]}>{request.status}</Badge></div><p className="mt-2 text-sm font-medium">{request.customer.name}</p><p className="mt-1 text-xs text-muted-foreground">{request.address.postcode} · {request.service_type.name}</p><p className="mt-2 text-xs">Preferred {request.preferred_date_from || "date not supplied"}</p></button>)}{columnRequests.length===0&&<p className="p-3 text-center text-xs text-muted-foreground">No requests</p>}</div></section>;})}</div></div>}
           </TabsContent>
           <TabsContent value="jobs" className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-4">
@@ -2039,6 +2058,9 @@ export default function AdminServiceRequests() {
             <div className="flex justify-end gap-2"><Button variant="outline" onClick={() => setStageOverride(null)}>Cancel</Button><Button onClick={confirmStageOverride} disabled={saving || stageOverride.target === "completed"}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Confirm change</Button></div>
           </div>}
         </DialogContent>
+      </Dialog>
+      <Dialog open={!!requestMove} onOpenChange={(open) => { if (!open) { setRequestMove(null); setRequestStageReason(""); } }}>
+        <DialogContent className="max-w-lg"><DialogHeader><DialogTitle>Confirm request pipeline override</DialogTitle></DialogHeader>{requestMove && <div className="space-y-4"><div className="rounded-lg border bg-muted/40 p-4 text-sm"><p className="font-medium">{requestMove.request.reference} · {requestMove.request.customer.name}</p><p className="mt-1 text-muted-foreground">{requestMove.request.status.replace(/_/g," ")} → {requestMove.target.replace(/_/g," ")}</p></div>{requestMove.target === "accepted" && <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">A request can only become Booked after quote acceptance and job creation.</p>}<div><Label htmlFor="request-stage-reason">Audit reason</Label><Textarea id="request-stage-reason" value={requestStageReason} onChange={(event)=>setRequestStageReason(event.target.value)} placeholder="Why is this manual stage change required?" /></div><div className="flex justify-end gap-2"><Button variant="outline" onClick={()=>setRequestMove(null)}>Cancel</Button><Button onClick={confirmRequestStageOverride} disabled={saving || requestMove.target === "accepted"}>{saving&&<Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Confirm change</Button></div></div>}</DialogContent>
       </Dialog>
     </AdminLayout>
   );
