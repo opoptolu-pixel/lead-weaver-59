@@ -49,6 +49,7 @@ import {
   BarChart3,
   Calendar,
   ShieldBan,
+  Search,
 } from "lucide-react";
 import { format } from "date-fns";
 import { VariableAutocompleteTextarea } from "@/components/admin/VariableAutocompleteTextarea";
@@ -69,6 +70,44 @@ interface EmailTemplate {
   created_at: string;
   updated_at: string;
 }
+
+type TemplateCategory = "customer" | "cleaner" | "payments" | "reminders" | "operations" | "legacy";
+
+const AGENCY_TEMPLATE_NAMES = new Set([
+  "cleaning_request_confirmation",
+  "agency_quote_payment_link",
+  "agency_payment_confirmation",
+  "cleaner_job_offer",
+  "cleaner_assignment_confirmed",
+  "cleaner_reminder_3_day",
+  "cleaner_reminder_1_day",
+  "cleaner_reminder_day",
+  "cleaner_reminder_day_sms",
+  "customer_reminder_3_day",
+  "customer_reminder_1_day",
+  "customer_reminder_day",
+]);
+
+const getTemplateCategory = (name: string): TemplateCategory => {
+  if (name.startsWith("cleaner_reminder_") || name.startsWith("customer_reminder_")) return "reminders";
+  if (name === "agency_quote_payment_link" || name === "agency_payment_confirmation") return "payments";
+  if (name.startsWith("cleaner_")) return "cleaner";
+  if (name === "cleaning_request_confirmation" || name.startsWith("customer_")) return "customer";
+  if (AGENCY_TEMPLATE_NAMES.has(name) || name.startsWith("agency_")) return "operations";
+
+  // Templates inherited from the former lead marketplace remain available for audit,
+  // but are kept out of the agency team's day-to-day view.
+  return "legacy";
+};
+
+const TEMPLATE_CATEGORY_LABELS: Record<TemplateCategory, string> = {
+  customer: "Customer",
+  cleaner: "Cleaner",
+  payments: "Payments",
+  reminders: "Reminders",
+  operations: "Operations",
+  legacy: "Archived legacy",
+};
 
 const DEFAULT_TEMPLATES = [
   {
@@ -1840,6 +1879,8 @@ export default function AdminEmailTemplates() {
   const [scheduledTime, setScheduledTime] = useState("");
   const [isScheduling, setIsScheduling] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null);
+  const [templateCategory, setTemplateCategory] = useState<TemplateCategory | "agency">("agency");
+  const [templateSearch, setTemplateSearch] = useState("");
   const { user } = useAuth();
   const [formData, setFormData] = useState({
     name: "",
@@ -2275,6 +2316,17 @@ export default function AdminEmailTemplates() {
     return html;
   };
 
+  const visibleTemplates = templates.filter((template) => {
+    const category = getTemplateCategory(template.name);
+    const matchesCategory = templateCategory === "agency"
+      ? category !== "legacy"
+      : category === templateCategory;
+    const query = templateSearch.trim().toLowerCase();
+    const matchesSearch = !query || [template.name, template.subject, template.description || ""]
+      .some((value) => value.toLowerCase().includes(query));
+    return matchesCategory && matchesSearch;
+  });
+
   return (
     <AdminLayout title="Communications">
       <div className="space-y-6">
@@ -2287,10 +2339,12 @@ export default function AdminEmailTemplates() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={seedDefaultTemplates} disabled={saving}>
-              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              {templates.length === 0 ? "Add Default Templates" : "Sync Cleanda Branding"}
-            </Button>
+            {templates.length === 0 && (
+              <Button variant="outline" onClick={seedDefaultTemplates} disabled={saving}>
+                {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Add Default Templates
+              </Button>
+            )}
             <Button onClick={handleCreate}>
               <Plus className="w-4 h-4 mr-2" />
               New Template
@@ -2310,7 +2364,7 @@ export default function AdminEmailTemplates() {
             </TabsTrigger>
             <TabsTrigger value="logs" className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4" />
-              Delivery Tracking
+              Delivery History
             </TabsTrigger>
             <TabsTrigger value="suppressions" className="flex items-center gap-2">
               <ShieldBan className="w-4 h-4" />
@@ -2319,6 +2373,31 @@ export default function AdminEmailTemplates() {
           </TabsList>
 
           <TabsContent value="templates" className="space-y-6">
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={templateSearch}
+                  onChange={(event) => setTemplateSearch(event.target.value)}
+                  placeholder="Search communications"
+                  className="pl-9"
+                />
+              </div>
+              <Select value={templateCategory} onValueChange={(value) => setTemplateCategory(value as TemplateCategory | "agency")}>
+                <SelectTrigger className="w-full sm:w-[210px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="agency">All agency templates</SelectItem>
+                  <SelectItem value="customer">Customer</SelectItem>
+                  <SelectItem value="cleaner">Cleaner</SelectItem>
+                  <SelectItem value="payments">Payments</SelectItem>
+                  <SelectItem value="reminders">Reminders</SelectItem>
+                  <SelectItem value="operations">Operations</SelectItem>
+                  <SelectItem value="legacy">Archived legacy</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             {/* Templates Table */}
             <Card>
           <CardHeader>
@@ -2327,7 +2406,7 @@ export default function AdminEmailTemplates() {
               Templates
             </CardTitle>
             <CardDescription>
-              Use {"{{variable_name}}"} syntax to insert dynamic content
+              Agency communications are shown by default. Former marketplace templates are retained under Archived legacy.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -2343,6 +2422,10 @@ export default function AdminEmailTemplates() {
                   Add Default Templates
                 </Button>
               </div>
+            ) : visibleTemplates.length === 0 ? (
+              <div className="py-12 text-center text-muted-foreground">
+                No communications match this filter.
+              </div>
             ) : (
               <Table>
                 <TableHeader>
@@ -2356,11 +2439,14 @@ export default function AdminEmailTemplates() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {templates.map((template) => (
+                  {visibleTemplates.map((template) => (
                     <TableRow key={template.id}>
                       <TableCell>
                         <div>
                           <p className="font-medium">{template.name}</p>
+                          <Badge variant={getTemplateCategory(template.name) === "legacy" ? "outline" : "secondary"} className="mt-1 text-[10px]">
+                            {TEMPLATE_CATEGORY_LABELS[getTemplateCategory(template.name)]}
+                          </Badge>
                           {template.description && (
                             <p className="text-xs text-muted-foreground">
                               {template.description}
@@ -2448,20 +2534,19 @@ export default function AdminEmailTemplates() {
                 </ul>
               </div>
               <div>
-                <p className="font-medium text-foreground">Business</p>
+                <p className="font-medium text-foreground">Cleaner</p>
                 <ul className="text-muted-foreground space-y-1 mt-1">
-                  <li><code className="bg-muted px-1 rounded">{"{{business_name}}"}</code></li>
-                  <li><code className="bg-muted px-1 rounded">{"{{contact_name}}"}</code></li>
+                  <li><code className="bg-muted px-1 rounded">{"{{cleaner_name}}"}</code></li>
+                  <li><code className="bg-muted px-1 rounded">{"{{cleaner_payout}}"}</code></li>
                 </ul>
               </div>
               <div>
-                <p className="font-medium text-foreground">Lead</p>
+                <p className="font-medium text-foreground">Booking</p>
                 <ul className="text-muted-foreground space-y-1 mt-1">
-                  <li><code className="bg-muted px-1 rounded">{"{{job_type}}"}</code></li>
+                  <li><code className="bg-muted px-1 rounded">{"{{service_name}}"}</code></li>
+                  <li><code className="bg-muted px-1 rounded">{"{{scheduled_date}}"}</code></li>
+                  <li><code className="bg-muted px-1 rounded">{"{{start_time}}"}</code></li>
                   <li><code className="bg-muted px-1 rounded">{"{{postcode}}"}</code></li>
-                  <li><code className="bg-muted px-1 rounded">{"{{postcode_area}}"}</code></li>
-                  <li><code className="bg-muted px-1 rounded">{"{{display_value}}"}</code></li>
-                  <li><code className="bg-muted px-1 rounded">{"{{lead_date}}"}</code></li>
                 </ul>
               </div>
               <div>
