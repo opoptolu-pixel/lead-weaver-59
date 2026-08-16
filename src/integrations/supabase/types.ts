@@ -232,6 +232,47 @@ export type Database = {
           },
         ]
       }
+      cleaner_bank_accounts: {
+        Row: {
+          account_holder_name: string
+          account_number: string
+          cleaner_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          sort_code: string
+          submitted_at: string
+          updated_at: string
+        }
+        Insert: {
+          account_holder_name: string
+          account_number: string
+          cleaner_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sort_code: string
+          submitted_at?: string
+          updated_at?: string
+        }
+        Update: {
+          account_holder_name?: string
+          account_number?: string
+          cleaner_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sort_code?: string
+          submitted_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cleaner_bank_accounts_cleaner_id_fkey"
+            columns: ["cleaner_id"]
+            isOneToOne: true
+            referencedRelation: "cleaner_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cleaner_payouts: {
         Row: {
           amount_pence: number
@@ -2610,8 +2651,20 @@ export type Database = {
         Args: { p_assignment_id: string; p_notes?: string; p_response: string }
         Returns: boolean
       }
+      review_cleaner_bank_details: {
+        Args: { p_cleaner_id: string; p_decision: string }
+        Returns: boolean
+      }
       set_job_checklist_item: {
         Args: { p_completed: boolean; p_item_id: string }
+        Returns: boolean
+      }
+      submit_my_bank_details: {
+        Args: {
+          p_account_holder_name: string
+          p_account_number: string
+          p_sort_code: string
+        }
         Returns: boolean
       }
     }
