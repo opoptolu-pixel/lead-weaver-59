@@ -9,6 +9,7 @@ import {
   Eye,
   Image,
   Loader2,
+  List,
   MapPin,
   Phone,
   RefreshCw,
@@ -99,6 +100,18 @@ interface Job {
     city: string | null;
     access_notes: string | null;
   };
+  assignments?: Array<{
+    id: string;
+    status: string;
+    cleaner: { id: string; full_name: string | null } | null;
+  }>;
+}
+
+interface JobEvent {
+  id: string;
+  event_type: string;
+  created_at: string;
+  details: Record<string, unknown> | null;
 }
 
 interface JobEvidence {
@@ -194,6 +207,9 @@ export default function AdminServiceRequests() {
   const [correctionMinutes, setCorrectionMinutes] = useState("");
   const [correctionReason, setCorrectionReason] = useState("");
   const [liveNow, setLiveNow] = useState(() => Date.now());
+  const [jobView, setJobView] = useState<"list" | "calendar">("list");
+  const [jobStatusFilter, setJobStatusFilter] = useState("active");
+  const [jobEvents, setJobEvents] = useState<JobEvent[]>([]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setLiveNow(Date.now()), 30_000);
@@ -221,7 +237,8 @@ export default function AdminServiceRequests() {
           `
         id,reference,service_request_id,status,scheduled_date,start_time,expected_duration_minutes,requirements,
         customer_amount_pence,cleaner_payout_pence,quality_review_status,quality_review_notes,cleaner_completion_notes,
-        service_type:service_types(name),customer:customers(name,phone),address:customer_addresses(id,address_line_1,address_line_2,postcode,city,access_notes)
+        service_type:service_types(name),customer:customers(name,phone),address:customer_addresses(id,address_line_1,address_line_2,postcode,city,access_notes),
+        assignments:job_assignments(id,status,cleaner:cleaner_profiles(id,full_name))
       `,
         )
         .order("scheduled_date", { ascending: true }),
@@ -241,7 +258,8 @@ export default function AdminServiceRequests() {
           `
         id,reference,service_request_id,status,scheduled_date,start_time,expected_duration_minutes,requirements,
         customer_amount_pence,cleaner_payout_pence,
-        service_type:service_types(name),customer:customers(name,phone),address:customer_addresses(id,address_line_1,address_line_2,postcode,city,access_notes)
+        service_type:service_types(name),customer:customers(name,phone),address:customer_addresses(id,address_line_1,address_line_2,postcode,city,access_notes),
+        assignments:job_assignments(id,status,cleaner:cleaner_profiles(id,full_name))
       `,
         )
         .order("scheduled_date", { ascending: true });
@@ -490,7 +508,8 @@ export default function AdminServiceRequests() {
     );
     setJobRequirements(job.requirements || "");
     setQualityNotes(job.quality_review_notes || "");
-    const [{ data, error }, timeResult, checklistResult] = await Promise.all([
+    const [{ data, error }, timeResult, checklistResult, eventResult] =
+      await Promise.all([
       db
         .from("job_evidence")
         .select("id,evidence_type,storage_path,file_name,created_at")
@@ -508,9 +527,15 @@ export default function AdminServiceRequests() {
         .select("id,title,is_required,completed_at")
         .eq("job_id", job.id)
         .order("position"),
+      db
+        .from("job_events")
+        .select("id,event_type,created_at,details")
+        .eq("job_id", job.id)
+        .order("created_at", { ascending: false }),
     ]);
     setDeliveryTimes((timeResult.data as DeliveryTime[]) || []);
     setDeliveryChecklist((checklistResult.data as DeliveryChecklist[]) || []);
+    setJobEvents((eventResult.data as JobEvent[]) || []);
     setCorrectionEntry("");
     setCorrectionMinutes("");
     setCorrectionReason("");
@@ -597,6 +622,27 @@ export default function AdminServiceRequests() {
           "Could not save job details",
       );
     toast.success("Job details updated");
+    setSelectedJob(null);
+    fetchData();
+  };
+
+  const cancelJob = async () => {
+    if (!selectedJob) return;
+    setSaving(true);
+    const { error } = await db
+      .from("jobs")
+      .update({ status: "cancelled" })
+      .eq("id", selectedJob.id);
+    if (!error) {
+      await db.from("job_events").insert({
+        job_id: selectedJob.id,
+        event_type: "job_cancelled_by_admin",
+        details: { previous_status: selectedJob.status },
+      });
+    }
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success("Job cancelled and recorded in the audit trail");
     setSelectedJob(null);
     fetchData();
   };
@@ -713,6 +759,16 @@ export default function AdminServiceRequests() {
           cleaner.verification_status !== "approved",
       )
     : cleaners.filter((cleaner) => cleaner.application_status === "approved");
+  const visibleJobs = jobs.filter((job) => {
+    if (jobStatusFilter === "all") return true;
+    if (jobStatusFilter === "active")
+      return !["closed", "cancelled"].includes(job.status);
+    return job.status === jobStatusFilter;
+  });
+  const jobsByDate = visibleJobs.reduce<Record<string, Job[]>>((groups, job) => {
+    (groups[job.scheduled_date] ||= []).push(job);
+    return groups;
+  }, {});
 
   return (
     <AdminLayout title={pageTitle}>
@@ -806,10 +862,98 @@ export default function AdminServiceRequests() {
             )}
           </TabsContent>
           <TabsContent value="jobs" className="space-y-4">
-            {jobs.length === 0 && (
+            <div className="grid gap-3 sm:grid-cols-4">
+              {[
+                ["Unassigned", "awaiting_assignment"],
+                ["Offered", "offered"],
+                ["In delivery", "in_progress"],
+                ["Quality review", "quality_check"],
+              ].map(([label, status]) => (
+                <button
+                  key={status}
+                  type="button"
+                  onClick={() => setJobStatusFilter(status)}
+                  className="rounded-xl border bg-card p-4 text-left transition hover:border-secondary"
+                >
+                  <p className="text-sm text-muted-foreground">{label}</p>
+                  <p className="mt-1 text-2xl font-bold">
+                    {jobs.filter((job) => job.status === status).length}
+                  </p>
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <Select value={jobStatusFilter} onValueChange={setJobStatusFilter}>
+                <SelectTrigger className="w-full sm:w-56">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {["active", "all", "awaiting_assignment", "offered", "assigned", "in_progress", "quality_check", "completed", "closed", "cancelled", "issue"].map(
+                    (status) => (
+                      <SelectItem key={status} value={status}>
+                        {status.replace(/_/g, " ")}
+                      </SelectItem>
+                    ),
+                  )}
+                </SelectContent>
+              </Select>
+              <div className="flex rounded-lg border bg-card p-1">
+                <Button
+                  size="sm"
+                  variant={jobView === "list" ? "secondary" : "ghost"}
+                  onClick={() => setJobView("list")}
+                >
+                  <List className="mr-2 h-4 w-4" /> List
+                </Button>
+                <Button
+                  size="sm"
+                  variant={jobView === "calendar" ? "secondary" : "ghost"}
+                  onClick={() => setJobView("calendar")}
+                >
+                  <Calendar className="mr-2 h-4 w-4" /> Calendar
+                </Button>
+              </div>
+            </div>
+            {visibleJobs.length === 0 && (
               <p className="text-muted-foreground">No managed jobs yet.</p>
             )}
-            {jobs.map((job) => (
+            {jobView === "calendar" &&
+              Object.entries(jobsByDate)
+                .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
+                .map(([date, datedJobs]) => (
+                  <div key={date} className="overflow-hidden rounded-xl border bg-card">
+                    <div className="border-b bg-muted/40 px-4 py-3 font-semibold">
+                      {format(new Date(`${date}T12:00:00`), "EEEE, d MMMM yyyy")}
+                    </div>
+                    <div className="divide-y">
+                      {datedJobs.map((job) => {
+                        const currentAssignment = job.assignments?.find((assignment) =>
+                          ["offered", "accepted", "completed"].includes(assignment.status),
+                        );
+                        return (
+                          <button
+                            type="button"
+                            key={job.id}
+                            onClick={() => openJob(job)}
+                            className="grid w-full gap-2 p-4 text-left hover:bg-muted/30 sm:grid-cols-[90px_1fr_auto] sm:items-center"
+                          >
+                            <span className="font-medium">
+                              {job.start_time?.slice(0, 5) || "TBC"}
+                            </span>
+                            <span>
+                              <span className="font-medium">{job.service_type.name}</span>
+                              <span className="block text-sm text-muted-foreground">
+                                {job.customer.name} · {job.address.postcode} · {currentAssignment?.cleaner?.full_name || "Unassigned"}
+                              </span>
+                            </span>
+                            <Badge variant="outline">{job.status.replace(/_/g, " ")}</Badge>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+            {jobView === "list" && visibleJobs.map((job) => (
               <div key={job.id} className="rounded-xl border bg-card p-4">
                 <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
                   <div>
@@ -826,6 +970,13 @@ export default function AdminServiceRequests() {
                       )}{" "}
                       · Customer {money(job.customer_amount_pence)} · Cleaner{" "}
                       {money(job.cleaner_payout_pence)}
+                    </p>
+                    <p className="mt-1 text-sm">
+                      Cleaner: {job.assignments?.find((assignment) =>
+                        ["offered", "accepted", "completed"].includes(
+                          assignment.status,
+                        ),
+                      )?.cleaner?.full_name || "Unassigned"}
                     </p>
                   </div>
                   <div className="flex flex-col gap-2 sm:flex-row">
@@ -1401,6 +1552,15 @@ export default function AdminServiceRequests() {
               >
                 Save booking details
               </Button>
+              {!['cancelled', 'closed'].includes(selectedJob.status) && (
+                <Button
+                  variant="destructive"
+                  onClick={cancelJob}
+                  disabled={saving}
+                >
+                  Cancel job
+                </Button>
+              )}
               <div className="space-y-4 border-t pt-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
@@ -1625,6 +1785,30 @@ export default function AdminServiceRequests() {
                                 </div>
                               ),
                             )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="border-t pt-5">
+                <h3 className="font-semibold">Job history</h3>
+                {jobEvents.length === 0 ? (
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    No audit events recorded yet.
+                  </p>
+                ) : (
+                  <div className="mt-3 space-y-3">
+                    {jobEvents.map((event) => (
+                      <div key={event.id} className="flex gap-3 text-sm">
+                        <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-secondary" />
+                        <div>
+                          <p className="font-medium">
+                            {event.event_type.replace(/_/g, " ")}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(event.created_at), "dd MMM yyyy, HH:mm")}
+                          </p>
                         </div>
                       </div>
                     ))}
