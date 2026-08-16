@@ -2148,6 +2148,7 @@ export type Database = {
           id: string
           notes: string | null
           payment_link_sent_at: string | null
+          payment_confirmation_sent_at: string | null
           requirements: string | null
           scheduled_date: string | null
           sent_at: string | null
@@ -2171,6 +2172,7 @@ export type Database = {
           id?: string
           notes?: string | null
           payment_link_sent_at?: string | null
+          payment_confirmation_sent_at?: string | null
           requirements?: string | null
           scheduled_date?: string | null
           sent_at?: string | null
@@ -2194,6 +2196,7 @@ export type Database = {
           id?: string
           notes?: string | null
           payment_link_sent_at?: string | null
+          payment_confirmation_sent_at?: string | null
           requirements?: string | null
           scheduled_date?: string | null
           sent_at?: string | null
