@@ -2138,53 +2138,81 @@ export type Database = {
       quotes: {
         Row: {
           accepted_at: string | null
+          address_id: string | null
           cleaner_payout_pence: number
           created_at: string
           created_by: string | null
           currency: string
           customer_amount_pence: number
+          expected_duration_minutes: number | null
           id: string
           notes: string | null
+          payment_link_sent_at: string | null
+          requirements: string | null
+          scheduled_date: string | null
           sent_at: string | null
           service_request_id: string
+          start_time: string | null
           status: string
+          stripe_checkout_session_id: string | null
           updated_at: string
           valid_until: string | null
           version: number
         }
         Insert: {
           accepted_at?: string | null
+          address_id?: string | null
           cleaner_payout_pence: number
           created_at?: string
           created_by?: string | null
           currency?: string
           customer_amount_pence: number
+          expected_duration_minutes?: number | null
           id?: string
           notes?: string | null
+          payment_link_sent_at?: string | null
+          requirements?: string | null
+          scheduled_date?: string | null
           sent_at?: string | null
           service_request_id: string
+          start_time?: string | null
           status?: string
+          stripe_checkout_session_id?: string | null
           updated_at?: string
           valid_until?: string | null
           version?: number
         }
         Update: {
           accepted_at?: string | null
+          address_id?: string | null
           cleaner_payout_pence?: number
           created_at?: string
           created_by?: string | null
           currency?: string
           customer_amount_pence?: number
+          expected_duration_minutes?: number | null
           id?: string
           notes?: string | null
+          payment_link_sent_at?: string | null
+          requirements?: string | null
+          scheduled_date?: string | null
           sent_at?: string | null
           service_request_id?: string
+          start_time?: string | null
           status?: string
+          stripe_checkout_session_id?: string | null
           updated_at?: string
           valid_until?: string | null
           version?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "quotes_address_id_fkey"
+            columns: ["address_id"]
+            isOneToOne: false
+            referencedRelation: "customer_addresses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "quotes_service_request_id_fkey"
             columns: ["service_request_id"]
@@ -2738,6 +2766,15 @@ export type Database = {
           allowed: boolean
           message: string
         }[]
+      }
+      finalize_agency_quote_payment: {
+        Args: {
+          p_payment_intent_id?: string
+          p_payment_reference: string
+          p_provider?: string
+          p_quote_id: string
+        }
+        Returns: string
       }
       get_available_leads: {
         Args: never
