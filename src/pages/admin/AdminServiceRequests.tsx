@@ -258,6 +258,9 @@ export default function AdminServiceRequests() {
   const [jobEvents, setJobEvents] = useState<JobEvent[]>([]);
   const [calendarMonth, setCalendarMonth] = useState(() => startOfMonth(new Date()));
   const loadedOnce = useRef(false);
+  const selectedRequestIdRef = useRef<string | null>(null);
+  const knownJobIdsRef = useRef<Set<string>>(new Set());
+  const realtimeRefreshTimerRef = useRef<number | null>(null);
   const [draggedJobId, setDraggedJobId] = useState<string | null>(null);
   const [stageOverride, setStageOverride] = useState<{ job: Job; target: string } | null>(null);
   const [stageReason, setStageReason] = useState("");
@@ -269,6 +272,10 @@ export default function AdminServiceRequests() {
     const timer = window.setInterval(() => setLiveNow(Date.now()), 30_000);
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    selectedRequestIdRef.current = selected?.id || null;
+  }, [selected?.id]);
 
   const fetchData = async () => {
     if (!loadedOnce.current) setLoading(true);
@@ -353,12 +360,25 @@ export default function AdminServiceRequests() {
     } else {
       const nextRequests = requestResult.data || [];
       const nextJobs = (jobResult.data as unknown as Job[]) || [];
+      const newlyConfirmedJob = loadedOnce.current
+        ? nextJobs.find(
+            (job) =>
+              job.service_request_id === selectedRequestIdRef.current &&
+              !knownJobIdsRef.current.has(job.id),
+          )
+        : null;
       setRequests(nextRequests);
       setJobs(nextJobs);
       setCleaners(cleanerResult.data || []);
       setCustomerPayments((paymentResult.data as CustomerPayment[]) || []);
       setSelected((current) => current ? nextRequests.find((request) => request.id === current.id) || current : null);
       setSelectedJob((current) => current ? nextJobs.find((job) => job.id === current.id) || current : null);
+      knownJobIdsRef.current = new Set(nextJobs.map((job) => job.id));
+      if (newlyConfirmedJob) {
+        toast.success(
+          `Payment received — ${newlyConfirmedJob.reference} was created`,
+        );
+      }
     }
     loadedOnce.current = true;
     setLoading(false);
@@ -366,6 +386,51 @@ export default function AdminServiceRequests() {
 
   useEffect(() => {
     fetchData();
+  }, []);
+
+  useEffect(() => {
+    const scheduleRefresh = () => {
+      if (realtimeRefreshTimerRef.current) {
+        window.clearTimeout(realtimeRefreshTimerRef.current);
+      }
+      realtimeRefreshTimerRef.current = window.setTimeout(() => {
+        fetchData();
+      }, 350);
+    };
+    const channel = supabase
+      .channel("admin-managed-agency-live")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "service_requests" },
+        scheduleRefresh,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "quotes" },
+        scheduleRefresh,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "jobs" },
+        scheduleRefresh,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "customer_payments" },
+        scheduleRefresh,
+      )
+      .subscribe();
+    const fallback = window.setInterval(() => {
+      if (selectedRequestIdRef.current) fetchData();
+    }, 15_000);
+
+    return () => {
+      if (realtimeRefreshTimerRef.current) {
+        window.clearTimeout(realtimeRefreshTimerRef.current);
+      }
+      window.clearInterval(fallback);
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const visibleRequests = useMemo(
