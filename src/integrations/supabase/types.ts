@@ -2216,6 +2216,41 @@ export type Database = {
         }
         Relationships: []
       }
+      service_request_events: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          details: Json | null
+          event_type: string
+          id: string
+          service_request_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          details?: Json | null
+          event_type: string
+          id?: string
+          service_request_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          details?: Json | null
+          event_type?: string
+          id?: string
+          service_request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_request_events_service_request_id_fkey"
+            columns: ["service_request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_requests: {
         Row: {
           address_id: string
@@ -2500,6 +2535,14 @@ export type Database = {
     Functions: {
       admin_override_job_stage: {
         Args: { p_job_id: string; p_reason: string; p_target_status: string }
+        Returns: boolean
+      }
+      admin_override_service_request_stage: {
+        Args: {
+          p_reason: string
+          p_request_id: string
+          p_target_status: string
+        }
         Returns: boolean
       }
       admin_review_job_completion: {
