@@ -194,6 +194,183 @@ export type Database = {
         }
         Relationships: []
       }
+      cleaner_payouts: {
+        Row: {
+          amount_pence: number
+          cleaner_id: string
+          created_at: string
+          currency: string
+          id: string
+          job_id: string
+          paid_at: string | null
+          provider: string | null
+          provider_reference: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount_pence: number
+          cleaner_id: string
+          created_at?: string
+          currency?: string
+          id?: string
+          job_id: string
+          paid_at?: string | null
+          provider?: string | null
+          provider_reference?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount_pence?: number
+          cleaner_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          job_id?: string
+          paid_at?: string | null
+          provider?: string | null
+          provider_reference?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cleaner_payouts_cleaner_id_fkey"
+            columns: ["cleaner_id"]
+            isOneToOne: false
+            referencedRelation: "cleaner_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cleaner_payouts_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cleaner_profiles: {
+        Row: {
+          admin_notes: string | null
+          application_status: string
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          experience_summary: string | null
+          full_name: string | null
+          has_transport: boolean | null
+          id: string
+          operational_status: string
+          payout_status: string
+          phone: string | null
+          postcode: string | null
+          profile_photo_path: string | null
+          updated_at: string
+          user_id: string
+          verification_status: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          application_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          experience_summary?: string | null
+          full_name?: string | null
+          has_transport?: boolean | null
+          id?: string
+          operational_status?: string
+          payout_status?: string
+          phone?: string | null
+          postcode?: string | null
+          profile_photo_path?: string | null
+          updated_at?: string
+          user_id: string
+          verification_status?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          application_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          experience_summary?: string | null
+          full_name?: string | null
+          has_transport?: boolean | null
+          id?: string
+          operational_status?: string
+          payout_status?: string
+          phone?: string | null
+          postcode?: string | null
+          profile_photo_path?: string | null
+          updated_at?: string
+          user_id?: string
+          verification_status?: string
+        }
+        Relationships: []
+      }
+      cleaner_service_areas: {
+        Row: {
+          cleaner_id: string
+          service_area_id: string
+        }
+        Insert: {
+          cleaner_id: string
+          service_area_id: string
+        }
+        Update: {
+          cleaner_id?: string
+          service_area_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cleaner_service_areas_cleaner_id_fkey"
+            columns: ["cleaner_id"]
+            isOneToOne: false
+            referencedRelation: "cleaner_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cleaner_service_areas_service_area_id_fkey"
+            columns: ["service_area_id"]
+            isOneToOne: false
+            referencedRelation: "service_areas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cleaner_service_capabilities: {
+        Row: {
+          cleaner_id: string
+          service_type_id: string
+        }
+        Insert: {
+          cleaner_id: string
+          service_type_id: string
+        }
+        Update: {
+          cleaner_id?: string
+          service_type_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cleaner_service_capabilities_cleaner_id_fkey"
+            columns: ["cleaner_id"]
+            isOneToOne: false
+            referencedRelation: "cleaner_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cleaner_service_capabilities_service_type_id_fkey"
+            columns: ["service_type_id"]
+            isOneToOne: false
+            referencedRelation: "service_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_submissions: {
         Row: {
           admin_notes: string | null
@@ -235,6 +412,140 @@ export type Database = {
           responded_by?: string | null
           status?: string
           subject?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      customer_addresses: {
+        Row: {
+          access_notes: string | null
+          address_line_1: string | null
+          address_line_2: string | null
+          city: string | null
+          created_at: string
+          customer_id: string
+          id: string
+          postcode: string
+          service_area_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_notes?: string | null
+          address_line_1?: string | null
+          address_line_2?: string | null
+          city?: string | null
+          created_at?: string
+          customer_id: string
+          id?: string
+          postcode: string
+          service_area_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_notes?: string | null
+          address_line_1?: string | null
+          address_line_2?: string | null
+          city?: string | null
+          created_at?: string
+          customer_id?: string
+          id?: string
+          postcode?: string
+          service_area_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_addresses_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_addresses_service_area_id_fkey"
+            columns: ["service_area_id"]
+            isOneToOne: false
+            referencedRelation: "service_areas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_payments: {
+        Row: {
+          amount_pence: number
+          created_at: string
+          currency: string
+          id: string
+          job_id: string
+          paid_at: string | null
+          provider: string | null
+          provider_reference: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount_pence: number
+          created_at?: string
+          currency?: string
+          id?: string
+          job_id: string
+          paid_at?: string | null
+          provider?: string | null
+          provider_reference?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount_pence?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          job_id?: string
+          paid_at?: string | null
+          provider?: string | null
+          provider_reference?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_payments_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customers: {
+        Row: {
+          auth_user_id: string | null
+          created_at: string
+          email: string
+          id: string
+          name: string
+          notes: string | null
+          phone: string
+          updated_at: string
+        }
+        Insert: {
+          auth_user_id?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          notes?: string | null
+          phone: string
+          updated_at?: string
+        }
+        Update: {
+          auth_user_id?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string
           updated_at?: string
         }
         Relationships: []
@@ -745,6 +1056,210 @@ export type Database = {
           },
         ]
       }
+      job_assignments: {
+        Row: {
+          assigned_by: string | null
+          cleaner_id: string
+          created_at: string
+          id: string
+          job_id: string
+          offered_at: string
+          responded_at: string | null
+          response_notes: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_by?: string | null
+          cleaner_id: string
+          created_at?: string
+          id?: string
+          job_id: string
+          offered_at?: string
+          responded_at?: string | null
+          response_notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_by?: string | null
+          cleaner_id?: string
+          created_at?: string
+          id?: string
+          job_id?: string
+          offered_at?: string
+          responded_at?: string | null
+          response_notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_assignments_cleaner_id_fkey"
+            columns: ["cleaner_id"]
+            isOneToOne: false
+            referencedRelation: "cleaner_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_assignments_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_events: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          details: Json | null
+          event_type: string
+          id: string
+          job_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          details?: Json | null
+          event_type: string
+          id?: string
+          job_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          details?: Json | null
+          event_type?: string
+          id?: string
+          job_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_events_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jobs: {
+        Row: {
+          accepted_quote_id: string
+          address_id: string
+          cleaner_payout_pence: number
+          completed_at: string | null
+          created_at: string
+          currency: string
+          customer_amount_pence: number
+          customer_id: string
+          expected_duration_minutes: number | null
+          general_location: string
+          id: string
+          internal_notes: string | null
+          reference: string
+          requirements: string | null
+          scheduled_date: string
+          service_area_id: string
+          service_request_id: string
+          service_type_id: string
+          start_time: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_quote_id: string
+          address_id: string
+          cleaner_payout_pence: number
+          completed_at?: string | null
+          created_at?: string
+          currency?: string
+          customer_amount_pence: number
+          customer_id: string
+          expected_duration_minutes?: number | null
+          general_location: string
+          id?: string
+          internal_notes?: string | null
+          reference: string
+          requirements?: string | null
+          scheduled_date: string
+          service_area_id: string
+          service_request_id: string
+          service_type_id: string
+          start_time?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_quote_id?: string
+          address_id?: string
+          cleaner_payout_pence?: number
+          completed_at?: string | null
+          created_at?: string
+          currency?: string
+          customer_amount_pence?: number
+          customer_id?: string
+          expected_duration_minutes?: number | null
+          general_location?: string
+          id?: string
+          internal_notes?: string | null
+          reference?: string
+          requirements?: string | null
+          scheduled_date?: string
+          service_area_id?: string
+          service_request_id?: string
+          service_type_id?: string
+          start_time?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jobs_accepted_quote_id_fkey"
+            columns: ["accepted_quote_id"]
+            isOneToOne: true
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_address_id_fkey"
+            columns: ["address_id"]
+            isOneToOne: false
+            referencedRelation: "customer_addresses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_service_area_id_fkey"
+            columns: ["service_area_id"]
+            isOneToOne: false
+            referencedRelation: "service_areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_service_request_id_fkey"
+            columns: ["service_request_id"]
+            isOneToOne: true
+            referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_service_type_id_fkey"
+            columns: ["service_type_id"]
+            isOneToOne: false
+            referencedRelation: "service_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_reservations: {
         Row: {
           created_at: string
@@ -1137,6 +1652,86 @@ export type Database = {
         }
         Relationships: []
       }
+      public_submission_rate_limits: {
+        Row: {
+          action: string
+          key_hash: string
+          request_count: number
+          window_start: string
+        }
+        Insert: {
+          action: string
+          key_hash: string
+          request_count?: number
+          window_start: string
+        }
+        Update: {
+          action?: string
+          key_hash?: string
+          request_count?: number
+          window_start?: string
+        }
+        Relationships: []
+      }
+      quotes: {
+        Row: {
+          accepted_at: string | null
+          cleaner_payout_pence: number
+          created_at: string
+          created_by: string | null
+          currency: string
+          customer_amount_pence: number
+          id: string
+          notes: string | null
+          sent_at: string | null
+          service_request_id: string
+          status: string
+          updated_at: string
+          valid_until: string | null
+          version: number
+        }
+        Insert: {
+          accepted_at?: string | null
+          cleaner_payout_pence: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_amount_pence: number
+          id?: string
+          notes?: string | null
+          sent_at?: string | null
+          service_request_id: string
+          status?: string
+          updated_at?: string
+          valid_until?: string | null
+          version?: number
+        }
+        Update: {
+          accepted_at?: string | null
+          cleaner_payout_pence?: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_amount_pence?: number
+          id?: string
+          notes?: string | null
+          sent_at?: string | null
+          service_request_id?: string
+          status?: string
+          updated_at?: string
+          valid_until?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotes_service_request_id_fkey"
+            columns: ["service_request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rate_limits: {
         Row: {
           action: string
@@ -1222,6 +1817,185 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      service_areas: {
+        Row: {
+          country_code: string
+          coverage_type: string
+          coverage_values: string[]
+          created_at: string
+          id: string
+          name: string
+          slug: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          country_code?: string
+          coverage_type?: string
+          coverage_values?: string[]
+          created_at?: string
+          id?: string
+          name: string
+          slug: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          country_code?: string
+          coverage_type?: string
+          coverage_values?: string[]
+          created_at?: string
+          id?: string
+          name?: string
+          slug?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      service_requests: {
+        Row: {
+          address_id: string
+          admin_notes: string | null
+          bathrooms: string | null
+          bedrooms: string | null
+          contacted_at: string | null
+          created_at: string
+          customer_id: string
+          customer_notes: string | null
+          frequency: string | null
+          id: string
+          lost_reason: string | null
+          preferred_date_from: string | null
+          preferred_date_to: string | null
+          preferred_time: string | null
+          property_type: string | null
+          qualified_at: string | null
+          reference: string
+          service_area_id: string
+          service_type_id: string
+          source: string | null
+          status: string
+          updated_at: string
+          utm_data: Json | null
+        }
+        Insert: {
+          address_id: string
+          admin_notes?: string | null
+          bathrooms?: string | null
+          bedrooms?: string | null
+          contacted_at?: string | null
+          created_at?: string
+          customer_id: string
+          customer_notes?: string | null
+          frequency?: string | null
+          id?: string
+          lost_reason?: string | null
+          preferred_date_from?: string | null
+          preferred_date_to?: string | null
+          preferred_time?: string | null
+          property_type?: string | null
+          qualified_at?: string | null
+          reference: string
+          service_area_id: string
+          service_type_id: string
+          source?: string | null
+          status?: string
+          updated_at?: string
+          utm_data?: Json | null
+        }
+        Update: {
+          address_id?: string
+          admin_notes?: string | null
+          bathrooms?: string | null
+          bedrooms?: string | null
+          contacted_at?: string | null
+          created_at?: string
+          customer_id?: string
+          customer_notes?: string | null
+          frequency?: string | null
+          id?: string
+          lost_reason?: string | null
+          preferred_date_from?: string | null
+          preferred_date_to?: string | null
+          preferred_time?: string | null
+          property_type?: string | null
+          qualified_at?: string | null
+          reference?: string
+          service_area_id?: string
+          service_type_id?: string
+          source?: string | null
+          status?: string
+          updated_at?: string
+          utm_data?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_requests_address_id_fkey"
+            columns: ["address_id"]
+            isOneToOne: false
+            referencedRelation: "customer_addresses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_requests_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_requests_service_area_id_fkey"
+            columns: ["service_area_id"]
+            isOneToOne: false
+            referencedRelation: "service_areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_requests_service_type_id_fkey"
+            columns: ["service_type_id"]
+            isOneToOne: false
+            referencedRelation: "service_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_types: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          pricing_mode: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          pricing_mode?: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          pricing_mode?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       support_messages: {
         Row: {
@@ -1370,6 +2144,15 @@ export type Database = {
           reserved_by_me: boolean
         }[]
       }
+      check_public_submission_rate_limit: {
+        Args: {
+          p_action: string
+          p_key_hash: string
+          p_max_requests?: number
+          p_window_minutes?: number
+        }
+        Returns: boolean
+      }
       check_rate_limit: {
         Args: {
           p_action: string
@@ -1382,6 +2165,10 @@ export type Database = {
           current_count: number
           reset_at: string
         }[]
+      }
+      complete_assigned_job: {
+        Args: { p_assignment_id: string }
+        Returns: boolean
       }
       complete_lead_reservation: {
         Args: { p_lead_id: string }
@@ -1463,6 +2250,10 @@ export type Database = {
           reservation_id: string
           success: boolean
         }[]
+      }
+      respond_to_job_assignment: {
+        Args: { p_assignment_id: string; p_notes?: string; p_response: string }
+        Returns: boolean
       }
     }
     Enums: {
