@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import { Calendar, Eye, Loader2, Mail, MapPin, Phone, Search, Users } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -43,9 +43,10 @@ export default function AdminCustomers() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Customer | null>(null);
   const [notes, setNotes] = useState("");
+  const loadedOnce = useRef(false);
 
   const fetchCustomers = async () => {
-    setLoading(true);
+    if (!loadedOnce.current) setLoading(true);
     const { data, error } = await db.from("customers").select(`
       id,name,email,phone,notes,created_at,
       addresses:customer_addresses(id,address_line_1,address_line_2,city,postcode,access_notes),
@@ -54,9 +55,12 @@ export default function AdminCustomers() {
         service_type:service_types(name),
         assignments:job_assignments(status,cleaner:cleaner_profiles(full_name,phone)))
     `).order("created_at", { ascending: false });
+    loadedOnce.current = true;
     setLoading(false);
     if (error) return toast.error(error.message);
-    setCustomers((data as unknown as Customer[]) || []);
+    const nextCustomers = (data as unknown as Customer[]) || [];
+    setCustomers(nextCustomers);
+    setSelected((current) => current ? nextCustomers.find((customer) => customer.id === current.id) || current : null);
   };
 
   useEffect(() => { fetchCustomers(); }, []);
@@ -84,8 +88,7 @@ export default function AdminCustomers() {
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Customer notes saved");
-    setSelected(null);
-    fetchCustomers();
+    await fetchCustomers();
   };
 
   const totalJobs = customers.reduce((sum, customer) => sum + customer.jobs.length, 0);

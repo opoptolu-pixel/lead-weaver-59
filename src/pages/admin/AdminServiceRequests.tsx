@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import {
   addMonths,
@@ -228,6 +228,7 @@ export default function AdminServiceRequests() {
   const [jobStatusFilter, setJobStatusFilter] = useState("active");
   const [jobEvents, setJobEvents] = useState<JobEvent[]>([]);
   const [calendarMonth, setCalendarMonth] = useState(() => startOfMonth(new Date()));
+  const loadedOnce = useRef(false);
 
   useEffect(() => {
     const timer = window.setInterval(() => setLiveNow(Date.now()), 30_000);
@@ -235,7 +236,7 @@ export default function AdminServiceRequests() {
   }, []);
 
   const fetchData = async () => {
-    setLoading(true);
+    if (!loadedOnce.current) setLoading(true);
     const [requestResult, initialJobResult, cleanerResult] = await Promise.all([
       db
         .from("service_requests")
@@ -305,10 +306,15 @@ export default function AdminServiceRequests() {
           "Could not load managed operations",
       );
     } else {
-      setRequests(requestResult.data || []);
-      setJobs((jobResult.data as unknown as Job[]) || []);
+      const nextRequests = requestResult.data || [];
+      const nextJobs = (jobResult.data as unknown as Job[]) || [];
+      setRequests(nextRequests);
+      setJobs(nextJobs);
       setCleaners(cleanerResult.data || []);
+      setSelected((current) => current ? nextRequests.find((request) => request.id === current.id) || current : null);
+      setSelectedJob((current) => current ? nextJobs.find((job) => job.id === current.id) || current : null);
     }
+    loadedOnce.current = true;
     setLoading(false);
   };
 
@@ -365,8 +371,7 @@ export default function AdminServiceRequests() {
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Request updated");
-    setSelected(null);
-    fetchData();
+    await fetchData();
   };
 
   const createQuote = async () => {
@@ -400,8 +405,7 @@ export default function AdminServiceRequests() {
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Quote recorded as sent");
-    setSelected(null);
-    fetchData();
+    await fetchData();
   };
 
   const acceptAndCreateJob = async () => {
@@ -492,8 +496,7 @@ export default function AdminServiceRequests() {
     setSaving(false);
     if (jobError) return toast.error(jobError.message);
     toast.success("Quote accepted and job created");
-    setSelected(null);
-    fetchData();
+    await fetchData();
   };
 
   const assignCleaner = async (job: Job) => {
@@ -640,8 +643,7 @@ export default function AdminServiceRequests() {
           "Could not save job details",
       );
     toast.success("Job details updated");
-    setSelectedJob(null);
-    fetchData();
+    await fetchData();
   };
 
   const cancelJob = async () => {
@@ -661,8 +663,7 @@ export default function AdminServiceRequests() {
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Job cancelled and recorded in the audit trail");
-    setSelectedJob(null);
-    fetchData();
+    await fetchData();
   };
 
   const reviewCompletion = async (
@@ -736,8 +737,7 @@ export default function AdminServiceRequests() {
           ? "Job returned to cleaner for rework"
           : "Job placed on hold for investigation",
     );
-    setSelectedJob(null);
-    fetchData();
+    await fetchData();
   };
 
   const updateCleaner = async (

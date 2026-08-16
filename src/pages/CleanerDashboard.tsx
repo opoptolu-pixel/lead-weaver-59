@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ComponentType } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import { useNavigate } from "react-router-dom";
 import { BriefcaseBusiness, Calendar, CheckCircle2, Clock, ImagePlus, Loader2, LogOut, MapPin, PoundSterling, WalletCards } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -55,11 +55,13 @@ export default function CleanerDashboard() {
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const loadedOnce = useRef(false);
   const [bankForm, setBankForm] = useState({ accountHolder: "", sortCode: "", accountNumber: "" });
 
   const fetchDashboard = useCallback(async () => {
     if (!user) return;
-    setLoading(true);
+    if (!loadedOnce.current) setLoading(true);
     const { data: profileData, error: profileError } = await db.from("cleaner_profiles").select("id,full_name,application_status,operational_status,verification_status,bank_account_holder,bank_sort_code_last2,bank_account_last4,bank_details_status").eq("user_id", user.id).maybeSingle();
     if (profileError) toast.error(profileError.message);
     setProfile(profileData || null);
@@ -98,6 +100,7 @@ export default function CleanerDashboard() {
       }));
       setEvidence(signed);
     }
+    loadedOnce.current = true;
     setLoading(false);
   }, [user]);
 
@@ -190,7 +193,7 @@ export default function CleanerDashboard() {
     <main className="mx-auto max-w-6xl space-y-7 px-4 py-8">
       <div><h1 className="text-3xl font-bold">Welcome, {profile.full_name || "Cleaner"}</h1><div className="mt-3 flex flex-wrap gap-2"><Badge variant="outline">Application: {profile.application_status}</Badge><Badge variant="outline">Verification: {profile.verification_status.replace(/_/g, " ")}</Badge><Badge variant="outline">Status: {profile.operational_status}</Badge></div></div>
       {profile.application_status !== "approved" && <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-amber-950"><h2 className="font-semibold">Application under review</h2><p className="mt-1 text-sm">Cleanda will contact you about verification. Jobs become available after approval and activation.</p></div>}
-      <Tabs defaultValue="dashboard" className="space-y-6"><TabsList className="flex h-auto flex-wrap justify-start"><TabsTrigger value="dashboard">Dashboard</TabsTrigger><TabsTrigger value="jobs">Jobs</TabsTrigger><TabsTrigger value="availability">Availability</TabsTrigger><TabsTrigger value="earnings">Earnings</TabsTrigger><TabsTrigger value="payment-details">Payment details</TabsTrigger></TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6"><TabsList className="flex h-auto flex-wrap justify-start"><TabsTrigger value="dashboard">Dashboard</TabsTrigger><TabsTrigger value="jobs">Jobs</TabsTrigger><TabsTrigger value="availability">Availability</TabsTrigger><TabsTrigger value="earnings">Earnings</TabsTrigger><TabsTrigger value="payment-details">Payment details</TabsTrigger></TabsList>
         <TabsContent value="dashboard" className="space-y-6"><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{([["Offers", totals.available, BriefcaseBusiness],["Active jobs",totals.active,Calendar],["Awaiting approval",money(totals.pending),Clock],["Paid",money(totals.paid),WalletCards]] as Array<[string, string | number, ComponentType<{ className?: string }>]>).map(([label,value,Icon]) => <div key={String(label)} className="rounded-xl border bg-card p-5"><Icon className="mb-3 h-5 w-5 text-primary" /><p className="text-sm text-muted-foreground">{String(label)}</p><p className="mt-1 text-2xl font-bold">{String(value)}</p></div>)}</div><p className="rounded-xl border bg-card p-5 text-sm text-muted-foreground">Use the Jobs tab to accept offers, see confirmed addresses and times, upload before-and-after photos, and submit completed work for review.</p></TabsContent>
         <TabsContent value="jobs"><JobList assignments={assignments} evidence={evidence} timeEntries={timeEntries} checklist={checklist} busy={busy} completionNotes={completionNotes} setCompletionNotes={setCompletionNotes} onRespond={respond} onUpload={uploadEvidence} onComplete={complete} onClock={clockJob} onToggleChecklist={toggleChecklist} /></TabsContent>
         <TabsContent value="availability" className="space-y-5"><div><h2 className="text-xl font-semibold">Weekly availability</h2><p className="mt-1 text-sm text-muted-foreground">Cleanda uses these hours when offering work. Accepted jobs and time off are also checked to prevent clashes.</p></div><div className="divide-y rounded-xl border bg-card">{WEEKDAYS.map(({ value, label }) => { const day = availability[value]; return <div key={value} className="grid gap-3 p-4 sm:grid-cols-[1fr_auto_auto] sm:items-center"><label className="flex items-center gap-3 font-medium"><Input className="h-4 w-4" type="checkbox" checked={day.enabled} onChange={(event) => setAvailability((current) => ({ ...current, [value]: { ...current[value], enabled: event.target.checked } }))} />{label}</label><Input aria-label={`${label} start time`} className="sm:w-36" type="time" value={day.start} disabled={!day.enabled} onChange={(event) => setAvailability((current) => ({ ...current, [value]: { ...current[value], start: event.target.value } }))} /><Input aria-label={`${label} end time`} className="sm:w-36" type="time" value={day.end} disabled={!day.enabled} onChange={(event) => setAvailability((current) => ({ ...current, [value]: { ...current[value], end: event.target.value } }))} /></div>; })}</div><Button onClick={saveAvailability} disabled={busy === "availability"}>{busy === "availability" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save availability</Button></TabsContent>
