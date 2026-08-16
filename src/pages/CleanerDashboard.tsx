@@ -30,7 +30,7 @@ const detectEvidenceMimeType = async (file: File) => {
   return null;
 };
 
-interface CleanerProfile { id: string; full_name: string | null; application_status: string; operational_status: string; verification_status: string; }
+interface CleanerProfile { id: string; full_name: string | null; application_status: string; operational_status: string; verification_status: string; bank_account_holder: string | null; bank_sort_code_last2: string | null; bank_account_last4: string | null; bank_details_status: string; }
 interface Assignment {
   id: string; status: string; offered_at: string;
   job: { id: string; reference: string; status: string; general_location: string; scheduled_date: string; start_time: string | null; expected_duration_minutes: number | null; cleaner_payout_pence: number; requirements: string | null; quality_review_status: string; quality_review_notes: string | null; cleaner_completion_notes: string | null; service_type: { name: string }; customer: { name: string; phone: string } | null; address: { address_line_1: string | null; address_line_2: string | null; city: string | null; postcode: string; access_notes: string | null } | null; };
@@ -55,11 +55,12 @@ export default function CleanerDashboard() {
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
+  const [bankForm, setBankForm] = useState({ accountHolder: "", sortCode: "", accountNumber: "" });
 
   const fetchDashboard = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    const { data: profileData, error: profileError } = await db.from("cleaner_profiles").select("id,full_name,application_status,operational_status,verification_status").eq("user_id", user.id).maybeSingle();
+    const { data: profileData, error: profileError } = await db.from("cleaner_profiles").select("id,full_name,application_status,operational_status,verification_status,bank_account_holder,bank_sort_code_last2,bank_account_last4,bank_details_status").eq("user_id", user.id).maybeSingle();
     if (profileError) toast.error(profileError.message);
     setProfile(profileData || null);
     if (profileData) {
@@ -157,6 +158,22 @@ export default function CleanerDashboard() {
     toast.success("Availability updated");
   };
 
+  const saveBankDetails = async () => {
+    const holder = bankForm.accountHolder.trim();
+    const sortCode = bankForm.sortCode.replace(/\D/g, "");
+    const accountNumber = bankForm.accountNumber.replace(/\D/g, "");
+    if (holder.length < 2) return toast.error("Enter the account holder name.");
+    if (sortCode.length !== 6) return toast.error("Enter a 6-digit sort code.");
+    if (accountNumber.length !== 8) return toast.error("Enter an 8-digit account number.");
+    setBusy("bank-details");
+    const { data, error } = await db.rpc("submit_my_bank_details", { p_account_holder_name: holder, p_sort_code: sortCode, p_account_number: accountNumber });
+    setBusy(null);
+    if (error || !data) return toast.error(error?.message || "Bank details could not be saved.");
+    setBankForm({ accountHolder: "", sortCode: "", accountNumber: "" });
+    toast.success("Bank details submitted securely for Cleanda review.");
+    fetchDashboard();
+  };
+
   const totals = useMemo(() => ({
     available: assignments.filter((a) => a.status === "offered").length,
     active: assignments.filter((a) => a.status === "accepted").length,
@@ -173,11 +190,12 @@ export default function CleanerDashboard() {
     <main className="mx-auto max-w-6xl space-y-7 px-4 py-8">
       <div><h1 className="text-3xl font-bold">Welcome, {profile.full_name || "Cleaner"}</h1><div className="mt-3 flex flex-wrap gap-2"><Badge variant="outline">Application: {profile.application_status}</Badge><Badge variant="outline">Verification: {profile.verification_status.replace(/_/g, " ")}</Badge><Badge variant="outline">Status: {profile.operational_status}</Badge></div></div>
       {profile.application_status !== "approved" && <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-amber-950"><h2 className="font-semibold">Application under review</h2><p className="mt-1 text-sm">Cleanda will contact you about verification. Jobs become available after approval and activation.</p></div>}
-      <Tabs defaultValue="dashboard" className="space-y-6"><TabsList><TabsTrigger value="dashboard">Dashboard</TabsTrigger><TabsTrigger value="jobs">Jobs</TabsTrigger><TabsTrigger value="availability">Availability</TabsTrigger><TabsTrigger value="earnings">Earnings</TabsTrigger></TabsList>
+      <Tabs defaultValue="dashboard" className="space-y-6"><TabsList className="flex h-auto flex-wrap justify-start"><TabsTrigger value="dashboard">Dashboard</TabsTrigger><TabsTrigger value="jobs">Jobs</TabsTrigger><TabsTrigger value="availability">Availability</TabsTrigger><TabsTrigger value="earnings">Earnings</TabsTrigger><TabsTrigger value="payment-details">Payment details</TabsTrigger></TabsList>
         <TabsContent value="dashboard" className="space-y-6"><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{([["Offers", totals.available, BriefcaseBusiness],["Active jobs",totals.active,Calendar],["Awaiting approval",money(totals.pending),Clock],["Paid",money(totals.paid),WalletCards]] as Array<[string, string | number, ComponentType<{ className?: string }>]>).map(([label,value,Icon]) => <div key={String(label)} className="rounded-xl border bg-card p-5"><Icon className="mb-3 h-5 w-5 text-primary" /><p className="text-sm text-muted-foreground">{String(label)}</p><p className="mt-1 text-2xl font-bold">{String(value)}</p></div>)}</div><p className="rounded-xl border bg-card p-5 text-sm text-muted-foreground">Use the Jobs tab to accept offers, see confirmed addresses and times, upload before-and-after photos, and submit completed work for review.</p></TabsContent>
         <TabsContent value="jobs"><JobList assignments={assignments} evidence={evidence} timeEntries={timeEntries} checklist={checklist} busy={busy} completionNotes={completionNotes} setCompletionNotes={setCompletionNotes} onRespond={respond} onUpload={uploadEvidence} onComplete={complete} onClock={clockJob} onToggleChecklist={toggleChecklist} /></TabsContent>
         <TabsContent value="availability" className="space-y-5"><div><h2 className="text-xl font-semibold">Weekly availability</h2><p className="mt-1 text-sm text-muted-foreground">Cleanda uses these hours when offering work. Accepted jobs and time off are also checked to prevent clashes.</p></div><div className="divide-y rounded-xl border bg-card">{WEEKDAYS.map(({ value, label }) => { const day = availability[value]; return <div key={value} className="grid gap-3 p-4 sm:grid-cols-[1fr_auto_auto] sm:items-center"><label className="flex items-center gap-3 font-medium"><Input className="h-4 w-4" type="checkbox" checked={day.enabled} onChange={(event) => setAvailability((current) => ({ ...current, [value]: { ...current[value], enabled: event.target.checked } }))} />{label}</label><Input aria-label={`${label} start time`} className="sm:w-36" type="time" value={day.start} disabled={!day.enabled} onChange={(event) => setAvailability((current) => ({ ...current, [value]: { ...current[value], start: event.target.value } }))} /><Input aria-label={`${label} end time`} className="sm:w-36" type="time" value={day.end} disabled={!day.enabled} onChange={(event) => setAvailability((current) => ({ ...current, [value]: { ...current[value], end: event.target.value } }))} /></div>; })}</div><Button onClick={saveAvailability} disabled={busy === "availability"}>{busy === "availability" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save availability</Button></TabsContent>
         <TabsContent value="earnings" className="space-y-5"><div className="grid gap-4 sm:grid-cols-3"><Summary label="Pending / held" value={money(totals.pending)} /><Summary label="Approved" value={money(totals.approved)} /><Summary label="Paid" value={money(totals.paid)} /></div><div className="rounded-xl border bg-card"><div className="border-b p-5"><h2 className="font-semibold">Earnings history</h2></div>{payouts.length === 0 ? <p className="p-8 text-center text-muted-foreground">No earnings recorded yet.</p> : payouts.map((p) => <div key={p.id} className="flex flex-col gap-2 border-b p-5 last:border-0 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-medium">{p.job.reference} · {p.job.service_type.name}</p><p className="text-sm text-muted-foreground">{p.job.scheduled_date}{p.paid_at ? ` · Paid ${new Date(p.paid_at).toLocaleDateString("en-GB")}` : ""}</p></div><div className="flex items-center gap-3"><Badge variant="outline">{p.status}</Badge><strong>{money(p.amount_pence)}</strong></div></div>)}</div></TabsContent>
+        <TabsContent value="payment-details" className="space-y-5"><div className="max-w-2xl rounded-xl border bg-card p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-xl font-semibold">Bank account for weekly payments</h2><p className="mt-1 text-sm text-muted-foreground">Cleanda pays approved weekly earnings by bank transfer on the scheduled Friday.</p></div><Badge variant="outline">{profile.bank_details_status.replace(/_/g, " ")}</Badge></div>{profile.bank_account_last4 && <div className="mt-4 rounded-lg bg-muted p-4 text-sm"><p><strong>Account holder:</strong> {profile.bank_account_holder}</p><p className="mt-1"><strong>Saved account:</strong> sort code ending ••{profile.bank_sort_code_last2}, account ending ••••{profile.bank_account_last4}</p>{profile.bank_details_status === "pending_review" && <p className="mt-2 text-amber-700">Cleanda is reviewing these details. Payouts cannot be approved until verification is complete.</p>}{profile.bank_details_status === "verified" && <p className="mt-2 text-emerald-700">Verified and ready for manual bank payments.</p>}</div>}<div className="mt-5 grid gap-4"><div><Label htmlFor="bank-holder">Account holder name</Label><Input id="bank-holder" autoComplete="name" value={bankForm.accountHolder} onChange={(event) => setBankForm((current) => ({ ...current, accountHolder: event.target.value }))} /></div><div className="grid gap-4 sm:grid-cols-2"><div><Label htmlFor="bank-sort">Sort code</Label><Input id="bank-sort" inputMode="numeric" autoComplete="off" placeholder="12-34-56" maxLength={8} value={bankForm.sortCode} onChange={(event) => setBankForm((current) => ({ ...current, sortCode: event.target.value }))} /></div><div><Label htmlFor="bank-account">Account number</Label><Input id="bank-account" inputMode="numeric" autoComplete="off" placeholder="12345678" maxLength={8} value={bankForm.accountNumber} onChange={(event) => setBankForm((current) => ({ ...current, accountNumber: event.target.value.replace(/\D/g, "") }))} /></div></div><p className="text-xs text-muted-foreground">Enter an account in your own name. Your dashboard will only show masked digits after submission. Resubmitting details sends them back for review.</p><Button className="w-fit" onClick={saveBankDetails} disabled={busy === "bank-details"}>{busy === "bank-details" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{profile.bank_account_last4 ? "Update bank details" : "Submit bank details"}</Button></div></div></TabsContent>
       </Tabs>
     </main>
   </div>;
