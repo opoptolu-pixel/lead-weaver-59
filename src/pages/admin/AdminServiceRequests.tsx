@@ -84,7 +84,7 @@ const money = (pence: number) => new Intl.NumberFormat("en-GB", {
   currency: "GBP",
 }).format(pence / 100);
 
-const makeJobReference = () => `JOB-${new Date().toISOString().slice(0, 10).replaceAll("-", "")}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
+const makeJobReference = () => `JOB-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
 
 export default function AdminServiceRequests() {
   const [requests, setRequests] = useState<ManagedRequest[]>([]);
@@ -121,7 +121,7 @@ export default function AdminServiceRequests() {
       toast.error(requestResult.error?.message || jobResult.error?.message || cleanerResult.error?.message || "Could not load managed operations");
     } else {
       setRequests(requestResult.data || []);
-      setJobs(jobResult.data || []);
+      setJobs((jobResult.data as unknown as Job[]) || []);
       setCleaners(cleanerResult.data || []);
     }
     setLoading(false);
@@ -265,7 +265,7 @@ export default function AdminServiceRequests() {
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-full sm:w-56"><SelectValue /></SelectTrigger>
               <SelectContent>
-                {['active','all','new','contacted','qualified','quoted','accepted','declined','lost','cancelled'].map((status) => <SelectItem key={status} value={status}>{status.replaceAll('_',' ')}</SelectItem>)}
+                {['active','all','new','contacted','qualified','quoted','accepted','declined','lost','cancelled'].map((status) => <SelectItem key={status} value={status}>{status.replace(/_/g, ' ')}</SelectItem>)}
               </SelectContent>
             </Select>
             {loading ? <Loader2 className="h-7 w-7 animate-spin" /> : visibleRequests.map((request) => (
@@ -295,7 +295,7 @@ export default function AdminServiceRequests() {
           </TabsContent>
           <TabsContent value="cleaners" className="space-y-4">
             {cleaners.length === 0 && <p className="text-muted-foreground">No cleaner applications yet.</p>}
-            {cleaners.map((cleaner) => <div key={cleaner.id} className="rounded-xl border bg-card p-4"><div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"><div><div className="flex flex-wrap items-center gap-2"><span className="font-semibold">{cleaner.full_name || 'Unnamed cleaner'}</span><Badge variant="outline">{cleaner.application_status}</Badge><Badge variant="outline">{cleaner.operational_status}</Badge><Badge variant="outline">verification: {cleaner.verification_status.replaceAll('_',' ')}</Badge></div><p className="mt-2 text-sm text-muted-foreground">{cleaner.phone || 'No phone'} · {cleaner.postcode || 'No postcode'} · {cleaner.has_transport ? 'Has transport' : 'Transport not confirmed'}</p></div><div className="flex flex-wrap gap-2">{cleaner.application_status === 'pending' && <><Button onClick={() => updateCleaner(cleaner,{ application_status:'approved', operational_status:'active', verification_status:'approved', approved_at:new Date().toISOString() })} disabled={saving}>Mark vetted & activate</Button><Button variant="outline" onClick={() => updateCleaner(cleaner,{ application_status:'rejected', operational_status:'inactive' })} disabled={saving}>Reject</Button></>}{cleaner.application_status === 'approved' && cleaner.operational_status === 'active' && <Button variant="outline" onClick={() => updateCleaner(cleaner,{ operational_status:'suspended' })} disabled={saving}>Suspend</Button>}{cleaner.application_status === 'approved' && cleaner.operational_status === 'suspended' && <Button onClick={() => updateCleaner(cleaner,{ operational_status:'active' })} disabled={saving}>Reactivate</Button>}</div></div></div>)}
+            {cleaners.map((cleaner) => <div key={cleaner.id} className="rounded-xl border bg-card p-4"><div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"><div><div className="flex flex-wrap items-center gap-2"><span className="font-semibold">{cleaner.full_name || 'Unnamed cleaner'}</span><Badge variant="outline">{cleaner.application_status}</Badge><Badge variant="outline">{cleaner.operational_status}</Badge><Badge variant="outline">verification: {cleaner.verification_status.replace(/_/g, ' ')}</Badge></div><p className="mt-2 text-sm text-muted-foreground">{cleaner.phone || 'No phone'} · {cleaner.postcode || 'No postcode'} · {cleaner.has_transport ? 'Has transport' : 'Transport not confirmed'}</p></div><div className="flex flex-wrap gap-2">{cleaner.application_status === 'pending' && <><Button onClick={() => updateCleaner(cleaner,{ application_status:'approved', operational_status:'active', verification_status:'approved', approved_at:new Date().toISOString() })} disabled={saving}>Mark vetted & activate</Button><Button variant="outline" onClick={() => updateCleaner(cleaner,{ application_status:'rejected', operational_status:'inactive' })} disabled={saving}>Reject</Button></>}{cleaner.application_status === 'approved' && cleaner.operational_status === 'active' && <Button variant="outline" onClick={() => updateCleaner(cleaner,{ operational_status:'suspended' })} disabled={saving}>Suspend</Button>}{cleaner.application_status === 'approved' && cleaner.operational_status === 'suspended' && <Button onClick={() => updateCleaner(cleaner,{ operational_status:'active' })} disabled={saving}>Reactivate</Button>}</div></div></div>)}
           </TabsContent>
         </Tabs>
       </div>
