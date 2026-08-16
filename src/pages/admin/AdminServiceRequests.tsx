@@ -183,6 +183,18 @@ interface Cleaner {
   created_at: string;
 }
 
+interface DispatchCandidate {
+  cleaner_id: string;
+  full_name: string | null;
+  phone: string | null;
+  postcode: string | null;
+  has_transport: boolean | null;
+  available: boolean;
+  has_conflict: boolean;
+  active_job_count: number;
+  service_areas: string[];
+}
+
 const requestStatusClasses: Record<string, string> = {
   new: "bg-blue-100 text-blue-700",
   contacted: "bg-amber-100 text-amber-700",
@@ -237,6 +249,9 @@ export default function AdminServiceRequests() {
   const [assignmentChoices, setAssignmentChoices] = useState<
     Record<string, string>
   >({});
+  const [dispatchCandidates, setDispatchCandidates] = useState<DispatchCandidate[]>([]);
+  const [dispatchReason, setDispatchReason] = useState("");
+  const [loadingCandidates, setLoadingCandidates] = useState(false);
   const [addressLine1, setAddressLine1] = useState("");
   const [addressLine2, setAddressLine2] = useState("");
   const [city, setCity] = useState("");
@@ -602,18 +617,51 @@ export default function AdminServiceRequests() {
     await fetchData();
   };
 
+  const loadDispatchCandidates = async (jobId: string) => {
+    setLoadingCandidates(true);
+    const { data, error } = await db.rpc("get_job_dispatch_candidates", {
+      p_job_id: jobId,
+    });
+    setLoadingCandidates(false);
+    if (error) {
+      setDispatchCandidates([]);
+      return toast.error(error.message);
+    }
+    setDispatchCandidates((data as DispatchCandidate[]) || []);
+  };
+
   const assignCleaner = async (job: Job) => {
     const cleanerId = assignmentChoices[job.id];
     if (!cleanerId) return toast.error("Choose an approved active cleaner.");
     setSaving(true);
-    const { error } = await db.rpc("offer_job_to_cleaner", {
+    const { error } = await db.rpc("dispatch_job_to_cleaner", {
       p_job_id: job.id,
       p_cleaner_id: cleanerId,
+      p_reason: dispatchReason.trim() || null,
     });
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Job offered to cleaner");
-    fetchData();
+    setDispatchReason("");
+    await fetchData();
+    await loadDispatchCandidates(job.id);
+  };
+
+  const withdrawOffer = async (job: Job) => {
+    if (dispatchReason.trim().length < 5) {
+      return toast.error("Enter a brief reason before withdrawing or reassigning the offer.");
+    }
+    setSaving(true);
+    const { error } = await db.rpc("withdraw_job_offer", {
+      p_job_id: job.id,
+      p_reason: dispatchReason.trim(),
+    });
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success("Cleaner offer withdrawn; job returned to unassigned");
+    setDispatchReason("");
+    await fetchData();
+    await loadDispatchCandidates(job.id);
   };
 
   const openJob = async (job: Job) => {
@@ -631,6 +679,9 @@ export default function AdminServiceRequests() {
         : "",
     );
     setJobRequirements(job.requirements || "");
+    setAssignmentChoices((current) => ({ ...current, [job.id]: current[job.id] || "" }));
+    setDispatchReason("");
+    void loadDispatchCandidates(job.id);
     setQualityNotes(job.quality_review_notes || "");
     const [{ data, error }, timeResult, checklistResult, eventResult] =
       await Promise.all([
@@ -1921,6 +1972,56 @@ export default function AdminServiceRequests() {
                 >
                   Cancel job
                 </Button>
+              )}
+              {['awaiting_assignment', 'offered'].includes(selectedJob.status) && (
+                <div className="space-y-4 border-t pt-5">
+                  <div>
+                    <h3 className="font-semibold">Cleaner assignment &amp; dispatch</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Only approved, verified and active cleaners are shown. Availability and schedule conflicts are enforced again when the offer is sent.
+                    </p>
+                  </div>
+                  {loadingCandidates ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Checking cleaner availability…</div>
+                  ) : dispatchCandidates.length === 0 ? (
+                    <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">No approved active cleaners are currently available for dispatch.</p>
+                  ) : (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {dispatchCandidates.map((candidate) => {
+                        const selectable = candidate.available && !candidate.has_conflict;
+                        const selectedCandidate = assignmentChoices[selectedJob.id] === candidate.cleaner_id;
+                        return (
+                          <button
+                            key={candidate.cleaner_id}
+                            type="button"
+                            disabled={!selectable}
+                            onClick={() => setAssignmentChoices((current) => ({ ...current, [selectedJob.id]: candidate.cleaner_id }))}
+                            className={`rounded-xl border p-4 text-left transition ${selectedCandidate ? 'border-secondary ring-2 ring-secondary/20' : 'bg-card'} ${selectable ? 'hover:border-secondary' : 'cursor-not-allowed opacity-60'}`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div><p className="font-medium">{candidate.full_name || 'Unnamed cleaner'}</p><p className="text-xs text-muted-foreground">{candidate.postcode || 'No postcode'} · {candidate.has_transport ? 'Has transport' : 'Transport not recorded'}</p></div>
+                              <Badge className={selectable ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}>{selectable ? 'Available' : candidate.has_conflict ? 'Conflict' : 'Outside availability'}</Badge>
+                            </div>
+                            <p className="mt-3 text-xs">Active workload: {candidate.active_job_count} job{candidate.active_job_count === 1 ? '' : 's'}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">Areas: {candidate.service_areas.length ? candidate.service_areas.join(', ') : 'No service areas recorded'}</p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <div>
+                    <Label>Dispatch / reassignment note</Label>
+                    <Textarea value={dispatchReason} onChange={(event) => setDispatchReason(event.target.value)} placeholder="Optional for a new offer; required when withdrawing or reassigning." />
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button onClick={() => assignCleaner(selectedJob)} disabled={saving || !assignmentChoices[selectedJob.id]}>
+                      {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {selectedJob.status === 'offered' ? 'Reassign offer' : 'Offer job to cleaner'}
+                    </Button>
+                    {selectedJob.status === 'offered' && <Button variant="outline" onClick={() => withdrawOffer(selectedJob)} disabled={saving}>Withdraw current offer</Button>}
+                  </div>
+                  <p className="text-xs text-muted-foreground">The job moves to Offered immediately. When the cleaner accepts, it moves automatically to Assigned and the full address and access instructions become visible to them.</p>
+                </div>
               )}
               <div className="space-y-4 border-t pt-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
