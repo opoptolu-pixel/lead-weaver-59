@@ -48,6 +48,7 @@ import {
   Send,
   BarChart3,
   Calendar,
+  BellRing,
   ShieldBan,
   Search,
 } from "lucide-react";
@@ -57,6 +58,7 @@ import { EmailLogsPanel } from "@/components/admin/EmailLogsPanel";
 import { EmailDeliverabilityDashboard } from "@/components/admin/EmailDeliverabilityDashboard";
 import { ScheduledEmailsPanel } from "@/components/admin/ScheduledEmailsPanel";
 import { EmailSuppressionsPanel } from "@/components/admin/EmailSuppressionsPanel";
+import { AgencyNotificationMonitor } from "@/components/admin/AgencyNotificationMonitor";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface EmailTemplate {
@@ -2392,10 +2394,14 @@ export default function AdminEmailTemplates() {
         </div>
 
         <Tabs defaultValue="templates" className="space-y-4">
-          <TabsList>
+          <TabsList className="flex h-auto flex-wrap justify-start">
             <TabsTrigger value="templates" className="flex items-center gap-2">
               <Mail className="w-4 h-4" />
               Templates
+            </TabsTrigger>
+            <TabsTrigger value="notifications" className="flex items-center gap-2">
+              <BellRing className="w-4 h-4" />
+              Agency Notifications
             </TabsTrigger>
             <TabsTrigger value="scheduled" className="flex items-center gap-2">
               <Calendar className="w-4 h-4" />
@@ -2599,6 +2605,10 @@ export default function AdminEmailTemplates() {
             </div>
           </CardContent>
         </Card>
+          </TabsContent>
+
+          <TabsContent value="notifications">
+            <AgencyNotificationMonitor />
           </TabsContent>
 
           <TabsContent value="scheduled">
