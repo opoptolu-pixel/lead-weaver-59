@@ -1145,10 +1145,75 @@ export type Database = {
           },
         ]
       }
+      job_evidence: {
+        Row: {
+          assignment_id: string
+          caption: string | null
+          cleaner_id: string
+          created_at: string
+          evidence_type: string
+          file_name: string
+          id: string
+          job_id: string
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+        }
+        Insert: {
+          assignment_id: string
+          caption?: string | null
+          cleaner_id: string
+          created_at?: string
+          evidence_type: string
+          file_name: string
+          id?: string
+          job_id: string
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+        }
+        Update: {
+          assignment_id?: string
+          caption?: string | null
+          cleaner_id?: string
+          created_at?: string
+          evidence_type?: string
+          file_name?: string
+          id?: string
+          job_id?: string
+          mime_type?: string
+          size_bytes?: number
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_evidence_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "job_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_evidence_cleaner_id_fkey"
+            columns: ["cleaner_id"]
+            isOneToOne: false
+            referencedRelation: "cleaner_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_evidence_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jobs: {
         Row: {
           accepted_quote_id: string
           address_id: string
+          cleaner_completion_notes: string | null
           cleaner_payout_pence: number
           completed_at: string | null
           created_at: string
@@ -1159,6 +1224,10 @@ export type Database = {
           general_location: string
           id: string
           internal_notes: string | null
+          quality_review_notes: string | null
+          quality_review_status: string
+          quality_reviewed_at: string | null
+          quality_reviewed_by: string | null
           reference: string
           requirements: string | null
           scheduled_date: string
@@ -1172,6 +1241,7 @@ export type Database = {
         Insert: {
           accepted_quote_id: string
           address_id: string
+          cleaner_completion_notes?: string | null
           cleaner_payout_pence: number
           completed_at?: string | null
           created_at?: string
@@ -1182,6 +1252,10 @@ export type Database = {
           general_location: string
           id?: string
           internal_notes?: string | null
+          quality_review_notes?: string | null
+          quality_review_status?: string
+          quality_reviewed_at?: string | null
+          quality_reviewed_by?: string | null
           reference: string
           requirements?: string | null
           scheduled_date: string
@@ -1195,6 +1269,7 @@ export type Database = {
         Update: {
           accepted_quote_id?: string
           address_id?: string
+          cleaner_completion_notes?: string | null
           cleaner_payout_pence?: number
           completed_at?: string | null
           created_at?: string
@@ -1205,6 +1280,10 @@ export type Database = {
           general_location?: string
           id?: string
           internal_notes?: string | null
+          quality_review_notes?: string | null
+          quality_review_status?: string
+          quality_reviewed_at?: string | null
+          quality_reviewed_by?: string | null
           reference?: string
           requirements?: string | null
           scheduled_date?: string
@@ -1571,6 +1650,24 @@ export type Database = {
           phone?: string
           user_id?: string
           verified?: boolean
+        }
+        Relationships: []
+      }
+      platform_schema_versions: {
+        Row: {
+          applied_at: string
+          description: string
+          version: string
+        }
+        Insert: {
+          applied_at?: string
+          description: string
+          version: string
+        }
+        Update: {
+          applied_at?: string
+          description?: string
+          version?: string
         }
         Relationships: []
       }
@@ -2167,7 +2264,7 @@ export type Database = {
         }[]
       }
       complete_assigned_job: {
-        Args: { p_assignment_id: string }
+        Args: { p_assignment_id: string; p_completion_notes?: string }
         Returns: boolean
       }
       complete_lead_reservation: {
@@ -2200,6 +2297,7 @@ export type Database = {
           postcode: string
         }[]
       }
+      get_managed_agency_health: { Args: never; Returns: Json }
       get_user_email: { Args: { user_uuid: string }; Returns: string }
       get_user_leads_with_access_control: {
         Args: { p_user_id: string }
