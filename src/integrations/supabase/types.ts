@@ -194,6 +194,44 @@ export type Database = {
         }
         Relationships: []
       }
+      cleaner_availability: {
+        Row: {
+          cleaner_id: string
+          created_at: string
+          end_time: string
+          id: string
+          start_time: string
+          updated_at: string
+          weekday: number
+        }
+        Insert: {
+          cleaner_id: string
+          created_at?: string
+          end_time: string
+          id?: string
+          start_time: string
+          updated_at?: string
+          weekday: number
+        }
+        Update: {
+          cleaner_id?: string
+          created_at?: string
+          end_time?: string
+          id?: string
+          start_time?: string
+          updated_at?: string
+          weekday?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cleaner_availability_cleaner_id_fkey"
+            columns: ["cleaner_id"]
+            isOneToOne: false
+            referencedRelation: "cleaner_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cleaner_payouts: {
         Row: {
           amount_pence: number
@@ -367,6 +405,41 @@ export type Database = {
             columns: ["service_type_id"]
             isOneToOne: false
             referencedRelation: "service_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cleaner_time_off: {
+        Row: {
+          cleaner_id: string
+          created_at: string
+          ends_at: string
+          id: string
+          reason: string | null
+          starts_at: string
+        }
+        Insert: {
+          cleaner_id: string
+          created_at?: string
+          ends_at: string
+          id?: string
+          reason?: string | null
+          starts_at: string
+        }
+        Update: {
+          cleaner_id?: string
+          created_at?: string
+          ends_at?: string
+          id?: string
+          reason?: string | null
+          starts_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cleaner_time_off_cleaner_id_fkey"
+            columns: ["cleaner_id"]
+            isOneToOne: false
+            referencedRelation: "cleaner_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1230,7 +1303,11 @@ export type Database = {
           quality_reviewed_by: string | null
           reference: string
           requirements: string | null
+          schedule_confirmed_at: string | null
+          schedule_confirmed_by: string | null
           scheduled_date: string
+          scheduled_end_at: string | null
+          scheduled_start_at: string | null
           service_area_id: string
           service_request_id: string
           service_type_id: string
@@ -1258,7 +1335,11 @@ export type Database = {
           quality_reviewed_by?: string | null
           reference: string
           requirements?: string | null
+          schedule_confirmed_at?: string | null
+          schedule_confirmed_by?: string | null
           scheduled_date: string
+          scheduled_end_at?: string | null
+          scheduled_start_at?: string | null
           service_area_id: string
           service_request_id: string
           service_type_id: string
@@ -1286,7 +1367,11 @@ export type Database = {
           quality_reviewed_by?: string | null
           reference?: string
           requirements?: string | null
+          schedule_confirmed_at?: string | null
+          schedule_confirmed_by?: string | null
           scheduled_date?: string
+          scheduled_end_at?: string | null
+          scheduled_start_at?: string | null
           service_area_id?: string
           service_request_id?: string
           service_type_id?: string
@@ -2263,6 +2348,19 @@ export type Database = {
           reset_at: string
         }[]
       }
+      cleaner_has_schedule_conflict: {
+        Args: {
+          p_cleaner_id: string
+          p_end: string
+          p_exclude_job_id?: string
+          p_start: string
+        }
+        Returns: boolean
+      }
+      cleaner_is_available_for_window: {
+        Args: { p_cleaner_id: string; p_end: string; p_start: string }
+        Returns: boolean
+      }
       complete_assigned_job: {
         Args: { p_assignment_id: string; p_completion_notes?: string }
         Returns: boolean
@@ -2338,6 +2436,14 @@ export type Database = {
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_lead_access_expired: {
         Args: { unlocked_at_param: string }
+        Returns: boolean
+      }
+      offer_job_to_cleaner: {
+        Args: { p_cleaner_id: string; p_job_id: string }
+        Returns: Json
+      }
+      replace_my_cleaner_availability: {
+        Args: { p_windows: Json }
         Returns: boolean
       }
       reserve_lead: {
