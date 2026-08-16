@@ -51,7 +51,7 @@ const BlogPost = lazy(() => import("./pages/BlogPost"));
 const Support = lazy(() => import("./pages/Support"));
 
 // Admin routes - lazy loaded
-const AdminOverview = lazy(() => import("./pages/admin/AdminOverview"));
+const AdminOverview = lazy(() => import("./pages/admin/AdminAgencyOverview"));
 const AdminLeads = lazy(() => import("./pages/admin/AdminLeads"));
 const AdminBusinesses = lazy(() => import("./pages/admin/AdminBusinesses"));
 const AdminVerifications = lazy(() => import("./pages/admin/AdminVerifications"));
