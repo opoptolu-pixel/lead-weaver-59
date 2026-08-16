@@ -129,7 +129,7 @@ export default function AdminServiceRequests() {
 
   const fetchData = async () => {
     setLoading(true);
-    const [requestResult, jobResult, cleanerResult] = await Promise.all([
+    const [requestResult, initialJobResult, cleanerResult] = await Promise.all([
       db.from("service_requests").select(`
         *,
         customer:customers(id,name,email,phone),
@@ -144,6 +144,20 @@ export default function AdminServiceRequests() {
       `).order("scheduled_date", { ascending: true }),
       db.from("cleaner_profiles").select("id,full_name,postcode,phone,application_status,operational_status,verification_status,has_transport,created_at").order("created_at", { ascending: false }),
     ]);
+
+    let jobResult = initialJobResult;
+    if (initialJobResult.error?.message.includes("quality_review_status")) {
+      const legacyResult = await db.from("jobs").select(`
+        id,reference,service_request_id,status,scheduled_date,start_time,expected_duration_minutes,requirements,
+        customer_amount_pence,cleaner_payout_pence,
+        service_type:service_types(name),customer:customers(name,phone),address:customer_addresses(id,address_line_1,address_line_2,postcode,city,access_notes)
+      `).order("scheduled_date", { ascending: true });
+      jobResult = {
+        ...legacyResult,
+        data: legacyResult.data?.map((job) => ({ ...job, quality_review_status: job.status === "quality_check" ? "pending" : "not_submitted", quality_review_notes: null, cleaner_completion_notes: null })) || null,
+      } as typeof initialJobResult;
+      toast.warning("The quality-workflow database update is still pending. Existing jobs remain available, but evidence review is temporarily disabled.");
+    }
 
     if (requestResult.error || jobResult.error || cleanerResult.error) {
       toast.error(requestResult.error?.message || jobResult.error?.message || cleanerResult.error?.message || "Could not load managed operations");

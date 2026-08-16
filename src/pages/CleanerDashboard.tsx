@@ -42,13 +42,21 @@ export default function CleanerDashboard() {
     if (profileError) toast.error(profileError.message);
     setProfile(profileData || null);
     if (profileData) {
-      const [assignmentResult, evidenceResult, payoutResult] = await Promise.all([
+      const [initialAssignmentResult, evidenceResult, payoutResult] = await Promise.all([
         db.from("job_assignments").select(`id,status,offered_at,job:jobs(id,reference,status,general_location,scheduled_date,start_time,expected_duration_minutes,cleaner_payout_pence,requirements,quality_review_status,quality_review_notes,cleaner_completion_notes,service_type:service_types(name),customer:customers(name,phone),address:customer_addresses(address_line_1,address_line_2,city,postcode,access_notes))`).eq("cleaner_id", profileData.id).order("offered_at", { ascending: false }),
         db.from("job_evidence").select("id,job_id,assignment_id,evidence_type,storage_path,file_name,created_at").eq("cleaner_id", profileData.id).order("created_at"),
         db.from("cleaner_payouts").select("id,job_id,amount_pence,status,paid_at,job:jobs(reference,scheduled_date,service_type:service_types(name))").eq("cleaner_id", profileData.id).order("created_at", { ascending: false }),
       ]);
+      let assignmentResult = initialAssignmentResult;
+      if (initialAssignmentResult.error?.message.includes("quality_review_status")) {
+        const legacyResult = await db.from("job_assignments").select(`id,status,offered_at,job:jobs(id,reference,status,general_location,scheduled_date,start_time,expected_duration_minutes,cleaner_payout_pence,requirements,service_type:service_types(name),customer:customers(name,phone),address:customer_addresses(address_line_1,address_line_2,city,postcode,access_notes))`).eq("cleaner_id", profileData.id).order("offered_at", { ascending: false });
+        assignmentResult = {
+          ...legacyResult,
+          data: legacyResult.data?.map((assignment) => ({ ...assignment, job: { ...(assignment.job as object), quality_review_status: "pending", quality_review_notes: null, cleaner_completion_notes: null } })) || null,
+        } as typeof initialAssignmentResult;
+      }
       const firstError = assignmentResult.error || evidenceResult.error || payoutResult.error;
-      if (firstError) toast.error(firstError.message);
+      if (firstError && !firstError.message.includes("job_evidence")) toast.error(firstError.message);
       setAssignments((assignmentResult.data as unknown as Assignment[]) || []);
       setPayouts((payoutResult.data as unknown as Payout[]) || []);
       const items = (evidenceResult.data as Evidence[]) || [];
