@@ -11,7 +11,7 @@ ALTER TABLE public.jobs
 UPDATE public.jobs SET quality_review_status = 'pending'
 WHERE status = 'quality_check' AND quality_review_status = 'not_submitted';
 
-CREATE TABLE public.job_evidence (
+CREATE TABLE IF NOT EXISTS public.job_evidence (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   job_id uuid NOT NULL REFERENCES public.jobs(id) ON DELETE CASCADE,
   assignment_id uuid NOT NULL REFERENCES public.job_assignments(id) ON DELETE CASCADE,
@@ -24,12 +24,15 @@ CREATE TABLE public.job_evidence (
   caption text,
   created_at timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX job_evidence_job_type_idx ON public.job_evidence(job_id, evidence_type, created_at);
+CREATE INDEX IF NOT EXISTS job_evidence_job_type_idx ON public.job_evidence(job_id, evidence_type, created_at);
 ALTER TABLE public.job_evidence ENABLE ROW LEVEL SECURITY;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.job_evidence TO authenticated;
 GRANT ALL ON public.job_evidence TO service_role;
 
+DROP POLICY IF EXISTS "Admins manage job evidence" ON public.job_evidence;
+DROP POLICY IF EXISTS "Cleaners view own job evidence" ON public.job_evidence;
+DROP POLICY IF EXISTS "Accepted cleaners upload job evidence" ON public.job_evidence;
 CREATE POLICY "Admins manage job evidence" ON public.job_evidence FOR ALL
   USING (public.is_admin(auth.uid())) WITH CHECK (public.is_admin(auth.uid()));
 CREATE POLICY "Cleaners view own job evidence" ON public.job_evidence FOR SELECT TO authenticated
@@ -51,6 +54,9 @@ ON CONFLICT (id) DO UPDATE SET
   file_size_limit = excluded.file_size_limit,
   allowed_mime_types = excluded.allowed_mime_types;
 
+DROP POLICY IF EXISTS "Cleaners upload own job evidence files" ON storage.objects;
+DROP POLICY IF EXISTS "Cleaners view own job evidence files" ON storage.objects;
+DROP POLICY IF EXISTS "Admins manage job evidence files" ON storage.objects;
 CREATE POLICY "Cleaners upload own job evidence files" ON storage.objects FOR INSERT TO authenticated
   WITH CHECK (
     bucket_id = 'job-evidence'
@@ -77,6 +83,7 @@ CREATE POLICY "Admins manage job evidence files" ON storage.objects FOR ALL TO a
 
 CREATE UNIQUE INDEX IF NOT EXISTS cleaner_payouts_job_cleaner_idx
   ON public.cleaner_payouts(job_id, cleaner_id);
+DROP POLICY IF EXISTS "Cleaners view own payouts" ON public.cleaner_payouts;
 CREATE POLICY "Cleaners view own payouts" ON public.cleaner_payouts FOR SELECT TO authenticated
   USING (cleaner_id IN (SELECT id FROM public.cleaner_profiles WHERE user_id = auth.uid()));
 
@@ -164,5 +171,42 @@ END;
 $$;
 REVOKE ALL ON FUNCTION public.complete_assigned_job(uuid, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.complete_assigned_job(uuid, text) TO authenticated;
+
+-- A single authoritative readiness check for Lovable preview and release verification.
+CREATE TABLE IF NOT EXISTS public.platform_schema_versions (
+  version text PRIMARY KEY,
+  description text NOT NULL,
+  applied_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.platform_schema_versions ENABLE ROW LEVEL SECURITY;
+GRANT SELECT ON public.platform_schema_versions TO authenticated;
+GRANT ALL ON public.platform_schema_versions TO service_role;
+DROP POLICY IF EXISTS "Admins view platform schema versions" ON public.platform_schema_versions;
+CREATE POLICY "Admins view platform schema versions" ON public.platform_schema_versions FOR SELECT TO authenticated
+  USING (public.is_admin(auth.uid()));
+INSERT INTO public.platform_schema_versions(version, description)
+VALUES ('20260816153000', 'Cleaner delivery, evidence, earnings and quality review')
+ON CONFLICT (version) DO UPDATE SET description = excluded.description;
+
+CREATE OR REPLACE FUNCTION public.get_managed_agency_health()
+RETURNS jsonb
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT jsonb_build_object(
+    'ready',
+      EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'jobs' AND column_name = 'quality_review_status')
+      AND to_regclass('public.job_evidence') IS NOT NULL
+      AND EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'job-evidence'),
+    'schema_version', (SELECT max(version) FROM public.platform_schema_versions),
+    'quality_column', EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'jobs' AND column_name = 'quality_review_status'),
+    'evidence_table', to_regclass('public.job_evidence') IS NOT NULL,
+    'evidence_bucket', EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'job-evidence')
+  );
+$$;
+REVOKE ALL ON FUNCTION public.get_managed_agency_health() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_managed_agency_health() TO authenticated;
 
 NOTIFY pgrst, 'reload schema';
