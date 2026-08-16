@@ -797,7 +797,27 @@ export default function AdminServiceRequests() {
           "Could not save job details",
       );
     toast.success("Job details updated");
+    // Keep the open job-control dialog in sync with the saved schedule. The
+    // dispatch RPC reads the database, so reloading candidates here immediately
+    // recalculates availability/conflicts for the new date and time.
+    setSelectedJob((current) => current ? {
+      ...current,
+      scheduled_date: scheduledDate,
+      start_time: startTime,
+      expected_duration_minutes: Math.round(Number(durationHours) * 60),
+      requirements: jobRequirements.trim() || null,
+      general_location: bookingPostcode.trim().toUpperCase().split(" ")[0],
+      address: {
+        ...current.address,
+        address_line_1: addressLine1.trim(),
+        address_line_2: addressLine2.trim() || null,
+        city: city.trim(),
+        postcode: bookingPostcode.trim().toUpperCase(),
+        access_notes: accessNotes.trim() || null,
+      },
+    } : current);
     await fetchData();
+    await loadDispatchCandidates(selectedJob.id);
   };
 
   const cancelJob = async () => {
