@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
-import { Calendar, Eye, Loader2, MapPin, Phone, RefreshCw, UserRound } from "lucide-react";
+import { AlertTriangle, Calendar, CheckCircle2, Clock, Eye, Image, Loader2, MapPin, Phone, RefreshCw, RotateCcw, UserRound } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,7 @@ interface ManagedRequest {
   source: string | null;
   created_at: string;
   customer: { id: string; name: string; email: string; phone: string };
-  address: { id: string; postcode: string; city: string | null };
+  address: { id: string; address_line_1: string | null; address_line_2: string | null; postcode: string; city: string | null; access_notes: string | null };
   service_type: { id: string; name: string };
   quotes?: Quote[];
 }
@@ -49,11 +49,26 @@ interface Job {
   service_request_id: string;
   status: string;
   scheduled_date: string;
+  start_time: string | null;
+  expected_duration_minutes: number | null;
+  requirements: string | null;
+  quality_review_status: string;
+  quality_review_notes: string | null;
+  cleaner_completion_notes: string | null;
   customer_amount_pence: number;
   cleaner_payout_pence: number;
   service_type: { name: string };
   customer: { name: string; phone: string };
-  address: { postcode: string; city: string | null };
+  address: { id: string; address_line_1: string | null; address_line_2: string | null; postcode: string; city: string | null; access_notes: string | null };
+}
+
+interface JobEvidence {
+  id: string;
+  evidence_type: "before" | "after";
+  storage_path: string;
+  file_name: string;
+  created_at: string;
+  signedUrl?: string;
 }
 
 interface Cleaner {
@@ -99,6 +114,18 @@ export default function AdminServiceRequests() {
   const [cleanerPayout, setCleanerPayout] = useState("");
   const [quoteValidUntil, setQuoteValidUntil] = useState("");
   const [assignmentChoices, setAssignmentChoices] = useState<Record<string, string>>({});
+  const [addressLine1, setAddressLine1] = useState("");
+  const [addressLine2, setAddressLine2] = useState("");
+  const [city, setCity] = useState("");
+  const [bookingPostcode, setBookingPostcode] = useState("");
+  const [accessNotes, setAccessNotes] = useState("");
+  const [scheduledDate, setScheduledDate] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [durationHours, setDurationHours] = useState("");
+  const [jobRequirements, setJobRequirements] = useState("");
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [jobEvidence, setJobEvidence] = useState<JobEvidence[]>([]);
+  const [qualityNotes, setQualityNotes] = useState("");
 
   const fetchData = async () => {
     setLoading(true);
@@ -106,13 +133,14 @@ export default function AdminServiceRequests() {
       db.from("service_requests").select(`
         *,
         customer:customers(id,name,email,phone),
-        address:customer_addresses(id,postcode,city),
+        address:customer_addresses(id,address_line_1,address_line_2,postcode,city,access_notes),
         service_type:service_types(id,name),
         quotes(id,status,customer_amount_pence,cleaner_payout_pence,valid_until,version)
       `).order("created_at", { ascending: false }),
       db.from("jobs").select(`
-        id,reference,service_request_id,status,scheduled_date,customer_amount_pence,cleaner_payout_pence,
-        service_type:service_types(name),customer:customers(name,phone),address:customer_addresses(postcode,city)
+        id,reference,service_request_id,status,scheduled_date,start_time,expected_duration_minutes,requirements,
+        customer_amount_pence,cleaner_payout_pence,quality_review_status,quality_review_notes,cleaner_completion_notes,
+        service_type:service_types(name),customer:customers(name,phone),address:customer_addresses(id,address_line_1,address_line_2,postcode,city,access_notes)
       `).order("scheduled_date", { ascending: true }),
       db.from("cleaner_profiles").select("id,full_name,postcode,phone,application_status,operational_status,verification_status,has_transport,created_at").order("created_at", { ascending: false }),
     ]);
@@ -142,6 +170,15 @@ export default function AdminServiceRequests() {
     setCustomerPrice(latest ? String(latest.customer_amount_pence / 100) : "");
     setCleanerPayout(latest ? String(latest.cleaner_payout_pence / 100) : "");
     setQuoteValidUntil(latest?.valid_until ? latest.valid_until.slice(0, 10) : "");
+    setAddressLine1(request.address.address_line_1 || "");
+    setAddressLine2(request.address.address_line_2 || "");
+    setCity(request.address.city || "");
+    setBookingPostcode(request.address.postcode || "");
+    setAccessNotes(request.address.access_notes || "");
+    setScheduledDate(request.preferred_date_from || "");
+    setStartTime("");
+    setDurationHours("");
+    setJobRequirements(request.customer_notes || "");
   };
 
   const updateRequest = async (status?: string) => {
@@ -189,8 +226,14 @@ export default function AdminServiceRequests() {
     if (!selected) return;
     const latest = [...(selected.quotes || [])].filter((quote) => quote.status === "sent").sort((a, b) => b.version - a.version)[0];
     if (!latest) return toast.error("Create and send a quote first.");
-    if (!selected.preferred_date_from) return toast.error("A scheduled date is required before creating the job.");
+    if (!addressLine1.trim() || !city.trim() || !bookingPostcode.trim()) return toast.error("Confirm the full customer address before creating the job.");
+    if (!scheduledDate || !startTime || !Number(durationHours)) return toast.error("Confirm the job date, start time and expected duration.");
     setSaving(true);
+    const { error: addressError } = await db.from("customer_addresses").update({
+      address_line_1: addressLine1.trim(), address_line_2: addressLine2.trim() || null,
+      city: city.trim(), postcode: bookingPostcode.trim().toUpperCase(), access_notes: accessNotes.trim() || null,
+    }).eq("id", selected.address.id);
+    if (addressError) { setSaving(false); return toast.error(addressError.message); }
     const acceptedAt = new Date().toISOString();
     const { error: quoteError } = await db.from("quotes").update({ status: "accepted", accepted_at: acceptedAt }).eq("id", latest.id);
     if (quoteError) { setSaving(false); return toast.error(quoteError.message); }
@@ -202,11 +245,13 @@ export default function AdminServiceRequests() {
       address_id: selected.address.id,
       service_type_id: selected.service_type.id,
       service_area_id: (await db.from("service_areas").select("id").eq("slug", "greater-manchester").single()).data?.id,
-      scheduled_date: selected.preferred_date_from,
-      general_location: selected.address.postcode.split(" ")[0],
+      scheduled_date: scheduledDate,
+      start_time: startTime,
+      expected_duration_minutes: Math.round(Number(durationHours) * 60),
+      general_location: bookingPostcode.trim().toUpperCase().split(" ")[0],
       customer_amount_pence: latest.customer_amount_pence,
       cleaner_payout_pence: latest.cleaner_payout_pence,
-      requirements: selected.customer_notes,
+      requirements: jobRequirements.trim() || null,
     }).select("id").single();
     if (!jobError) {
       await Promise.all([
@@ -236,6 +281,77 @@ export default function AdminServiceRequests() {
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Job offered to cleaner");
+    fetchData();
+  };
+
+  const openJob = async (job: Job) => {
+    setSelectedJob(job);
+    setAddressLine1(job.address.address_line_1 || "");
+    setAddressLine2(job.address.address_line_2 || "");
+    setCity(job.address.city || "");
+    setBookingPostcode(job.address.postcode || "");
+    setAccessNotes(job.address.access_notes || "");
+    setScheduledDate(job.scheduled_date);
+    setStartTime(job.start_time?.slice(0, 5) || "");
+    setDurationHours(job.expected_duration_minutes ? String(job.expected_duration_minutes / 60) : "");
+    setJobRequirements(job.requirements || "");
+    setQualityNotes(job.quality_review_notes || "");
+    const { data, error } = await db.from("job_evidence").select("id,evidence_type,storage_path,file_name,created_at").eq("job_id", job.id).order("created_at");
+    if (error) {
+      toast.error(error.message);
+      setJobEvidence([]);
+      return;
+    }
+    const evidenceWithUrls = await Promise.all((data || []).map(async (item: JobEvidence) => {
+      const { data: signed } = await supabase.storage.from("job-evidence").createSignedUrl(item.storage_path, 3600);
+      return { ...item, signedUrl: signed?.signedUrl };
+    }));
+    setJobEvidence(evidenceWithUrls);
+  };
+
+  const saveJobDetails = async () => {
+    if (!selectedJob) return;
+    if (!addressLine1.trim() || !city.trim() || !bookingPostcode.trim() || !scheduledDate || !startTime || !Number(durationHours)) {
+      return toast.error("Full address, date, start time and duration are required.");
+    }
+    setSaving(true);
+    const [addressResult, jobResult] = await Promise.all([
+      db.from("customer_addresses").update({ address_line_1: addressLine1.trim(), address_line_2: addressLine2.trim() || null, city: city.trim(), postcode: bookingPostcode.trim().toUpperCase(), access_notes: accessNotes.trim() || null }).eq("id", selectedJob.address.id),
+      db.from("jobs").update({ scheduled_date: scheduledDate, start_time: startTime, expected_duration_minutes: Math.round(Number(durationHours) * 60), requirements: jobRequirements.trim() || null, general_location: bookingPostcode.trim().toUpperCase().split(" ")[0] }).eq("id", selectedJob.id),
+    ]);
+    setSaving(false);
+    if (addressResult.error || jobResult.error) return toast.error(addressResult.error?.message || jobResult.error?.message || "Could not save job details");
+    toast.success("Job details updated");
+    setSelectedJob(null);
+    fetchData();
+  };
+
+  const reviewCompletion = async (decision: "approved" | "rework_required" | "issue") => {
+    if (!selectedJob) return;
+    const beforeCount = jobEvidence.filter((item) => item.evidence_type === "before").length;
+    const afterCount = jobEvidence.filter((item) => item.evidence_type === "after").length;
+    if (decision === "approved" && (beforeCount < 1 || afterCount < 1)) return toast.error("Before and after evidence is required before approval.");
+    setSaving(true);
+    const { data: authData } = await supabase.auth.getUser();
+    const nextStatus = decision === "approved" ? "completed" : decision === "rework_required" ? "in_progress" : "issue";
+    const { error } = await db.from("jobs").update({
+      status: nextStatus, quality_review_status: decision, quality_review_notes: qualityNotes.trim() || null,
+      quality_reviewed_at: new Date().toISOString(), quality_reviewed_by: authData.user?.id || null,
+    }).eq("id", selectedJob.id);
+    if (!error) {
+      const { data: assignment } = await db.from("job_assignments").select("id,cleaner_id").eq("job_id", selectedJob.id).in("status", ["accepted", "completed"]).maybeSingle();
+      if (assignment) {
+        await Promise.all([
+          decision === "rework_required" ? db.from("job_assignments").update({ status: "accepted" }).eq("id", assignment.id) : Promise.resolve(),
+          db.from("cleaner_payouts").update({ status: decision === "approved" ? "approved" : "held" }).eq("job_id", selectedJob.id).eq("cleaner_id", assignment.cleaner_id),
+          db.from("job_events").insert({ job_id: selectedJob.id, event_type: `quality_${decision}`, details: { notes: qualityNotes.trim() || null } }),
+        ]);
+      }
+    }
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success(decision === "approved" ? "Completion approved and payout released for processing" : decision === "rework_required" ? "Job returned to cleaner for rework" : "Job placed on hold for investigation");
+    setSelectedJob(null);
     fetchData();
   };
 
@@ -288,7 +404,7 @@ export default function AdminServiceRequests() {
               <div key={job.id} className="rounded-xl border bg-card p-4">
                 <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
                   <div><div className="flex flex-wrap items-center gap-2"><span className="font-semibold">{job.reference}</span><Badge variant="outline">{job.status}</Badge><span>{job.service_type.name}</span></div><p className="mt-2 text-sm text-muted-foreground">{job.customer.name} · {job.address.postcode} · {format(new Date(`${job.scheduled_date}T12:00:00`), "d MMM yyyy")} · Customer {money(job.customer_amount_pence)} · Cleaner {money(job.cleaner_payout_pence)}</p></div>
-                  {['awaiting_assignment','offered'].includes(job.status) && <div className="flex flex-col gap-2 sm:flex-row"><Select value={assignmentChoices[job.id] || ""} onValueChange={(value) => setAssignmentChoices((current) => ({ ...current, [job.id]: value }))}><SelectTrigger className="w-64"><SelectValue placeholder="Choose approved cleaner" /></SelectTrigger><SelectContent>{cleaners.filter((cleaner) => cleaner.application_status === 'approved' && cleaner.operational_status === 'active').map((cleaner) => <SelectItem key={cleaner.id} value={cleaner.id}>{cleaner.full_name || "Unnamed cleaner"} {cleaner.postcode ? `· ${cleaner.postcode}` : ""}</SelectItem>)}</SelectContent></Select><Button onClick={() => assignCleaner(job)} disabled={saving}>Offer job</Button></div>}
+                  <div className="flex flex-col gap-2 sm:flex-row"><Button variant="outline" onClick={() => openJob(job)}><Eye className="mr-2 h-4 w-4" />Open job</Button>{['awaiting_assignment','offered'].includes(job.status) && <><Select value={assignmentChoices[job.id] || ""} onValueChange={(value) => setAssignmentChoices((current) => ({ ...current, [job.id]: value }))}><SelectTrigger className="w-64"><SelectValue placeholder="Choose approved cleaner" /></SelectTrigger><SelectContent>{cleaners.filter((cleaner) => cleaner.application_status === 'approved' && cleaner.operational_status === 'active').map((cleaner) => <SelectItem key={cleaner.id} value={cleaner.id}>{cleaner.full_name || "Unnamed cleaner"} {cleaner.postcode ? `· ${cleaner.postcode}` : ""}</SelectItem>)}</SelectContent></Select><Button onClick={() => assignCleaner(job)} disabled={saving}>Offer job</Button></>}</div>
                 </div>
               </div>
             ))}
@@ -308,9 +424,14 @@ export default function AdminServiceRequests() {
             {selected.customer_notes && <div><Label>Customer notes</Label><p className="mt-1 whitespace-pre-wrap rounded-md border p-3 text-sm">{selected.customer_notes}</p></div>}
             <div><Label>Internal notes</Label><Textarea value={adminNotes} onChange={(event) => setAdminNotes(event.target.value)} rows={3} /></div>
             <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => updateRequest("contacted")} disabled={saving}>Mark contacted</Button><Button variant="outline" onClick={() => updateRequest("qualified")} disabled={saving}>Mark qualified</Button><Button variant="outline" onClick={() => updateRequest("lost")} disabled={saving}>Mark lost</Button><Button variant="ghost" onClick={() => updateRequest()} disabled={saving}>Save notes</Button></div>
+            <div className="space-y-3 border-t pt-5"><h3 className="font-semibold">Confirmed booking details</h3><p className="text-sm text-muted-foreground">These details become visible to the cleaner only after they accept the job.</p><div className="grid gap-3 sm:grid-cols-2"><div><Label>Address line 1</Label><Input value={addressLine1} onChange={(event) => setAddressLine1(event.target.value)} /></div><div><Label>Address line 2</Label><Input value={addressLine2} onChange={(event) => setAddressLine2(event.target.value)} /></div><div><Label>City</Label><Input value={city} onChange={(event) => setCity(event.target.value)} /></div><div><Label>Postcode</Label><Input value={bookingPostcode} onChange={(event) => setBookingPostcode(event.target.value.toUpperCase())} /></div><div><Label>Confirmed date</Label><Input type="date" value={scheduledDate} onChange={(event) => setScheduledDate(event.target.value)} /></div><div><Label>Start time</Label><Input type="time" value={startTime} onChange={(event) => setStartTime(event.target.value)} /></div><div><Label>Expected duration (hours)</Label><Input type="number" min="0.5" step="0.5" value={durationHours} onChange={(event) => setDurationHours(event.target.value)} /></div></div><div><Label>Access notes</Label><Textarea value={accessNotes} onChange={(event) => setAccessNotes(event.target.value)} placeholder="Parking, keys, entry instructions, alarm information..." /></div><div><Label>Cleaner instructions</Label><Textarea value={jobRequirements} onChange={(event) => setJobRequirements(event.target.value)} rows={3} /></div></div>
             <div className="space-y-3 border-t pt-5"><h3 className="font-semibold">Quote economics</h3><div className="grid gap-3 sm:grid-cols-3"><div><Label>Customer price (£)</Label><Input type="number" min="0" step="0.01" value={customerPrice} onChange={(event) => setCustomerPrice(event.target.value)} /></div><div><Label>Cleaner payout (£)</Label><Input type="number" min="0" step="0.01" value={cleanerPayout} onChange={(event) => setCleanerPayout(event.target.value)} /></div><div><Label>Valid until</Label><Input type="date" value={quoteValidUntil} onChange={(event) => setQuoteValidUntil(event.target.value)} /></div></div>{customerPrice && cleanerPayout && <p className="text-sm text-muted-foreground">Expected gross margin: {money(Math.round((Number(customerPrice) - Number(cleanerPayout)) * 100))}</p>}<div className="flex flex-wrap gap-2"><Button onClick={createQuote} disabled={saving}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Record quote sent</Button><Button variant="secondary" onClick={acceptAndCreateJob} disabled={saving}>Record acceptance & create job</Button></div></div>
           </div>}
         </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!selectedJob} onOpenChange={(open) => !open && setSelectedJob(null)}>
+        <DialogContent className="max-h-[92vh] max-w-4xl overflow-y-auto"><DialogHeader><DialogTitle>{selectedJob?.reference} · Job control</DialogTitle></DialogHeader>{selectedJob && <div className="space-y-6"><div className="flex flex-wrap gap-2"><Badge variant="outline">{selectedJob.status}</Badge><Badge variant="outline">quality: {selectedJob.quality_review_status?.replace(/_/g, " ")}</Badge><Badge variant="outline">cleaner payout: {money(selectedJob.cleaner_payout_pence)}</Badge></div><div className="grid gap-3 sm:grid-cols-2"><div><Label>Address line 1</Label><Input value={addressLine1} onChange={(event) => setAddressLine1(event.target.value)} /></div><div><Label>Address line 2</Label><Input value={addressLine2} onChange={(event) => setAddressLine2(event.target.value)} /></div><div><Label>City</Label><Input value={city} onChange={(event) => setCity(event.target.value)} /></div><div><Label>Postcode</Label><Input value={bookingPostcode} onChange={(event) => setBookingPostcode(event.target.value.toUpperCase())} /></div><div><Label>Date</Label><Input type="date" value={scheduledDate} onChange={(event) => setScheduledDate(event.target.value)} /></div><div><Label>Start time</Label><Input type="time" value={startTime} onChange={(event) => setStartTime(event.target.value)} /></div><div><Label>Duration (hours)</Label><Input type="number" min="0.5" step="0.5" value={durationHours} onChange={(event) => setDurationHours(event.target.value)} /></div></div><div><Label>Access notes</Label><Textarea value={accessNotes} onChange={(event) => setAccessNotes(event.target.value)} /></div><div><Label>Cleaner instructions</Label><Textarea value={jobRequirements} onChange={(event) => setJobRequirements(event.target.value)} /></div><Button variant="outline" onClick={saveJobDetails} disabled={saving}>Save booking details</Button><div className="border-t pt-5"><h3 className="font-semibold">Completion evidence</h3><p className="mt-1 text-sm text-muted-foreground">Cleaner notes: {selectedJob.cleaner_completion_notes || "None provided"}</p>{jobEvidence.length === 0 ? <p className="mt-4 rounded-lg bg-muted p-4 text-sm text-muted-foreground">No before/after photos uploaded.</p> : <div className="mt-4 grid gap-4 sm:grid-cols-2">{(['before','after'] as const).map((type) => <div key={type}><h4 className="mb-2 font-medium capitalize">{type} photos ({jobEvidence.filter((item) => item.evidence_type === type).length})</h4><div className="grid grid-cols-2 gap-2">{jobEvidence.filter((item) => item.evidence_type === type).map((item) => item.signedUrl ? <a key={item.id} href={item.signedUrl} target="_blank" rel="noreferrer"><img src={item.signedUrl} alt={`${type} evidence`} className="h-32 w-full rounded-lg border object-cover" /></a> : <div key={item.id} className="flex h-32 items-center justify-center rounded-lg border"><Image className="h-6 w-6" /></div>)}</div></div>)}</div>}</div>{selectedJob.status === 'quality_check' && <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4"><div><Label>Quality review notes</Label><Textarea value={qualityNotes} onChange={(event) => setQualityNotes(event.target.value)} /></div><div className="flex flex-wrap gap-2"><Button onClick={() => reviewCompletion('approved')} disabled={saving}><CheckCircle2 className="mr-2 h-4 w-4" />Approve completion</Button><Button variant="outline" onClick={() => reviewCompletion('rework_required')} disabled={saving}><RotateCcw className="mr-2 h-4 w-4" />Request rework</Button><Button variant="destructive" onClick={() => reviewCompletion('issue')} disabled={saving}><AlertTriangle className="mr-2 h-4 w-4" />Flag issue</Button></div></div>}</div>}</DialogContent>
       </Dialog>
     </AdminLayout>
   );
