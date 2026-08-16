@@ -89,7 +89,7 @@ export default function CleanerDashboard() {
   };
 
   if (authLoading || loading) return <div className="flex min-h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
-  if (!profile) return <div className="flex min-h-screen items-center justify-center p-4"><div className="max-w-md text-center"><h1 className="text-2xl font-bold">Complete your cleaner application</h1><p className="mt-3 text-muted-foreground">Tell Cleanda about your experience and Greater Manchester coverage before receiving jobs.</p><Button className="mt-6" onClick={() => navigate("/onboarding")}>Start application</Button></div></div>;
+  if (!profile) return <div className="flex min-h-screen items-center justify-center p-4"><div className="max-w-md text-center"><h1 className="text-2xl font-bold">Complete your cleaner application</h1><p className="mt-3 text-muted-foreground">Tell Cleanda about your experience and Greater Manchester coverage before receiving jobs.</p><Button className="mt-6" onClick={() => navigate("/cleaner/onboarding")}>Start application</Button></div></div>;
 
   return (
     <div className="min-h-screen bg-muted/30">

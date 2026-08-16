@@ -239,7 +239,7 @@ export const JobBoard = () => {
               variant="hero" 
               size="lg"
               className="shadow-glow"
-              onClick={() => navigate("/auth?mode=signup")}
+              onClick={() => navigate("/auth?mode=signup&account=business")}
             >
               Join Cleanda Today
             </Button>

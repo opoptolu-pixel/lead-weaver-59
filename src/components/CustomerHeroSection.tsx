@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Search, Sparkles, ChevronDown, Check, MapPin, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { trackCTAClick } from "@/lib/analytics";
@@ -299,11 +299,18 @@ export const CustomerHeroSection = () => {
             </div>
           </form>
 
+          <p className="mt-5 text-sm text-primary-foreground/75">
+            Prefer to compare independent cleaning businesses?{" "}
+            <Link to="/get-quotes" className="font-semibold text-secondary underline underline-offset-4">
+              Use the Cleanda marketplace
+            </Link>
+          </p>
+
           {!isTypeOpen && !showPostcodeSuggestions && (
             <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-primary-foreground/70 text-sm">
               <div className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-secondary" />
-                <span>No lead fees</span>
+                <span>Price confirmed before booking</span>
               </div>
               <div className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-secondary" />

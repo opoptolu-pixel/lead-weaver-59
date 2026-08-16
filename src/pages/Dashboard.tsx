@@ -114,7 +114,7 @@ export default function Dashboard() {
         profile.phone &&
         profile.postcode;
       if (!isProfileComplete) {
-        navigate("/onboarding");
+        navigate("/business/onboarding");
       }
     }
   }, [user, authLoading, profile, navigate]);
@@ -211,7 +211,12 @@ export default function Dashboard() {
     
     setUpdatingStatus(leadId);
     try {
-      const updateData: any = {
+      const updateData: {
+        job_status: string;
+        job_completed_at?: string;
+        booked_date?: string;
+        job_notes?: string;
+      } = {
         job_status: newStatus,
       };
       

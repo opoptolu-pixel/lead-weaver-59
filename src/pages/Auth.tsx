@@ -12,6 +12,7 @@ import { Logo } from "@/components/Logo";
 import TwoFactorVerify from "@/components/TwoFactorVerify";
 import { SEOHead } from "@/components/SEOHead";
 import { trackCleanerSignup } from "@/lib/analytics";
+import { onboardingFor, type ProviderAccountType } from "@/lib/accountType";
 
 const authSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -29,6 +30,7 @@ export default function Auth() {
   const modeParam = searchParams.get("mode");
   const tokenHash = searchParams.get("token_hash");
   const tokenType = searchParams.get("type");
+  const accountType: ProviderAccountType = searchParams.get("account") === "cleaner" ? "personal_cleaner" : "business";
   const initialMode: AuthMode = modeParam === "signup" ? "signup" : modeParam === "update-password" ? "update-password" : modeParam === "magic-verify" ? "magic-verify" : modeParam === "confirm-signup" ? "confirm-signup" : "login";
   
   
@@ -356,6 +358,7 @@ export default function Auth() {
               body: JSON.stringify({
                 email,
                 password,
+                accountType,
                 redirectTo: `${window.location.origin}/auth`,
               }),
             }
@@ -374,12 +377,12 @@ export default function Auth() {
           }
 
           // Track signup conversion
-          trackCleanerSignup();
+          if (accountType === "personal_cleaner") trackCleanerSignup();
 
           // Fire Meta Pixel CompleteRegistration event
           if (window.fbq) {
             window.fbq('track', 'CompleteRegistration', {
-              content_name: 'cleaner_signup',
+              content_name: accountType === "personal_cleaner" ? 'cleaner_signup' : 'business_signup',
               status: true,
               currency: 'GBP',
               value: 0,
@@ -392,7 +395,7 @@ export default function Auth() {
               access_token: data.session.access_token,
               refresh_token: data.session.refresh_token,
             });
-            navigate("/onboarding");
+            navigate(onboardingFor(accountType));
           } else {
             // Fallback: session not returned, ask them to sign in
             toast.success("Account created! Please sign in.");
@@ -433,8 +436,8 @@ export default function Auth() {
 
   const getSubtitle = () => {
     switch (mode) {
-      case "login": return "Sign in to manage your Cleanda cleaner jobs";
-      case "signup": return "Apply for managed cleaning work across Greater Manchester";
+      case "login": return "Sign in to your Cleanda provider account";
+      case "signup": return accountType === "personal_cleaner" ? "Apply for managed cleaning work across Greater Manchester" : "Create a cleaning business account for marketplace leads";
       case "forgot": return "Enter your email to receive a reset link";
       case "magic": return "We'll send you a secure link to sign in";
       case "2fa": return "Enter your authentication code";
@@ -448,7 +451,7 @@ export default function Auth() {
     <div className="min-h-screen bg-background flex flex-col">
       <SEOHead
         title={mode === "login" ? "Sign In" : mode === "signup" ? "Create Account" : "Reset Password"}
-        description="Sign in or apply to complete managed Cleanda cleaning jobs across Greater Manchester. No lead fees or monthly subscription."
+        description="Sign in to Cleanda, apply as a personal cleaner for managed jobs, or create a cleaning business marketplace account."
         canonical="https://cleanda.co.uk/auth"
         noIndex={true}
       />
@@ -506,6 +509,7 @@ export default function Auth() {
                   <p className="text-muted-foreground">
                     {getSubtitle()}
                   </p>
+                  {mode === "signup" && <p className="mt-3 text-sm font-medium text-secondary">{accountType === "personal_cleaner" ? "Personal cleaner account" : "Cleaning business account"} · <Link to="/join" className="underline">change</Link></p>}
                 </div>
 
                 {mode === "magic-verify" || mode === "confirm-signup" ? (
@@ -661,9 +665,13 @@ export default function Auth() {
                     <p className="text-muted-foreground">
                       {mode === "login" ? "Don't have an account?" : "Already have an account?"}{" "}
                       <button
-                        type="button"
-                        onClick={() => {
-                          setMode(mode === "login" ? "signup" : "login");
+                      type="button"
+                      onClick={() => {
+                          if (mode === "login") {
+                            navigate("/join");
+                            return;
+                          }
+                          setMode("login");
                           setErrors({});
                         }}
                         className="text-secondary font-semibold hover:underline"

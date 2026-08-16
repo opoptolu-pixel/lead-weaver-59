@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { email, password } = await req.json();
+    const { email, password, accountType = "business" } = await req.json();
 
     if (!email || !password) {
       return new Response(
@@ -29,6 +29,13 @@ Deno.serve(async (req) => {
       );
     }
 
+    if (!['business', 'personal_cleaner'].includes(accountType)) {
+      return new Response(
+        JSON.stringify({ error: "Please choose a valid account type" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -39,6 +46,7 @@ Deno.serve(async (req) => {
       email,
       password,
       email_confirm: true,
+      user_metadata: { account_type: accountType },
     });
 
     if (createError) {
@@ -84,6 +92,8 @@ Deno.serve(async (req) => {
     if (resendApiKey) {
       const currentYear = new Date().getFullYear().toString();
       const userName = email.split("@")[0];
+      const isCleaner = accountType === "personal_cleaner";
+      const onboardingUrl = isCleaner ? "https://cleanda.co.uk/cleaner/onboarding" : "https://cleanda.co.uk/business/onboarding";
 
       // Check for a custom welcome email template
       const { data: template } = await supabaseAdmin
@@ -100,7 +110,7 @@ Deno.serve(async (req) => {
         subject = template.subject;
         htmlBody = template.body
           .replace(/\{\{user_name\}\}/g, userName)
-          .replace(/\{\{confirm_link\}\}/g, "https://cleanda.co.uk/onboarding")
+          .replace(/\{\{confirm_link\}\}/g, onboardingUrl)
           .replace(/\{\{current_year\}\}/g, currentYear)
           .replace(/\{\{unsubscribe_url\}\}/g, "");
       } else {
@@ -112,9 +122,9 @@ Deno.serve(async (req) => {
             </div>
             <div style="padding: 32px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px;">
               <p style="color: #334155; font-size: 16px; line-height: 1.6;">Hi ${userName},</p>
-              <p style="color: #334155; font-size: 16px; line-height: 1.6;">Your Cleanda account has been created and you're ready to go. Complete your business profile to start receiving cleaning leads in your area.</p>
+              <p style="color: #334155; font-size: 16px; line-height: 1.6;">Your Cleanda ${isCleaner ? "personal cleaner" : "cleaning business"} account has been created and you're ready to go. Complete your ${isCleaner ? "cleaner application to be considered for managed jobs" : "business profile to start finding customer leads"}.</p>
               <div style="text-align: center; margin: 32px 0;">
-                <a href="https://cleanda.co.uk/onboarding" style="display: inline-block; background: linear-gradient(135deg, #0B3D2E 0%, #145A3E 100%); color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 12px rgba(11, 61, 46, 0.3);">
+                <a href="${onboardingUrl}" style="display: inline-block; background: linear-gradient(135deg, #0B3D2E 0%, #145A3E 100%); color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 12px rgba(11, 61, 46, 0.3);">
                   Complete Your Profile →
                 </a>
               </div>

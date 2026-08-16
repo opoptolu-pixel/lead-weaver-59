@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import { BackToTop } from "@/components/BackToTop";
 import { ScrollToTop } from "@/components/ScrollToTop";
@@ -29,6 +29,10 @@ const Leads = lazy(() => import("./pages/Leads"));
 const AdminAuth = lazy(() => import("./pages/AdminAuth"));
 const LegacyDashboard = lazy(() => import("./pages/Dashboard"));
 const CleanerDashboard = lazy(() => import("./pages/CleanerDashboard"));
+const AccountDashboard = lazy(() => import("./pages/AccountDashboard"));
+const AccountOnboarding = lazy(() => import("./pages/AccountOnboarding"));
+const AccountSettings = lazy(() => import("./pages/AccountSettings"));
+const ProviderJoin = lazy(() => import("./pages/ProviderJoin"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Billing = lazy(() => import("./pages/Billing"));
@@ -94,17 +98,23 @@ const App = () => (
                   <Route path="/auth" element={<Auth />} />
                   
                   {/* Lazy loaded routes */}
-                  <Route path="/leads" element={<Navigate to="/dashboard" replace />} />
-                  <Route path="/dashboard" element={<CleanerDashboard />} />
-                  <Route path="/legacy-marketplace-dashboard" element={<LegacyDashboard />} />
-                  <Route path="/onboarding" element={<Onboarding />} />
-                  <Route path="/settings" element={<Navigate to="/onboarding" replace />} />
-                  <Route path="/settings/verification" element={<Navigate to="/onboarding" replace />} />
-                  <Route path="/billing" element={<Navigate to="/dashboard" replace />} />
-                  <Route path="/performance" element={<Navigate to="/dashboard" replace />} />
-                  <Route path="/disputes" element={<Navigate to="/support" replace />} />
-                  <Route path="/payment-success" element={<Navigate to="/dashboard" replace />} />
-                  <Route path="/credits-success" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/join" element={<ProviderJoin />} />
+                  <Route path="/dashboard" element={<AccountDashboard />} />
+                  <Route path="/onboarding" element={<AccountOnboarding />} />
+                  <Route path="/settings" element={<AccountSettings />} />
+                  <Route path="/cleaner/dashboard" element={<CleanerDashboard />} />
+                  <Route path="/cleaner/onboarding" element={<Onboarding />} />
+                  <Route path="/cleaner/settings" element={<Onboarding />} />
+                  <Route path="/business/dashboard" element={<LegacyDashboard />} />
+                  <Route path="/business/onboarding" element={<Settings />} />
+                  <Route path="/business/settings" element={<Settings />} />
+                  <Route path="/leads" element={<Leads />} />
+                  <Route path="/settings/verification" element={<Verification />} />
+                  <Route path="/billing" element={<Billing />} />
+                  <Route path="/performance" element={<Performance />} />
+                  <Route path="/disputes" element={<Disputes />} />
+                  <Route path="/payment-success" element={<PaymentSuccess />} />
+                  <Route path="/credits-success" element={<CreditsSuccess />} />
                   <Route path="/support" element={<Support />} />
                   <Route path="/legacy-marketplace/leads" element={<Leads />} />
                   <Route path="/legacy-marketplace/settings" element={<Settings />} />
@@ -117,6 +127,7 @@ const App = () => (
                   
                   {/* Customer-facing Pages */}
                   <Route path="/request-cleaning" element={<RequestCleaning />} />
+                  <Route path="/get-quotes" element={<RequestCleaning />} />
                   <Route path="/request-cleaning/thank-you" element={<RequestCleaningThankYou />} />
                   
                   {/* Blog */}

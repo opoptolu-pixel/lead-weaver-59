@@ -35,7 +35,7 @@ export const Footer = forwardRef<HTMLElement, FooterProps>(({ hideCta = false, v
                   <p className="text-primary-foreground/70 text-lg mb-8 max-w-xl mx-auto">
                     Cleanda brings the customers and manages the bookings. You focus on delivering excellent cleaning across Greater Manchester.
                   </p>
-                  <Link to="/auth">
+                  <Link to="/auth?mode=signup&account=cleaner">
                     <Button variant="cta" size="lg" className="shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-0.5">
                       Apply as a Cleaner
                       <ArrowRight className="w-5 h-5 ml-2" />
@@ -72,10 +72,10 @@ export const Footer = forwardRef<HTMLElement, FooterProps>(({ hideCta = false, v
               <Logo size="md" variant="white" linkTo="/" />
             </div>
             <p className="text-primary-foreground/70 text-sm mb-4 max-w-sm leading-relaxed">
-              Cleanda manages professional cleaning services for customers across Greater Manchester.
+              Cleanda offers managed cleaning across Greater Manchester and a marketplace connecting customers with independent cleaning businesses.
             </p>
             <p className="text-primary-foreground/70 text-sm mb-6 max-w-sm leading-relaxed">
-              We handle requirements, pricing, booking, cleaner assignment and customer support.
+              Choose the service model that fits your needs before submitting a request.
             </p>
             <div className="space-y-3 mb-6">
               <a href={email ? `mailto:${email}` : "#"} className="flex items-center gap-3 text-sm text-primary-foreground/70 hover:text-secondary transition-colors group">
@@ -111,9 +111,10 @@ export const Footer = forwardRef<HTMLElement, FooterProps>(({ hideCta = false, v
             <ul className="space-y-3 text-sm">
               <li>
                 <Link to="/request-cleaning" className="text-primary-foreground/70 hover:text-secondary transition-colors">
-                  Request Cleaning
+                  Book Managed Cleaning
                 </Link>
               </li>
+              <li><Link to="/get-quotes" className="text-primary-foreground/70 hover:text-secondary transition-colors">Get Marketplace Quotes</Link></li>
               <li>
                 <Link to="/#services" className="text-primary-foreground/70 hover:text-secondary transition-colors">
                   Our Services
@@ -135,24 +136,24 @@ export const Footer = forwardRef<HTMLElement, FooterProps>(({ hideCta = false, v
           {/* For Cleaners */}
           <div>
             <h4 className="font-heading font-bold text-sm uppercase tracking-wider mb-6 text-primary-foreground">
-              For Cleaners
+              For Providers
             </h4>
             <ul className="space-y-3 text-sm">
               <li>
                 <Link to="/for-cleaners" className="text-primary-foreground/70 hover:text-secondary transition-colors">
-                  Join Our Network
+                  Personal Cleaner Jobs
                 </Link>
               </li>
               <li>
-                <Link to="/for-cleaners" className="text-primary-foreground/70 hover:text-secondary transition-colors">How Cleaner Jobs Work</Link>
+                <Link to="/join" className="text-primary-foreground/70 hover:text-secondary transition-colors">Choose Account Type</Link>
               </li>
               <li>
                 <Link to="/auth" className="text-primary-foreground/70 hover:text-secondary transition-colors">
-                  Cleaner Login
+                  Provider Login
                 </Link>
               </li>
               <li>
-                <span className="text-primary-foreground/70">No lead fees</span>
+                <Link to="/auth?mode=signup&account=business" className="text-primary-foreground/70 hover:text-secondary transition-colors">Business Marketplace Account</Link>
               </li>
             </ul>
           </div>

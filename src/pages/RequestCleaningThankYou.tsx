@@ -8,6 +8,8 @@ import { trackCleaningRequest } from "@/lib/analytics";
 const RequestCleaningThankYou = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const requestState = location.state as { jobType?: string; postcode?: string; estimatedValue?: string; referenceId?: string; model?: string } | null;
+  const isMarketplace = requestState?.model === "marketplace";
 
   // Fire conversion events on page load
   useEffect(() => {
@@ -35,7 +37,7 @@ const RequestCleaningThankYou = () => {
     <>
       <SEOHead
         title="Thank You | Your Cleaning Request is Submitted | Cleanda"
-        description="Cleanda has received your Greater Manchester cleaning request and will contact you to confirm the requirements and price."
+        description={isMarketplace ? "Your Cleanda marketplace request has been received and will be made available to suitable cleaning businesses." : "Cleanda has received your Greater Manchester cleaning request and will contact you to confirm the requirements and price."}
         canonical="https://cleanda.co.uk/request-cleaning/thank-you"
         noIndex={true}
       />
@@ -55,7 +57,7 @@ const RequestCleaningThankYou = () => {
           Request received
         </h1>
         <p className="text-xl text-gray-600 mb-8">
-          Cleanda will review your requirements and contact you to confirm the price and booking.
+          {isMarketplace ? "Your request will be shared with suitable cleaning businesses that can contact you about the job." : "Cleanda will review your requirements and contact you to confirm the price and booking."}
         </p>
 
         {/* Managed service confirmation */}
@@ -68,30 +70,30 @@ const RequestCleaningThankYou = () => {
           </div>
           
           <p className="text-gray-700 mb-4">
-            Our Greater Manchester team will check the job details and contact you if anything needs clarification.
+            {isMarketplace ? "Suitable cleaning businesses can review the opportunity and contact you to discuss their quote." : "Our Greater Manchester team will check the job details and contact you if anything needs clarification."}
           </p>
           
           <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl p-4 border border-emerald-200">
             <p className="text-gray-800 font-medium text-center">
-              Your request is with Cleanda
+              {isMarketplace ? "Your marketplace request is active" : "Your request is with Cleanda"}
             </p>
             <p className="text-gray-600 text-sm text-center mt-2">
-              Nothing is booked or charged until the price and arrangements are confirmed.
+              {isMarketplace ? "You decide which business, if any, you want to hire." : "Nothing is booked or charged until the price and arrangements are confirmed."}
             </p>
           </div>
         </div>
 
         {/* Managed journey */}
         <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 mb-8 text-left">
-          <h2 className="font-semibold text-gray-900 mb-4 text-lg">Your Cleanda journey:</h2>
+          <h2 className="font-semibold text-gray-900 mb-4 text-lg">{isMarketplace ? "What happens next:" : "Your Cleanda journey:"}</h2>
           <div className="space-y-4">
             <div className="flex items-start gap-4">
               <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
                 <CheckCircle className="w-5 h-5 text-emerald-600" />
               </div>
               <div>
-                <p className="font-medium text-gray-900">We confirm the requirements</p>
-                <p className="text-gray-600 text-sm">Cleanda reviews the property, service and preferred date.</p>
+                <p className="font-medium text-gray-900">{isMarketplace ? "Businesses review your request" : "We confirm the requirements"}</p>
+                <p className="text-gray-600 text-sm">{isMarketplace ? "Relevant cleaning businesses can choose to unlock and respond to the opportunity." : "Cleanda reviews the property, service and preferred date."}</p>
               </div>
             </div>
             <div className="flex items-start gap-4">
@@ -99,8 +101,8 @@ const RequestCleaningThankYou = () => {
                 <BadgePoundSterling className="w-5 h-5 text-blue-600" />
               </div>
               <div>
-                <p className="font-medium text-gray-900">Cleanda provides the price</p>
-                <p className="text-gray-600 text-sm">Once accepted, Cleanda secures the booking and arranges a vetted cleaner.</p>
+                <p className="font-medium text-gray-900">{isMarketplace ? "Compare and choose" : "Cleanda provides the price"}</p>
+                <p className="text-gray-600 text-sm">{isMarketplace ? "Discuss quotes directly and choose the cleaning business that suits you." : "Once accepted, Cleanda secures the booking and arranges a vetted cleaner."}</p>
               </div>
             </div>
           </div>

@@ -47,6 +47,15 @@ const fullCleaningTypes = [
 
 const simplifiedCleaningTypes = fullCleaningTypes;
 
+const marketplaceCleaningTypes = [
+  { id: "carpet-cleaning", label: "Carpet Cleaning (2–3 Rooms)", icon: Layers, color: "bg-indigo-100 text-indigo-600", value: "from £100", phase: 1 },
+  { id: "sofa-carpet", label: "Sofa + Carpet Cleaning", icon: Sparkles, color: "bg-orange-100 text-orange-600", value: "from £120", phase: 1 },
+  { id: "deep-clean", label: "Deep Clean (3+ Rooms)", icon: Home, color: "bg-cyan-100 text-cyan-600", value: "from £140", phase: 1 },
+  { id: "end-of-tenancy", label: "End of Tenancy Clean", icon: Truck, color: "bg-green-100 text-green-600", value: "from £150", phase: 1 },
+  { id: "airbnb", label: "Airbnb / Short-Let Refresh", icon: Building2, color: "bg-teal-100 text-teal-600", value: "from £130", phase: 1 },
+  { id: "post-construction", label: "Post-Construction Deep Clean", icon: Building2, color: "bg-slate-100 text-slate-600", value: "from £200", phase: 1 },
+];
+
 const TOTAL_STEPS = 6;
 
 // Property types for step 3
@@ -92,6 +101,7 @@ const isValidPostcodePrefix = (postcode: string): boolean => {
 export default function RequestCleaning() {
   const navigate = useNavigate();
   const location = useLocation();
+  const isMarketplace = location.pathname === "/get-quotes";
   
   // Initialize UTM tracking for attribution
   useUtmTracking();
@@ -101,14 +111,14 @@ export default function RequestCleaning() {
   const variantLoaded = formVariant !== null;
 
   // Derive active cleaning types from variant
-  const cleaningTypes = formVariant === 'simplified' ? simplifiedCleaningTypes : fullCleaningTypes;
+  const cleaningTypes = isMarketplace ? marketplaceCleaningTypes : (formVariant === 'simplified' ? simplifiedCleaningTypes : fullCleaningTypes);
 
   // Initialize state directly from location.state - runs once before first render
   const [currentStep, setCurrentStep] = useState(() => {
     const navState = location.state as { type?: string; postcode?: string } | null;
     const typeParam = navState?.type || "";
     const postcodeParam = (navState?.postcode || "").toUpperCase();
-    const matchedType = fullCleaningTypes.find(t => t.id === typeParam);
+    const matchedType = [...fullCleaningTypes, ...marketplaceCleaningTypes].find(t => t.id === typeParam);
     
     if (matchedType && postcodeParam) {
       const cleaned = postcodeParam.replace(/\s+/g, '');
@@ -126,7 +136,7 @@ export default function RequestCleaning() {
     const navState = location.state as { type?: string; postcode?: string } | null;
     const typeParam = navState?.type || "";
     const postcodeParam = (navState?.postcode || "").toUpperCase();
-    const matchedType = fullCleaningTypes.find(t => t.id === typeParam);
+    const matchedType = [...fullCleaningTypes, ...marketplaceCleaningTypes].find(t => t.id === typeParam);
     
     return {
       jobType: matchedType?.label || "",
@@ -227,10 +237,10 @@ export default function RequestCleaning() {
         return;
       }
 
-      // Preserve acquisition attribution for the managed service request.
+      // Preserve acquisition attribution for either Cleanda service model.
       const leadSourceData = getLeadSource();
 
-      const { data, error } = await supabase.functions.invoke("submit-service-request", {
+      const { data, error } = await supabase.functions.invoke(isMarketplace ? "submit-cleaning-request" : "submit-service-request", {
         body: {
           ...formData,
           customerAddress: formData.postcode,
@@ -251,7 +261,7 @@ export default function RequestCleaning() {
         },
       });
 
-      if (data?.error === "OUTSIDE_SERVICE_AREA") {
+      if (!isMarketplace && data?.error === "OUTSIDE_SERVICE_AREA") {
         toast.error(data.message);
         return;
       }
@@ -267,6 +277,7 @@ export default function RequestCleaning() {
           estimatedValue: formData.jobValue,
           source: leadSourceData.source,
           referenceId: data.referenceId,
+          model: isMarketplace ? "marketplace" : "managed",
         }
       });
     } catch (error: unknown) {
@@ -398,7 +409,7 @@ export default function RequestCleaning() {
       {
         "@type": "Service",
         "name": "Professional Cleaning Service Request",
-        "description": "Request professional cleaning managed by Cleanda across Greater Manchester.",
+        "description": isMarketplace ? "Request quotes from cleaning businesses on Cleanda." : "Request professional cleaning managed by Cleanda across Greater Manchester.",
         "provider": {
           "@type": "Organization",
           "name": "Cleanda",
@@ -406,7 +417,7 @@ export default function RequestCleaning() {
         },
         "areaServed": {
           "@type": "AdministrativeArea",
-          "name": "Greater Manchester"
+          "name": isMarketplace ? "United Kingdom" : "Greater Manchester"
         },
         "serviceType": [
           "End of Tenancy Cleaning",
@@ -419,10 +430,10 @@ export default function RequestCleaning() {
       },
       {
         "@type": "WebPage",
-        "@id": "https://cleanda.co.uk/request-cleaning#webpage",
-        "url": "https://cleanda.co.uk/request-cleaning",
-        "name": "Request Cleaning in Greater Manchester | Cleanda",
-        "description": "Tell Cleanda what you need cleaned. We confirm the requirements and price, then manage the booking and cleaner.",
+        "@id": `https://cleanda.co.uk/${isMarketplace ? "get-quotes" : "request-cleaning"}#webpage`,
+        "url": `https://cleanda.co.uk/${isMarketplace ? "get-quotes" : "request-cleaning"}`,
+        "name": isMarketplace ? "Get Cleaning Quotes | Cleanda Marketplace" : "Request Cleaning in Greater Manchester | Cleanda",
+        "description": isMarketplace ? "Tell us what you need and connect with cleaning businesses through the Cleanda marketplace." : "Tell Cleanda what you need cleaned. We confirm the requirements and price, then manage the booking and cleaner.",
         "isPartOf": { "@id": "https://cleanda.co.uk/#website" },
         "breadcrumb": {
           "@type": "BreadcrumbList",
@@ -448,9 +459,9 @@ export default function RequestCleaning() {
   return (
     <div className="min-h-screen bg-primary flex flex-col">
       <SEOHead
-        title="Get Free Cleaning Quotes in Minutes | Request a Cleaner | Cleanda"
-        description="Request professional cleaning managed by Cleanda across Greater Manchester. Tell us what you need and our team will confirm the requirements and price."
-        canonical="https://cleanda.co.uk/request-cleaning"
+        title={isMarketplace ? "Get Cleaning Quotes | Cleanda Marketplace" : "Request Managed Cleaning in Greater Manchester | Cleanda"}
+        description={isMarketplace ? "Submit your cleaning requirements and connect with cleaning businesses through the Cleanda marketplace." : "Request professional cleaning managed by Cleanda across Greater Manchester. Tell us what you need and our team will confirm the requirements and price."}
+        canonical={`https://cleanda.co.uk/${isMarketplace ? "get-quotes" : "request-cleaning"}`}
         structuredData={structuredData}
       />
       {/* Header */}
@@ -474,7 +485,7 @@ export default function RequestCleaning() {
               Get Your Home <span className="text-secondary">Sparkling Clean</span>
             </h1>
             <p className="text-white/80 text-lg lg:text-xl max-w-lg mx-auto">
-              Professional cleaning across Greater Manchester, managed by Cleanda from request to completion.
+              {isMarketplace ? "Submit one request and hear from cleaning businesses interested in your job." : "Professional cleaning across Greater Manchester, managed by Cleanda from request to completion."}
             </p>
           </div>
 
@@ -600,7 +611,7 @@ export default function RequestCleaning() {
                   What kind of property needs cleaning?
                 </h2>
                 <p className="text-gray-500 text-center mb-8">
-                  Request your Cleanda cleaning service
+                  {isMarketplace ? "Choose the cleaning service you need quotes for" : "Request your Cleanda cleaning service"}
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
@@ -721,7 +732,7 @@ export default function RequestCleaning() {
                   How can cleaners reach you?
                 </h2>
                 <p className="text-gray-500 text-center mb-8">
-                  Enter your details so Cleanda can confirm your requirements
+                  {isMarketplace ? "Enter your details so cleaning businesses can respond" : "Enter your details so Cleanda can confirm your requirements"}
                 </p>
 
                 <div className="flex-1">
@@ -911,7 +922,7 @@ export default function RequestCleaning() {
           <div className="flex items-center justify-center gap-6 mt-8 text-white/60 text-sm">
             <span className="flex items-center gap-2">
               <span className="w-2 h-2 bg-secondary rounded-full" />
-              Managed by Cleanda
+              {isMarketplace ? "Cleanda marketplace" : "Managed by Cleanda"}
             </span>
             <span className="flex items-center gap-2">
               <span className="w-2 h-2 bg-secondary rounded-full" />
@@ -947,7 +958,7 @@ export default function RequestCleaning() {
                 Save Hours of Searching
               </h3>
               <p className="text-gray-600 text-sm">
-                Tell Cleanda what you need once. We manage the quote, booking, cleaner and customer support.
+                {isMarketplace ? "Submit your requirements once and let interested cleaning businesses respond." : "Tell Cleanda what you need once. We manage the quote, booking, cleaner and customer support."}
               </p>
             </div>
 
@@ -970,10 +981,10 @@ export default function RequestCleaning() {
                 <BadgeCheck className="w-7 h-7 text-emerald-600" />
               </div>
               <h3 className="font-heading font-semibold text-lg text-gray-900 mb-2">
-                Clear Cleanda Pricing
+                {isMarketplace ? "Compare Business Quotes" : "Clear Cleanda Pricing"}
               </h3>
               <p className="text-gray-600 text-sm">
-                Cleanda confirms the customer price before booking and shows the agreed payout to the assigned cleaner.
+                {isMarketplace ? "Discuss pricing directly with responding businesses and choose the option that suits you." : "Cleanda confirms the customer price before booking and shows the agreed payout to the assigned cleaner."}
               </p>
             </div>
 
@@ -983,10 +994,10 @@ export default function RequestCleaning() {
                 <ThumbsUp className="w-7 h-7 text-violet-600" />
               </div>
               <h3 className="font-heading font-semibold text-lg text-gray-900 mb-2">
-                One Point of Support
+                {isMarketplace ? "You Choose the Business" : "One Point of Support"}
               </h3>
               <p className="text-gray-600 text-sm">
-                Cleanda manages the booking and remains your point of contact if plans change or something needs attention.
+                {isMarketplace ? "Review responses and decide which independent cleaning business you want to hire." : "Cleanda manages the booking and remains your point of contact if plans change or something needs attention."}
               </p>
             </div>
           </div>

@@ -348,7 +348,7 @@ export const HeroSection = () => {
               variant="hero"
               size="lg"
               className="w-full sm:w-auto shadow-glow text-base font-semibold px-8"
-              onClick={() => navigate("/auth?mode=signup")}
+              onClick={() => navigate("/auth?mode=signup&account=business")}
             >
               Sign Up Free
               <ArrowRight className="w-5 h-5 ml-2" />

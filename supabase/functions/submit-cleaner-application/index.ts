@@ -43,6 +43,8 @@ serve(async (req) => {
     }
 
     const service = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
+    const { error: accountTypeError } = await service.from("profiles").update({ account_type: "personal_cleaner" }).eq("user_id", authData.user.id);
+    if (accountTypeError) throw accountTypeError;
     const { data: area, error: areaError } = await service.from("service_areas").select("id").eq("slug", "greater-manchester").eq("status", "active").single();
     if (areaError || !area) throw new Error("Greater Manchester service area is not configured");
 
@@ -87,4 +89,3 @@ serve(async (req) => {
     return respond({ error: "We could not save your application. Please try again." }, 500);
   }
 });
-

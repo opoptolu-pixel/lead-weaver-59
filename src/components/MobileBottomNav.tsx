@@ -1,7 +1,9 @@
 import { forwardRef } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Home, UserRound, Headphones } from "lucide-react";
+import { Home, UserRound, Headphones, Search, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { getProviderAccountType } from "@/lib/accountType";
 
 interface NavItem {
   label: string;
@@ -9,17 +11,28 @@ interface NavItem {
   href: string;
 }
 
-const navItems: NavItem[] = [
-  { label: "Jobs", icon: Home, href: "/dashboard" },
-  { label: "Application", icon: UserRound, href: "/onboarding" },
+const cleanerNavItems: NavItem[] = [
+  { label: "Jobs", icon: Home, href: "/cleaner/dashboard" },
+  { label: "Application", icon: UserRound, href: "/cleaner/settings" },
   { label: "Support", icon: Headphones, href: "/support" },
+];
+
+const businessNavItems: NavItem[] = [
+  { label: "Dashboard", icon: Home, href: "/business/dashboard" },
+  { label: "Leads", icon: Search, href: "/leads" },
+  { label: "Billing", icon: CreditCard, href: "/billing" },
+  { label: "Settings", icon: UserRound, href: "/business/settings" },
 ];
 
 export const MobileBottomNav = forwardRef<HTMLElement>((_, ref) => {
   const location = useLocation();
+  const { user, profile } = useAuth();
 
-  const cleanerRoutes = ["/dashboard", "/onboarding", "/support"];
-  const shouldShow = cleanerRoutes.some((route) => location.pathname.startsWith(route));
+  const businessRoutes = ["/business/", "/leads", "/billing", "/performance", "/settings/verification"];
+  const cleanerRoutes = ["/cleaner/", "/support"];
+  const isBusiness = businessRoutes.some((route) => location.pathname.startsWith(route)) || (location.pathname.startsWith("/support") && getProviderAccountType(user, profile?.account_type) === "business");
+  const shouldShow = isBusiness || cleanerRoutes.some((route) => location.pathname.startsWith(route));
+  const navItems = isBusiness ? businessNavItems : cleanerNavItems;
 
   if (!shouldShow) return null;
 
