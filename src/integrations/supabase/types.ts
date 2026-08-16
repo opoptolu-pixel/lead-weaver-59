@@ -1398,6 +1398,106 @@ export type Database = {
           },
         ]
       }
+      job_issue_events: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          details: Json
+          event_type: string
+          id: string
+          issue_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          details?: Json
+          event_type: string
+          id?: string
+          issue_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          details?: Json
+          event_type?: string
+          id?: string
+          issue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_issue_events_issue_id_fkey"
+            columns: ["issue_id"]
+            isOneToOne: false
+            referencedRelation: "job_issues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_issues: {
+        Row: {
+          assigned_to: string | null
+          category: string
+          closed_at: string | null
+          created_at: string
+          description: string | null
+          due_at: string | null
+          id: string
+          job_id: string
+          reported_by: string | null
+          resolution_notes: string | null
+          resolved_at: string | null
+          severity: string
+          source: string
+          status: string
+          summary: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          category: string
+          closed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          job_id: string
+          reported_by?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          severity?: string
+          source: string
+          status?: string
+          summary: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          category?: string
+          closed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          job_id?: string
+          reported_by?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          severity?: string
+          source?: string
+          status?: string
+          summary?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_issues_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_time_entries: {
         Row: {
           assignment_id: string
@@ -2608,6 +2708,18 @@ export type Database = {
         Args: { p_entry_id: string; p_minutes: number; p_reason: string }
         Returns: boolean
       }
+      create_job_issue: {
+        Args: {
+          p_category: string
+          p_description?: string
+          p_due_at?: string
+          p_job_id: string
+          p_severity: string
+          p_source: string
+          p_summary: string
+        }
+        Returns: string
+      }
       deduct_credit_atomic: {
         Args: { p_lead_id: string; p_user_id: string }
         Returns: {
@@ -2715,6 +2827,14 @@ export type Database = {
           p_account_holder_name: string
           p_account_number: string
           p_sort_code: string
+        }
+        Returns: boolean
+      }
+      update_job_issue: {
+        Args: {
+          p_issue_id: string
+          p_resolution_notes?: string
+          p_status: string
         }
         Returns: boolean
       }
