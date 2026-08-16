@@ -1183,6 +1183,54 @@ export type Database = {
           },
         ]
       }
+      job_checklist_items: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          id: string
+          is_required: boolean
+          job_id: string
+          position: number
+          title: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          id?: string
+          is_required?: boolean
+          job_id: string
+          position?: number
+          title: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          id?: string
+          is_required?: boolean
+          job_id?: string
+          position?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_checklist_items_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "cleaner_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_checklist_items_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_events: {
         Row: {
           actor_user_id: string | null
@@ -1275,6 +1323,70 @@ export type Database = {
           },
           {
             foreignKeyName: "job_evidence_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_time_entries: {
+        Row: {
+          assignment_id: string
+          cleaner_id: string
+          clocked_in_at: string
+          clocked_out_at: string | null
+          corrected_at: string | null
+          corrected_by: string | null
+          corrected_minutes: number | null
+          correction_reason: string | null
+          created_at: string
+          id: string
+          job_id: string
+        }
+        Insert: {
+          assignment_id: string
+          cleaner_id: string
+          clocked_in_at?: string
+          clocked_out_at?: string | null
+          corrected_at?: string | null
+          corrected_by?: string | null
+          corrected_minutes?: number | null
+          correction_reason?: string | null
+          created_at?: string
+          id?: string
+          job_id: string
+        }
+        Update: {
+          assignment_id?: string
+          cleaner_id?: string
+          clocked_in_at?: string
+          clocked_out_at?: string | null
+          corrected_at?: string | null
+          corrected_by?: string | null
+          corrected_minutes?: number | null
+          correction_reason?: string | null
+          created_at?: string
+          id?: string
+          job_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_time_entries_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "job_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_time_entries_cleaner_id_fkey"
+            columns: ["cleaner_id"]
+            isOneToOne: false
+            referencedRelation: "cleaner_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_time_entries_job_id_fkey"
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "jobs"
@@ -2361,6 +2473,10 @@ export type Database = {
         Args: { p_cleaner_id: string; p_end: string; p_start: string }
         Returns: boolean
       }
+      clock_assigned_job: {
+        Args: { p_action: string; p_assignment_id: string }
+        Returns: Json
+      }
       complete_assigned_job: {
         Args: { p_assignment_id: string; p_completion_notes?: string }
         Returns: boolean
@@ -2368,6 +2484,10 @@ export type Database = {
       complete_lead_reservation: {
         Args: { p_lead_id: string }
         Returns: undefined
+      }
+      correct_job_time_entry: {
+        Args: { p_entry_id: string; p_minutes: number; p_reason: string }
+        Returns: boolean
       }
       deduct_credit_atomic: {
         Args: { p_lead_id: string; p_user_id: string }
@@ -2457,6 +2577,10 @@ export type Database = {
       }
       respond_to_job_assignment: {
         Args: { p_assignment_id: string; p_notes?: string; p_response: string }
+        Returns: boolean
+      }
+      set_job_checklist_item: {
+        Args: { p_completed: boolean; p_item_id: string }
         Returns: boolean
       }
     }
