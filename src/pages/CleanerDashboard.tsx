@@ -15,6 +15,20 @@ import { toast } from "sonner";
 
 const db = supabase as unknown as SupabaseClient;
 const money = (pence: number) => new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(pence / 100);
+const MAX_EVIDENCE_FILE_SIZE = 5 * 1024 * 1024;
+const EVIDENCE_FILE_EXTENSIONS: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
+
+const detectEvidenceMimeType = async (file: File) => {
+  const bytes = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "image/jpeg";
+  if (bytes.length >= 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47 && bytes[4] === 0x0d && bytes[5] === 0x0a && bytes[6] === 0x1a && bytes[7] === 0x0a) return "image/png";
+  if (bytes.length >= 12 && String.fromCharCode(...bytes.slice(0, 4)) === "RIFF" && String.fromCharCode(...bytes.slice(8, 12)) === "WEBP") return "image/webp";
+  return null;
+};
 
 interface CleanerProfile { id: string; full_name: string | null; application_status: string; operational_status: string; verification_status: string; }
 interface Assignment {
@@ -82,14 +96,23 @@ export default function CleanerDashboard() {
   const uploadEvidence = async (assignment: Assignment, type: "before" | "after", files: FileList | null) => {
     if (!files?.length || !profile) return;
     const selected = Array.from(files);
-    if (selected.some((file) => !["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 5 * 1024 * 1024)) return toast.error("Use JPG, PNG or WebP images up to 5MB each.");
+    if (selected.some((file) => file.size === 0 || file.size > MAX_EVIDENCE_FILE_SIZE || !(file.type in EVIDENCE_FILE_EXTENSIONS))) return toast.error("Use non-empty JPG, PNG or WebP images up to 5MB each.");
+
+    let verifiedFiles: Array<{ file: File; mimeType: string }>;
+    try {
+      verifiedFiles = await Promise.all(selected.map(async (file) => ({ file, mimeType: await detectEvidenceMimeType(file) || "" })));
+    } catch {
+      return toast.error("We could not verify one of those images. Please choose it again.");
+    }
+    if (verifiedFiles.some(({ file, mimeType }) => !mimeType || mimeType !== file.type)) return toast.error("One or more files are not valid JPG, PNG or WebP images.");
+
     setBusy(`${assignment.id}-${type}`);
-    for (const file of selected) {
-      const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    for (const { file, mimeType } of verifiedFiles) {
+      const extension = EVIDENCE_FILE_EXTENSIONS[mimeType];
       const path = `${assignment.job.id}/${profile.id}/${type}-${crypto.randomUUID()}.${extension}`;
-      const { error: uploadError } = await supabase.storage.from("job-evidence").upload(path, file, { contentType: file.type });
+      const { error: uploadError } = await supabase.storage.from("job-evidence").upload(path, file, { contentType: mimeType });
       if (uploadError) { setBusy(null); return toast.error(uploadError.message); }
-      const { error: recordError } = await db.from("job_evidence").insert({ job_id: assignment.job.id, assignment_id: assignment.id, cleaner_id: profile.id, evidence_type: type, storage_path: path, file_name: file.name, mime_type: file.type, size_bytes: file.size });
+      const { error: recordError } = await db.from("job_evidence").insert({ job_id: assignment.job.id, assignment_id: assignment.id, cleaner_id: profile.id, evidence_type: type, storage_path: path, file_name: file.name, mime_type: mimeType, size_bytes: file.size });
       if (recordError) { await supabase.storage.from("job-evidence").remove([path]); setBusy(null); return toast.error(recordError.message); }
     }
     setBusy(null); toast.success(`${type === "before" ? "Before" : "After"} photos uploaded`); fetchDashboard();
