@@ -1,10 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { format } from "date-fns";
+import {
+  addMonths,
+  eachDayOfInterval,
+  endOfMonth,
+  endOfWeek,
+  format,
+  isSameMonth,
+  startOfMonth,
+  startOfWeek,
+  subMonths,
+} from "date-fns";
 import {
   AlertTriangle,
   Calendar,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   Eye,
   Image,
@@ -103,7 +115,12 @@ interface Job {
   assignments?: Array<{
     id: string;
     status: string;
-    cleaner: { id: string; full_name: string | null } | null;
+    cleaner: {
+      id: string;
+      full_name: string | null;
+      phone: string | null;
+      postcode: string | null;
+    } | null;
   }>;
 }
 
@@ -210,6 +227,7 @@ export default function AdminServiceRequests() {
   const [jobView, setJobView] = useState<"list" | "calendar">("list");
   const [jobStatusFilter, setJobStatusFilter] = useState("active");
   const [jobEvents, setJobEvents] = useState<JobEvent[]>([]);
+  const [calendarMonth, setCalendarMonth] = useState(() => startOfMonth(new Date()));
 
   useEffect(() => {
     const timer = window.setInterval(() => setLiveNow(Date.now()), 30_000);
@@ -238,7 +256,7 @@ export default function AdminServiceRequests() {
         id,reference,service_request_id,status,scheduled_date,start_time,expected_duration_minutes,requirements,
         customer_amount_pence,cleaner_payout_pence,quality_review_status,quality_review_notes,cleaner_completion_notes,
         service_type:service_types(name),customer:customers(name,phone),address:customer_addresses(id,address_line_1,address_line_2,postcode,city,access_notes),
-        assignments:job_assignments(id,status,cleaner:cleaner_profiles(id,full_name))
+        assignments:job_assignments(id,status,cleaner:cleaner_profiles(id,full_name,phone,postcode))
       `,
         )
         .order("scheduled_date", { ascending: true }),
@@ -259,7 +277,7 @@ export default function AdminServiceRequests() {
         id,reference,service_request_id,status,scheduled_date,start_time,expected_duration_minutes,requirements,
         customer_amount_pence,cleaner_payout_pence,
         service_type:service_types(name),customer:customers(name,phone),address:customer_addresses(id,address_line_1,address_line_2,postcode,city,access_notes),
-        assignments:job_assignments(id,status,cleaner:cleaner_profiles(id,full_name))
+        assignments:job_assignments(id,status,cleaner:cleaner_profiles(id,full_name,phone,postcode))
       `,
         )
         .order("scheduled_date", { ascending: true });
@@ -769,6 +787,10 @@ export default function AdminServiceRequests() {
     (groups[job.scheduled_date] ||= []).push(job);
     return groups;
   }, {});
+  const calendarDays = eachDayOfInterval({
+    start: startOfWeek(startOfMonth(calendarMonth), { weekStartsOn: 1 }),
+    end: endOfWeek(endOfMonth(calendarMonth), { weekStartsOn: 1 }),
+  });
 
   return (
     <AdminLayout title={pageTitle}>
@@ -917,42 +939,100 @@ export default function AdminServiceRequests() {
             {visibleJobs.length === 0 && (
               <p className="text-muted-foreground">No managed jobs yet.</p>
             )}
-            {jobView === "calendar" &&
-              Object.entries(jobsByDate)
-                .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
-                .map(([date, datedJobs]) => (
-                  <div key={date} className="overflow-hidden rounded-xl border bg-card">
-                    <div className="border-b bg-muted/40 px-4 py-3 font-semibold">
-                      {format(new Date(`${date}T12:00:00`), "EEEE, d MMMM yyyy")}
-                    </div>
-                    <div className="divide-y">
-                      {datedJobs.map((job) => {
-                        const currentAssignment = job.assignments?.find((assignment) =>
-                          ["offered", "accepted", "completed"].includes(assignment.status),
-                        );
-                        return (
-                          <button
-                            type="button"
-                            key={job.id}
-                            onClick={() => openJob(job)}
-                            className="grid w-full gap-2 p-4 text-left hover:bg-muted/30 sm:grid-cols-[90px_1fr_auto] sm:items-center"
-                          >
-                            <span className="font-medium">
-                              {job.start_time?.slice(0, 5) || "TBC"}
-                            </span>
-                            <span>
-                              <span className="font-medium">{job.service_type.name}</span>
-                              <span className="block text-sm text-muted-foreground">
-                                {job.customer.name} · {job.address.postcode} · {currentAssignment?.cleaner?.full_name || "Unassigned"}
-                              </span>
-                            </span>
-                            <Badge variant="outline">{job.status.replace(/_/g, " ")}</Badge>
-                          </button>
-                        );
-                      })}
-                    </div>
+            {jobView === "calendar" && (
+              <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+                <div className="flex items-center justify-between border-b p-4">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    aria-label="Previous month"
+                    onClick={() => setCalendarMonth((month) => subMonths(month, 1))}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <div className="text-center">
+                    <h2 className="text-lg font-semibold">
+                      {format(calendarMonth, "MMMM yyyy")}
+                    </h2>
+                    <Button
+                      variant="link"
+                      size="sm"
+                      onClick={() => setCalendarMonth(startOfMonth(new Date()))}
+                    >
+                      Today
+                    </Button>
                   </div>
-                ))}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    aria-label="Next month"
+                    onClick={() => setCalendarMonth((month) => addMonths(month, 1))}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="grid grid-cols-7 border-b bg-muted/40 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(
+                    (day) => (
+                      <div key={day} className="border-r px-1 py-2 last:border-r-0">
+                        {day}
+                      </div>
+                    ),
+                  )}
+                </div>
+                <div className="grid grid-cols-7">
+                  {calendarDays.map((day) => {
+                    const dateKey = format(day, "yyyy-MM-dd");
+                    const dayJobs = jobsByDate[dateKey] || [];
+                    const isToday = dateKey === format(new Date(), "yyyy-MM-dd");
+                    return (
+                      <div
+                        key={dateKey}
+                        className={`min-h-28 border-b border-r p-1.5 sm:min-h-36 ${
+                          isSameMonth(day, calendarMonth)
+                            ? "bg-card"
+                            : "bg-muted/20 text-muted-foreground"
+                        }`}
+                      >
+                        <div
+                          className={`mb-1 flex h-7 w-7 items-center justify-center rounded-full text-xs ${
+                            isToday ? "bg-secondary font-bold text-white" : ""
+                          }`}
+                        >
+                          {format(day, "d")}
+                        </div>
+                        <div className="space-y-1">
+                          {dayJobs.map((job) => (
+                            <button
+                              type="button"
+                              key={job.id}
+                              onClick={() => openJob(job)}
+                              title={`${job.start_time?.slice(0, 5) || "TBC"} · ${job.customer.name} · ${job.address.postcode}`}
+                              className={`block w-full truncate rounded px-1.5 py-1 text-left text-[10px] font-medium leading-tight sm:text-xs ${
+                                job.status === "in_progress"
+                                  ? "bg-emerald-100 text-emerald-800"
+                                  : job.status === "quality_check"
+                                    ? "bg-amber-100 text-amber-800"
+                                    : job.status === "cancelled"
+                                      ? "bg-red-100 text-red-700 line-through"
+                                      : job.status === "awaiting_assignment"
+                                        ? "bg-purple-100 text-purple-800"
+                                        : "bg-blue-100 text-blue-800"
+                              }`}
+                            >
+                              <span className="hidden sm:inline">
+                                {job.start_time?.slice(0, 5) || "TBC"} ·{" "}
+                              </span>
+                              {job.customer.name} · {job.address.postcode}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             {jobView === "list" && visibleJobs.map((job) => (
               <div key={job.id} className="rounded-xl border bg-card p-4">
                 <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
@@ -1472,6 +1552,49 @@ export default function AdminServiceRequests() {
                 <Badge variant="outline">
                   cleaner payout: {money(selectedJob.cleaner_payout_pence)}
                 </Badge>
+              </div>
+              <div className="grid gap-3 rounded-xl border bg-muted/30 p-4 sm:grid-cols-2">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Customer
+                  </p>
+                  <p className="mt-1 font-medium">{selectedJob.customer.name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedJob.customer.phone}
+                  </p>
+                  <p className="mt-2 text-sm">
+                    {selectedJob.service_type.name} · Customer price{" "}
+                    {money(selectedJob.customer_amount_pence)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Cleaner
+                  </p>
+                  {(() => {
+                    const assignment = selectedJob.assignments?.find((item) =>
+                      ["offered", "accepted", "completed"].includes(item.status),
+                    );
+                    return assignment?.cleaner ? (
+                      <>
+                        <p className="mt-1 font-medium">
+                          {assignment.cleaner.full_name || "Unnamed cleaner"}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {assignment.cleaner.phone || "No phone recorded"} ·{" "}
+                          {assignment.cleaner.postcode || "No postcode"}
+                        </p>
+                        <Badge className="mt-2" variant="outline">
+                          assignment: {assignment.status}
+                        </Badge>
+                      </>
+                    ) : (
+                      <p className="mt-1 text-sm text-amber-700">
+                        No cleaner currently assigned.
+                      </p>
+                    );
+                  })()}
+                </div>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
