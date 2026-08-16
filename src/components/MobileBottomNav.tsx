@@ -1,6 +1,6 @@
 import { forwardRef } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Home, Search, BarChart3, Settings, Headphones } from "lucide-react";
+import { Home, UserRound, Headphones } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
@@ -10,18 +10,16 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: "Dashboard", icon: Home, href: "/dashboard" },
-  { label: "Leads", icon: Search, href: "/leads" },
-  { label: "Performance", icon: BarChart3, href: "/performance" },
+  { label: "Jobs", icon: Home, href: "/dashboard" },
+  { label: "Application", icon: UserRound, href: "/onboarding" },
   { label: "Support", icon: Headphones, href: "/support" },
-  { label: "Settings", icon: Settings, href: "/settings" },
 ];
 
 export const MobileBottomNav = forwardRef<HTMLElement>((_, ref) => {
   const location = useLocation();
 
-  const businessRoutes = ["/dashboard", "/leads", "/performance", "/billing", "/settings", "/disputes", "/support"];
-  const shouldShow = businessRoutes.some((route) => location.pathname.startsWith(route));
+  const cleanerRoutes = ["/dashboard", "/onboarding", "/support"];
+  const shouldShow = cleanerRoutes.some((route) => location.pathname.startsWith(route));
 
   if (!shouldShow) return null;
 

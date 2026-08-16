@@ -3,100 +3,49 @@ import {
   Sparkles,
   Home,
   Truck,
-  Sofa,
-  Layers,
   Building2,
-  BedDouble,
-  Droplets,
+  Calendar,
   ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-// Services matching request cleaning page bundles
+// Greater Manchester managed-service launch catalogue.
 const services = [
   {
-    icon: Layers,
-    title: "Carpet Cleaning (2-3 Rooms)",
-    description: "Professional deep carpet cleaning for multiple rooms.",
-    id: "carpet-2-3-rooms",
-  },
-  {
-    icon: Sofa,
-    title: "Sofa + Carpet Cleaning",
-    description: "Complete upholstery and carpet cleaning bundle.",
-    id: "sofa-carpet",
-  },
-  {
-    icon: BedDouble,
-    title: "Sofa + Mattress Cleaning",
-    description: "Refresh your living room and bedroom essentials.",
-    id: "sofa-mattress",
-  },
-  {
-    icon: Droplets,
-    title: "Carpet + Mattress Cleaning",
-    description: "Deep clean your floors and sleeping surfaces.",
-    id: "carpet-mattress",
-  },
-  {
-    icon: Sparkles,
-    title: "Deep Clean (3+ Rooms)",
-    description: "Thorough cleaning of your entire home.",
-    id: "3-rooms-deep-clean",
-  },
-  {
     icon: Home,
-    title: "End of Tenancy Clean",
+    title: "End of Tenancy Cleaning",
     description: "Professional cleaning to help you get your deposit back.",
     id: "end-of-tenancy",
   },
   {
     icon: Building2,
-    title: "Airbnb / Short-Let Refresh",
+    title: "Airbnb / Short-Let Cleaning",
     description: "Quick turnaround cleaning for rental properties.",
-    id: "airbnb-refresh",
+    id: "airbnb-short-let",
   },
   {
     icon: Truck,
-    title: "Move-In / Move-Out Clean",
+    title: "Move-In / Move-Out Cleaning",
     description: "Start fresh in your new home with a complete clean.",
-    id: "move-in-out",
-  },
-  {
-    icon: Layers,
-    title: "Post-Tenancy Carpet & Upholstery",
-    description: "Restore carpets and furniture after tenancy.",
-    id: "post-tenancy-upholstery",
+    id: "move-in-move-out",
   },
   {
     icon: Sparkles,
-    title: "One-Off Deep Clean",
+    title: "One-Off Deep Cleaning",
     description: "A single comprehensive clean for your home.",
     id: "one-off-deep",
   },
   {
-    icon: Building2,
-    title: "Office Carpet + Upholstery",
-    description: "Professional cleaning for commercial spaces.",
-    id: "office-carpet-upholstery",
+    icon: Calendar,
+    title: "Weekly Routine Cleaning",
+    description: "Reliable recurring cleaning managed around your schedule.",
+    id: "weekly-routine",
   },
   {
     icon: Truck,
-    title: "Post-Construction Deep Clean",
+    title: "Post-Construction Deep Cleaning",
     description: "Remove dust and debris after renovation work.",
     id: "post-construction",
-  },
-  {
-    icon: Home,
-    title: "Large Property Window + Interior",
-    description: "Complete cleaning for larger homes.",
-    id: "large-window-interior",
-  },
-  {
-    icon: Sofa,
-    title: "Multi-Room + Upholstery Deep Clean",
-    description: "Comprehensive cleaning for multiple rooms and furniture.",
-    id: "multi-room-upholstery",
   },
 ];
 
@@ -154,7 +103,7 @@ export const CustomerServicesGrid = () => {
                     
                     {/* CTA */}
                     <div className="flex items-center gap-1.5 text-secondary text-sm font-semibold">
-                      <span>Get Quote</span>
+                      <span>Request Service</span>
                       <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
                     </div>
                   </div>
@@ -171,7 +120,7 @@ export const CustomerServicesGrid = () => {
           </p>
           <Link to="/request-cleaning">
             <Button variant="cta" size="lg" className="shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5">
-              Get a Free Quote
+              Request Cleaning
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
           </Link>

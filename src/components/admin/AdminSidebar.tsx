@@ -20,6 +20,7 @@ import {
   X,
   Link2,
   Zap,
+  BriefcaseBusiness,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const navItems = [
   { title: "Overview", url: "/admin", icon: LayoutDashboard },
+  { title: "Managed Operations", url: "/admin/operations", icon: BriefcaseBusiness },
   { title: "Live Data", url: "/admin/live", icon: Activity },
   { title: "Lead Pipeline", url: "/admin/leads", icon: FileText },
   { title: "Business Inquiries", url: "/admin/inquiries", icon: Inbox },

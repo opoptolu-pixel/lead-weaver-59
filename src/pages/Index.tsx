@@ -23,18 +23,18 @@ const Index = () => {
         "mainEntity": [
           {
             "@type": "Question",
-            "name": "Is it free to get quotes from cleaners?",
+            "name": "How do I request cleaning from Cleanda?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Yes, completely free! You can request quotes from multiple verified cleaners without any obligation. There are no hidden fees or charges for using our service."
+              "text": "Tell Cleanda what you need cleaned. We review the requirements, provide the price and arrange a vetted cleaner after you accept."
             }
           },
           {
             "@type": "Question", 
-            "name": "How quickly will cleaners contact me?",
+            "name": "Who manages my booking?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Most customers are contacted by their cleaning partner within 24 hours of submitting their request. Our verified cleaners are ready to provide quotes fast."
+              "text": "Cleanda manages the requirements, price, booking, cleaner assignment and customer support."
             }
           },
           {
@@ -50,15 +50,15 @@ const Index = () => {
             "name": "What types of cleaning services are available?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "We offer a wide range of services including deep cleaning, end of tenancy cleaning, carpet cleaning, upholstery cleaning, one-off cleans, post-construction cleaning, and commercial office cleaning."
+              "text": "Cleanda offers end of tenancy, move-in and move-out, one-off deep, weekly routine, post-construction and Airbnb or short-let cleaning."
             }
           },
           {
             "@type": "Question",
-            "name": "Do you cover my area in the UK?",
+            "name": "Where does Cleanda operate?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "We have verified cleaners across the UK. Simply enter your postcode when requesting a quote and we'll connect you with local professionals in your area."
+              "text": "Cleanda currently operates across Greater Manchester. Enter your full postcode to check the active service area."
             }
           }
         ]
@@ -67,8 +67,8 @@ const Index = () => {
         "@type": "WebPage",
         "@id": "https://cleanda.co.uk/#webpage",
         "url": "https://cleanda.co.uk",
-        "name": "Find Trusted Cleaners Near You | Free Quotes | Cleanda",
-        "description": "Get free quotes from verified local cleaners in the UK. Compare prices for deep cleaning, end of tenancy, carpet cleaning & more.",
+        "name": "Professional Cleaning in Greater Manchester | Cleanda",
+        "description": "Request professional cleaning across Greater Manchester. Cleanda manages the price, booking, cleaner and customer support.",
         "isPartOf": { "@id": "https://cleanda.co.uk/#website" },
         "about": { "@id": "https://cleanda.co.uk/#organization" },
         "primaryImageOfPage": {
@@ -91,7 +91,7 @@ const Index = () => {
         "@type": "LocalBusiness",
         "@id": "https://cleanda.co.uk/#localbusiness",
         "name": "Cleanda",
-        "description": "UK's trusted platform connecting customers with verified professional cleaners for deep cleaning, end of tenancy cleaning, carpet cleaning, and more.",
+        "description": "Managed professional cleaning across Greater Manchester, from request and quote through cleaner assignment and completion.",
         "url": "https://cleanda.co.uk",
         "telephone": "+44-7757-188-197",
         "email": "hello@cleanda.co.uk",
@@ -120,8 +120,8 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <SEOHead
-        title="Find Trusted Cleaners Near You | Free Quotes | Cleanda"
-        description="Get free quotes from verified local cleaners in the UK. Compare prices for deep cleaning, end of tenancy, carpet cleaning & more. Fast response within 24 hours."
+        title="Professional Cleaning in Greater Manchester | Cleanda"
+        description="Request professional cleaning across Greater Manchester. Cleanda manages your quote, booking, vetted cleaner and customer support."
         canonical="https://cleanda.co.uk"
         structuredData={structuredData}
       />

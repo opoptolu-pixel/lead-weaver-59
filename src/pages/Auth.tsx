@@ -433,8 +433,8 @@ export default function Auth() {
 
   const getSubtitle = () => {
     switch (mode) {
-      case "login": return "Sign in to access your unlocked leads";
-      case "signup": return "Join to start getting cleaning leads";
+      case "login": return "Sign in to manage your Cleanda cleaner jobs";
+      case "signup": return "Apply for managed cleaning work across Greater Manchester";
       case "forgot": return "Enter your email to receive a reset link";
       case "magic": return "We'll send you a secure link to sign in";
       case "2fa": return "Enter your authentication code";
@@ -448,7 +448,7 @@ export default function Auth() {
     <div className="min-h-screen bg-background flex flex-col">
       <SEOHead
         title={mode === "login" ? "Sign In" : mode === "signup" ? "Create Account" : "Reset Password"}
-        description="Sign in to Cleanda to access exclusive cleaning leads in your area. Manage your leads and grow your cleaning business."
+        description="Sign in or apply to complete managed Cleanda cleaning jobs across Greater Manchester. No lead fees or monthly subscription."
         canonical="https://cleanda.co.uk/auth"
         noIndex={true}
       />

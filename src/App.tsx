@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import { BackToTop } from "@/components/BackToTop";
 import { ScrollToTop } from "@/components/ScrollToTop";
@@ -27,7 +27,8 @@ import Auth from "./pages/Auth";
 // Lazy loaded routes - loaded on demand
 const Leads = lazy(() => import("./pages/Leads"));
 const AdminAuth = lazy(() => import("./pages/AdminAuth"));
-const Dashboard = lazy(() => import("./pages/Dashboard"));
+const LegacyDashboard = lazy(() => import("./pages/Dashboard"));
+const CleanerDashboard = lazy(() => import("./pages/CleanerDashboard"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Billing = lazy(() => import("./pages/Billing"));
@@ -68,6 +69,7 @@ const AdminLiveData = lazy(() => import("./pages/admin/AdminLiveData"));
 const AdminUtmBuilder = lazy(() => import("./pages/admin/AdminUtmBuilder"));
 const AdminSupport = lazy(() => import("./pages/admin/AdminSupport"));
 const AdminEmailSequences = lazy(() => import("./pages/admin/AdminEmailSequences"));
+const AdminServiceRequests = lazy(() => import("./pages/admin/AdminServiceRequests"));
 
 const queryClient = new QueryClient();
 
@@ -92,17 +94,26 @@ const App = () => (
                   <Route path="/auth" element={<Auth />} />
                   
                   {/* Lazy loaded routes */}
-                  <Route path="/leads" element={<Leads />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/leads" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/dashboard" element={<CleanerDashboard />} />
+                  <Route path="/legacy-marketplace-dashboard" element={<LegacyDashboard />} />
                   <Route path="/onboarding" element={<Onboarding />} />
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="/settings/verification" element={<Verification />} />
-                  <Route path="/billing" element={<Billing />} />
-                  <Route path="/performance" element={<Performance />} />
-                  <Route path="/disputes" element={<Disputes />} />
-                  <Route path="/payment-success" element={<PaymentSuccess />} />
-                  <Route path="/credits-success" element={<CreditsSuccess />} />
+                  <Route path="/settings" element={<Navigate to="/onboarding" replace />} />
+                  <Route path="/settings/verification" element={<Navigate to="/onboarding" replace />} />
+                  <Route path="/billing" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/performance" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/disputes" element={<Navigate to="/support" replace />} />
+                  <Route path="/payment-success" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/credits-success" element={<Navigate to="/dashboard" replace />} />
                   <Route path="/support" element={<Support />} />
+                  <Route path="/legacy-marketplace/leads" element={<Leads />} />
+                  <Route path="/legacy-marketplace/settings" element={<Settings />} />
+                  <Route path="/legacy-marketplace/verification" element={<Verification />} />
+                  <Route path="/legacy-marketplace/billing" element={<Billing />} />
+                  <Route path="/legacy-marketplace/performance" element={<Performance />} />
+                  <Route path="/legacy-marketplace/disputes" element={<Disputes />} />
+                  <Route path="/legacy-marketplace/payment-success" element={<PaymentSuccess />} />
+                  <Route path="/legacy-marketplace/credits-success" element={<CreditsSuccess />} />
                   
                   {/* Customer-facing Pages */}
                   <Route path="/request-cleaning" element={<RequestCleaning />} />
@@ -126,6 +137,7 @@ const App = () => (
                   <Route path="/admin/inquiries" element={<AdminInquiries />} />
                   <Route path="/admin/contact" element={<AdminContactSubmissions />} />
                   <Route path="/admin/leads" element={<AdminLeads />} />
+                  <Route path="/admin/operations" element={<AdminServiceRequests />} />
                   <Route path="/admin/businesses" element={<AdminBusinesses />} />
                   <Route path="/admin/verifications" element={<AdminVerifications />} />
                   <Route path="/admin/payments" element={<AdminPayments />} />

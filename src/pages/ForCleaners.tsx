@@ -1,144 +1,30 @@
+import { BriefcaseBusiness, CalendarCheck, Check, MapPin, ShieldCheck, WalletCards } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import { Header } from "@/components/Header";
-import { HeroSection } from "@/components/HeroSection";
-import { HowItWorks } from "@/components/HowItWorks";
-import { JobBoard } from "@/components/JobBoard";
-import { Pricing } from "@/components/Pricing";
-import { RegistrationForm } from "@/components/RegistrationForm";
-import { FAQ } from "@/components/FAQ";
 import { Footer } from "@/components/Footer";
 import { SEOHead } from "@/components/SEOHead";
-import { MobileSignupBar } from "@/components/MobileSignupBar";
 
-const ForCleaners = () => {
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "FAQPage",
-        "mainEntity": [
-          {
-            "@type": "Question",
-            "name": "How do cleaning leads work?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "Customers request cleaning services through our platform. We verify each request and publish them as leads. You can unlock leads in your area and contact customers directly."
-            }
-          },
-          {
-            "@type": "Question", 
-            "name": "What is the cost per lead?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "Each lead costs £12 or you can buy credit packs for savings. 5 credits cost £50 (£10/lead) and 10 credits cost £90 (£9/lead)."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "Are leads exclusive?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "Yes, each lead is only sold once. When you unlock a lead, you get exclusive access to that customer's contact information."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "What types of cleaning leads are available?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "We offer leads for deep cleaning, end of tenancy, carpet cleaning, upholstery cleaning, commercial cleaning, post-construction cleaning and more. All leads are valued at £100+ per job."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "How do I get started?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "Simply sign up for free, verify your business, and start browsing available leads in your area. No monthly fees or contracts - pay only for leads you want."
-            }
-          }
-        ]
-      },
-      {
-        "@type": "WebPage",
-        "@id": "https://cleanda.co.uk/for-cleaners#webpage",
-        "url": "https://cleanda.co.uk/for-cleaners",
-        "name": "Cleaning Leads for Professional Cleaners | Grow Your Business | Cleanda",
-        "description": "Get exclusive cleaning job leads in your area. No monthly fees, pay per lead. Join UK's trusted cleaning lead platform.",
-        "isPartOf": { "@id": "https://cleanda.co.uk/#website" },
-        "breadcrumb": {
-          "@type": "BreadcrumbList",
-          "itemListElement": [
-            {
-              "@type": "ListItem",
-              "position": 1,
-              "name": "Home",
-              "item": "https://cleanda.co.uk"
-            },
-            {
-              "@type": "ListItem",
-              "position": 2,
-              "name": "For Cleaners",
-              "item": "https://cleanda.co.uk/for-cleaners"
-            }
-          ]
-        }
-      },
-      {
-        "@type": "Product",
-        "name": "Cleaning Lead Credits",
-        "description": "Exclusive cleaning job leads for professional cleaners across the UK",
-        "brand": {
-          "@type": "Brand",
-          "name": "Cleanda"
-        },
-        "offers": [
-          {
-            "@type": "Offer",
-            "name": "Single Lead",
-            "price": "12.00",
-            "priceCurrency": "GBP",
-            "availability": "https://schema.org/InStock"
-          },
-          {
-            "@type": "Offer",
-            "name": "5 Credit Pack",
-            "price": "50.00",
-            "priceCurrency": "GBP",
-            "availability": "https://schema.org/InStock"
-          },
-          {
-            "@type": "Offer",
-            "name": "10 Credit Pack",
-            "price": "90.00",
-            "priceCurrency": "GBP",
-            "availability": "https://schema.org/InStock"
-          }
-        ]
-      }
-    ]
-  };
+const benefits = [
+  { icon: BriefcaseBusiness, title: "Cleanda brings the jobs", text: "Spend less time finding customers and more time doing high-quality cleaning work." },
+  { icon: WalletCards, title: "See what each job pays", text: "Job offers show the cleaner payout before you decide whether to accept." },
+  { icon: CalendarCheck, title: "Work around your availability", text: "Accept suitable work across Greater Manchester without paying for leads." },
+  { icon: ShieldCheck, title: "Cleanda manages the customer", text: "We handle acquisition, pricing, booking, scheduling and customer support." },
+];
 
+export default function ForCleaners() {
   return (
     <div className="min-h-screen bg-background">
-      <SEOHead
-        title="Cleaning Leads for Professional Cleaners | Grow Your Business | Cleanda"
-        description="Get exclusive cleaning job leads in your area. No monthly fees, no contracts - pay only £12 per lead. Leads worth £100+. Join 500+ UK cleaners growing their business."
-        canonical="https://cleanda.co.uk/for-cleaners"
-        structuredData={structuredData}
-      />
+      <SEOHead title="Cleaning Jobs in Greater Manchester | Join Cleanda" description="Apply for managed cleaning jobs across Greater Manchester. No lead fees or monthly subscription. See the cleaner payout before accepting suitable work." canonical="https://cleanda.co.uk/for-cleaners" />
       <Header />
       <main>
-        <HeroSection />
-        <HowItWorks />
-        <JobBoard />
-        <Pricing />
-        <RegistrationForm />
-        <FAQ />
+        <section className="bg-hero-gradient px-4 pb-24 pt-32 text-primary-foreground">
+          <div className="mx-auto max-w-4xl text-center"><div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-secondary/30 bg-secondary/15 px-4 py-2 text-sm"><MapPin className="h-4 w-4" />Greater Manchester launch</div><h1 className="text-4xl font-bold sm:text-6xl">Get cleaning work without buying leads</h1><p className="mx-auto mt-6 max-w-2xl text-lg text-primary-foreground/80">Cleanda finds the customers, confirms the price and manages the booking. You see what the job pays and focus on delivering an excellent clean.</p><div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row"><Link to="/auth?mode=signup"><Button variant="cta" size="xl">Apply as a cleaner</Button></Link><Link to="/auth"><Button variant="outlineHero" size="xl">Cleaner sign in</Button></Link></div><div className="mt-7 flex flex-wrap justify-center gap-5 text-sm text-primary-foreground/75"><span><Check className="mr-1 inline h-4 w-4 text-secondary" />No lead fees</span><span><Check className="mr-1 inline h-4 w-4 text-secondary" />No monthly subscription</span><span><Check className="mr-1 inline h-4 w-4 text-secondary" />Vetted managed jobs</span></div></div>
+        </section>
+        <section className="px-4 py-20"><div className="mx-auto max-w-6xl"><div className="mb-12 text-center"><h2 className="text-3xl font-bold">How working with Cleanda is different</h2><p className="mt-3 text-muted-foreground">You are a fulfilment partner—not a customer purchasing contact details.</p></div><div className="grid gap-5 md:grid-cols-2">{benefits.map((benefit) => <article key={benefit.title} className="rounded-2xl border bg-card p-6 shadow-sm"><div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-secondary/15"><benefit.icon className="h-6 w-6 text-secondary" /></div><h3 className="text-xl font-semibold">{benefit.title}</h3><p className="mt-2 text-muted-foreground">{benefit.text}</p></article>)}</div></div></section>
+        <section className="bg-muted/40 px-4 py-20"><div className="mx-auto max-w-3xl"><h2 className="text-center text-3xl font-bold">Application process</h2><div className="mt-10 grid gap-4 sm:grid-cols-3">{[["1","Apply","Tell us about your experience, services and location."],["2","Get vetted","Cleanda reviews your details and required documents."],["3","Receive jobs","Approved cleaners can accept suitable paid work."]].map(([number,title,text]) => <div key={number} className="rounded-xl bg-background p-5 text-center"><span className="mx-auto flex h-9 w-9 items-center justify-center rounded-full bg-secondary font-bold text-secondary-foreground">{number}</span><h3 className="mt-4 font-semibold">{title}</h3><p className="mt-2 text-sm text-muted-foreground">{text}</p></div>)}</div><div className="mt-10 text-center"><Link to="/auth?mode=signup"><Button size="lg">Start your application</Button></Link></div></div></section>
       </main>
       <Footer variant="cleaner" />
-      <MobileSignupBar />
     </div>
   );
-};
-
-export default ForCleaners;
+}

@@ -30,6 +30,12 @@ verify_jwt = false
 [functions.submit-cleaning-request]
 verify_jwt = false
 
+[functions.submit-service-request]
+verify_jwt = false
+
+[functions.submit-cleaner-application]
+verify_jwt = false
+
 [functions.get-signed-url]
 verify_jwt = false
 
