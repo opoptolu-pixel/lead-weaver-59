@@ -15,6 +15,8 @@ const escapeHtml = (value: unknown) =>
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+const renderTemplate = (value: string, variables: Record<string, string>) =>
+  Object.entries(variables).reduce((output, [key, replacement]) => output.replaceAll(`{{${key}}}`, replacement), value);
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -116,12 +118,20 @@ serve(async (req) => {
       style: "currency",
       currency: "GBP",
     });
+    const variables = {
+      customer_name: escapeHtml(request.customer.name), service_name: escapeHtml(request.service_type.name),
+      customer_price: escapeHtml(pounds), scheduled_date: escapeHtml(quote.scheduled_date),
+      start_time: escapeHtml(quote.start_time?.slice(0, 5) || "To be confirmed"),
+      request_reference: escapeHtml(request.reference), payment_url: escapeHtml(session.url),
+    };
+    const { data: messageTemplate } = await db.from("email_templates").select("subject,body,is_active").eq("name", "agency_quote_payment_link").maybeSingle();
+    if (messageTemplate && !messageTemplate.is_active) throw new Error("The agency quote email template is disabled");
     const resend = new Resend(resendKey);
     const { error: emailError } = await resend.emails.send({
       from: "Cleanda <hello@cleanda.co.uk>",
       to: [request.customer.email],
-      subject: `Your Cleanda cleaning quote — ${pounds}`,
-      html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#102235"><h1>Your Cleanda quote</h1><p>Hello ${escapeHtml(request.customer.name)},</p><p>We have confirmed your requirements for <strong>${escapeHtml(request.service_type.name)}</strong>.</p><div style="padding:20px;background:#f4faf7;border-radius:12px"><p><strong>Price:</strong> ${escapeHtml(pounds)}</p><p><strong>Date:</strong> ${escapeHtml(quote.scheduled_date)}${quote.start_time ? ` at ${escapeHtml(quote.start_time.slice(0, 5))}` : ""}</p><p><strong>Reference:</strong> ${escapeHtml(request.reference)}</p></div><p>Your booking is confirmed only after payment.</p><p><a href="${escapeHtml(session.url)}" style="display:inline-block;background:#16a765;color:white;padding:14px 24px;border-radius:8px;text-decoration:none;font-weight:bold">Accept and pay securely</a></p><p>This secure payment link expires in 24 hours.</p></div>`,
+      subject: messageTemplate ? renderTemplate(messageTemplate.subject, variables) : `Your Cleanda cleaning quote — ${pounds}`,
+      html: messageTemplate ? renderTemplate(messageTemplate.body, variables) : `<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#102235"><h1>Your Cleanda quote</h1><p>Hello ${escapeHtml(request.customer.name)},</p><p>Price: ${escapeHtml(pounds)}</p><p><a href="${escapeHtml(session.url)}">Accept and pay securely</a></p></div>`,
     });
     if (emailError) throw new Error(`Quote email failed: ${emailError.message}`);
 

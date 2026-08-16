@@ -2276,14 +2276,14 @@ export default function AdminEmailTemplates() {
   };
 
   return (
-    <AdminLayout title="Email Templates">
+    <AdminLayout title="Communications">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Email Templates</h1>
+            <h1 className="text-2xl font-bold text-foreground">Communications</h1>
             <p className="text-muted-foreground">
-              Customize email templates sent to customers and businesses
+              Edit customer and cleaner emails, SMS copy, schedules and delivery records
             </p>
           </div>
           <div className="flex gap-2">

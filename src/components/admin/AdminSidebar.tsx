@@ -16,6 +16,7 @@ import {
   CalendarDays,
   UserCheck,
   ClipboardCheck,
+  Mail,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ const navItems = [
   { title: "Payments & Payouts", url: "/admin/payments", icon: CreditCard },
   { title: "Quality & Issues", url: "/admin/quality", icon: ClipboardCheck },
   { title: "Messages", url: "/admin/messages", icon: Headphones },
+  { title: "Communications", url: "/admin/email-templates", icon: Mail },
   { title: "Reports", url: "/admin/reports", icon: BarChart3 },
   { title: "Settings", url: "/admin/settings", icon: Settings },
 ];

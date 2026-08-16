@@ -20,6 +20,7 @@ const escapeHtml = (value: unknown) =>
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+const renderTemplate = (value: string, variables: Record<string, string>) => Object.entries(variables).reduce((output,[key,replacement]) => output.replaceAll(`{{${key}}}`,replacement),value);
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -103,11 +104,14 @@ serve(async (req) => {
               ? `${claimedQuote.expected_duration_minutes / 60} hour${claimedQuote.expected_duration_minutes === 60 ? "" : "s"}`
               : "To be confirmed";
             const resend = new Resend(resendKey);
+            const variables = {customer_name:escapeHtml(request.customer.name),service_name:escapeHtml(request.service_type.name),customer_price:escapeHtml(price),scheduled_date:escapeHtml(claimedQuote.scheduled_date),start_time:escapeHtml(claimedQuote.start_time?.slice(0,5)||"To be confirmed"),duration:escapeHtml(duration),request_reference:escapeHtml(request.reference),job_reference:escapeHtml(job?.reference||"Created")};
+            const {data:messageTemplate}=await supabaseClient.from("email_templates").select("subject,body,is_active").eq("name","agency_payment_confirmation").maybeSingle();
+            if(messageTemplate&&!messageTemplate.is_active)throw new Error("The payment confirmation template is disabled");
             const { error: confirmationError } = await resend.emails.send({
               from: "Cleanda <hello@cleanda.co.uk>",
               to: [request.customer.email],
-              subject: `Your Cleanda booking is confirmed — ${request.reference}`,
-              html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#102235"><h1>Booking confirmed</h1><p>Hello ${escapeHtml(request.customer.name)},</p><p>Thank you. Your payment has been received and your cleaning is now booked with Cleanda.</p><div style="padding:20px;background:#f0fbf5;border:1px solid #b7ebcf;border-radius:12px"><p><strong>Service:</strong> ${escapeHtml(request.service_type.name)}</p><p><strong>Amount paid:</strong> ${escapeHtml(price)}</p><p><strong>Date:</strong> ${escapeHtml(claimedQuote.scheduled_date)}${claimedQuote.start_time ? ` at ${escapeHtml(claimedQuote.start_time.slice(0, 5))}` : ""}</p><p><strong>Expected duration:</strong> ${escapeHtml(duration)}</p><p><strong>Request reference:</strong> ${escapeHtml(request.reference)}</p><p><strong>Job reference:</strong> ${escapeHtml(job?.reference || "Created")}</p></div><p>Cleanda will arrange your vetted cleaner and manage the booking from here. We will contact you if any further information is needed.</p><p>Cleanda<br>hello@cleanda.co.uk</p></div>`,
+              subject: messageTemplate?renderTemplate(messageTemplate.subject,variables):`Your Cleanda booking is confirmed — ${request.reference}`,
+              html: messageTemplate?renderTemplate(messageTemplate.body,variables):`<h1>Booking confirmed</h1><p>Hello ${escapeHtml(request.customer.name)}, your payment of ${escapeHtml(price)} has been received.</p>`,
             });
             if (confirmationError) throw confirmationError;
             logStep("Agency payment confirmation email sent", {
