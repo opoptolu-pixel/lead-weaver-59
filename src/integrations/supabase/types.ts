@@ -235,40 +235,55 @@ export type Database = {
       cleaner_payouts: {
         Row: {
           amount_pence: number
+          approved_at: string | null
+          bank_transfer_reference: string | null
           cleaner_id: string
           created_at: string
           currency: string
+          earning_week_start: string | null
+          held_reason: string | null
           id: string
           job_id: string
           paid_at: string | null
           provider: string | null
           provider_reference: string | null
+          scheduled_pay_date: string | null
           status: string
           updated_at: string
         }
         Insert: {
           amount_pence: number
+          approved_at?: string | null
+          bank_transfer_reference?: string | null
           cleaner_id: string
           created_at?: string
           currency?: string
+          earning_week_start?: string | null
+          held_reason?: string | null
           id?: string
           job_id: string
           paid_at?: string | null
           provider?: string | null
           provider_reference?: string | null
+          scheduled_pay_date?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
           amount_pence?: number
+          approved_at?: string | null
+          bank_transfer_reference?: string | null
           cleaner_id?: string
           created_at?: string
           currency?: string
+          earning_week_start?: string | null
+          held_reason?: string | null
           id?: string
           job_id?: string
           paid_at?: string | null
           provider?: string | null
           provider_reference?: string | null
+          scheduled_pay_date?: string | null
           status?: string
           updated_at?: string
         }
@@ -295,6 +310,10 @@ export type Database = {
           application_status: string
           approved_at: string | null
           approved_by: string | null
+          bank_account_holder: string | null
+          bank_account_last4: string | null
+          bank_details_status: string
+          bank_sort_code_last2: string | null
           created_at: string
           experience_summary: string | null
           full_name: string | null
@@ -314,6 +333,10 @@ export type Database = {
           application_status?: string
           approved_at?: string | null
           approved_by?: string | null
+          bank_account_holder?: string | null
+          bank_account_last4?: string | null
+          bank_details_status?: string
+          bank_sort_code_last2?: string | null
           created_at?: string
           experience_summary?: string | null
           full_name?: string | null
@@ -333,6 +356,10 @@ export type Database = {
           application_status?: string
           approved_at?: string | null
           approved_by?: string | null
+          bank_account_holder?: string | null
+          bank_account_last4?: string | null
+          bank_details_status?: string
+          bank_sort_code_last2?: string | null
           created_at?: string
           experience_summary?: string | null
           full_name?: string | null
@@ -2556,6 +2583,10 @@ export type Database = {
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_lead_access_expired: {
         Args: { unlocked_at_param: string }
+        Returns: boolean
+      }
+      mark_cleaner_payout_paid: {
+        Args: { p_bank_reference: string; p_payout_id: string }
         Returns: boolean
       }
       offer_job_to_cleaner: {
