@@ -18,6 +18,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  Columns3,
   Eye,
   Image,
   Loader2,
@@ -188,6 +189,16 @@ const money = (pence: number) =>
 const makeJobReference = () =>
   `JOB-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
 
+const KANBAN_COLUMNS = [
+  { title: "Unassigned", statuses: ["awaiting_assignment"], target: "awaiting_assignment" },
+  { title: "Offered", statuses: ["offered"], target: "offered" },
+  { title: "Assigned", statuses: ["assigned"], target: "assigned" },
+  { title: "In progress", statuses: ["in_progress"], target: "in_progress" },
+  { title: "Quality check", statuses: ["quality_check"], target: "quality_check" },
+  { title: "Completed", statuses: ["completed", "closed"], target: "completed" },
+  { title: "Issues", statuses: ["issue", "cancelled"], target: "issue" },
+] as const;
+
 export default function AdminServiceRequests() {
   const location = useLocation();
   const [requests, setRequests] = useState<ManagedRequest[]>([]);
@@ -224,11 +235,14 @@ export default function AdminServiceRequests() {
   const [correctionMinutes, setCorrectionMinutes] = useState("");
   const [correctionReason, setCorrectionReason] = useState("");
   const [liveNow, setLiveNow] = useState(() => Date.now());
-  const [jobView, setJobView] = useState<"list" | "calendar">("list");
+  const [jobView, setJobView] = useState<"list" | "calendar" | "kanban">("list");
   const [jobStatusFilter, setJobStatusFilter] = useState("active");
   const [jobEvents, setJobEvents] = useState<JobEvent[]>([]);
   const [calendarMonth, setCalendarMonth] = useState(() => startOfMonth(new Date()));
   const loadedOnce = useRef(false);
+  const [draggedJobId, setDraggedJobId] = useState<string | null>(null);
+  const [stageOverride, setStageOverride] = useState<{ job: Job; target: string } | null>(null);
+  const [stageReason, setStageReason] = useState("");
 
   useEffect(() => {
     const timer = window.setInterval(() => setLiveNow(Date.now()), 30_000);
@@ -681,55 +695,13 @@ export default function AdminServiceRequests() {
         "Before and after evidence is required before approval.",
       );
     setSaving(true);
-    const { data: authData } = await supabase.auth.getUser();
-    const nextStatus =
-      decision === "approved"
-        ? "completed"
-        : decision === "rework_required"
-          ? "in_progress"
-          : "issue";
-    const { error } = await db
-      .from("jobs")
-      .update({
-        status: nextStatus,
-        quality_review_status: decision,
-        quality_review_notes: qualityNotes.trim() || null,
-        quality_reviewed_at: new Date().toISOString(),
-        quality_reviewed_by: authData.user?.id || null,
-      })
-      .eq("id", selectedJob.id);
-    if (!error) {
-      const { data: assignment } = await db
-        .from("job_assignments")
-        .select("id,cleaner_id")
-        .eq("job_id", selectedJob.id)
-        .in("status", ["accepted", "completed"])
-        .maybeSingle();
-      if (assignment) {
-        await Promise.all([
-          decision === "rework_required"
-            ? db
-                .from("job_assignments")
-                .update({ status: "accepted" })
-                .eq("id", assignment.id)
-            : Promise.resolve(),
-          db
-            .from("cleaner_payouts")
-            .update({ status: decision === "approved" ? "approved" : "held" })
-            .eq("job_id", selectedJob.id)
-            .eq("cleaner_id", assignment.cleaner_id),
-          db
-            .from("job_events")
-            .insert({
-              job_id: selectedJob.id,
-              event_type: `quality_${decision}`,
-              details: { notes: qualityNotes.trim() || null },
-            }),
-        ]);
-      }
-    }
+    const { data, error } = await db.rpc("admin_review_job_completion", {
+      p_job_id: selectedJob.id,
+      p_decision: decision,
+      p_notes: qualityNotes.trim() || null,
+    });
     setSaving(false);
-    if (error) return toast.error(error.message);
+    if (error || !data) return toast.error(error?.message || "Quality review could not be saved");
     toast.success(
       decision === "approved"
         ? "Completion approved and payout released for processing"
@@ -737,6 +709,30 @@ export default function AdminServiceRequests() {
           ? "Job returned to cleaner for rework"
           : "Job placed on hold for investigation",
     );
+    await fetchData();
+    if (selectedJob) await openJob({ ...selectedJob, status: decision === "approved" ? "completed" : decision === "rework_required" ? "in_progress" : "issue" });
+  };
+
+  const requestStageOverride = (job: Job, target: string) => {
+    if (job.status === target || (target === "completed" && ["completed", "closed"].includes(job.status))) return;
+    setStageOverride({ job, target });
+    setStageReason("");
+  };
+
+  const confirmStageOverride = async () => {
+    if (!stageOverride) return;
+    if (stageReason.trim().length < 5) return toast.error("Enter an audit reason of at least 5 characters.");
+    setSaving(true);
+    const { data, error } = await db.rpc("admin_override_job_stage", {
+      p_job_id: stageOverride.job.id,
+      p_target_status: stageOverride.target,
+      p_reason: stageReason.trim(),
+    });
+    setSaving(false);
+    if (error || !data) return toast.error(error?.message || "Job stage could not be changed.");
+    toast.success("Job stage updated and recorded in its history.");
+    setStageOverride(null);
+    setStageReason("");
     await fetchData();
   };
 
@@ -934,6 +930,13 @@ export default function AdminServiceRequests() {
                 >
                   <Calendar className="mr-2 h-4 w-4" /> Calendar
                 </Button>
+                <Button
+                  size="sm"
+                  variant={jobView === "kanban" ? "secondary" : "ghost"}
+                  onClick={() => setJobView("kanban")}
+                >
+                  <Columns3 className="mr-2 h-4 w-4" /> Kanban
+                </Button>
               </div>
             </div>
             {visibleJobs.length === 0 && (
@@ -1029,6 +1032,51 @@ export default function AdminServiceRequests() {
                         </div>
                       </div>
                     );
+                  })}
+                </div>
+              </div>
+            )}
+            {jobView === "kanban" && (
+              <div className="overflow-x-auto pb-3">
+                <div className="grid min-w-[1680px] grid-cols-7 gap-3">
+                  {KANBAN_COLUMNS.map((column) => {
+                    const columnJobs = visibleJobs.filter((job) => (column.statuses as readonly string[]).includes(job.status));
+                    return <section
+                      key={column.title}
+                      onDragOver={(event) => event.preventDefault()}
+                      onDrop={() => {
+                        const job = jobs.find((item) => item.id === draggedJobId);
+                        if (job) requestStageOverride(job, column.target);
+                        setDraggedJobId(null);
+                      }}
+                      className="min-h-[420px] rounded-xl border bg-muted/30"
+                    >
+                      <div className="flex items-center justify-between border-b px-3 py-3">
+                        <h3 className="font-semibold">{column.title}</h3>
+                        <Badge variant="outline">{columnJobs.length}</Badge>
+                      </div>
+                      <div className="space-y-3 p-3">
+                        {columnJobs.map((job) => {
+                          const assignment = job.assignments?.find((item) => ["offered", "accepted", "completed"].includes(item.status));
+                          return <button
+                            key={job.id}
+                            type="button"
+                            draggable
+                            onDragStart={() => setDraggedJobId(job.id)}
+                            onDragEnd={() => setDraggedJobId(null)}
+                            onClick={() => openJob(job)}
+                            className="w-full cursor-grab rounded-lg border bg-card p-3 text-left shadow-sm transition hover:border-secondary active:cursor-grabbing"
+                          >
+                            <div className="flex items-start justify-between gap-2"><strong className="text-sm">{job.reference}</strong><Badge variant="outline" className="text-[10px]">{job.status.replace(/_/g," ")}</Badge></div>
+                            <p className="mt-2 text-sm font-medium">{job.customer.name}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">{job.address.postcode} · {format(new Date(`${job.scheduled_date}T12:00:00`),"dd MMM")} {job.start_time?.slice(0,5) || "TBC"}</p>
+                            <p className="mt-2 truncate text-xs">{assignment?.cleaner?.full_name || "No cleaner assigned"}</p>
+                            <p className="mt-2 text-xs font-medium">Cleaner {money(job.cleaner_payout_pence)}</p>
+                          </button>;
+                        })}
+                        {columnJobs.length === 0 && <p className="p-3 text-center text-xs text-muted-foreground">No jobs</p>}
+                      </div>
+                    </section>;
                   })}
                 </div>
               </div>
@@ -1976,6 +2024,20 @@ export default function AdminServiceRequests() {
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!stageOverride} onOpenChange={(open) => { if (!open) { setStageOverride(null); setStageReason(""); } }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Confirm pipeline override</DialogTitle></DialogHeader>
+          {stageOverride && <div className="space-y-4">
+            <div className="rounded-lg border bg-muted/40 p-4 text-sm">
+              <p className="font-medium">{stageOverride.job.reference} · {stageOverride.job.customer.name}</p>
+              <p className="mt-1 text-muted-foreground">{stageOverride.job.status.replace(/_/g," ")} → {stageOverride.target.replace(/_/g," ")}</p>
+            </div>
+            {stageOverride.target === "completed" && <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">Jobs can only enter Completed through the quality-approval controls inside the job.</p>}
+            <div><Label htmlFor="stage-reason">Audit reason</Label><Textarea id="stage-reason" value={stageReason} onChange={(event) => setStageReason(event.target.value)} placeholder="Why is this manual stage change required?" /></div>
+            <div className="flex justify-end gap-2"><Button variant="outline" onClick={() => setStageOverride(null)}>Cancel</Button><Button onClick={confirmStageOverride} disabled={saving || stageOverride.target === "completed"}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Confirm change</Button></div>
+          </div>}
         </DialogContent>
       </Dialog>
     </AdminLayout>
