@@ -2147,6 +2147,7 @@ export type Database = {
           expected_duration_minutes: number | null
           id: string
           notes: string | null
+          payment_confirmation_sent_at: string | null
           payment_link_sent_at: string | null
           requirements: string | null
           scheduled_date: string | null
@@ -2170,6 +2171,7 @@ export type Database = {
           expected_duration_minutes?: number | null
           id?: string
           notes?: string | null
+          payment_confirmation_sent_at?: string | null
           payment_link_sent_at?: string | null
           requirements?: string | null
           scheduled_date?: string | null
@@ -2193,6 +2195,7 @@ export type Database = {
           expected_duration_minutes?: number | null
           id?: string
           notes?: string | null
+          payment_confirmation_sent_at?: string | null
           payment_link_sent_at?: string | null
           requirements?: string | null
           scheduled_date?: string | null
