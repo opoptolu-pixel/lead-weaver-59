@@ -87,6 +87,10 @@ interface Quote {
   cleaner_payout_pence: number;
   valid_until: string | null;
   version: number;
+  scheduled_date: string | null;
+  start_time: string | null;
+  expected_duration_minutes: number | null;
+  requirements: string | null;
 }
 
 interface CustomerPayment {
@@ -223,7 +227,7 @@ export default function AdminServiceRequests() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [statusFilter, setStatusFilter] = useState("active");
-  const [requestView, setRequestView] = useState<"list" | "kanban">("list");
+  const [requestView, setRequestView] = useState<"list" | "kanban">("kanban");
   const [selected, setSelected] = useState<ManagedRequest | null>(null);
   const [adminNotes, setAdminNotes] = useState("");
   const [customerPrice, setCustomerPrice] = useState("");
@@ -253,7 +257,7 @@ export default function AdminServiceRequests() {
   const [correctionMinutes, setCorrectionMinutes] = useState("");
   const [correctionReason, setCorrectionReason] = useState("");
   const [liveNow, setLiveNow] = useState(() => Date.now());
-  const [jobView, setJobView] = useState<"list" | "calendar" | "kanban">("list");
+  const [jobView, setJobView] = useState<"list" | "calendar" | "kanban">("kanban");
   const [jobStatusFilter, setJobStatusFilter] = useState("active");
   const [jobEvents, setJobEvents] = useState<JobEvent[]>([]);
   const [calendarMonth, setCalendarMonth] = useState(() => startOfMonth(new Date()));
@@ -288,7 +292,7 @@ export default function AdminServiceRequests() {
         customer:customers(id,name,email,phone),
         address:customer_addresses(id,address_line_1,address_line_2,postcode,city,access_notes),
         service_type:service_types(id,name),
-        quotes(id,status,customer_amount_pence,cleaner_payout_pence,valid_until,version)
+        quotes(id,status,customer_amount_pence,cleaner_payout_pence,valid_until,version,scheduled_date,start_time,expected_duration_minutes,requirements)
       `,
         )
         .order("created_at", { ascending: false }),
@@ -463,10 +467,14 @@ export default function AdminServiceRequests() {
     setCity(request.address.city || "");
     setBookingPostcode(request.address.postcode || "");
     setAccessNotes(request.address.access_notes || "");
-    setScheduledDate(request.preferred_date_from || "");
-    setStartTime("");
-    setDurationHours("");
-    setJobRequirements(request.customer_notes || "");
+    setScheduledDate(latest?.scheduled_date || request.preferred_date_from || "");
+    setStartTime(latest?.start_time?.slice(0, 5) || "");
+    setDurationHours(
+      latest?.expected_duration_minutes
+        ? String(latest.expected_duration_minutes / 60)
+        : "",
+    );
+    setJobRequirements(latest?.requirements || request.customer_notes || "");
   };
 
   const updateRequest = async (status?: string) => {
