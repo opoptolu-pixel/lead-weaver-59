@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
-import { AlertTriangle, CheckCircle2, CreditCard, Loader2, Search } from "lucide-react";
+import { AlertTriangle, CheckCircle2, CreditCard, Loader2, RefreshCw, Search } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Badge } from "@/components/ui/badge";
@@ -86,6 +86,22 @@ export default function AdminAgencyPayments() {
     toast.success("Customer payment recorded and eligible payout controls updated");
     setSelectedCollection(null); setCollectionForm({ method: "bank_transfer", reference: "", paidAt: new Date().toISOString().slice(0, 16) }); fetchData();
   };
+  const reconcileStripePayments = async () => {
+    setSaving("stripe-reconciliation");
+    const { data, error } = await supabase.functions.invoke(
+      "confirm-agency-payment",
+      { body: { reconcileAll: true } },
+    );
+    setSaving("");
+    if (error) return toast.error(error.message);
+    const count = Number(data?.reconciled || 0);
+    toast.success(
+      count
+        ? `${count} paid Stripe booking${count === 1 ? "" : "s"} reconciled`
+        : "No unreconciled paid Stripe bookings were found",
+    );
+    fetchData();
+  };
   const holdPayout = async (payout: Payout) => {
     setSaving(payout.id);
     const { error } = await db.from("cleaner_payouts").update({ status: "held", held_reason: "Held by admin for review" }).eq("id", payout.id);
@@ -122,7 +138,7 @@ export default function AdminAgencyPayments() {
   const outstanding = collections.filter((item) => !["paid", "refunded"].includes(item.status)).reduce((sum, item) => sum + item.amount_pence, 0);
 
   return <AdminLayout title="Payments & Payouts"><div className="space-y-6">
-    <div><h1 className="text-2xl font-bold">Payments & Payouts</h1><p className="text-muted-foreground">Customer collections, weekly cleaner earnings and Cleanda margin.</p></div>
+    <div className="flex flex-wrap items-start justify-between gap-3"><div><h1 className="text-2xl font-bold">Payments & Payouts</h1><p className="text-muted-foreground">Customer collections, weekly cleaner earnings and Cleanda margin.</p></div><Button variant="outline" onClick={reconcileStripePayments} disabled={saving === "stripe-reconciliation"}>{saving === "stripe-reconciliation" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}Sync Stripe payments</Button></div>
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">{[["Customer revenue", money(revenue)], ["Outstanding", money(outstanding)], ["Cleaner earnings", money(cleanerCost)], ["Gross margin", money(revenue - cleanerCost)], ["Approved to pay", money(due)]].map(([label, value]) => <div key={label} className="rounded-xl border bg-card p-4"><p className="text-sm text-muted-foreground">{label}</p><p className={`mt-1 text-2xl font-bold ${label === "Outstanding" && outstanding ? "text-amber-500" : ""}`}>{value}</p></div>)}</div>
     {outstanding > 0 && <div className="flex gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950"><AlertTriangle className="mt-0.5 h-5 w-5 shrink-0"/><div><strong>Customer money is still outstanding.</strong><p>Cleaner payouts for these jobs stay held until collection is recorded. Never record payment unless the funds have reached Cleanda.</p></div></div>}
     <div className="relative max-w-xl"><Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input className="pl-9" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search cleaner or job reference" /></div>

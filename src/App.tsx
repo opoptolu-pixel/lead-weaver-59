@@ -44,6 +44,7 @@ const GDPR = lazy(() => import("./pages/GDPR"));
 const TermsOfUse = lazy(() => import("./pages/TermsOfUse"));
 const RequestCleaning = lazy(() => import("./pages/RequestCleaning"));
 const RequestCleaningThankYou = lazy(() => import("./pages/RequestCleaningThankYou"));
+const BookingConfirmed = lazy(() => import("./pages/BookingConfirmed"));
 const Contact = lazy(() => import("./pages/Contact"));
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
@@ -120,6 +121,7 @@ const App = () => (
                   {/* Customer-facing Pages */}
                   <Route path="/request-cleaning" element={<RequestCleaning />} />
                   <Route path="/request-cleaning/thank-you" element={<RequestCleaningThankYou />} />
+                  <Route path="/booking-confirmed" element={<BookingConfirmed />} />
                   
                   {/* Blog */}
                   <Route path="/blog" element={<Blog />} />

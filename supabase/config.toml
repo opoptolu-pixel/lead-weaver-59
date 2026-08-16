@@ -39,6 +39,9 @@ verify_jwt = false
 [functions.send-agency-quote]
 verify_jwt = true
 
+[functions.confirm-agency-payment]
+verify_jwt = false
+
 [functions.get-signed-url]
 verify_jwt = false
 

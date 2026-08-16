@@ -90,7 +90,7 @@ serve(async (req) => {
         },
       }],
       metadata: { agency_quote_id: quote.id, service_request_reference: request.reference },
-      success_url: `${siteUrl}/request-cleaning/thank-you?payment=success`,
+      success_url: `${siteUrl}/booking-confirmed?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${siteUrl}/?payment=cancelled`,
       expires_at: Math.floor(Date.now() / 1000) + expirySeconds,
     });
