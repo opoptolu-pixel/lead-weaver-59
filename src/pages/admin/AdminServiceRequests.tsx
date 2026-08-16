@@ -84,7 +84,7 @@ const money = (pence: number) => new Intl.NumberFormat("en-GB", {
   currency: "GBP",
 }).format(pence / 100);
 
-const makeJobReference = () => `JOB-${new Date().toISOString().slice(0, 10).replaceAll("-", "")}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
+const makeJobReference = () => `JOB-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
 
 export default function AdminServiceRequests() {
   const [requests, setRequests] = useState<ManagedRequest[]>([]);
@@ -121,7 +121,7 @@ export default function AdminServiceRequests() {
       toast.error(requestResult.error?.message || jobResult.error?.message || cleanerResult.error?.message || "Could not load managed operations");
     } else {
       setRequests(requestResult.data || []);
-      setJobs(jobResult.data || []);
+      setJobs((jobResult.data as unknown as Job[]) || []);
       setCleaners(cleanerResult.data || []);
     }
     setLoading(false);
