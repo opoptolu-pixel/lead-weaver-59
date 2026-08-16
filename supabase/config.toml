@@ -36,6 +36,9 @@ verify_jwt = false
 [functions.submit-cleaner-application]
 verify_jwt = false
 
+[functions.send-agency-quote]
+verify_jwt = true
+
 [functions.get-signed-url]
 verify_jwt = false
 

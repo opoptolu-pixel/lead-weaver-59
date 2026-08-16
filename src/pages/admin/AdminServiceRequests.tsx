@@ -186,9 +186,6 @@ const money = (pence: number) =>
     currency: "GBP",
   }).format(pence / 100);
 
-const makeJobReference = () =>
-  `JOB-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
-
 const KANBAN_COLUMNS = [
   { title: "Unassigned", statuses: ["awaiting_assignment"], target: "awaiting_assignment" },
   { title: "Offered", statuses: ["offered"], target: "offered" },
@@ -221,6 +218,7 @@ export default function AdminServiceRequests() {
   const [customerPrice, setCustomerPrice] = useState("");
   const [cleanerPayout, setCleanerPayout] = useState("");
   const [quoteValidUntil, setQuoteValidUntil] = useState("");
+  const [offlinePaymentReference, setOfflinePaymentReference] = useState("");
   const [assignmentChoices, setAssignmentChoices] = useState<
     Record<string, string>
   >({});
@@ -372,6 +370,7 @@ export default function AdminServiceRequests() {
     setQuoteValidUntil(
       latest?.valid_until ? latest.valid_until.slice(0, 10) : "",
     );
+    setOfflinePaymentReference("");
     setAddressLine1(request.address.address_line_1 || "");
     setAddressLine2(request.address.address_line_2 || "");
     setCity(request.address.city || "");
@@ -409,45 +408,17 @@ export default function AdminServiceRequests() {
         "Enter a valid customer price and cleaner payout. The customer price must cover the payout.",
       );
     }
-    setSaving(true);
-    const nextVersion =
-      Math.max(0, ...(selected.quotes || []).map((quote) => quote.version)) + 1;
-    const { error } = await db.from("quotes").insert({
-      service_request_id: selected.id,
-      version: nextVersion,
-      status: "sent",
-      customer_amount_pence: customerPence,
-      cleaner_payout_pence: cleanerPence,
-      valid_until: quoteValidUntil
-        ? new Date(`${quoteValidUntil}T23:59:59`).toISOString()
-        : null,
-      sent_at: new Date().toISOString(),
-    });
-    if (!error)
-      await db
-        .from("service_requests")
-        .update({ status: "quoted", admin_notes: adminNotes })
-        .eq("id", selected.id);
-    setSaving(false);
-    if (error) return toast.error(error.message);
-    toast.success("Quote recorded as sent");
-    await fetchData();
-  };
-
-  const acceptAndCreateJob = async () => {
-    if (!selected) return;
-    const latest = [...(selected.quotes || [])]
-      .filter((quote) => quote.status === "sent")
-      .sort((a, b) => b.version - a.version)[0];
-    if (!latest) return toast.error("Create and send a quote first.");
-    if (!addressLine1.trim() || !city.trim() || !bookingPostcode.trim())
+    if (!addressLine1.trim() || !city.trim() || !bookingPostcode.trim()) {
+      return toast.error("Confirm the full customer address before sending the quote.");
+    }
+    if (!scheduledDate || !startTime || !Number(durationHours)) {
       return toast.error(
-        "Confirm the full customer address before creating the job.",
+        "Confirm the job date, start time and expected duration before sending the quote.",
       );
-    if (!scheduledDate || !startTime || !Number(durationHours))
-      return toast.error(
-        "Confirm the job date, start time and expected duration.",
-      );
+    }
+    if (!quoteValidUntil) {
+      return toast.error("Choose when the quote expires.");
+    }
     setSaving(true);
     const { error: addressError } = await db
       .from("customer_addresses")
@@ -463,65 +434,76 @@ export default function AdminServiceRequests() {
       setSaving(false);
       return toast.error(addressError.message);
     }
-    const acceptedAt = new Date().toISOString();
-    const { error: quoteError } = await db
+    const nextVersion =
+      Math.max(0, ...(selected.quotes || []).map((quote) => quote.version)) + 1;
+    const { data: quote, error } = await db
       .from("quotes")
-      .update({ status: "accepted", accepted_at: acceptedAt })
-      .eq("id", latest.id);
-    if (quoteError) {
-      setSaving(false);
-      return toast.error(quoteError.message);
-    }
-    const { data: job, error: jobError } = await db
-      .from("jobs")
       .insert({
-        reference: makeJobReference(),
         service_request_id: selected.id,
-        accepted_quote_id: latest.id,
-        customer_id: selected.customer.id,
+        version: nextVersion,
+        status: "draft",
+        customer_amount_pence: customerPence,
+        cleaner_payout_pence: cleanerPence,
+        valid_until: new Date(`${quoteValidUntil}T23:59:59`).toISOString(),
         address_id: selected.address.id,
-        service_type_id: selected.service_type.id,
-        service_area_id: (
-          await db
-            .from("service_areas")
-            .select("id")
-            .eq("slug", "greater-manchester")
-            .single()
-        ).data?.id,
         scheduled_date: scheduledDate,
         start_time: startTime,
         expected_duration_minutes: Math.round(Number(durationHours) * 60),
-        general_location: bookingPostcode.trim().toUpperCase().split(" ")[0],
-        customer_amount_pence: latest.customer_amount_pence,
-        cleaner_payout_pence: latest.cleaner_payout_pence,
         requirements: jobRequirements.trim() || null,
       })
       .select("id")
       .single();
-    if (!jobError) {
-      await Promise.all([
-        db
-          .from("service_requests")
-          .update({ status: "accepted" })
-          .eq("id", selected.id),
-        db
-          .from("customer_payments")
-          .insert({
-            job_id: job.id,
-            amount_pence: latest.customer_amount_pence,
-          }),
-        db
-          .from("job_events")
-          .insert({
-            job_id: job.id,
-            event_type: "job_created",
-            details: { request_reference: selected.reference },
-          }),
-      ]);
+    if (error || !quote) {
+      setSaving(false);
+      return toast.error(error?.message || "The quote could not be created.");
     }
+    const { error: noteError } = await db
+      .from("service_requests")
+      .update({ admin_notes: adminNotes })
+      .eq("id", selected.id);
+    if (noteError) {
+      setSaving(false);
+      return toast.error(noteError.message);
+    }
+    const { error: sendError } = await supabase.functions.invoke(
+      "send-agency-quote",
+      { body: { quoteId: quote.id } },
+    );
     setSaving(false);
-    if (jobError) return toast.error(jobError.message);
-    toast.success("Quote accepted and job created");
+    if (sendError) {
+      toast.error(
+        `The quote was saved but the email could not be completed: ${sendError.message}`,
+      );
+      await fetchData();
+      return;
+    }
+    toast.success("Quote and secure payment link emailed to the customer");
+    await fetchData();
+  };
+
+  const acceptAndCreateJob = async () => {
+    if (!selected) return;
+    const latest = [...(selected.quotes || [])]
+      .filter((quote) => quote.status === "sent")
+      .sort((a, b) => b.version - a.version)[0];
+    if (!latest) return toast.error("Create and send a quote first.");
+    if (!offlinePaymentReference.trim()) {
+      return toast.error("Enter the bank or offline payment reference.");
+    }
+    setSaving(true);
+    const { error: paymentError } = await db.rpc(
+      "finalize_agency_quote_payment",
+      {
+        p_quote_id: latest.id,
+        p_payment_reference: offlinePaymentReference.trim(),
+        p_payment_intent_id: null,
+        p_provider: "bank_transfer",
+      },
+    );
+    setSaving(false);
+    if (paymentError) return toast.error(paymentError.message);
+    toast.success("Offline payment confirmed and job created");
+    setOfflinePaymentReference("");
     await fetchData();
   };
 
@@ -1584,16 +1566,32 @@ export default function AdminServiceRequests() {
                     {saving && (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     )}
-                    Record quote sent
+                    Send quote & payment link
                   </Button>
                   <Button
                     variant="secondary"
                     onClick={acceptAndCreateJob}
                     disabled={saving}
                   >
-                    Record acceptance & create job
+                    Confirm offline payment &amp; create job
                   </Button>
                 </div>
+                <div className="max-w-md">
+                  <Label>Offline payment reference</Label>
+                  <Input
+                    value={offlinePaymentReference}
+                    onChange={(event) =>
+                      setOfflinePaymentReference(event.target.value)
+                    }
+                    placeholder="Bank transfer or card-terminal reference"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Online bookings create a job automatically only after Stripe
+                  confirms payment. Use the offline option only when Cleanda has
+                  received the money outside Stripe. Its payment and job are
+                  recorded together.
+                </p>
               </div>
             </div>
           )}

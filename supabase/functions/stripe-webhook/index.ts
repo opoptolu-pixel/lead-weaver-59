@@ -45,9 +45,21 @@ serve(async (req) => {
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
       const leadId = session.metadata?.lead_id;
+      const agencyQuoteId = session.metadata?.agency_quote_id;
       const customerEmail = session.customer_details?.email;
 
       logStep("checkout.session.completed", { leadId, customerEmail, sessionId: session.id });
+
+      if (agencyQuoteId && session.payment_status === "paid") {
+        const { data: jobId, error: agencyError } = await supabaseClient.rpc("finalize_agency_quote_payment", {
+          p_quote_id: agencyQuoteId,
+          p_payment_reference: session.id,
+          p_payment_intent_id: typeof session.payment_intent === "string" ? session.payment_intent : null,
+          p_provider: "stripe",
+        });
+        if (agencyError) throw agencyError;
+        logStep("Agency quote paid and job created", { agencyQuoteId, jobId });
+      }
 
       if (leadId && session.payment_status === "paid") {
         // Check if lead is already unlocked (verify-payment may have beaten us)
