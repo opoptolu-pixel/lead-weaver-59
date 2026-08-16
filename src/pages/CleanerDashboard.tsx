@@ -37,6 +37,8 @@ interface Assignment {
 }
 interface Evidence { id: string; job_id: string; assignment_id: string; evidence_type: "before" | "after"; storage_path: string; file_name: string; created_at: string; signedUrl?: string; }
 interface Payout { id: string; job_id: string; amount_pence: number; status: string; paid_at: string | null; job: { reference: string; scheduled_date: string; service_type: { name: string } }; }
+const WEEKDAYS = [{ value: 1, label: "Monday" }, { value: 2, label: "Tuesday" }, { value: 3, label: "Wednesday" }, { value: 4, label: "Thursday" }, { value: 5, label: "Friday" }, { value: 6, label: "Saturday" }, { value: 0, label: "Sunday" }];
+const emptyAvailability = () => Object.fromEntries(WEEKDAYS.map(({ value }) => [value, { enabled: false, start: "09:00", end: "17:00" }])) as Record<number, { enabled: boolean; start: string; end: string }>;
 
 export default function CleanerDashboard() {
   const { user, loading: authLoading, signOut } = useAuth();
@@ -46,6 +48,7 @@ export default function CleanerDashboard() {
   const [evidence, setEvidence] = useState<Evidence[]>([]);
   const [payouts, setPayouts] = useState<Payout[]>([]);
   const [completionNotes, setCompletionNotes] = useState<Record<string, string>>({});
+  const [availability, setAvailability] = useState(emptyAvailability);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -56,10 +59,11 @@ export default function CleanerDashboard() {
     if (profileError) toast.error(profileError.message);
     setProfile(profileData || null);
     if (profileData) {
-      const [initialAssignmentResult, evidenceResult, payoutResult] = await Promise.all([
+      const [initialAssignmentResult, evidenceResult, payoutResult, availabilityResult] = await Promise.all([
         db.from("job_assignments").select(`id,status,offered_at,job:jobs(id,reference,status,general_location,scheduled_date,start_time,expected_duration_minutes,cleaner_payout_pence,requirements,quality_review_status,quality_review_notes,cleaner_completion_notes,service_type:service_types(name),customer:customers(name,phone),address:customer_addresses(address_line_1,address_line_2,city,postcode,access_notes))`).eq("cleaner_id", profileData.id).order("offered_at", { ascending: false }),
         db.from("job_evidence").select("id,job_id,assignment_id,evidence_type,storage_path,file_name,created_at").eq("cleaner_id", profileData.id).order("created_at"),
         db.from("cleaner_payouts").select("id,job_id,amount_pence,status,paid_at,job:jobs(reference,scheduled_date,service_type:service_types(name))").eq("cleaner_id", profileData.id).order("created_at", { ascending: false }),
+        db.from("cleaner_availability").select("weekday,start_time,end_time").eq("cleaner_id", profileData.id),
       ]);
       let assignmentResult = initialAssignmentResult;
       if (initialAssignmentResult.error?.message.includes("quality_review_status")) {
@@ -73,6 +77,11 @@ export default function CleanerDashboard() {
       if (firstError && !firstError.message.includes("job_evidence")) toast.error(firstError.message);
       setAssignments((assignmentResult.data as unknown as Assignment[]) || []);
       setPayouts((payoutResult.data as unknown as Payout[]) || []);
+      if (!availabilityResult.error) {
+        const next = emptyAvailability();
+        for (const window of availabilityResult.data || []) next[window.weekday] = { enabled: true, start: window.start_time.slice(0, 5), end: window.end_time.slice(0, 5) };
+        setAvailability(next);
+      }
       const items = (evidenceResult.data as Evidence[]) || [];
       const signed = await Promise.all(items.map(async (item) => {
         const { data } = await supabase.storage.from("job-evidence").createSignedUrl(item.storage_path, 3600);
@@ -126,6 +135,17 @@ export default function CleanerDashboard() {
     toast.success("Completion sent to Cleanda for quality review"); fetchDashboard();
   };
 
+  const saveAvailability = async () => {
+    const windows = WEEKDAYS.filter(({ value }) => availability[value].enabled).map(({ value }) => ({ weekday: value, start_time: availability[value].start, end_time: availability[value].end }));
+    if (!windows.length) return toast.error("Select at least one working day.");
+    if (windows.some((window) => window.end_time <= window.start_time)) return toast.error("Each availability window must end after it starts.");
+    setBusy("availability");
+    const { data, error } = await db.rpc("replace_my_cleaner_availability", { p_windows: windows });
+    setBusy(null);
+    if (error || !data) return toast.error(error?.message || "Availability could not be saved.");
+    toast.success("Availability updated");
+  };
+
   const totals = useMemo(() => ({
     available: assignments.filter((a) => a.status === "offered").length,
     active: assignments.filter((a) => a.status === "accepted").length,
@@ -142,9 +162,10 @@ export default function CleanerDashboard() {
     <main className="mx-auto max-w-6xl space-y-7 px-4 py-8">
       <div><h1 className="text-3xl font-bold">Welcome, {profile.full_name || "Cleaner"}</h1><div className="mt-3 flex flex-wrap gap-2"><Badge variant="outline">Application: {profile.application_status}</Badge><Badge variant="outline">Verification: {profile.verification_status.replace(/_/g, " ")}</Badge><Badge variant="outline">Status: {profile.operational_status}</Badge></div></div>
       {profile.application_status !== "approved" && <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-amber-950"><h2 className="font-semibold">Application under review</h2><p className="mt-1 text-sm">Cleanda will contact you about verification. Jobs become available after approval and activation.</p></div>}
-      <Tabs defaultValue="dashboard" className="space-y-6"><TabsList><TabsTrigger value="dashboard">Dashboard</TabsTrigger><TabsTrigger value="jobs">Jobs</TabsTrigger><TabsTrigger value="earnings">Earnings</TabsTrigger></TabsList>
+      <Tabs defaultValue="dashboard" className="space-y-6"><TabsList><TabsTrigger value="dashboard">Dashboard</TabsTrigger><TabsTrigger value="jobs">Jobs</TabsTrigger><TabsTrigger value="availability">Availability</TabsTrigger><TabsTrigger value="earnings">Earnings</TabsTrigger></TabsList>
         <TabsContent value="dashboard" className="space-y-6"><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{([["Offers", totals.available, BriefcaseBusiness],["Active jobs",totals.active,Calendar],["Awaiting approval",money(totals.pending),Clock],["Paid",money(totals.paid),WalletCards]] as Array<[string, string | number, ComponentType<{ className?: string }>]>).map(([label,value,Icon]) => <div key={String(label)} className="rounded-xl border bg-card p-5"><Icon className="mb-3 h-5 w-5 text-primary" /><p className="text-sm text-muted-foreground">{String(label)}</p><p className="mt-1 text-2xl font-bold">{String(value)}</p></div>)}</div><p className="rounded-xl border bg-card p-5 text-sm text-muted-foreground">Use the Jobs tab to accept offers, see confirmed addresses and times, upload before-and-after photos, and submit completed work for review.</p></TabsContent>
         <TabsContent value="jobs"><JobList assignments={assignments} evidence={evidence} busy={busy} completionNotes={completionNotes} setCompletionNotes={setCompletionNotes} onRespond={respond} onUpload={uploadEvidence} onComplete={complete} /></TabsContent>
+        <TabsContent value="availability" className="space-y-5"><div><h2 className="text-xl font-semibold">Weekly availability</h2><p className="mt-1 text-sm text-muted-foreground">Cleanda uses these hours when offering work. Accepted jobs and time off are also checked to prevent clashes.</p></div><div className="divide-y rounded-xl border bg-card">{WEEKDAYS.map(({ value, label }) => { const day = availability[value]; return <div key={value} className="grid gap-3 p-4 sm:grid-cols-[1fr_auto_auto] sm:items-center"><label className="flex items-center gap-3 font-medium"><Input className="h-4 w-4" type="checkbox" checked={day.enabled} onChange={(event) => setAvailability((current) => ({ ...current, [value]: { ...current[value], enabled: event.target.checked } }))} />{label}</label><Input aria-label={`${label} start time`} className="sm:w-36" type="time" value={day.start} disabled={!day.enabled} onChange={(event) => setAvailability((current) => ({ ...current, [value]: { ...current[value], start: event.target.value } }))} /><Input aria-label={`${label} end time`} className="sm:w-36" type="time" value={day.end} disabled={!day.enabled} onChange={(event) => setAvailability((current) => ({ ...current, [value]: { ...current[value], end: event.target.value } }))} /></div>; })}</div><Button onClick={saveAvailability} disabled={busy === "availability"}>{busy === "availability" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save availability</Button></TabsContent>
         <TabsContent value="earnings" className="space-y-5"><div className="grid gap-4 sm:grid-cols-3"><Summary label="Pending / held" value={money(totals.pending)} /><Summary label="Approved" value={money(totals.approved)} /><Summary label="Paid" value={money(totals.paid)} /></div><div className="rounded-xl border bg-card"><div className="border-b p-5"><h2 className="font-semibold">Earnings history</h2></div>{payouts.length === 0 ? <p className="p-8 text-center text-muted-foreground">No earnings recorded yet.</p> : payouts.map((p) => <div key={p.id} className="flex flex-col gap-2 border-b p-5 last:border-0 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-medium">{p.job.reference} · {p.job.service_type.name}</p><p className="text-sm text-muted-foreground">{p.job.scheduled_date}{p.paid_at ? ` · Paid ${new Date(p.paid_at).toLocaleDateString("en-GB")}` : ""}</p></div><div className="flex items-center gap-3"><Badge variant="outline">{p.status}</Badge><strong>{money(p.amount_pence)}</strong></div></div>)}</div></TabsContent>
       </Tabs>
     </main>

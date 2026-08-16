@@ -285,13 +285,7 @@ export default function AdminServiceRequests() {
     const cleanerId = assignmentChoices[job.id];
     if (!cleanerId) return toast.error("Choose an approved active cleaner.");
     setSaving(true);
-    const { error } = await db.from("job_assignments").insert({ job_id: job.id, cleaner_id: cleanerId });
-    if (!error) {
-      await Promise.all([
-        db.from("jobs").update({ status: "offered" }).eq("id", job.id),
-        db.from("job_events").insert({ job_id: job.id, event_type: "cleaner_offered", details: { cleaner_id: cleanerId } }),
-      ]);
-    }
+    const { error } = await db.rpc("offer_job_to_cleaner", { p_job_id: job.id, p_cleaner_id: cleanerId });
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Job offered to cleaner");
@@ -418,7 +412,7 @@ export default function AdminServiceRequests() {
               <div key={job.id} className="rounded-xl border bg-card p-4">
                 <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
                   <div><div className="flex flex-wrap items-center gap-2"><span className="font-semibold">{job.reference}</span><Badge variant="outline">{job.status}</Badge><span>{job.service_type.name}</span></div><p className="mt-2 text-sm text-muted-foreground">{job.customer.name} · {job.address.postcode} · {format(new Date(`${job.scheduled_date}T12:00:00`), "d MMM yyyy")} · Customer {money(job.customer_amount_pence)} · Cleaner {money(job.cleaner_payout_pence)}</p></div>
-                  <div className="flex flex-col gap-2 sm:flex-row"><Button variant="outline" onClick={() => openJob(job)}><Eye className="mr-2 h-4 w-4" />Open job</Button>{['awaiting_assignment','offered'].includes(job.status) && <><Select value={assignmentChoices[job.id] || ""} onValueChange={(value) => setAssignmentChoices((current) => ({ ...current, [job.id]: value }))}><SelectTrigger className="w-64"><SelectValue placeholder="Choose approved cleaner" /></SelectTrigger><SelectContent>{cleaners.filter((cleaner) => cleaner.application_status === 'approved' && cleaner.operational_status === 'active').map((cleaner) => <SelectItem key={cleaner.id} value={cleaner.id}>{cleaner.full_name || "Unnamed cleaner"} {cleaner.postcode ? `· ${cleaner.postcode}` : ""}</SelectItem>)}</SelectContent></Select><Button onClick={() => assignCleaner(job)} disabled={saving}>Offer job</Button></>}</div>
+                  <div className="flex flex-col gap-2 sm:flex-row"><Button variant="outline" onClick={() => openJob(job)}><Eye className="mr-2 h-4 w-4" />Open job</Button>{['awaiting_assignment','offered'].includes(job.status) && <><Select value={assignmentChoices[job.id] || ""} onValueChange={(value) => setAssignmentChoices((current) => ({ ...current, [job.id]: value }))}><SelectTrigger className="w-64"><SelectValue placeholder="Choose vetted active cleaner" /></SelectTrigger><SelectContent>{cleaners.filter((cleaner) => cleaner.application_status === 'approved' && cleaner.verification_status === 'approved' && cleaner.operational_status === 'active').map((cleaner) => <SelectItem key={cleaner.id} value={cleaner.id}>{cleaner.full_name || "Unnamed cleaner"} {cleaner.postcode ? `· ${cleaner.postcode}` : ""}</SelectItem>)}</SelectContent></Select><Button onClick={() => assignCleaner(job)} disabled={saving}>Offer job</Button></>}</div>
                 </div>
               </div>
             ))}
