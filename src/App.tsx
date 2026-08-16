@@ -54,7 +54,6 @@ const AdminOverview = lazy(() => import("./pages/admin/AdminOverview"));
 const AdminLeads = lazy(() => import("./pages/admin/AdminLeads"));
 const AdminBusinesses = lazy(() => import("./pages/admin/AdminBusinesses"));
 const AdminVerifications = lazy(() => import("./pages/admin/AdminVerifications"));
-const AdminPayments = lazy(() => import("./pages/admin/AdminPayments"));
 const AdminDisputes = lazy(() => import("./pages/admin/AdminDisputes"));
 const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
 const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
@@ -71,6 +70,7 @@ const AdminSupport = lazy(() => import("./pages/admin/AdminSupport"));
 const AdminEmailSequences = lazy(() => import("./pages/admin/AdminEmailSequences"));
 const AdminServiceRequests = lazy(() => import("./pages/admin/AdminServiceRequests"));
 const AdminCustomers = lazy(() => import("./pages/admin/AdminCustomers"));
+const AdminAgencyPayments = lazy(() => import("./pages/admin/AdminAgencyPayments"));
 
 const queryClient = new QueryClient();
 
@@ -149,7 +149,7 @@ const App = () => (
                   <Route path="/admin/reports" element={<AdminAnalytics />} />
                   <Route path="/admin/businesses" element={<AdminBusinesses />} />
                   <Route path="/admin/verifications" element={<AdminVerifications />} />
-                  <Route path="/admin/payments" element={<AdminPayments />} />
+                  <Route path="/admin/payments" element={<AdminAgencyPayments />} />
                   <Route path="/admin/accounting" element={<AdminAccounting />} />
                   <Route path="/admin/disputes" element={<AdminDisputes />} />
                   <Route path="/admin/fraud" element={<AdminFraud />} />
