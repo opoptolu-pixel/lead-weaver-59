@@ -131,6 +131,9 @@ interface Cleaner {
   application_status: string;
   operational_status: string;
   verification_status: string;
+  payout_status: string;
+  experience_summary: string | null;
+  admin_notes: string | null;
   has_transport: boolean | null;
   created_at: string;
 }
@@ -225,7 +228,7 @@ export default function AdminServiceRequests() {
       db
         .from("cleaner_profiles")
         .select(
-          "id,full_name,postcode,phone,application_status,operational_status,verification_status,has_transport,created_at",
+          "id,full_name,postcode,phone,application_status,operational_status,verification_status,payout_status,experience_summary,admin_notes,has_transport,created_at",
         )
         .order("created_at", { ascending: false }),
     ]);
@@ -702,6 +705,14 @@ export default function AdminServiceRequests() {
         : requestedSection === "cleaners"
           ? "Cleaners"
           : "Cleaning Requests";
+  const isOnboarding = location.pathname.endsWith("/onboarding");
+  const visibleCleaners = isOnboarding
+    ? cleaners.filter(
+        (cleaner) =>
+          cleaner.application_status !== "approved" ||
+          cleaner.verification_status !== "approved",
+      )
+    : cleaners.filter((cleaner) => cleaner.application_status === "approved");
 
   return (
     <AdminLayout title={pageTitle}>
@@ -870,12 +881,71 @@ export default function AdminServiceRequests() {
             ))}
           </TabsContent>
           <TabsContent value="cleaners" className="space-y-4">
-            {cleaners.length === 0 && (
-              <p className="text-muted-foreground">
-                No cleaner applications yet.
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-xl border bg-card p-4">
+                <p className="text-sm text-muted-foreground">
+                  {isOnboarding ? "Awaiting review" : "Active cleaners"}
+                </p>
+                <p className="mt-1 text-2xl font-bold">
+                  {isOnboarding
+                    ? cleaners.filter(
+                        (cleaner) => cleaner.application_status === "pending",
+                      ).length
+                    : cleaners.filter(
+                        (cleaner) => cleaner.operational_status === "active",
+                      ).length}
+                </p>
+              </div>
+              <div className="rounded-xl border bg-card p-4">
+                <p className="text-sm text-muted-foreground">
+                  {isOnboarding ? "Checks pending" : "Suspended"}
+                </p>
+                <p className="mt-1 text-2xl font-bold">
+                  {isOnboarding
+                    ? cleaners.filter(
+                        (cleaner) => cleaner.verification_status === "pending",
+                      ).length
+                    : cleaners.filter(
+                        (cleaner) =>
+                          cleaner.operational_status === "suspended",
+                      ).length}
+                </p>
+              </div>
+              <div className="rounded-xl border bg-card p-4">
+                <p className="text-sm text-muted-foreground">
+                  {isOnboarding ? "Rejected" : "Payout ready"}
+                </p>
+                <p className="mt-1 text-2xl font-bold">
+                  {isOnboarding
+                    ? cleaners.filter(
+                        (cleaner) =>
+                          cleaner.application_status === "rejected" ||
+                          cleaner.verification_status === "rejected",
+                      ).length
+                    : cleaners.filter(
+                        (cleaner) => cleaner.payout_status === "ready",
+                      ).length}
+                </p>
+              </div>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold">
+                {isOnboarding ? "Application queue" : "Cleaner directory"}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {isOnboarding
+                  ? "Review applications first, then record completed identity and vetting checks before activation."
+                  : "Manage approved cleaners, operational availability and payout readiness."}
+              </p>
+            </div>
+            {visibleCleaners.length === 0 && (
+              <p className="rounded-xl border bg-card p-6 text-muted-foreground">
+                {isOnboarding
+                  ? "No applications currently require review."
+                  : "No approved cleaners yet."}
               </p>
             )}
-            {cleaners.map((cleaner) => (
+            {visibleCleaners.map((cleaner) => (
               <div key={cleaner.id} className="rounded-xl border bg-card p-4">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                   <div>
@@ -901,22 +971,30 @@ export default function AdminServiceRequests() {
                         ? "Has transport"
                         : "Transport not confirmed"}
                     </p>
+                    {cleaner.experience_summary && (
+                      <p className="mt-2 max-w-2xl text-sm">
+                        {cleaner.experience_summary}
+                      </p>
+                    )}
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Applied {format(new Date(cleaner.created_at), "dd MMM yyyy")} ·
+                      payout: {cleaner.payout_status.replace(/_/g, " ")}
+                    </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {cleaner.application_status === "pending" && (
+                    {isOnboarding && cleaner.application_status === "pending" && (
                       <>
                         <Button
                           onClick={() =>
                             updateCleaner(cleaner, {
                               application_status: "approved",
-                              operational_status: "active",
-                              verification_status: "approved",
-                              approved_at: new Date().toISOString(),
+                              operational_status: "inactive",
+                              verification_status: "pending",
                             })
                           }
                           disabled={saving}
                         >
-                          Mark vetted & activate
+                          Approve application
                         </Button>
                         <Button
                           variant="outline"
@@ -932,7 +1010,38 @@ export default function AdminServiceRequests() {
                         </Button>
                       </>
                     )}
-                    {cleaner.application_status === "approved" &&
+                    {isOnboarding &&
+                      cleaner.application_status === "approved" &&
+                      cleaner.verification_status === "pending" && (
+                        <>
+                          <Button
+                            onClick={() =>
+                              updateCleaner(cleaner, {
+                                verification_status: "approved",
+                                operational_status: "active",
+                                approved_at: new Date().toISOString(),
+                              })
+                            }
+                            disabled={saving}
+                          >
+                            Approve checks & activate
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() =>
+                              updateCleaner(cleaner, {
+                                verification_status: "rejected",
+                                operational_status: "inactive",
+                              })
+                            }
+                            disabled={saving}
+                          >
+                            Reject checks
+                          </Button>
+                        </>
+                      )}
+                    {!isOnboarding &&
+                      cleaner.application_status === "approved" &&
                       cleaner.operational_status === "active" && (
                         <Button
                           variant="outline"
@@ -946,7 +1055,8 @@ export default function AdminServiceRequests() {
                           Suspend
                         </Button>
                       )}
-                    {cleaner.application_status === "approved" &&
+                    {!isOnboarding &&
+                      cleaner.application_status === "approved" &&
                       cleaner.operational_status === "suspended" && (
                         <Button
                           onClick={() =>
