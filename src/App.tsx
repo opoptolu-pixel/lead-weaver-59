@@ -70,6 +70,7 @@ const AdminUtmBuilder = lazy(() => import("./pages/admin/AdminUtmBuilder"));
 const AdminSupport = lazy(() => import("./pages/admin/AdminSupport"));
 const AdminEmailSequences = lazy(() => import("./pages/admin/AdminEmailSequences"));
 const AdminServiceRequests = lazy(() => import("./pages/admin/AdminServiceRequests"));
+const AdminCustomers = lazy(() => import("./pages/admin/AdminCustomers"));
 
 const queryClient = new QueryClient();
 
@@ -138,6 +139,14 @@ const App = () => (
                   <Route path="/admin/contact" element={<AdminContactSubmissions />} />
                   <Route path="/admin/leads" element={<AdminLeads />} />
                   <Route path="/admin/operations" element={<AdminServiceRequests />} />
+                  <Route path="/admin/cleaning-requests" element={<AdminServiceRequests />} />
+                  <Route path="/admin/jobs" element={<AdminServiceRequests />} />
+                  <Route path="/admin/cleaners" element={<AdminServiceRequests />} />
+                  <Route path="/admin/onboarding" element={<AdminServiceRequests />} />
+                  <Route path="/admin/customers" element={<AdminCustomers />} />
+                  <Route path="/admin/quality" element={<AdminDisputes />} />
+                  <Route path="/admin/messages" element={<AdminSupport />} />
+                  <Route path="/admin/reports" element={<AdminAnalytics />} />
                   <Route path="/admin/businesses" element={<AdminBusinesses />} />
                   <Route path="/admin/verifications" element={<AdminVerifications />} />
                   <Route path="/admin/payments" element={<AdminPayments />} />

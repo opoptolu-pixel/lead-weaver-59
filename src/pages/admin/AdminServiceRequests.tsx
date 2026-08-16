@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { format } from "date-fns";
 import {
   AlertTriangle,
@@ -32,7 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -155,6 +156,7 @@ const makeJobReference = () =>
   `JOB-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
 
 export default function AdminServiceRequests() {
+  const location = useLocation();
   const [requests, setRequests] = useState<ManagedRequest[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [cleaners, setCleaners] = useState<Cleaner[]>([]);
@@ -686,14 +688,27 @@ export default function AdminServiceRequests() {
     fetchData();
   };
 
+  const requestedSection = location.pathname.endsWith("/jobs")
+    ? "jobs"
+    : location.pathname.endsWith("/cleaners") ||
+        location.pathname.endsWith("/onboarding")
+      ? "cleaners"
+      : "requests";
+  const pageTitle =
+    requestedSection === "jobs"
+      ? "Jobs & Schedule"
+      : location.pathname.endsWith("/onboarding")
+        ? "Onboarding & Checks"
+        : requestedSection === "cleaners"
+          ? "Cleaners"
+          : "Cleaning Requests";
+
   return (
-    <AdminLayout title="Managed Operations">
+    <AdminLayout title={pageTitle}>
       <div className="space-y-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold">
-              Greater Manchester operations
-            </h1>
+            <h1 className="text-2xl font-bold">{pageTitle}</h1>
             <p className="text-muted-foreground">
               Qualify requests, record quotes, create jobs and assign cleaners.
             </p>
@@ -704,16 +719,7 @@ export default function AdminServiceRequests() {
           </Button>
         </div>
 
-        <Tabs defaultValue="requests">
-          <TabsList>
-            <TabsTrigger value="requests">
-              Requests ({requests.length})
-            </TabsTrigger>
-            <TabsTrigger value="jobs">Jobs ({jobs.length})</TabsTrigger>
-            <TabsTrigger value="cleaners">
-              Cleaners ({cleaners.length})
-            </TabsTrigger>
-          </TabsList>
+        <Tabs value={requestedSection}>
           <TabsContent value="requests" className="space-y-4">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-full sm:w-56">
