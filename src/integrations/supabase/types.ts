@@ -2763,6 +2763,10 @@ export type Database = {
           success: boolean
         }[]
       }
+      dispatch_job_to_cleaner: {
+        Args: { p_cleaner_id: string; p_job_id: string; p_reason?: string }
+        Returns: Json
+      }
       enforce_lead_unlock_rate_limit: {
         Args: { p_user_id: string }
         Returns: {
@@ -2788,6 +2792,20 @@ export type Database = {
           id: string
           job_type: string
           postcode: string
+        }[]
+      }
+      get_job_dispatch_candidates: {
+        Args: { p_job_id: string }
+        Returns: {
+          active_job_count: number
+          available: boolean
+          cleaner_id: string
+          full_name: string
+          has_conflict: boolean
+          has_transport: boolean
+          phone: string
+          postcode: string
+          service_areas: string[]
         }[]
       }
       get_managed_agency_health: { Args: never; Returns: Json }
@@ -2889,6 +2907,10 @@ export type Database = {
           p_resolution_notes?: string
           p_status: string
         }
+        Returns: boolean
+      }
+      withdraw_job_offer: {
+        Args: { p_job_id: string; p_reason: string }
         Returns: boolean
       }
     }
