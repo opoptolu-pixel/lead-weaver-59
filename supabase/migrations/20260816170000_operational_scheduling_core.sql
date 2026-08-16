@@ -203,13 +203,14 @@ GRANT EXECUTE ON FUNCTION public.offer_job_to_cleaner(uuid,uuid) TO authenticate
 CREATE OR REPLACE FUNCTION public.respond_to_job_assignment(p_assignment_id uuid, p_response text, p_notes text DEFAULT NULL)
 RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
 AS $$
-DECLARE v_job public.jobs%ROWTYPE; v_cleaner_id uuid;
+DECLARE v_job public.jobs%ROWTYPE; v_job_id uuid; v_cleaner_id uuid;
 BEGIN
   IF p_response NOT IN ('accepted', 'declined') THEN RAISE EXCEPTION 'Invalid assignment response'; END IF;
-  SELECT j, ja.cleaner_id INTO v_job, v_cleaner_id
+  SELECT ja.job_id, ja.cleaner_id INTO v_job_id, v_cleaner_id
   FROM public.job_assignments ja JOIN public.cleaner_profiles cp ON cp.id = ja.cleaner_id JOIN public.jobs j ON j.id = ja.job_id
-  WHERE ja.id = p_assignment_id AND cp.user_id = auth.uid() AND ja.status = 'offered' FOR UPDATE OF ja, j;
-  IF v_job.id IS NULL THEN RETURN false; END IF;
+  WHERE ja.id = p_assignment_id AND cp.user_id = auth.uid() AND ja.status = 'offered' FOR UPDATE OF ja;
+  IF v_job_id IS NULL THEN RETURN false; END IF;
+  SELECT * INTO v_job FROM public.jobs WHERE id = v_job_id FOR UPDATE;
   IF p_response = 'accepted' AND NOT public.cleaner_is_available_for_window(v_cleaner_id, v_job.scheduled_start_at, v_job.scheduled_end_at) THEN
     RAISE EXCEPTION 'This job is outside your current declared availability';
   END IF;
