@@ -32,7 +32,7 @@ export default function Onboarding() {
   const [serviceSlugs, setServiceSlugs] = useState<string[]>([]);
 
   useEffect(() => {
-    if (!loading && !user) navigate("/auth?mode=signup&account=cleaner");
+    if (!loading && !user) navigate("/auth?mode=signup");
   }, [loading, navigate, user]);
 
   const toggleService = (slug: string) => {
@@ -48,7 +48,7 @@ export default function Onboarding() {
     setSubmitting(false);
     if (error || data?.error) return toast.error(data?.error || error?.message || "Could not submit your application");
     toast.success("Cleaner application submitted");
-    navigate("/cleaner/dashboard");
+    navigate("/dashboard");
   };
 
   if (loading) return <div className="flex min-h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;

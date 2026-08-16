@@ -15,7 +15,6 @@ const respond = (body: unknown, status = 200) => new Response(JSON.stringify(bod
   status,
   headers: { ...corsHeaders, "Content-Type": "application/json" },
 });
-
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return respond({ error: "Method not allowed" }, 405);
@@ -43,8 +42,6 @@ serve(async (req) => {
     }
 
     const service = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
-    const { error: accountTypeError } = await service.from("profiles").update({ account_type: "personal_cleaner" }).eq("user_id", authData.user.id);
-    if (accountTypeError) throw accountTypeError;
     const { data: area, error: areaError } = await service.from("service_areas").select("id").eq("slug", "greater-manchester").eq("status", "active").single();
     if (areaError || !area) throw new Error("Greater Manchester service area is not configured");
 

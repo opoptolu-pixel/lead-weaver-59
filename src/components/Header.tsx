@@ -29,12 +29,11 @@ export const Header = () => {
   };
 
   const navLinks = [
-    { label: "Managed Cleaning", id: "/request-cleaning", type: "link" },
-    { label: "Get Quotes", id: "/get-quotes", type: "link" },
+    { label: "Request Cleaning", id: "/request-cleaning", type: "link" },
     { label: "Services", id: "services", type: "scroll" },
     { label: "How It Works", id: "how-it-works", type: "scroll" },
     { label: "Blog", id: "/blog", type: "link" },
-    { label: "For Providers", id: "/join", type: "link" },
+    { label: "For Cleaners", id: "/for-cleaners", type: "link" },
   ];
 
   return (
@@ -98,12 +97,12 @@ export const Header = () => {
                       Sign In
                     </Button>
                   </Link>
-                  <Link to="/join">
+                  <Link to="/auth?mode=signup">
                     <Button 
                       variant={isScrolled ? "cta" : "hero"} 
                       size="default"
                     >
-                      Choose Account
+                      Join Now
                     </Button>
                   </Link>
                 </>
@@ -165,9 +164,9 @@ export const Header = () => {
                         Sign In
                       </Button>
                     </Link>
-                    <Link to="/join" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Link to="/auth?mode=signup" onClick={() => setIsMobileMenuOpen(false)}>
                       <Button variant="cta" size="lg" className="w-full">
-                        Choose Account
+                        Join Now
                       </Button>
                     </Link>
                   </div>

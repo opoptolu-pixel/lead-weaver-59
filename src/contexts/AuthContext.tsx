@@ -22,7 +22,6 @@ interface Profile {
   is_closed: boolean | null;
   closed_at: string | null;
   closed_reason: string | null;
-  account_type?: "business" | "personal_cleaner" | null;
 }
 
 interface AuthContextType {

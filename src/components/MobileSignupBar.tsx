@@ -38,7 +38,7 @@ export const MobileSignupBar = () => {
             variant="cta"
             size="sm"
             className="flex-shrink-0 gap-1.5 font-semibold px-5"
-            onClick={() => navigate("/auth?mode=signup&account=business")}
+            onClick={() => navigate("/auth?mode=signup")}
           >
             Sign Up
             <ArrowRight className="w-4 h-4" />
