@@ -227,6 +227,11 @@ const money = (pence: number) =>
     currency: "GBP",
   }).format(pence / 100);
 
+const formatHours = (minutes: number) => {
+  const hours = Math.round((minutes / 60) * 100) / 100;
+  return `${hours} ${hours === 1 ? "hour" : "hours"}`;
+};
+
 const KANBAN_COLUMNS = [
   { title: "Unassigned", statuses: ["awaiting_assignment"], target: "awaiting_assignment" },
   { title: "Offered", statuses: ["offered"], target: "offered" },
@@ -1856,7 +1861,7 @@ export default function AdminServiceRequests() {
                     />
                   </div>
                 </div>
-                {(customerPrice || cleanerPayout || chosenAddOns.length > 0) && <div className="rounded-xl border bg-muted/20 p-4"><div className="grid gap-3 text-sm sm:grid-cols-4"><div><p className="text-muted-foreground">Customer total</p><p className="text-lg font-semibold">{money(quoteCustomerTotal)}</p></div><div><p className="text-muted-foreground">Cleaner total</p><p className="text-lg font-semibold">{money(quoteCleanerTotal)}</p></div><div><p className="text-muted-foreground">Gross margin</p><p className="text-lg font-semibold text-emerald-700">{money(quoteCustomerTotal - quoteCleanerTotal)}</p></div><div><p className="text-muted-foreground">Total job duration</p><p className="text-lg font-semibold">{baseDurationMinutes > 0 ? `${totalDurationMinutes} min` : "Enter base duration"}</p>{baseDurationMinutes > 0 && <p className="text-xs text-muted-foreground">Main clean {baseDurationMinutes} min{addOnDurationTotal > 0 ? ` + add-ons ${addOnDurationTotal} min` : ""}</p>}</div></div>{chosenAddOns.length > 0 && <div className="mt-3 border-t pt-3 text-xs text-muted-foreground">Base clean plus {chosenAddOns.map((item) => `${item.name} × ${addOnQuantities[item.id]}`).join(", ")}</div>}</div>}
+                {(customerPrice || cleanerPayout || chosenAddOns.length > 0) && <div className="rounded-xl border bg-muted/20 p-4"><div className="grid gap-3 text-sm sm:grid-cols-4"><div><p className="text-muted-foreground">Customer total</p><p className="text-lg font-semibold">{money(quoteCustomerTotal)}</p></div><div><p className="text-muted-foreground">Cleaner total</p><p className="text-lg font-semibold">{money(quoteCleanerTotal)}</p></div><div><p className="text-muted-foreground">Gross margin</p><p className="text-lg font-semibold text-emerald-700">{money(quoteCustomerTotal - quoteCleanerTotal)}</p></div><div><p className="text-muted-foreground">Total job duration</p><p className="text-lg font-semibold">{baseDurationMinutes > 0 ? formatHours(totalDurationMinutes) : "Enter base duration"}</p>{baseDurationMinutes > 0 && <p className="text-xs text-muted-foreground">Main clean {formatHours(baseDurationMinutes)}{addOnDurationTotal > 0 ? ` + add-ons ${formatHours(addOnDurationTotal)}` : ""}</p>}</div></div>{chosenAddOns.length > 0 && <div className="mt-3 border-t pt-3 text-xs text-muted-foreground">Base clean plus {chosenAddOns.map((item) => `${item.name} × ${addOnQuantities[item.id]}`).join(", ")}</div>}</div>}
                 <div className="flex flex-wrap gap-2">
                   <Button onClick={createQuote} disabled={saving}>
                     {saving && (
