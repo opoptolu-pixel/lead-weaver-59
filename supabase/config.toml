@@ -39,6 +39,9 @@ verify_jwt = false
 [functions.submit-cleaner-vetting]
 verify_jwt = false
 
+[functions.update-cleaner-profile]
+verify_jwt = false
+
 [functions.send-agency-quote]
 verify_jwt = true
 

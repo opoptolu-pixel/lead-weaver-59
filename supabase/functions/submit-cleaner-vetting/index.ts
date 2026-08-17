@@ -16,9 +16,6 @@ serve(async (request) => {
     if (authError || !auth.user) return respond({ error: "Invalid session" }, 401);
 
     const body = await request.json();
-    const addressLine1 = String(body.addressLine1 || "").trim().slice(0, 160);
-    const addressLine2 = String(body.addressLine2 || "").trim().slice(0, 160) || null;
-    const city = String(body.city || "").trim().slice(0, 100);
     const route = String(body.citizenshipRoute || "");
     const dob = String(body.dateOfBirth || "");
     const shareCode = String(body.rightToWorkShareCode || "").replace(/\s/g, "").toUpperCase();
@@ -26,15 +23,17 @@ serve(async (request) => {
     const addressPath = String(body.addressPath || "");
     const dbsPath = body.dbsPath ? String(body.dbsPath) : null;
     const ownedPrefix = `${auth.user.id}/cleaner-vetting/`;
-    if (!addressLine1 || !city || !["british", "irish", "other"].includes(route) || !identityPath.startsWith(ownedPrefix) || !addressPath.startsWith(ownedPrefix) || (dbsPath && !dbsPath.startsWith(ownedPrefix))) return respond({ error: "Complete all required fields and upload valid documents." }, 400);
+    if (!["british", "irish", "other"].includes(route) || !identityPath.startsWith(ownedPrefix) || !addressPath.startsWith(ownedPrefix) || (dbsPath && !dbsPath.startsWith(ownedPrefix))) return respond({ error: "Complete all required fields and upload valid documents." }, 400);
     if (route === "other" && (!/^W[A-Z0-9]{8}$/.test(shareCode) || !/^\d{4}-\d{2}-\d{2}$/.test(dob))) return respond({ error: "Enter your date of birth and the 9-character right-to-work share code beginning W." }, 400);
 
     const service = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "");
-    const { data: profile, error: profileError } = await service.from("cleaner_profiles").select("id").eq("user_id", auth.user.id).single();
+    const { data: profile, error: profileError } = await service.from("cleaner_profiles").select("id,postcode").eq("user_id", auth.user.id).single();
     if (profileError || !profile) return respond({ error: "Cleaner profile not found" }, 404);
+    const { data: currentVetting } = await service.from("cleaner_vetting_records").select("address_line_1,city").eq("cleaner_id", profile.id).maybeSingle();
+    if (!currentVetting?.address_line_1 || !currentVetting?.city || !profile.postcode) return respond({ error: "Save your full home address in Personal details before submitting proof of address." }, 400);
 
     const vettingUpdate: Record<string, unknown> = {
-      cleaner_id: profile.id, address_line_1: addressLine1, address_line_2: addressLine2, city, citizenship_route: route,
+      cleaner_id: profile.id, citizenship_route: route,
       date_of_birth: route === "other" ? dob : null, right_to_work_share_code: route === "other" ? shareCode : null,
       identity_status: "pending_review", address_status: "pending_review", right_to_work_status: "pending_review",
       right_to_work_basis: route === "other" ? "time_limited" : "continuous", right_to_work_expires_on: null,
