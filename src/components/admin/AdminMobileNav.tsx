@@ -1,13 +1,13 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, FileText, BarChart3, Settings, Activity } from "lucide-react";
+import { CalendarDays, CreditCard, FileText, LayoutDashboard, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { label: "Overview", icon: LayoutDashboard, href: "/admin" },
-  { label: "Live", icon: Activity, href: "/admin/live" },
-  { label: "Leads", icon: FileText, href: "/admin/leads" },
-  { label: "Analytics", icon: BarChart3, href: "/admin/analytics" },
-  { label: "Settings", icon: Settings, href: "/admin/settings" },
+  { label: "Requests", icon: FileText, href: "/admin/cleaning-requests" },
+  { label: "Jobs", icon: CalendarDays, href: "/admin/jobs" },
+  { label: "Cleaners", icon: Users, href: "/admin/cleaners" },
+  { label: "Payments", icon: CreditCard, href: "/admin/payments" },
 ];
 
 export default function AdminMobileNav() {
@@ -31,15 +31,16 @@ export default function AdminMobileNav() {
             <Link
               key={item.href}
               to={item.href}
+              aria-current={active ? "page" : undefined}
               className={cn(
-                "flex flex-col items-center justify-center w-full h-full gap-1 text-xs transition-colors",
+                "flex flex-col items-center justify-center w-full h-full gap-1 px-1 text-[0.6875rem] transition-colors",
                 active
-                  ? "text-secondary"
+                  ? "bg-secondary/10 text-secondary"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <Icon className={cn("w-5 h-5", active && "fill-secondary/20")} />
-              <span className="font-medium">{item.label}</span>
+              <Icon className={cn("h-5 w-5", active && "fill-secondary/15")} />
+              <span className="max-w-full truncate font-semibold">{item.label}</span>
             </Link>
           );
         })}
