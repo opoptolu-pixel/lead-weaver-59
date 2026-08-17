@@ -1027,6 +1027,8 @@ export default function AdminServiceRequests() {
   const addOnCustomerTotal = chosenAddOns.reduce((sum, item) => sum + item.customer_price_pence * addOnQuantities[item.id], 0);
   const addOnCleanerTotal = chosenAddOns.reduce((sum, item) => sum + item.cleaner_payout_pence * addOnQuantities[item.id], 0);
   const addOnDurationTotal = chosenAddOns.reduce((sum, item) => sum + item.duration_minutes * addOnQuantities[item.id], 0);
+  const baseDurationMinutes = Number(durationHours) > 0 ? Math.round(Number(durationHours) * 60) : 0;
+  const totalDurationMinutes = baseDurationMinutes + addOnDurationTotal;
   const quoteCustomerTotal = Math.round(Number(customerPrice || 0) * 100) + addOnCustomerTotal;
   const quoteCleanerTotal = Math.round(Number(cleanerPayout || 0) * 100) + addOnCleanerTotal;
   const groupedAddOns = addOnCatalogue.reduce<Record<string, ServiceAddOn[]>>((groups, item) => { (groups[item.category] ||= []).push(item); return groups; }, {});
@@ -1716,7 +1718,7 @@ export default function AdminServiceRequests() {
                     />
                   </div>
                   <div>
-                    <Label>Expected duration (hours)</Label>
+                    <Label>Base cleaning duration (hours)</Label>
                     <Input
                       type="number"
                       min="0.5"
@@ -1724,6 +1726,7 @@ export default function AdminServiceRequests() {
                       value={durationHours}
                       onChange={(event) => setDurationHours(event.target.value)}
                     />
+                    <p className="mt-1 text-xs text-muted-foreground">Enter the time for the main clean. Selected add-on time is added automatically.</p>
                   </div>
                 </div>
                 <div>
@@ -1853,7 +1856,7 @@ export default function AdminServiceRequests() {
                     />
                   </div>
                 </div>
-                {(customerPrice || cleanerPayout || chosenAddOns.length > 0) && <div className="rounded-xl border bg-muted/20 p-4"><div className="grid gap-3 text-sm sm:grid-cols-4"><div><p className="text-muted-foreground">Customer total</p><p className="text-lg font-semibold">{money(quoteCustomerTotal)}</p></div><div><p className="text-muted-foreground">Cleaner total</p><p className="text-lg font-semibold">{money(quoteCleanerTotal)}</p></div><div><p className="text-muted-foreground">Gross margin</p><p className="text-lg font-semibold text-emerald-700">{money(quoteCustomerTotal - quoteCleanerTotal)}</p></div><div><p className="text-muted-foreground">Total duration</p><p className="text-lg font-semibold">{Math.round(Number(durationHours || 0) * 60) + addOnDurationTotal} min</p></div></div>{chosenAddOns.length > 0 && <div className="mt-3 border-t pt-3 text-xs text-muted-foreground">Base clean plus {chosenAddOns.map((item) => `${item.name} × ${addOnQuantities[item.id]}`).join(", ")}</div>}</div>}
+                {(customerPrice || cleanerPayout || chosenAddOns.length > 0) && <div className="rounded-xl border bg-muted/20 p-4"><div className="grid gap-3 text-sm sm:grid-cols-4"><div><p className="text-muted-foreground">Customer total</p><p className="text-lg font-semibold">{money(quoteCustomerTotal)}</p></div><div><p className="text-muted-foreground">Cleaner total</p><p className="text-lg font-semibold">{money(quoteCleanerTotal)}</p></div><div><p className="text-muted-foreground">Gross margin</p><p className="text-lg font-semibold text-emerald-700">{money(quoteCustomerTotal - quoteCleanerTotal)}</p></div><div><p className="text-muted-foreground">Total job duration</p><p className="text-lg font-semibold">{baseDurationMinutes > 0 ? `${totalDurationMinutes} min` : "Enter base duration"}</p>{baseDurationMinutes > 0 && <p className="text-xs text-muted-foreground">Main clean {baseDurationMinutes} min{addOnDurationTotal > 0 ? ` + add-ons ${addOnDurationTotal} min` : ""}</p>}</div></div>{chosenAddOns.length > 0 && <div className="mt-3 border-t pt-3 text-xs text-muted-foreground">Base clean plus {chosenAddOns.map((item) => `${item.name} × ${addOnQuantities[item.id]}`).join(", ")}</div>}</div>}
                 <div className="flex flex-wrap gap-2">
                   <Button onClick={createQuote} disabled={saving}>
                     {saving && (
