@@ -33,6 +33,7 @@ import {
   UserRound,
 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
+import { CleanerVettingPanel } from "@/components/admin/CleanerVettingPanel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -1532,36 +1533,6 @@ export default function AdminServiceRequests() {
                         </Button>
                       </>
                     )}
-                    {isOnboarding &&
-                      cleaner.application_status === "approved" &&
-                      cleaner.verification_status === "pending" && (
-                        <>
-                          <Button
-                            onClick={() =>
-                              updateCleaner(cleaner, {
-                                verification_status: "approved",
-                                operational_status: "active",
-                                approved_at: new Date().toISOString(),
-                              })
-                            }
-                            disabled={saving}
-                          >
-                            Approve checks & activate
-                          </Button>
-                          <Button
-                            variant="outline"
-                            onClick={() =>
-                              updateCleaner(cleaner, {
-                                verification_status: "rejected",
-                                operational_status: "inactive",
-                              })
-                            }
-                            disabled={saving}
-                          >
-                            Reject checks
-                          </Button>
-                        </>
-                      )}
                     {!isOnboarding &&
                       cleaner.application_status === "approved" &&
                       cleaner.operational_status === "active" && (
@@ -1593,6 +1564,7 @@ export default function AdminServiceRequests() {
                       )}
                   </div>
                 </div>
+                {isOnboarding && <CleanerVettingPanel cleanerId={cleaner.id} applicationStatus={cleaner.application_status} onChanged={fetchData} />}
               </div>
             ))}
           </TabsContent>

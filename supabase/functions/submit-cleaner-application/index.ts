@@ -33,12 +33,23 @@ serve(async (req) => {
     const phone = String(body.phone || "").replace(/[\s()-]/g, "").slice(0, 20);
     const postcode = String(body.postcode || "").trim().toUpperCase().slice(0, 10);
     const experience = String(body.experienceSummary || "").trim().slice(0, 2000) || null;
+    const addressLine1 = String(body.addressLine1 || "").trim().slice(0, 160);
+    const addressLine2 = String(body.addressLine2 || "").trim().slice(0, 160) || null;
+    const city = String(body.city || "").trim().slice(0, 100);
+    const citizenshipRoute = String(body.citizenshipRoute || "");
+    const dateOfBirth = String(body.dateOfBirth || "");
+    const shareCode = String(body.rightToWorkShareCode || "").replace(/\s/g, "").toUpperCase();
+    const identityPath = String(body.identityPath || "");
+    const addressPath = String(body.addressPath || "");
     const serviceSlugs = Array.isArray(body.serviceSlugs)
       ? [...new Set(body.serviceSlugs.map(String).filter((slug: string) => allowedServices.has(slug)))]
       : [];
 
-    if (!fullName || !/^(?:\+44|0)\d{9,10}$/.test(phone) || !/^([A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2})$/i.test(postcode) || serviceSlugs.length === 0) {
-      return respond({ error: "Please complete your name, UK phone, postcode and at least one service." }, 400);
+    if (!fullName || !/^(?:\+44|0)\d{9,10}$/.test(phone) || !/^([A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2})$/i.test(postcode) || serviceSlugs.length === 0 || !addressLine1 || !city || !["british","irish","other"].includes(citizenshipRoute) || !identityPath || !addressPath) {
+      return respond({ error: "Please complete all required application and document fields." }, 400);
+    }
+    if (citizenshipRoute === "other" && (!/^W[A-Z0-9]{8}$/.test(shareCode) || !/^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth))) {
+      return respond({ error: "Enter the 9-character right-to-work share code beginning W and your date of birth." }, 400);
     }
 
     const service = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
@@ -57,6 +68,23 @@ serve(async (req) => {
       verification_status: "not_started",
     }, { onConflict: "user_id" }).select("id").single();
     if (profileError) throw profileError;
+
+    const { error: vettingError } = await service.from("cleaner_vetting_records").upsert({
+      cleaner_id: profile.id, address_line_1: addressLine1, address_line_2: addressLine2, city,
+      citizenship_route: citizenshipRoute, date_of_birth: citizenshipRoute === "other" ? dateOfBirth : null,
+      right_to_work_share_code: citizenshipRoute === "other" ? shareCode : null,
+      identity_status: "pending_review", address_status: "pending_review", right_to_work_status: "pending_review",
+      right_to_work_basis: ["british","irish"].includes(citizenshipRoute) ? "continuous" : "time_limited",
+      submitted_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+    }, { onConflict: "cleaner_id" });
+    if (vettingError) throw vettingError;
+
+    await service.from("cleaner_vetting_documents").update({ is_current: false, superseded_at: new Date().toISOString() }).eq("cleaner_id", profile.id).eq("is_current", true).in("document_type", ["identity","proof_of_address"]);
+    const { error: documentError } = await service.from("cleaner_vetting_documents").insert([
+      { cleaner_id: profile.id, document_type: "identity", file_path: identityPath },
+      { cleaner_id: profile.id, document_type: "proof_of_address", file_path: addressPath },
+    ]);
+    if (documentError) throw documentError;
 
     const { data: serviceTypes, error: serviceError } = await service.from("service_types").select("id,slug").in("slug", serviceSlugs).eq("is_active", true);
     if (serviceError) throw serviceError;
