@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Save, Users, Shield, Globe, Bell, Loader2, Mail, Edit, X, Check, Lock, Plus, Trash2, Copy, UserPlus, Eye, EyeOff, RefreshCw, Database } from "lucide-react";
+import { Save, Users, Shield, Globe, Bell, Loader2, Mail, Edit, X, Check, Lock, Plus, Trash2, Copy, UserPlus, Eye, EyeOff, RefreshCw, Database, Sparkles } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import TwoFactorSetup from "@/components/admin/TwoFactorSetup";
+import { AgencyAddOnSettings } from "@/components/admin/AgencyAddOnSettings";
 
 interface UserWithRole {
   id: string;
@@ -439,6 +440,10 @@ export default function AdminSettings() {
             <Globe className="w-4 h-4" />
             Site Config
           </TabsTrigger>
+          <TabsTrigger value="addons" className="gap-2">
+            <Sparkles className="w-4 h-4" />
+            Service Add-ons
+          </TabsTrigger>
           <TabsTrigger value="security" className="gap-2">
             <Lock className="w-4 h-4" />
             Security
@@ -591,6 +596,10 @@ export default function AdminSettings() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="addons" className="space-y-6">
+          <AgencyAddOnSettings />
         </TabsContent>
 
         {/* Security */}

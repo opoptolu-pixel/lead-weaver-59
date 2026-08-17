@@ -50,7 +50,7 @@ serve(async (req) => {
     const db = createClient(supabaseUrl, serviceRoleKey);
     const { data: quote, error: quoteError } = await db
       .from("quotes")
-      .select("id,status,customer_amount_pence,currency,valid_until,scheduled_date,start_time,expected_duration_minutes,request:service_requests(id,reference,customer:customers(name,email),service_type:service_types(name))")
+      .select("id,status,customer_amount_pence,currency,valid_until,scheduled_date,start_time,expected_duration_minutes,add_ons:quote_addons(addon_name,quantity,unit_customer_price_pence),request:service_requests(id,reference,customer:customers(name,email),service_type:service_types(name))")
       .eq("id", quoteId)
       .single();
     if (quoteError || !quote) throw new Error(quoteError?.message || "Quote not found");
@@ -74,23 +74,20 @@ serve(async (req) => {
     };
     if (!request?.customer?.email) throw new Error("The customer does not have an email address");
 
+    const addOns = (quote.add_ons || []) as Array<{ addon_name: string; quantity: number; unit_customer_price_pence: number }>;
+    const addOnTotal = addOns.reduce((sum, item) => sum + item.quantity * item.unit_customer_price_pence, 0);
+    const baseAmount = Math.max(0, quote.customer_amount_pence - addOnTotal);
+
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
     const expirySeconds = Math.min(24 * 60 * 60, Math.floor((validUntil - Date.now()) / 1000));
     const siteUrl = (Deno.env.get("SITE_URL") || "https://cleanda.co.uk").replace(/\/$/, "");
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       customer_email: request.customer.email,
-      line_items: [{
-        quantity: 1,
-        price_data: {
-          currency: (quote.currency || "GBP").toLowerCase(),
-          unit_amount: quote.customer_amount_pence,
-          product_data: {
-            name: `Cleanda — ${request.service_type.name}`,
-            description: `${quote.scheduled_date}${quote.start_time ? ` at ${quote.start_time.slice(0, 5)}` : ""}`,
-          },
-        },
-      }],
+      line_items: [
+        { quantity: 1, price_data: { currency: (quote.currency || "GBP").toLowerCase(), unit_amount: baseAmount, product_data: { name: `Cleanda — ${request.service_type.name}`, description: `${quote.scheduled_date}${quote.start_time ? ` at ${quote.start_time.slice(0, 5)}` : ""}` } } },
+        ...addOns.map((item) => ({ quantity: item.quantity, price_data: { currency: (quote.currency || "GBP").toLowerCase(), unit_amount: item.unit_customer_price_pence, product_data: { name: item.addon_name } } })),
+      ].filter((item) => item.price_data.unit_amount > 0),
       metadata: { agency_quote_id: quote.id, service_request_reference: request.reference },
       success_url: `${siteUrl}/booking-confirmed?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${siteUrl}/?payment=cancelled`,
@@ -123,6 +120,7 @@ serve(async (req) => {
       customer_price: escapeHtml(pounds), scheduled_date: escapeHtml(quote.scheduled_date),
       start_time: escapeHtml(quote.start_time?.slice(0, 5) || "To be confirmed"),
       request_reference: escapeHtml(request.reference), payment_url: escapeHtml(session.url),
+      addons_summary: addOns.length ? `<div style="padding:18px 20px;background:#f8faf9;border:1px solid #dce9e3;border-radius:12px;margin:0 0 24px"><p style="font-size:16px;font-weight:bold;margin:0 0 10px">Included add-ons</p>${addOns.map((item) => `<p style="font-size:15px;line-height:1.5;margin:5px 0">${escapeHtml(item.addon_name)} × ${item.quantity} — ${escapeHtml((item.quantity * item.unit_customer_price_pence / 100).toLocaleString("en-GB", { style: "currency", currency: "GBP" }))}</p>`).join("")}</div>` : "",
     };
     const { data: messageTemplate } = await db.from("email_templates").select("subject,body,is_active").eq("name", "agency_quote_payment_link").maybeSingle();
     if (messageTemplate && !messageTemplate.is_active) throw new Error("The agency quote email template is disabled");

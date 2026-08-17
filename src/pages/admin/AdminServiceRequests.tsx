@@ -24,9 +24,12 @@ import {
   Loader2,
   List,
   MapPin,
+  Minus,
   Phone,
+  Plus,
   RefreshCw,
   RotateCcw,
+  Sparkles,
   UserRound,
 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
@@ -91,6 +94,18 @@ interface Quote {
   start_time: string | null;
   expected_duration_minutes: number | null;
   requirements: string | null;
+  add_ons?: QuoteAddOn[];
+}
+
+interface ServiceAddOn {
+  id: string; code: string; name: string; category: string; description: string | null;
+  customer_price_pence: number; cleaner_payout_pence: number; duration_minutes: number;
+  unit_label: string; max_quantity: number; is_active: boolean; display_order: number;
+}
+
+interface QuoteAddOn {
+  id: string; addon_id: string | null; addon_code: string; addon_name: string; category: string;
+  quantity: number; unit_customer_price_pence: number; unit_cleaner_payout_pence: number; unit_duration_minutes: number;
 }
 
 interface CustomerPayment {
@@ -244,6 +259,9 @@ export default function AdminServiceRequests() {
   const [adminNotes, setAdminNotes] = useState("");
   const [customerPrice, setCustomerPrice] = useState("");
   const [cleanerPayout, setCleanerPayout] = useState("");
+  const [addOnCatalogue, setAddOnCatalogue] = useState<ServiceAddOn[]>([]);
+  const [addOnQuantities, setAddOnQuantities] = useState<Record<string, number>>({});
+  const [showAddOns, setShowAddOns] = useState(false);
   const [quoteValidUntil, setQuoteValidUntil] = useState("");
   const [offlinePaymentReference, setOfflinePaymentReference] = useState("");
   const [assignmentChoices, setAssignmentChoices] = useState<
@@ -298,7 +316,7 @@ export default function AdminServiceRequests() {
 
   const fetchData = async () => {
     if (!loadedOnce.current) setLoading(true);
-    const [requestResult, initialJobResult, cleanerResult, paymentResult] = await Promise.all([
+    const [requestResult, initialJobResult, cleanerResult, paymentResult, addOnResult] = await Promise.all([
       db
         .from("service_requests")
         .select(
@@ -307,7 +325,7 @@ export default function AdminServiceRequests() {
         customer:customers(id,name,email,phone),
         address:customer_addresses(id,address_line_1,address_line_2,postcode,city,access_notes),
         service_type:service_types(id,name),
-        quotes(id,status,customer_amount_pence,cleaner_payout_pence,valid_until,version,scheduled_date,start_time,expected_duration_minutes,requirements)
+        quotes(id,status,customer_amount_pence,cleaner_payout_pence,valid_until,version,scheduled_date,start_time,expected_duration_minutes,requirements,add_ons:quote_addons(id,addon_id,addon_code,addon_name,category,quantity,unit_customer_price_pence,unit_cleaner_payout_pence,unit_duration_minutes))
       `,
         )
         .order("created_at", { ascending: false }),
@@ -332,6 +350,7 @@ export default function AdminServiceRequests() {
         .from("customer_payments")
         .select("id,job_id,amount_pence,status,provider,provider_reference,paid_at")
         .order("created_at", { ascending: false }),
+      db.from("service_addons").select("*").eq("is_active", true).order("display_order"),
     ]);
 
     let jobResult = initialJobResult;
@@ -368,12 +387,14 @@ export default function AdminServiceRequests() {
       jobResult.error ||
       cleanerResult.error ||
       paymentResult.error
+      || addOnResult.error
     ) {
       toast.error(
           requestResult.error?.message ||
           jobResult.error?.message ||
           cleanerResult.error?.message ||
           paymentResult.error?.message ||
+          addOnResult.error?.message ||
           "Could not load managed operations",
       );
     } else {
@@ -390,6 +411,7 @@ export default function AdminServiceRequests() {
       setJobs(nextJobs);
       setCleaners(cleanerResult.data || []);
       setCustomerPayments((paymentResult.data as CustomerPayment[]) || []);
+      setAddOnCatalogue((addOnResult.data as ServiceAddOn[]) || []);
       setSelected((current) => current ? nextRequests.find((request) => request.id === current.id) || current : null);
       setSelectedJob((current) => current ? nextJobs.find((job) => job.id === current.id) || current : null);
       knownJobIdsRef.current = new Set(nextJobs.map((job) => job.id));
@@ -471,8 +493,13 @@ export default function AdminServiceRequests() {
     const latest = [...(request.quotes || [])].sort(
       (a, b) => b.version - a.version,
     )[0];
-    setCustomerPrice(latest ? String(latest.customer_amount_pence / 100) : "");
-    setCleanerPayout(latest ? String(latest.cleaner_payout_pence / 100) : "");
+    const priorAddOns = latest?.add_ons || [];
+    const priorCustomerAddOns = priorAddOns.reduce((sum, item) => sum + item.quantity * item.unit_customer_price_pence, 0);
+    const priorCleanerAddOns = priorAddOns.reduce((sum, item) => sum + item.quantity * item.unit_cleaner_payout_pence, 0);
+    setCustomerPrice(latest ? String((latest.customer_amount_pence - priorCustomerAddOns) / 100) : "");
+    setCleanerPayout(latest ? String((latest.cleaner_payout_pence - priorCleanerAddOns) / 100) : "");
+    setAddOnQuantities(Object.fromEntries(priorAddOns.filter((item) => item.addon_id).map((item) => [item.addon_id as string, item.quantity])));
+    setShowAddOns(priorAddOns.length > 0);
     setQuoteValidUntil(
       latest?.valid_until ? latest.valid_until.slice(0, 10) : "",
     );
@@ -486,10 +513,10 @@ export default function AdminServiceRequests() {
     setStartTime(latest?.start_time?.slice(0, 5) || "");
     setDurationHours(
       latest?.expected_duration_minutes
-        ? String(latest.expected_duration_minutes / 60)
+        ? String((latest.expected_duration_minutes - priorAddOns.reduce((sum, item) => sum + item.quantity * item.unit_duration_minutes, 0)) / 60)
         : "",
     );
-    setJobRequirements(latest?.requirements || request.customer_notes || "");
+    setJobRequirements((latest?.requirements || request.customer_notes || "").replace(/\n\nSelected add-ons:[\s\S]*$/, ""));
   };
 
   const updateRequest = async (status?: string) => {
@@ -511,8 +538,12 @@ export default function AdminServiceRequests() {
 
   const createQuote = async () => {
     if (!selected) return;
-    const customerPence = Math.round(Number(customerPrice) * 100);
-    const cleanerPence = Math.round(Number(cleanerPayout) * 100);
+    const selectedAddOns = addOnCatalogue.filter((item) => (addOnQuantities[item.id] || 0) > 0);
+    const addOnCustomerPence = selectedAddOns.reduce((sum, item) => sum + item.customer_price_pence * addOnQuantities[item.id], 0);
+    const addOnCleanerPence = selectedAddOns.reduce((sum, item) => sum + item.cleaner_payout_pence * addOnQuantities[item.id], 0);
+    const addOnMinutes = selectedAddOns.reduce((sum, item) => sum + item.duration_minutes * addOnQuantities[item.id], 0);
+    const customerPence = Math.round(Number(customerPrice) * 100) + addOnCustomerPence;
+    const cleanerPence = Math.round(Number(cleanerPayout) * 100) + addOnCleanerPence;
     if (!customerPence || cleanerPence < 0 || customerPence < cleanerPence) {
       return toast.error(
         "Enter a valid customer price and cleaner payout. The customer price must cover the payout.",
@@ -558,14 +589,22 @@ export default function AdminServiceRequests() {
         address_id: selected.address.id,
         scheduled_date: scheduledDate,
         start_time: startTime,
-        expected_duration_minutes: Math.round(Number(durationHours) * 60),
-        requirements: jobRequirements.trim() || null,
+        expected_duration_minutes: Math.round(Number(durationHours) * 60) + addOnMinutes,
+        requirements: [jobRequirements.trim(), selectedAddOns.length ? `Selected add-ons:\n${selectedAddOns.map((item) => `• ${item.name} × ${addOnQuantities[item.id]}`).join("\n")}` : ""].filter(Boolean).join("\n\n") || null,
       })
       .select("id")
       .single();
     if (error || !quote) {
       setSaving(false);
       return toast.error(error?.message || "The quote could not be created.");
+    }
+    if (selectedAddOns.length) {
+      const { error: addOnError } = await db.from("quote_addons").insert(selectedAddOns.map((item) => ({
+        quote_id: quote.id, addon_id: item.id, addon_code: item.code, addon_name: item.name, category: item.category,
+        quantity: addOnQuantities[item.id], unit_customer_price_pence: item.customer_price_pence,
+        unit_cleaner_payout_pence: item.cleaner_payout_pence, unit_duration_minutes: item.duration_minutes,
+      })));
+      if (addOnError) { setSaving(false); return toast.error(`The quote was created, but its add-ons could not be saved: ${addOnError.message}`); }
     }
     const { error: noteError } = await db
       .from("service_requests")
@@ -984,6 +1023,13 @@ export default function AdminServiceRequests() {
     : null;
   const awaitingOnlinePayment =
     !selectedBookingJob && latestSelectedQuote?.status === "sent";
+  const chosenAddOns = addOnCatalogue.filter((item) => (addOnQuantities[item.id] || 0) > 0);
+  const addOnCustomerTotal = chosenAddOns.reduce((sum, item) => sum + item.customer_price_pence * addOnQuantities[item.id], 0);
+  const addOnCleanerTotal = chosenAddOns.reduce((sum, item) => sum + item.cleaner_payout_pence * addOnQuantities[item.id], 0);
+  const addOnDurationTotal = chosenAddOns.reduce((sum, item) => sum + item.duration_minutes * addOnQuantities[item.id], 0);
+  const quoteCustomerTotal = Math.round(Number(customerPrice || 0) * 100) + addOnCustomerTotal;
+  const quoteCleanerTotal = Math.round(Number(cleanerPayout || 0) * 100) + addOnCleanerTotal;
+  const groupedAddOns = addOnCatalogue.reduce<Record<string, ServiceAddOn[]>>((groups, item) => { (groups[item.category] ||= []).push(item); return groups; }, {});
 
   return (
     <AdminLayout title={pageTitle}>
@@ -1762,9 +1808,22 @@ export default function AdminServiceRequests() {
                     </p>
                   </div>
                 )}
+                <div className="overflow-hidden rounded-xl border">
+                  <button type="button" onClick={() => setShowAddOns((value) => !value)} className="flex w-full items-center justify-between gap-4 bg-muted/30 px-4 py-3 text-left hover:bg-muted/50">
+                    <div className="flex items-center gap-3"><span className="rounded-lg bg-emerald-100 p-2 text-emerald-700"><Sparkles className="h-4 w-4" /></span><div><p className="font-semibold">Service add-ons</p><p className="text-xs text-muted-foreground">Ask about relevant extras during the customer call</p></div></div>
+                    <div className="flex items-center gap-3">{chosenAddOns.length > 0 && <Badge className="bg-emerald-700 text-white">{chosenAddOns.reduce((sum, item) => sum + addOnQuantities[item.id], 0)} selected</Badge>}<ChevronRight className={`h-4 w-4 transition-transform ${showAddOns ? "rotate-90" : ""}`} /></div>
+                  </button>
+                  {showAddOns && <div className="space-y-5 border-t p-4">
+                    <p className="rounded-lg bg-blue-50 p-3 text-sm text-blue-950">Add only what the customer has agreed to. Prices, cleaner pay and time update automatically.</p>
+                    {Object.entries(groupedAddOns).map(([category, items]) => <div key={category}><p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{category === "home" ? "Home & furnishings" : category}</p><div className="grid gap-2 lg:grid-cols-2">{items.map((item) => {
+                      const quantity = addOnQuantities[item.id] || 0;
+                      return <div key={item.id} className={`rounded-lg border p-3 transition ${quantity ? "border-emerald-300 bg-emerald-50/60" : "bg-card"}`}><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="font-medium">{item.name}</p><p className="mt-0.5 text-xs text-muted-foreground">{item.description}</p><p className="mt-2 text-xs font-medium">+{money(item.customer_price_pence)} customer · +{money(item.cleaner_payout_pence)} cleaner · +{item.duration_minutes} min</p></div><div className="flex shrink-0 items-center gap-1 rounded-lg border bg-background p-1"><Button type="button" variant="ghost" size="icon" className="h-7 w-7" disabled={!quantity} onClick={() => setAddOnQuantities((current) => ({ ...current, [item.id]: Math.max(0, quantity - 1) }))}><Minus className="h-3.5 w-3.5" /></Button><span className="w-6 text-center text-sm font-semibold">{quantity}</span><Button type="button" variant="ghost" size="icon" className="h-7 w-7" disabled={quantity >= item.max_quantity} onClick={() => setAddOnQuantities((current) => ({ ...current, [item.id]: Math.min(item.max_quantity, quantity + 1) }))}><Plus className="h-3.5 w-3.5" /></Button></div></div>{item.max_quantity > 1 && <p className="mt-2 text-xs text-muted-foreground">Charged per {item.unit_label}</p>}</div>;
+                    })}</div></div>)}
+                  </div>}
+                </div>
                 <div className="grid gap-3 sm:grid-cols-3">
                   <div>
-                    <Label>Customer price (£)</Label>
+                    <Label>Base customer price (£)</Label>
                     <Input
                       type="number"
                       min="0"
@@ -1774,7 +1833,7 @@ export default function AdminServiceRequests() {
                     />
                   </div>
                   <div>
-                    <Label>Cleaner payout (£)</Label>
+                    <Label>Base cleaner payout (£)</Label>
                     <Input
                       type="number"
                       min="0"
@@ -1794,16 +1853,7 @@ export default function AdminServiceRequests() {
                     />
                   </div>
                 </div>
-                {customerPrice && cleanerPayout && (
-                  <p className="text-sm text-muted-foreground">
-                    Expected gross margin:{" "}
-                    {money(
-                      Math.round(
-                        (Number(customerPrice) - Number(cleanerPayout)) * 100,
-                      ),
-                    )}
-                  </p>
-                )}
+                {(customerPrice || cleanerPayout || chosenAddOns.length > 0) && <div className="rounded-xl border bg-muted/20 p-4"><div className="grid gap-3 text-sm sm:grid-cols-4"><div><p className="text-muted-foreground">Customer total</p><p className="text-lg font-semibold">{money(quoteCustomerTotal)}</p></div><div><p className="text-muted-foreground">Cleaner total</p><p className="text-lg font-semibold">{money(quoteCleanerTotal)}</p></div><div><p className="text-muted-foreground">Gross margin</p><p className="text-lg font-semibold text-emerald-700">{money(quoteCustomerTotal - quoteCleanerTotal)}</p></div><div><p className="text-muted-foreground">Total duration</p><p className="text-lg font-semibold">{Math.round(Number(durationHours || 0) * 60) + addOnDurationTotal} min</p></div></div>{chosenAddOns.length > 0 && <div className="mt-3 border-t pt-3 text-xs text-muted-foreground">Base clean plus {chosenAddOns.map((item) => `${item.name} × ${addOnQuantities[item.id]}`).join(", ")}</div>}</div>}
                 <div className="flex flex-wrap gap-2">
                   <Button onClick={createQuote} disabled={saving}>
                     {saving && (
