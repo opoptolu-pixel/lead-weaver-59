@@ -603,7 +603,7 @@ export default function AdminServiceRequests() {
         scheduled_date: scheduledDate,
         start_time: startTime,
         expected_duration_minutes: Math.round(Number(durationHours) * 60) + addOnMinutes,
-        requirements: [jobRequirements.trim(), selectedAddOns.length ? `Selected add-ons:\n${selectedAddOns.map((item) => `• ${item.name} × ${addOnQuantities[item.id]}`).join("\n")}` : ""].filter(Boolean).join("\n\n") || null,
+        requirements: jobRequirements.trim() || null,
       })
       .select("id")
       .single();
