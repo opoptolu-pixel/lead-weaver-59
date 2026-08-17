@@ -99,6 +99,9 @@ verify_jwt = false
 [functions.process-cleaner-job-notifications]
 verify_jwt = false
 
+[functions.process-cleaner-compliance-reminders]
+verify_jwt = false
+
 [functions.send-password-reset]
 verify_jwt = false
 

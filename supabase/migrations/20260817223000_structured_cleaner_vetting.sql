@@ -44,7 +44,9 @@ CREATE TABLE IF NOT EXISTS public.cleaner_compliance_reminders (
   cleaner_id uuid NOT NULL REFERENCES public.cleaner_profiles(id) ON DELETE CASCADE,
   reminder_type text NOT NULL CHECK (reminder_type IN ('right_to_work_3_month','right_to_work_2_month','right_to_work_1_month','right_to_work_expired')),
   scheduled_for date NOT NULL,
-  status text NOT NULL DEFAULT 'scheduled' CHECK (status IN ('scheduled','sent','cancelled')),
+  status text NOT NULL DEFAULT 'scheduled' CHECK (status IN ('scheduled','processing','sent','failed','cancelled')),
+  attempts integer NOT NULL DEFAULT 0,
+  last_error text,
   created_at timestamptz NOT NULL DEFAULT now(),
   sent_at timestamptz,
   UNIQUE(cleaner_id, reminder_type, scheduled_for)
@@ -65,14 +67,14 @@ CREATE OR REPLACE FUNCTION public.schedule_cleaner_right_to_work_reminders()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
 BEGIN
   UPDATE public.cleaner_compliance_reminders SET status='cancelled'
-  WHERE cleaner_id=NEW.cleaner_id AND status='scheduled';
+  WHERE cleaner_id=NEW.cleaner_id AND status IN ('scheduled','failed');
   IF NEW.right_to_work_basis='time_limited' AND NEW.right_to_work_expires_on IS NOT NULL THEN
     INSERT INTO public.cleaner_compliance_reminders(cleaner_id,reminder_type,scheduled_for) VALUES
       (NEW.cleaner_id,'right_to_work_3_month',(NEW.right_to_work_expires_on-interval '3 months')::date),
       (NEW.cleaner_id,'right_to_work_2_month',(NEW.right_to_work_expires_on-interval '2 months')::date),
       (NEW.cleaner_id,'right_to_work_1_month',(NEW.right_to_work_expires_on-interval '1 month')::date),
       (NEW.cleaner_id,'right_to_work_expired',NEW.right_to_work_expires_on)
-    ON CONFLICT(cleaner_id,reminder_type,scheduled_for) DO UPDATE SET status='scheduled',sent_at=NULL;
+    ON CONFLICT(cleaner_id,reminder_type,scheduled_for) DO UPDATE SET status='scheduled',sent_at=NULL,attempts=0,last_error=NULL;
   END IF;
   RETURN NEW;
 END $$;
@@ -86,6 +88,13 @@ $$;
 
 INSERT INTO public.cleaner_vetting_records(cleaner_id)
 SELECT id FROM public.cleaner_profiles ON CONFLICT(cleaner_id) DO NOTHING;
+
+INSERT INTO public.email_templates(name,subject,body,description,variables,is_active) VALUES
+('cleaner_right_to_work_3_month','Action needed: right-to-work check expires in 3 months','<h1>Your right-to-work check needs renewing</h1><p>Hello {{cleaner_name}},</p><p>The right-to-work evidence Cleanda holds for you expires on <strong>{{expiry_date}}</strong>.</p><p>Please prepare your updated evidence and submit it from your Cleanda profile. Your current jobs are not affected at this stage.</p><p><a href="{{profile_url}}">Open your Cleanda profile</a></p>','Cleaner right-to-work expiry reminder at three months',ARRAY['cleaner_name','expiry_date','profile_url'],true),
+('cleaner_right_to_work_2_month','Reminder: right-to-work check expires in 2 months','<h1>Right-to-work renewal reminder</h1><p>Hello {{cleaner_name}},</p><p>Your recorded right-to-work permission expires on <strong>{{expiry_date}}</strong>.</p><p>Please submit updated evidence from your Cleanda profile as soon as it is available.</p><p><a href="{{profile_url}}">Open your Cleanda profile</a></p>','Cleaner right-to-work expiry reminder at two months',ARRAY['cleaner_name','expiry_date','profile_url'],true),
+('cleaner_right_to_work_1_month','Urgent: right-to-work check expires in 1 month','<h1>Your right-to-work check expires soon</h1><p>Hello {{cleaner_name}},</p><p>Your recorded right-to-work permission expires on <strong>{{expiry_date}}</strong>.</p><p>Please submit updated evidence now. Cleanda may have to pause future assignments if a valid follow-up check is not completed before expiry.</p><p><a href="{{profile_url}}">Open your Cleanda profile</a></p>','Cleaner right-to-work expiry reminder at one month',ARRAY['cleaner_name','expiry_date','profile_url'],true),
+('cleaner_right_to_work_expired','Your recorded right-to-work check has expired','<h1>Right-to-work evidence expired</h1><p>Hello {{cleaner_name}},</p><p>The right-to-work permission Cleanda holds for you expired on <strong>{{expiry_date}}</strong>.</p><p>Please contact Cleanda and submit valid updated evidence. New assignments may be paused until the follow-up check is approved.</p><p><a href="{{profile_url}}">Open your Cleanda profile</a></p>','Cleaner notification when recorded right-to-work permission expires',ARRAY['cleaner_name','expiry_date','profile_url'],true)
+ON CONFLICT(name) DO UPDATE SET subject=excluded.subject,body=excluded.body,description=excluded.description,variables=excluded.variables;
 
 INSERT INTO public.platform_schema_versions(version,description) VALUES
 ('20260817223000','Structured cleaner identity, address, optional DBS and right-to-work expiry monitoring')
