@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { BriefcaseBusiness, Calendar, CheckCircle2, Clock, ImagePlus, Loader2, LogOut, MapPin, PoundSterling, WalletCards } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Logo } from "@/components/Logo";
+import { CleanerProfilePanel, type CleanerProfileDetails } from "@/components/cleaner/CleanerProfilePanel";
+import { CleanerSupportPanel } from "@/components/cleaner/CleanerSupportPanel";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -30,7 +32,7 @@ const detectEvidenceMimeType = async (file: File) => {
   return null;
 };
 
-interface CleanerProfile { id: string; full_name: string | null; application_status: string; operational_status: string; verification_status: string; bank_account_holder: string | null; bank_sort_code_last2: string | null; bank_account_last4: string | null; bank_details_status: string; }
+interface CleanerProfile extends CleanerProfileDetails { bank_account_holder: string | null; bank_sort_code_last2: string | null; bank_account_last4: string | null; bank_details_status: string; }
 interface Assignment {
   id: string; status: string; offered_at: string;
   job: { id: string; reference: string; status: string; general_location: string; scheduled_date: string; start_time: string | null; expected_duration_minutes: number | null; cleaner_payout_pence: number; requirements: string | null; quality_review_status: string; quality_review_notes: string | null; cleaner_completion_notes: string | null; service_type: { name: string }; customer: { name: string; phone: string } | null; address: { address_line_1: string | null; address_line_2: string | null; city: string | null; postcode: string; access_notes: string | null } | null; accepted_quote: { add_ons: Array<{ id: string; addon_name: string; quantity: number; unit_cleaner_payout_pence: number; unit_duration_minutes: number; }> } | null; };
@@ -46,6 +48,7 @@ const cleanerPayoutLabel = (payout: Payout) => payout.status === "paid" ? "Paid"
 export default function CleanerDashboard() {
   const { user, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [profile, setProfile] = useState<CleanerProfile | null>(null);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [evidence, setEvidence] = useState<Evidence[]>([]);
@@ -56,14 +59,16 @@ export default function CleanerDashboard() {
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const validTabs = ["dashboard", "jobs", "availability", "earnings", "payment-details", "profile", "support"];
+  const requestedTab = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState(requestedTab && validTabs.includes(requestedTab) ? requestedTab : "dashboard");
   const loadedOnce = useRef(false);
   const [bankForm, setBankForm] = useState({ accountHolder: "", sortCode: "", accountNumber: "" });
 
   const fetchDashboard = useCallback(async () => {
     if (!user) return;
     if (!loadedOnce.current) setLoading(true);
-    const { data: profileData, error: profileError } = await db.from("cleaner_profiles").select("id,full_name,application_status,operational_status,verification_status,bank_account_holder,bank_sort_code_last2,bank_account_last4,bank_details_status").eq("user_id", user.id).maybeSingle();
+    const { data: profileData, error: profileError } = await db.from("cleaner_profiles").select("id,full_name,phone,postcode,experience_summary,has_transport,application_status,operational_status,verification_status,created_at,bank_account_holder,bank_sort_code_last2,bank_account_last4,bank_details_status").eq("user_id", user.id).maybeSingle();
     if (profileError) toast.error(profileError.message);
     setProfile(profileData || null);
     if (profileData) {
@@ -106,6 +111,15 @@ export default function CleanerDashboard() {
   }, [user]);
 
   useEffect(() => { if (!authLoading && !user) navigate("/auth"); if (user) fetchDashboard(); }, [authLoading, fetchDashboard, navigate, user]);
+  useEffect(() => {
+    const nextTab = searchParams.get("tab") || "dashboard";
+    if (validTabs.includes(nextTab) && nextTab !== activeTab) setActiveTab(nextTab);
+  }, [searchParams]);
+
+  const changeTab = (value: string) => {
+    setActiveTab(value);
+    setSearchParams(value === "dashboard" ? {} : { tab: value }, { replace: true });
+  };
 
   const respond = async (assignmentId: string, response: "accepted" | "declined") => {
     setBusy(assignmentId);
@@ -194,14 +208,16 @@ export default function CleanerDashboard() {
     <main className="mx-auto max-w-6xl space-y-7 px-4 py-8">
       <div><h1 className="text-3xl font-bold">Welcome, {profile.full_name || "Cleaner"}</h1><div className="mt-3 flex flex-wrap gap-2"><Badge variant="outline">Application: {profile.application_status}</Badge><Badge variant="outline">Verification: {profile.verification_status.replace(/_/g, " ")}</Badge><Badge variant="outline">Status: {profile.operational_status}</Badge></div></div>
       {profile.application_status !== "approved" && <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-amber-950"><h2 className="font-semibold">Application under review</h2><p className="mt-1 text-sm">Cleanda will contact you about verification. Jobs become available after approval and activation.</p></div>}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs value={activeTab} onValueChange={changeTab} className="space-y-6">
         <nav aria-label="Cleaner dashboard sections" className="overflow-x-auto rounded-xl border bg-card p-2 shadow-sm">
-          <TabsList className="grid h-auto min-w-[620px] grid-cols-5 gap-2 bg-transparent p-0">
+          <TabsList className="grid h-auto min-w-[900px] grid-cols-7 gap-2 bg-transparent p-0">
             <TabsTrigger className="min-h-11 rounded-lg border border-transparent px-4 py-2.5 font-semibold data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md" value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger className="min-h-11 rounded-lg border border-transparent px-4 py-2.5 font-semibold data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md" value="jobs">Jobs</TabsTrigger>
             <TabsTrigger className="min-h-11 rounded-lg border border-transparent px-4 py-2.5 font-semibold data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md" value="availability">Availability</TabsTrigger>
             <TabsTrigger className="min-h-11 rounded-lg border border-transparent px-4 py-2.5 font-semibold data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md" value="earnings">Earnings</TabsTrigger>
             <TabsTrigger className="min-h-11 rounded-lg border border-transparent px-4 py-2.5 font-semibold data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md" value="payment-details">Payment details</TabsTrigger>
+            <TabsTrigger className="min-h-11 rounded-lg border border-transparent px-4 py-2.5 font-semibold data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md" value="profile">Profile</TabsTrigger>
+            <TabsTrigger className="min-h-11 rounded-lg border border-transparent px-4 py-2.5 font-semibold data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md" value="support">Support</TabsTrigger>
           </TabsList>
         </nav>
         <TabsContent value="dashboard" className="space-y-6"><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{([["Offers", totals.available, BriefcaseBusiness],["Active jobs",totals.active,Calendar],["Awaiting approval",money(totals.pending),Clock],["Paid",money(totals.paid),WalletCards]] as Array<[string, string | number, ComponentType<{ className?: string }>]>).map(([label,value,Icon]) => <div key={String(label)} className="rounded-xl border bg-card p-5"><Icon className="mb-3 h-5 w-5 text-primary" /><p className="text-sm text-muted-foreground">{String(label)}</p><p className="mt-1 text-2xl font-bold">{String(value)}</p></div>)}</div><p className="rounded-xl border bg-card p-5 text-sm text-muted-foreground">Use the Jobs tab to accept offers, see confirmed addresses and times, upload before-and-after photos, and submit completed work for review.</p></TabsContent>
@@ -209,6 +225,8 @@ export default function CleanerDashboard() {
         <TabsContent value="availability" className="space-y-5"><div><h2 className="text-xl font-semibold">Weekly availability</h2><p className="mt-1 text-sm text-muted-foreground">Cleanda uses these hours when offering work. Accepted jobs and time off are also checked to prevent clashes.</p></div><div className="divide-y rounded-xl border bg-card">{WEEKDAYS.map(({ value, label }) => { const day = availability[value]; return <div key={value} className="grid gap-3 p-4 sm:grid-cols-[1fr_auto_auto] sm:items-center"><label className="flex items-center gap-3 font-medium"><Input className="h-4 w-4" type="checkbox" checked={day.enabled} onChange={(event) => setAvailability((current) => ({ ...current, [value]: { ...current[value], enabled: event.target.checked } }))} />{label}</label><Input aria-label={`${label} start time`} className="sm:w-36" type="time" value={day.start} disabled={!day.enabled} onChange={(event) => setAvailability((current) => ({ ...current, [value]: { ...current[value], start: event.target.value } }))} /><Input aria-label={`${label} end time`} className="sm:w-36" type="time" value={day.end} disabled={!day.enabled} onChange={(event) => setAvailability((current) => ({ ...current, [value]: { ...current[value], end: event.target.value } }))} /></div>; })}</div><Button onClick={saveAvailability} disabled={busy === "availability"}>{busy === "availability" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save availability</Button></TabsContent>
         <TabsContent value="earnings" className="space-y-5"><div className="grid gap-4 sm:grid-cols-3"><Summary label="Not yet payable / held" value={money(totals.pending)} /><Summary label="Approved for pay run" value={money(totals.approved)} /><Summary label="Paid" value={money(totals.paid)} /></div><div className="rounded-xl border bg-card"><div className="border-b p-5"><h2 className="font-semibold">Earnings history</h2></div>{payouts.length === 0 ? <p className="p-8 text-center text-muted-foreground">No earnings recorded yet.</p> : payouts.map((p) => <div key={p.id} className="flex flex-col gap-2 border-b p-5 last:border-0 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-medium">{p.job.reference} · {p.job.service_type.name}</p><p className="text-sm text-muted-foreground">{p.job.scheduled_date}{p.paid_at ? ` · Paid ${new Date(p.paid_at).toLocaleDateString("en-GB")}` : ""}</p>{p.held_reason && <p className="mt-1 text-xs text-amber-700">{p.held_reason}</p>}</div><div className="flex items-center gap-3"><Badge variant="outline">{cleanerPayoutLabel(p)}</Badge><strong>{money(p.amount_pence)}</strong></div></div>)}</div></TabsContent>
         <TabsContent value="payment-details" className="space-y-5"><div className="max-w-2xl rounded-xl border bg-card p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-xl font-semibold">Bank account for weekly payments</h2><p className="mt-1 text-sm text-muted-foreground">Cleanda pays approved weekly earnings by bank transfer on the scheduled Friday.</p></div><Badge variant="outline">{profile.bank_details_status.replace(/_/g, " ")}</Badge></div>{profile.bank_account_last4 && <div className="mt-4 rounded-lg bg-muted p-4 text-sm"><p><strong>Account holder:</strong> {profile.bank_account_holder}</p><p className="mt-1"><strong>Saved account:</strong> sort code ending ••{profile.bank_sort_code_last2}, account ending ••••{profile.bank_account_last4}</p>{profile.bank_details_status === "pending_review" && <p className="mt-2 text-amber-700">Cleanda is reviewing these details. Payouts cannot be approved until verification is complete.</p>}{profile.bank_details_status === "verified" && <p className="mt-2 text-emerald-700">Verified and ready for manual bank payments.</p>}</div>}<div className="mt-5 grid gap-4"><div><Label htmlFor="bank-holder">Account holder name</Label><Input id="bank-holder" autoComplete="name" value={bankForm.accountHolder} onChange={(event) => setBankForm((current) => ({ ...current, accountHolder: event.target.value }))} /></div><div className="grid gap-4 sm:grid-cols-2"><div><Label htmlFor="bank-sort">Sort code</Label><Input id="bank-sort" inputMode="numeric" autoComplete="off" placeholder="12-34-56" maxLength={8} value={bankForm.sortCode} onChange={(event) => setBankForm((current) => ({ ...current, sortCode: event.target.value }))} /></div><div><Label htmlFor="bank-account">Account number</Label><Input id="bank-account" inputMode="numeric" autoComplete="off" placeholder="12345678" maxLength={8} value={bankForm.accountNumber} onChange={(event) => setBankForm((current) => ({ ...current, accountNumber: event.target.value.replace(/\D/g, "") }))} /></div></div><p className="text-xs text-muted-foreground">Enter an account in your own name. Your dashboard will only show masked digits after submission. Resubmitting details sends them back for review.</p><Button className="w-fit" onClick={saveBankDetails} disabled={busy === "bank-details"}>{busy === "bank-details" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{profile.bank_account_last4 ? "Update bank details" : "Submit bank details"}</Button></div></div></TabsContent>
+        <TabsContent value="profile"><CleanerProfilePanel profile={profile} email={user?.email} /></TabsContent>
+        <TabsContent value="support">{user && <CleanerSupportPanel userId={user.id} />}</TabsContent>
       </Tabs>
     </main>
   </div>;

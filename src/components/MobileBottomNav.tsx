@@ -1,6 +1,6 @@
 import { forwardRef } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Home, UserRound, Headphones } from "lucide-react";
+import { BriefcaseBusiness, UserRound, Headphones } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
@@ -10,16 +10,15 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: "Jobs", icon: Home, href: "/dashboard" },
-  { label: "Application", icon: UserRound, href: "/onboarding" },
-  { label: "Support", icon: Headphones, href: "/support" },
+  { label: "Jobs", icon: BriefcaseBusiness, href: "/dashboard?tab=jobs" },
+  { label: "Profile", icon: UserRound, href: "/dashboard?tab=profile" },
+  { label: "Support", icon: Headphones, href: "/dashboard?tab=support" },
 ];
 
 export const MobileBottomNav = forwardRef<HTMLElement>((_, ref) => {
   const location = useLocation();
 
-  const cleanerRoutes = ["/dashboard", "/onboarding", "/support"];
-  const shouldShow = cleanerRoutes.some((route) => location.pathname.startsWith(route));
+  const shouldShow = location.pathname === "/dashboard";
 
   if (!shouldShow) return null;
 
@@ -27,7 +26,9 @@ export const MobileBottomNav = forwardRef<HTMLElement>((_, ref) => {
     <nav ref={ref} className="cleaner-bottom-nav fixed bottom-0 left-0 right-0 z-50 md:hidden pb-safe">
       <div className="flex items-center justify-around h-16">
         {navItems.map((item) => {
-          const isActive = location.pathname === item.href;
+          const selectedTab = new URLSearchParams(location.search).get("tab") || "dashboard";
+          const itemTab = new URLSearchParams(item.href.split("?")[1]).get("tab");
+          const isActive = selectedTab === itemTab;
           const Icon = item.icon;
 
           return (
