@@ -38,6 +38,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -269,6 +270,7 @@ export default function AdminServiceRequests() {
   const [showAddOns, setShowAddOns] = useState(false);
   const [quoteValidUntil, setQuoteValidUntil] = useState("");
   const [offlinePaymentReference, setOfflinePaymentReference] = useState("");
+  const [offlinePaymentDialogOpen, setOfflinePaymentDialogOpen] = useState(false);
   const [assignmentChoices, setAssignmentChoices] = useState<
     Record<string, string>
   >({});
@@ -658,6 +660,7 @@ export default function AdminServiceRequests() {
     if (paymentError) return toast.error(paymentError.message);
     toast.success("Offline payment confirmed and job created");
     setOfflinePaymentReference("");
+    setOfflinePaymentDialogOpen(false);
     await fetchData();
   };
 
@@ -1871,21 +1874,11 @@ export default function AdminServiceRequests() {
                   </Button>
                   <Button
                     variant="secondary"
-                    onClick={acceptAndCreateJob}
+                    onClick={() => setOfflinePaymentDialogOpen(true)}
                     disabled={saving}
                   >
                     Confirm offline payment &amp; create job
                   </Button>
-                </div>
-                <div className="max-w-md">
-                  <Label>Offline payment reference</Label>
-                  <Input
-                    value={offlinePaymentReference}
-                    onChange={(event) =>
-                      setOfflinePaymentReference(event.target.value)
-                    }
-                    placeholder="Bank transfer or card-terminal reference"
-                  />
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Online bookings create a job automatically only after Stripe
@@ -1897,6 +1890,37 @@ export default function AdminServiceRequests() {
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={offlinePaymentDialogOpen} onOpenChange={setOfflinePaymentDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirm offline payment</DialogTitle>
+            <DialogDescription>
+              Only continue after Cleanda has received the customer payment outside Stripe. This action records the payment and creates the job.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="offline-payment-reference">Bank or offline payment reference</Label>
+              <Input
+                id="offline-payment-reference"
+                autoFocus
+                value={offlinePaymentReference}
+                onChange={(event) => setOfflinePaymentReference(event.target.value)}
+                placeholder="e.g. bank transfer or card-terminal reference"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">Use the reference shown on the bank transfer or terminal receipt. For test data, use a clearly labelled TEST reference.</p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setOfflinePaymentDialogOpen(false)} disabled={saving}>Cancel</Button>
+              <Button type="button" onClick={acceptAndCreateJob} disabled={saving || !offlinePaymentReference.trim()}>
+                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Record payment &amp; create job
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
