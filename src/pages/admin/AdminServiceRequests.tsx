@@ -143,6 +143,10 @@ interface Job {
     city: string | null;
     access_notes: string | null;
   };
+  accepted_quote?: {
+    id: string;
+    add_ons: QuoteAddOn[];
+  } | null;
   assignments?: Array<{
     id: string;
     status: string;
@@ -343,6 +347,7 @@ export default function AdminServiceRequests() {
         id,reference,service_request_id,status,scheduled_date,start_time,expected_duration_minutes,requirements,
         customer_amount_pence,cleaner_payout_pence,quality_review_status,quality_review_notes,cleaner_completion_notes,
         service_type:service_types(name),customer:customers(name,phone),address:customer_addresses(id,address_line_1,address_line_2,postcode,city,access_notes),
+        accepted_quote:quotes!jobs_accepted_quote_id_fkey(id,add_ons:quote_addons(id,addon_id,addon_code,addon_name,category,quantity,unit_customer_price_pence,unit_cleaner_payout_pence,unit_duration_minutes)),
         assignments:job_assignments(id,status,cleaner:cleaner_profiles(id,full_name,phone,postcode))
       `,
         )
@@ -369,6 +374,7 @@ export default function AdminServiceRequests() {
         id,reference,service_request_id,status,scheduled_date,start_time,expected_duration_minutes,requirements,
         customer_amount_pence,cleaner_payout_pence,
         service_type:service_types(name),customer:customers(name,phone),address:customer_addresses(id,address_line_1,address_line_2,postcode,city,access_notes),
+        accepted_quote:quotes!jobs_accepted_quote_id_fkey(id,add_ons:quote_addons(id,addon_id,addon_code,addon_name,category,quantity,unit_customer_price_pence,unit_cleaner_payout_pence,unit_duration_minutes)),
         assignments:job_assignments(id,status,cleaner:cleaner_profiles(id,full_name,phone,postcode))
       `,
         )
@@ -1987,6 +1993,28 @@ export default function AdminServiceRequests() {
                   })()}
                 </div>
               </div>
+              {!!selectedJob.accepted_quote?.add_ons?.length && (
+                <div className="rounded-xl border bg-card p-4">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-emerald-600" />
+                    <h3 className="font-semibold">Booked service add-ons</h3>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    These extras are part of the accepted quote and are included in the job totals.
+                  </p>
+                  <div className="mt-3 divide-y rounded-lg border">
+                    {selectedJob.accepted_quote.add_ons.map((addOn) => (
+                      <div key={addOn.id} className="grid gap-1 px-3 py-3 text-sm sm:grid-cols-[1fr_auto_auto] sm:items-center sm:gap-5">
+                        <span className="font-medium">{addOn.addon_name}{addOn.quantity > 1 ? ` × ${addOn.quantity}` : ""}</span>
+                        <span className="text-muted-foreground">+{(addOn.unit_duration_minutes * addOn.quantity) / 60} hrs</span>
+                        <span className="text-muted-foreground">
+                          Customer {money(addOn.unit_customer_price_pence * addOn.quantity)} · Cleaner {money(addOn.unit_cleaner_payout_pence * addOn.quantity)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <Label>Address line 1</Label>
