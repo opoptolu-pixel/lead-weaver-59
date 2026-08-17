@@ -2208,6 +2208,63 @@ export type Database = {
         }
         Relationships: []
       }
+      quote_addons: {
+        Row: {
+          addon_code: string
+          addon_id: string | null
+          addon_name: string
+          category: string
+          created_at: string
+          id: string
+          quantity: number
+          quote_id: string
+          unit_cleaner_payout_pence: number
+          unit_customer_price_pence: number
+          unit_duration_minutes: number
+        }
+        Insert: {
+          addon_code: string
+          addon_id?: string | null
+          addon_name: string
+          category: string
+          created_at?: string
+          id?: string
+          quantity?: number
+          quote_id: string
+          unit_cleaner_payout_pence: number
+          unit_customer_price_pence: number
+          unit_duration_minutes?: number
+        }
+        Update: {
+          addon_code?: string
+          addon_id?: string | null
+          addon_name?: string
+          category?: string
+          created_at?: string
+          id?: string
+          quantity?: number
+          quote_id?: string
+          unit_cleaner_payout_pence?: number
+          unit_customer_price_pence?: number
+          unit_duration_minutes?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_addons_addon_id_fkey"
+            columns: ["addon_id"]
+            isOneToOne: false
+            referencedRelation: "service_addons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_addons_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quotes: {
         Row: {
           accepted_at: string | null
@@ -2383,6 +2440,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      service_addons: {
+        Row: {
+          category: string
+          cleaner_payout_pence: number
+          code: string
+          created_at: string
+          customer_price_pence: number
+          description: string | null
+          display_order: number
+          duration_minutes: number
+          id: string
+          is_active: boolean
+          max_quantity: number
+          name: string
+          unit_label: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          cleaner_payout_pence: number
+          code: string
+          created_at?: string
+          customer_price_pence: number
+          description?: string | null
+          display_order?: number
+          duration_minutes?: number
+          id?: string
+          is_active?: boolean
+          max_quantity?: number
+          name: string
+          unit_label?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          cleaner_payout_pence?: number
+          code?: string
+          created_at?: string
+          customer_price_pence?: number
+          description?: string | null
+          display_order?: number
+          duration_minutes?: number
+          id?: string
+          is_active?: boolean
+          max_quantity?: number
+          name?: string
+          unit_label?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       service_areas: {
         Row: {
