@@ -273,6 +273,50 @@ export type Database = {
           },
         ]
       }
+      cleaner_compliance_reminders: {
+        Row: {
+          attempts: number
+          cleaner_id: string
+          created_at: string
+          id: string
+          last_error: string | null
+          reminder_type: string
+          scheduled_for: string
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          attempts?: number
+          cleaner_id: string
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          reminder_type: string
+          scheduled_for: string
+          sent_at?: string | null
+          status?: string
+        }
+        Update: {
+          attempts?: number
+          cleaner_id?: string
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          reminder_type?: string
+          scheduled_for?: string
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cleaner_compliance_reminders_cleaner_id_fkey"
+            columns: ["cleaner_id"]
+            isOneToOne: false
+            referencedRelation: "cleaner_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cleaner_job_notifications: {
         Row: {
           assignment_id: string
@@ -580,6 +624,136 @@ export type Database = {
             foreignKeyName: "cleaner_time_off_cleaner_id_fkey"
             columns: ["cleaner_id"]
             isOneToOne: false
+            referencedRelation: "cleaner_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cleaner_vetting_documents: {
+        Row: {
+          admin_notes: string | null
+          cleaner_id: string
+          document_type: string
+          file_path: string
+          id: string
+          is_current: boolean
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          superseded_at: string | null
+          uploaded_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          cleaner_id: string
+          document_type: string
+          file_path: string
+          id?: string
+          is_current?: boolean
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          superseded_at?: string | null
+          uploaded_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          cleaner_id?: string
+          document_type?: string
+          file_path?: string
+          id?: string
+          is_current?: boolean
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          superseded_at?: string | null
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cleaner_vetting_documents_cleaner_id_fkey"
+            columns: ["cleaner_id"]
+            isOneToOne: false
+            referencedRelation: "cleaner_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cleaner_vetting_records: {
+        Row: {
+          address_line_1: string | null
+          address_line_2: string | null
+          address_status: string
+          admin_notes: string | null
+          citizenship_route: string | null
+          city: string | null
+          cleaner_id: string
+          date_of_birth: string | null
+          dbs_certificate_number: string | null
+          dbs_status: string
+          identity_status: string
+          right_to_work_basis: string | null
+          right_to_work_checked_at: string | null
+          right_to_work_checked_by: string | null
+          right_to_work_expires_on: string | null
+          right_to_work_restrictions: string | null
+          right_to_work_result_path: string | null
+          right_to_work_share_code: string | null
+          right_to_work_status: string
+          submitted_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          address_line_1?: string | null
+          address_line_2?: string | null
+          address_status?: string
+          admin_notes?: string | null
+          citizenship_route?: string | null
+          city?: string | null
+          cleaner_id: string
+          date_of_birth?: string | null
+          dbs_certificate_number?: string | null
+          dbs_status?: string
+          identity_status?: string
+          right_to_work_basis?: string | null
+          right_to_work_checked_at?: string | null
+          right_to_work_checked_by?: string | null
+          right_to_work_expires_on?: string | null
+          right_to_work_restrictions?: string | null
+          right_to_work_result_path?: string | null
+          right_to_work_share_code?: string | null
+          right_to_work_status?: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address_line_1?: string | null
+          address_line_2?: string | null
+          address_status?: string
+          admin_notes?: string | null
+          citizenship_route?: string | null
+          city?: string | null
+          cleaner_id?: string
+          date_of_birth?: string | null
+          dbs_certificate_number?: string | null
+          dbs_status?: string
+          identity_status?: string
+          right_to_work_basis?: string | null
+          right_to_work_checked_at?: string | null
+          right_to_work_checked_by?: string | null
+          right_to_work_expires_on?: string | null
+          right_to_work_restrictions?: string | null
+          right_to_work_result_path?: string | null
+          right_to_work_share_code?: string | null
+          right_to_work_status?: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cleaner_vetting_records_cleaner_id_fkey"
+            columns: ["cleaner_id"]
+            isOneToOne: true
             referencedRelation: "cleaner_profiles"
             referencedColumns: ["id"]
           },
@@ -2906,6 +3080,10 @@ export type Database = {
       }
       cleaner_is_available_for_window: {
         Args: { p_cleaner_id: string; p_end: string; p_start: string }
+        Returns: boolean
+      }
+      cleaner_vetting_ready: {
+        Args: { p_cleaner_id: string }
         Returns: boolean
       }
       clock_assigned_job: {
