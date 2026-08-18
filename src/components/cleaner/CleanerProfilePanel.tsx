@@ -55,6 +55,7 @@ export function CleanerProfilePanel({ profile, email, userId }: { profile: Clean
   const [identityFile, setIdentityFile] = useState<File | null>(null);
   const [addressFile, setAddressFile] = useState<File | null>(null);
   const [dbsFile, setDbsFile] = useState<File | null>(null);
+  const hasCompleteSavedAddress = Boolean(profileForm.addressLine1.trim() && profileForm.city.trim() && profileForm.postcode.trim());
 
   useEffect(() => {
     let cancelled = false;
@@ -102,7 +103,7 @@ export function CleanerProfilePanel({ profile, email, userId }: { profile: Clean
   const submitVetting = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!userId || !identityFile || !addressFile) return toast.error("Upload both your identity document and proof of address.");
-    if (!profileForm.addressLine1 || !profileForm.city || !profileForm.postcode) return toast.error("Save your full home address in Personal details first.");
+    if (!hasCompleteSavedAddress) return toast.error("Add and save your full home address before submitting documents.");
     if (!form.citizenshipRoute) return toast.error("Select your right-to-work route.");
     if (form.citizenshipRoute === "other" && (!form.dateOfBirth || !/^W[A-Z0-9]{8}$/.test(form.shareCode.replace(/\s/g, "").toUpperCase()))) return toast.error("Enter your date of birth and 9-character share code beginning W.");
     const files = [identityFile, addressFile, dbsFile].filter(Boolean) as File[];
@@ -165,10 +166,10 @@ export function CleanerProfilePanel({ profile, email, userId }: { profile: Clean
     <section className="rounded-xl border border-primary/30 bg-card p-5 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="text-lg font-semibold">Submit verification documents</h3><p className="mt-1 text-sm text-muted-foreground">Complete the required checks or replace documents Cleanda asked you to resubmit. Your existing jobs and dashboard access are not removed when you submit an update.</p></div><Badge>{documents.length ? "Update documents" : "Action required"}</Badge></div>
       <form onSubmit={submitVetting} className="mt-5 space-y-5">
-        <div className="rounded-lg border bg-muted/40 p-4"><p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Address being verified</p><p className="mt-2 text-sm font-medium">{[profileForm.addressLine1,profileForm.addressLine2,profileForm.city,profileForm.postcode].filter(Boolean).join(", ") || "No complete address saved"}</p><p className="mt-1 text-xs text-muted-foreground">To change this address, use Edit details above before uploading proof of address.</p></div>
+        <div className="rounded-lg border bg-muted/40 p-4"><p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Address being verified</p><p className="mt-2 text-sm font-medium">{[profileForm.addressLine1,profileForm.addressLine2,profileForm.city,profileForm.postcode].filter(Boolean).join(", ") || "No complete address saved"}</p>{hasCompleteSavedAddress ? <p className="mt-1 text-xs text-muted-foreground">To change this address, use Edit details above before uploading proof of address.</p> : <div className="mt-3"><p className="text-sm text-amber-700">Your profile needs a street address and town/city before these documents can be submitted.</p><Button type="button" variant="outline" size="sm" className="mt-3" onClick={()=>setEditingProfile(true)}>Complete address details</Button></div>}</div>
         <fieldset className="space-y-4 rounded-lg border p-4"><legend className="px-2 font-semibold">Right to work</legend><div><Label>Citizenship/right-to-work route</Label><Select value={form.citizenshipRoute} onValueChange={(value)=>setForm((current)=>({...current,citizenshipRoute:value}))}><SelectTrigger className="mt-2"><SelectValue placeholder="Select your route" /></SelectTrigger><SelectContent><SelectItem value="british">British citizen</SelectItem><SelectItem value="irish">Irish citizen</SelectItem><SelectItem value="other">Other nationality or immigration status</SelectItem></SelectContent></Select></div>{form.citizenshipRoute==="other"&&<div className="grid gap-4 sm:grid-cols-2"><div><Label htmlFor="profile-dob">Date of birth</Label><Input id="profile-dob" className="mt-2" type="date" value={form.dateOfBirth} onChange={(event)=>setForm((current)=>({...current,dateOfBirth:event.target.value}))} required /></div><div><Label htmlFor="profile-share-code">Right-to-work share code</Label><Input id="profile-share-code" className="mt-2" value={form.shareCode} onChange={(event)=>setForm((current)=>({...current,shareCode:event.target.value.toUpperCase()}))} placeholder="W12345678" required /><p className="mt-1 text-xs text-muted-foreground">British and Irish citizens do not need a share code.</p></div></div>}</fieldset>
         <fieldset className="space-y-4 rounded-lg border p-4"><legend className="px-2 font-semibold">Documents</legend><VettingFileInput id="profile-identity" label="Identity document" help="Passport, driving licence or accepted identity evidence." file={identityFile} setFile={setIdentityFile} required /><VettingFileInput id="profile-address-document" label="Proof of address" help="Recent bank statement, utility bill or council-tax statement." file={addressFile} setFile={setAddressFile} required /><VettingFileInput id="profile-dbs" label="DBS certificate (optional)" help="You can submit this if available; it does not block activation." file={dbsFile} setFile={setDbsFile} /></fieldset>
-        <Button type="submit" disabled={submitting} size="lg">{submitting&&<Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Submit documents for review</Button>
+        <Button type="submit" disabled={submitting || !hasCompleteSavedAddress} size="lg">{submitting&&<Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Submit documents for review</Button>
       </form>
     </section>
 

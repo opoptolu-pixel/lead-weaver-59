@@ -202,6 +202,12 @@ interface Cleaner {
   admin_notes: string | null;
   has_transport: boolean | null;
   created_at: string;
+  vetting?: {
+    identity_status: string;
+    address_status: string;
+    right_to_work_status: string;
+    submitted_at: string | null;
+  } | null;
 }
 
 interface DispatchCandidate {
@@ -356,7 +362,7 @@ export default function AdminServiceRequests() {
       db
         .from("cleaner_profiles")
         .select(
-          "id,full_name,postcode,phone,application_status,operational_status,verification_status,payout_status,experience_summary,admin_notes,has_transport,created_at",
+          "id,full_name,postcode,phone,application_status,operational_status,verification_status,payout_status,experience_summary,admin_notes,has_transport,created_at,vetting:cleaner_vetting_records(identity_status,address_status,right_to_work_status,submitted_at)",
         )
         .order("created_at", { ascending: false }),
       db
@@ -1003,11 +1009,15 @@ export default function AdminServiceRequests() {
           ? "Cleaners"
           : "Cleaning Requests";
   const isOnboarding = location.pathname.endsWith("/onboarding");
+  const needsVettingReview = (cleaner: Cleaner) => {
+    const vetting = cleaner.vetting;
+    return !vetting || [vetting.identity_status, vetting.address_status, vetting.right_to_work_status].some((status) => status !== "approved");
+  };
   const visibleCleaners = isOnboarding
     ? cleaners.filter(
         (cleaner) =>
           cleaner.application_status !== "approved" ||
-          cleaner.verification_status !== "approved",
+          needsVettingReview(cleaner),
       )
     : cleaners.filter((cleaner) => cleaner.application_status === "approved");
   const visibleJobs = jobs.filter((job) => {
@@ -1426,7 +1436,7 @@ export default function AdminServiceRequests() {
                 <p className="mt-1 text-2xl font-bold">
                   {isOnboarding
                     ? cleaners.filter(
-                        (cleaner) => cleaner.verification_status === "pending",
+                        (cleaner) => cleaner.application_status === "approved" && needsVettingReview(cleaner),
                       ).length
                     : cleaners.filter(
                         (cleaner) =>
