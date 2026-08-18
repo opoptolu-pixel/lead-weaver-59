@@ -284,6 +284,13 @@ export default function AdminServiceRequests() {
   const [offlinePaymentDialogOpen, setOfflinePaymentDialogOpen] = useState(false);
   const [noShowDialogOpen, setNoShowDialogOpen] = useState(false);
   const [noShowReason, setNoShowReason] = useState("");
+  const [customerResolutionDialogOpen, setCustomerResolutionDialogOpen] = useState(false);
+  const [customerResolutionAction, setCustomerResolutionAction] = useState<"cover" | "reschedule" | "cancel_refund">("cover");
+  const [customerResolutionReason, setCustomerResolutionReason] = useState("");
+  const [customerResolutionDate, setCustomerResolutionDate] = useState("");
+  const [customerResolutionTime, setCustomerResolutionTime] = useState("");
+  const [customerResolutionDuration, setCustomerResolutionDuration] = useState("");
+  const [customerRefundMethod, setCustomerRefundMethod] = useState<"stripe_full_refund" | "manual_refund_due">("manual_refund_due");
   const [assignmentChoices, setAssignmentChoices] = useState<
     Record<string, string>
   >({});
@@ -760,8 +767,71 @@ export default function AdminServiceRequests() {
     await openJob(updatedJob);
   };
 
+  const hasCleanerNoShow = jobEvents.some((event) => event.event_type === "cleaner_no_show");
+
+  const openCustomerResolution = () => {
+    if (!selectedJob) return;
+    setCustomerResolutionAction("cover");
+    setCustomerResolutionReason("");
+    setCustomerResolutionDate(selectedJob.scheduled_date);
+    setCustomerResolutionTime(selectedJob.start_time?.slice(0, 5) || "");
+    setCustomerResolutionDuration(
+      selectedJob.expected_duration_minutes ? String(selectedJob.expected_duration_minutes / 60) : "",
+    );
+    setCustomerRefundMethod("manual_refund_due");
+    setCustomerResolutionDialogOpen(true);
+  };
+
+  const resolveNoShowCustomer = async () => {
+    if (!selectedJob) return;
+    if (customerResolutionReason.trim().length < 5) {
+      return toast.error("Add a brief note explaining the agreed customer outcome.");
+    }
+    if (customerResolutionAction === "reschedule" && (!customerResolutionDate || !customerResolutionTime || Number(customerResolutionDuration) < 0.5)) {
+      return toast.error("Enter the new date, start time and duration in hours.");
+    }
+
+    setSaving(true);
+    const { data, error } = await supabase.functions.invoke("resolve-no-show-customer", {
+      body: {
+        jobId: selectedJob.id,
+        action: customerResolutionAction,
+        reason: customerResolutionReason.trim(),
+        scheduledDate: customerResolutionDate,
+        startTime: customerResolutionTime,
+        durationMinutes: Math.round(Number(customerResolutionDuration) * 60),
+        refundMethod: customerRefundMethod,
+      },
+    });
+    setSaving(false);
+    if (error || data?.error) return toast.error(error?.message || data?.error || "The customer outcome could not be recorded.");
+
+    const successMessage = customerResolutionAction === "cover"
+      ? "Customer updated while Cleanda sources replacement cover"
+      : customerResolutionAction === "reschedule"
+        ? "Booking rescheduled and customer updated"
+        : customerRefundMethod === "stripe_full_refund"
+          ? "Booking cancelled and full Stripe refund issued"
+          : "Booking cancelled and manual refund recorded as due";
+    toast.success(successMessage);
+    if (data?.emailSent === false) toast.warning("The operational update was saved, but the customer email could not be sent.");
+    setCustomerResolutionDialogOpen(false);
+    await fetchData();
+    if (customerResolutionAction === "cancel_refund") {
+      setSelectedJob(null);
+    } else {
+      await openJob({
+        ...selectedJob,
+        scheduled_date: customerResolutionAction === "reschedule" ? customerResolutionDate : selectedJob.scheduled_date,
+        start_time: customerResolutionAction === "reschedule" ? customerResolutionTime : selectedJob.start_time,
+        expected_duration_minutes: customerResolutionAction === "reschedule" ? Math.round(Number(customerResolutionDuration) * 60) : selectedJob.expected_duration_minutes,
+      });
+    }
+  };
+
   const openJob = async (job: Job) => {
     setSelectedJob(job);
+    setJobEvents([]);
     setAddressLine1(job.address.address_line_1 || "");
     setAddressLine2(job.address.address_line_2 || "");
     setCity(job.address.city || "");
@@ -2182,6 +2252,21 @@ export default function AdminServiceRequests() {
                   <p className="text-xs text-muted-foreground">The job moves to Offered immediately. When the cleaner accepts, it moves automatically to Assigned and the full address and access instructions become visible to them.</p>
                 </div>
               )}
+              {selectedJob.status === "awaiting_assignment" && hasCleanerNoShow && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h3 className="font-semibold text-amber-950">Customer outcome after cleaner no-show</h3>
+                      <p className="mt-1 max-w-2xl text-sm text-amber-900">
+                        Keep sourcing cover, agree a new time, or cancel with a full refund. Each option records the outcome, protects the cleaner payout, and emails the customer.
+                      </p>
+                    </div>
+                    <Button variant="outline" className="border-amber-300 bg-white text-amber-950 hover:bg-amber-100" onClick={openCustomerResolution} disabled={saving}>
+                      Manage customer outcome
+                    </Button>
+                  </div>
+                </div>
+              )}
               <div className="space-y-4 border-t pt-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
@@ -2511,6 +2596,96 @@ export default function AdminServiceRequests() {
               <Button type="button" variant="destructive" onClick={markCleanerNoShow} disabled={saving || noShowReason.trim().length < 5}>
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Confirm no-show
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={customerResolutionDialogOpen}
+        onOpenChange={(open) => {
+          setCustomerResolutionDialogOpen(open);
+          if (!open) setCustomerResolutionReason("");
+        }}
+      >
+        <DialogContent className="max-h-[92vh] max-w-xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Resolve the customer booking</DialogTitle>
+            <DialogDescription>
+              Choose the customer outcome following the recorded cleaner no-show. Cleanda remains responsible for the booking and communication.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-5">
+            <div>
+              <Label>Customer outcome</Label>
+              <Select value={customerResolutionAction} onValueChange={(value) => setCustomerResolutionAction(value as "cover" | "reschedule" | "cancel_refund")}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cover">Keep sourcing replacement cover</SelectItem>
+                  <SelectItem value="reschedule">Reschedule the booking</SelectItem>
+                  <SelectItem value="cancel_refund">Cancel booking and issue full refund</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {customerResolutionAction === "cover" && (
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-950">
+                The booking remains awaiting assignment. The customer receives an update that Cleanda is arranging suitable replacement cover.
+              </div>
+            )}
+
+            {customerResolutionAction === "reschedule" && (
+              <div className="grid gap-3 rounded-lg border bg-muted/30 p-4 sm:grid-cols-2">
+                <div>
+                  <Label>New date</Label>
+                  <Input type="date" value={customerResolutionDate} onChange={(event) => setCustomerResolutionDate(event.target.value)} />
+                </div>
+                <div>
+                  <Label>New start time</Label>
+                  <Input type="time" value={customerResolutionTime} onChange={(event) => setCustomerResolutionTime(event.target.value)} />
+                </div>
+                <div>
+                  <Label>Duration (hours)</Label>
+                  <Input type="number" min="0.5" step="0.5" value={customerResolutionDuration} onChange={(event) => setCustomerResolutionDuration(event.target.value)} />
+                </div>
+                <p className="self-end text-xs text-muted-foreground">The job stays awaiting assignment and customer/cleaner reminders are recalculated for the new appointment.</p>
+              </div>
+            )}
+
+            {customerResolutionAction === "cancel_refund" && (
+              <div className="space-y-3 rounded-lg border border-red-200 bg-red-50 p-4">
+                <div>
+                  <Label>Refund handling</Label>
+                  <Select value={customerRefundMethod} onValueChange={(value) => setCustomerRefundMethod(value as "stripe_full_refund" | "manual_refund_due")}>
+                    <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="stripe_full_refund">Issue full Stripe refund now</SelectItem>
+                      <SelectItem value="manual_refund_due">Record manual refund due</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <p className="text-sm text-red-950">
+                  {customerRefundMethod === "stripe_full_refund"
+                    ? "This immediately sends a full refund to the original Stripe payment method. It cannot be undone here."
+                    : "This cancels the job and creates a manual-refund task in Payments & Payouts. Record the bank, cash or terminal reference there only after the money has been sent."}
+                </p>
+              </div>
+            )}
+
+            <div>
+              <Label htmlFor="customer-resolution-note">Customer-resolution note</Label>
+              <Textarea
+                id="customer-resolution-note"
+                value={customerResolutionReason}
+                onChange={(event) => setCustomerResolutionReason(event.target.value)}
+                placeholder="e.g. Spoke with customer; agreed that Cleanda will arrange replacement cover tomorrow."
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setCustomerResolutionDialogOpen(false)} disabled={saving}>Cancel</Button>
+              <Button type="button" variant={customerResolutionAction === "cancel_refund" ? "destructive" : "default"} onClick={resolveNoShowCustomer} disabled={saving || customerResolutionReason.trim().length < 5}>
+                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {customerResolutionAction === "cover" ? "Update customer" : customerResolutionAction === "reschedule" ? "Confirm reschedule" : "Cancel and process refund"}
               </Button>
             </div>
           </div>
