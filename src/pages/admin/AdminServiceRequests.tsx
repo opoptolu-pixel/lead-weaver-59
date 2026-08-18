@@ -282,6 +282,8 @@ export default function AdminServiceRequests() {
   const [quoteValidUntil, setQuoteValidUntil] = useState("");
   const [offlinePaymentReference, setOfflinePaymentReference] = useState("");
   const [offlinePaymentDialogOpen, setOfflinePaymentDialogOpen] = useState(false);
+  const [noShowDialogOpen, setNoShowDialogOpen] = useState(false);
+  const [noShowReason, setNoShowReason] = useState("");
   const [assignmentChoices, setAssignmentChoices] = useState<
     Record<string, string>
   >({});
@@ -722,6 +724,35 @@ export default function AdminServiceRequests() {
     setDispatchReason("");
     await fetchData();
     await loadDispatchCandidates(job.id);
+  };
+
+  const markCleanerNoShow = async () => {
+    if (!selectedJob) return;
+    if (noShowReason.trim().length < 5) {
+      return toast.error("Enter a brief reason for the cleaner no-show.");
+    }
+    setSaving(true);
+    const { error } = await db.rpc("mark_cleaner_no_show", {
+      p_job_id: selectedJob.id,
+      p_reason: noShowReason.trim(),
+    });
+    setSaving(false);
+    if (error) return toast.error(error.message);
+
+    const updatedJob: Job = {
+      ...selectedJob,
+      status: "awaiting_assignment",
+      assignments: selectedJob.assignments?.map((assignment) =>
+        assignment.status === "accepted"
+          ? { ...assignment, status: "revoked" }
+          : assignment,
+      ),
+    };
+    setNoShowDialogOpen(false);
+    setNoShowReason("");
+    toast.success("Cleaner marked as no-show. The job is ready for reassignment.");
+    await fetchData();
+    await openJob(updatedJob);
   };
 
   const openJob = async (job: Job) => {
@@ -2085,6 +2116,17 @@ export default function AdminServiceRequests() {
                   Cancel job
                 </Button>
               )}
+              {selectedJob.status === "assigned" && (
+                <Button
+                  variant="outline"
+                  className="border-amber-300 text-amber-800 hover:bg-amber-50 hover:text-amber-900"
+                  onClick={() => setNoShowDialogOpen(true)}
+                  disabled={saving}
+                >
+                  <AlertTriangle className="mr-2 h-4 w-4" />
+                  Mark cleaner no-show
+                </Button>
+              )}
               {['awaiting_assignment', 'offered'].includes(selectedJob.status) && (
                 <div className="space-y-4 border-t pt-5">
                   <div>
@@ -2427,6 +2469,46 @@ export default function AdminServiceRequests() {
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={noShowDialogOpen}
+        onOpenChange={(open) => {
+          setNoShowDialogOpen(open);
+          if (!open) setNoShowReason("");
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Mark cleaner as no-show</DialogTitle>
+            <DialogDescription>
+              Record that the assigned cleaner did not attend. The job will return to Awaiting assignment so you can offer it to another cleaner.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+              This revokes the current assignment, cancels unsent reminders, and cancels the cleaner&apos;s unpaid payout. Customer payment is not changed.
+            </div>
+            <div>
+              <Label htmlFor="cleaner-no-show-reason">No-show reason</Label>
+              <Textarea
+                id="cleaner-no-show-reason"
+                autoFocus
+                value={noShowReason}
+                onChange={(event) => setNoShowReason(event.target.value)}
+                placeholder="e.g. Cleaner did not arrive and could not be reached by phone."
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setNoShowDialogOpen(false)} disabled={saving}>
+                Cancel
+              </Button>
+              <Button type="button" variant="destructive" onClick={markCleanerNoShow} disabled={saving || noShowReason.trim().length < 5}>
+                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Confirm no-show
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
       <Dialog open={!!stageOverride} onOpenChange={(open) => { if (!open) { setStageOverride(null); setStageReason(""); } }}>
