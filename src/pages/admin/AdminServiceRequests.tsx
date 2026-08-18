@@ -2143,7 +2143,7 @@ export default function AdminServiceRequests() {
                   {loadingCandidates ? (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Checking cleaner availability…</div>
                   ) : dispatchCandidates.length === 0 ? (
-                    <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">No approved active cleaners are currently available for dispatch.</p>
+                    <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">No eligible replacement cleaners are currently available. A cleaner marked as a no-show cannot be reassigned to this job; new approved, active cleaners will appear here automatically when available.</p>
                   ) : (
                     <div className="grid gap-3 sm:grid-cols-2">
                       {dispatchCandidates.map((candidate) => {
