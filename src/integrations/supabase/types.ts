@@ -3210,6 +3210,10 @@ export type Database = {
         Args: { unlocked_at_param: string }
         Returns: boolean
       }
+      mark_cleaner_no_show: {
+        Args: { p_job_id: string; p_reason: string }
+        Returns: Json
+      }
       mark_cleaner_payout_paid: {
         Args: { p_bank_reference: string; p_payout_id: string }
         Returns: boolean
