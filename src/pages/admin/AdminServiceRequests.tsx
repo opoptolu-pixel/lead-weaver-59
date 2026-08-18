@@ -431,7 +431,12 @@ export default function AdminServiceRequests() {
         : null;
       setRequests(nextRequests);
       setJobs(nextJobs);
-      setCleaners(cleanerResult.data || []);
+      setCleaners(
+        ((cleanerResult.data || []) as any[]).map((cleaner) => ({
+          ...cleaner,
+          vetting: Array.isArray(cleaner.vetting) ? cleaner.vetting[0] : cleaner.vetting,
+        })) as Cleaner[],
+      );
       setCustomerPayments((paymentResult.data as CustomerPayment[]) || []);
       setAddOnCatalogue((addOnResult.data as ServiceAddOn[]) || []);
       setSelected((current) => current ? nextRequests.find((request) => request.id === current.id) || current : null);
