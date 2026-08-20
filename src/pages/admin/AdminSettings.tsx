@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -35,6 +36,14 @@ interface EmailTemplate {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+}
+
+interface RequestFormService {
+  id: string;
+  name: string;
+  slug: string;
+  is_active: boolean;
+  sort_order: number;
 }
 
 export default function AdminSettings() {
@@ -72,6 +81,10 @@ export default function AdminSettings() {
   // Form variant state
   const [formVariant, setFormVariant] = useState<'full' | 'simplified'>('full');
   const [savingVariant, setSavingVariant] = useState(false);
+  const [requestFormServices, setRequestFormServices] = useState<RequestFormService[]>([]);
+  const [selectedRequestServiceSlugs, setSelectedRequestServiceSlugs] = useState<string[]>([]);
+  const [loadingRequestServices, setLoadingRequestServices] = useState(true);
+  const [savingRequestServices, setSavingRequestServices] = useState(false);
 
   // System preferences state
   const [systemPrefs, setSystemPrefs] = useState({
@@ -86,6 +99,7 @@ export default function AdminSettings() {
     fetchUsers();
     fetchEmailTemplates();
     fetchFormVariant();
+    fetchRequestFormServices();
   }, []);
 
   const fetchEmailTemplates = async () => {
@@ -138,6 +152,52 @@ export default function AdminSettings() {
       toast.error("Failed to save form variant");
     } finally {
       setSavingVariant(false);
+    }
+  };
+
+  const fetchRequestFormServices = async () => {
+    setLoadingRequestServices(true);
+    try {
+      const [serviceResult, settingResult] = await Promise.all([
+        supabase.from("service_types").select("id,name,slug,is_active,sort_order").order("sort_order").order("name"),
+        supabase.from("admin_settings").select("value").eq("key", "request_form_services").maybeSingle(),
+      ]);
+      if (serviceResult.error) throw serviceResult.error;
+      const services = (serviceResult.data || []) as RequestFormService[];
+      setRequestFormServices(services);
+      const configuredSlugs = settingResult.data?.value && typeof settingResult.data.value === "object" && Array.isArray((settingResult.data.value as { serviceSlugs?: unknown }).serviceSlugs)
+        ? (settingResult.data.value as { serviceSlugs: unknown[] }).serviceSlugs.filter((slug): slug is string => typeof slug === "string")
+        : services.filter((service) => service.is_active).map((service) => service.slug);
+      setSelectedRequestServiceSlugs(configuredSlugs);
+    } catch (error) {
+      console.error("Failed to load request form services:", error);
+      toast.error("Failed to load request form services");
+    } finally {
+      setLoadingRequestServices(false);
+    }
+  };
+
+  const handleSaveRequestFormServices = async () => {
+    const selectedActiveServices = requestFormServices.filter((service) => service.is_active && selectedRequestServiceSlugs.includes(service.slug));
+    if (!selectedActiveServices.length) {
+      toast.error("Select at least one active service for the request form");
+      return;
+    }
+    setSavingRequestServices(true);
+    try {
+      const { error } = await supabase.from("admin_settings").upsert({
+        key: "request_form_services",
+        value: { serviceSlugs: selectedActiveServices.map((service) => service.slug) },
+        description: "Controls which active services are visible on Step 1 of the customer request form",
+      }, { onConflict: "key" });
+      if (error) throw error;
+      setSelectedRequestServiceSlugs(selectedActiveServices.map((service) => service.slug));
+      toast.success("Request form services updated");
+    } catch (error) {
+      console.error("Failed to save request form services:", error);
+      toast.error("Failed to save request form services");
+    } finally {
+      setSavingRequestServices(false);
     }
   };
 
@@ -594,6 +654,27 @@ export default function AdminSettings() {
                   Saving...
                 </div>
               )}
+              <div className="rounded-xl border bg-muted/20 p-4">
+                <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-foreground">Visible services</p>
+                    <p className="mt-1 text-sm text-muted-foreground">Choose exactly which active cleans customers can select on Step 1.</p>
+                  </div>
+                  <Button size="sm" onClick={handleSaveRequestFormServices} disabled={loadingRequestServices || savingRequestServices}>
+                    {savingRequestServices ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    Save services
+                  </Button>
+                </div>
+                {loadingRequestServices ? <div className="flex items-center gap-2 py-5 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Loading services…</div> : <div className="grid gap-2 sm:grid-cols-2">
+                  {requestFormServices.map((service) => {
+                    const checked = selectedRequestServiceSlugs.includes(service.slug);
+                    return <label key={service.id} className={cn("flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors", checked ? "border-primary/40 bg-primary/5" : "border-border bg-background", !service.is_active && "cursor-not-allowed opacity-50")}>
+                      <Checkbox checked={checked} disabled={!service.is_active} onCheckedChange={(value) => setSelectedRequestServiceSlugs((current) => value ? [...new Set([...current, service.slug])] : current.filter((slug) => slug !== service.slug))} />
+                      <span className="min-w-0 flex-1"><span className="block text-sm font-medium text-foreground">{service.name}</span>{!service.is_active && <span className="text-xs text-muted-foreground">Inactive in the service catalogue</span>}</span>
+                    </label>;
+                  })}
+                </div>}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

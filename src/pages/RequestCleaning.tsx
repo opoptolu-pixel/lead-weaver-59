@@ -43,6 +43,7 @@ const fullCleaningTypes = [
   { id: "weekly-routine", label: "Weekly Routine Cleaning", icon: Calendar, color: "bg-green-100 text-green-600", value: "Manual quote", phase: 1 },
   { id: "post-construction", label: "Post-Construction Deep Cleaning", icon: Building2, color: "bg-slate-100 text-slate-600", value: "Manual quote", phase: 1 },
   { id: "airbnb-short-let", label: "Airbnb / Short-Let Cleaning", icon: Building2, color: "bg-teal-100 text-teal-600", value: "Manual quote", phase: 1 },
+  { id: "student-accommodation", label: "Student Accommodation Cleaning", icon: Building2, color: "bg-violet-100 text-violet-600", value: "Manual quote", phase: 1 },
 ];
 
 const simplifiedCleaningTypes = fullCleaningTypes;
@@ -98,10 +99,13 @@ export default function RequestCleaning() {
   
   // Form variant state
   const [formVariant, setFormVariant] = useState<'full' | 'simplified' | null>(null);
+  const [enabledServiceSlugs, setEnabledServiceSlugs] = useState<string[] | null>(null);
   const variantLoaded = formVariant !== null;
 
-  // Derive active cleaning types from variant
-  const cleaningTypes = formVariant === 'simplified' ? simplifiedCleaningTypes : fullCleaningTypes;
+  // Form configuration can narrow the menu to selected active services. The legacy
+  // full/simplified setting remains a fallback until an admin saves a selection.
+  const variantServices = formVariant === 'simplified' ? simplifiedCleaningTypes : fullCleaningTypes;
+  const cleaningTypes = enabledServiceSlugs ? fullCleaningTypes.filter((service) => enabledServiceSlugs.includes(service.id)) : variantServices;
 
   // Initialize state directly from location.state - runs once before first render
   const [currentStep, setCurrentStep] = useState(() => {
@@ -157,27 +161,34 @@ export default function RequestCleaning() {
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, []);
 
-  // Fetch form variant setting
+  // Fetch both public request-form settings. Service slugs are also checked against
+  // the active catalogue so a deactivated service cannot remain customer-visible.
   useEffect(() => {
-    const fetchVariant = async () => {
+    const fetchRequestFormConfiguration = async () => {
       try {
-        const { data } = await supabase
-          .from("admin_settings")
-          .select("value")
-          .eq("key", "request_form_variant")
-          .maybeSingle();
+        const [variantResult, servicesSettingResult, activeServicesResult] = await Promise.all([
+          supabase.from("admin_settings").select("value").eq("key", "request_form_variant").maybeSingle(),
+          supabase.from("admin_settings").select("value").eq("key", "request_form_services").maybeSingle(),
+          supabase.from("service_types").select("slug").eq("is_active", true),
+        ]);
+        const data = variantResult.data;
         
         if (data?.value && typeof data.value === 'object' && 'variant' in data.value) {
           setFormVariant((data.value as { variant: string }).variant === 'simplified' ? 'simplified' : 'full');
         } else {
           setFormVariant('full');
         }
+        const configuredSlugs = servicesSettingResult.data?.value && typeof servicesSettingResult.data.value === "object" && Array.isArray((servicesSettingResult.data.value as { serviceSlugs?: unknown }).serviceSlugs)
+          ? (servicesSettingResult.data.value as { serviceSlugs: unknown[] }).serviceSlugs.filter((slug): slug is string => typeof slug === "string")
+          : null;
+        const activeSlugs = new Set((activeServicesResult.data || []).map((service) => service.slug));
+        setEnabledServiceSlugs(configuredSlugs ? configuredSlugs.filter((slug) => activeSlugs.has(slug)) : null);
       } catch (err) {
-        console.error("Failed to fetch form variant:", err);
+        console.error("Failed to fetch request form configuration:", err);
         setFormVariant('full');
       }
     };
-    fetchVariant();
+    fetchRequestFormConfiguration();
   }, []);
 
   const progress = (currentStep / TOTAL_STEPS) * 100;
@@ -414,7 +425,8 @@ export default function RequestCleaning() {
           "One-Off Deep Cleaning",
           "Weekly Routine Cleaning",
           "Post-Construction Deep Cleaning",
-          "Airbnb / Short-Let Cleaning"
+          "Airbnb / Short-Let Cleaning",
+          "Student Accommodation Cleaning"
         ]
       },
       {
