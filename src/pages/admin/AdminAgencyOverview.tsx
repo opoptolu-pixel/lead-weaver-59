@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, BellRing, CalendarDays, CheckCircle2, ClipboardCheck, Clock3, Loader2, PoundSterling, RefreshCw, UserRoundCheck, UsersRound, WalletCards } from "lucide-react";
+import { AlertTriangle, BellRing, CalendarDays, CheckCircle2, ClipboardCheck, Clock3, Loader2, PoundSterling, RefreshCw, UserRoundCheck, UsersRound, WalletCards, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import AdminLayout from "@/components/admin/AdminLayout";
 import KPICard from "@/components/admin/KPICard";
@@ -38,6 +38,39 @@ const emptyData: DashboardData = { requests: [], jobs: [], payments: [], payouts
 const money = (pence: number) => new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(pence / 100);
 const activeJobStatuses = ["awaiting_assignment", "offered", "assigned", "in_progress", "quality_check", "issue"];
 const openIssueStatuses = ["open", "investigating", "awaiting_customer", "awaiting_cleaner"];
+
+type ActionTone = "warning" | "quality" | "attention" | "review";
+
+const actionToneStyles: Record<ActionTone, { icon: LucideIcon; surface: string; iconSurface: string; title: string; detail: string }> = {
+  warning: {
+    icon: UsersRound,
+    surface: "border-amber-200 bg-amber-50 hover:border-amber-300 hover:bg-amber-100 dark:border-amber-400/30 dark:bg-amber-400/10 dark:hover:border-amber-300/50 dark:hover:bg-amber-400/15",
+    iconSurface: "bg-amber-500/15 text-amber-700 dark:bg-amber-400/15 dark:text-amber-300",
+    title: "text-amber-950 dark:text-amber-100",
+    detail: "text-amber-800/85 dark:text-amber-100/75",
+  },
+  quality: {
+    icon: ClipboardCheck,
+    surface: "border-blue-200 bg-blue-50 hover:border-blue-300 hover:bg-blue-100 dark:border-blue-400/30 dark:bg-blue-400/10 dark:hover:border-blue-300/50 dark:hover:bg-blue-400/15",
+    iconSurface: "bg-blue-500/15 text-blue-700 dark:bg-blue-400/15 dark:text-blue-300",
+    title: "text-blue-950 dark:text-blue-100",
+    detail: "text-blue-800/85 dark:text-blue-100/75",
+  },
+  attention: {
+    icon: BellRing,
+    surface: "border-red-200 bg-red-50 hover:border-red-300 hover:bg-red-100 dark:border-red-400/30 dark:bg-red-400/10 dark:hover:border-red-300/50 dark:hover:bg-red-400/15",
+    iconSurface: "bg-red-500/15 text-red-700 dark:bg-red-400/15 dark:text-red-300",
+    title: "text-red-950 dark:text-red-100",
+    detail: "text-red-800/85 dark:text-red-100/75",
+  },
+  review: {
+    icon: UserRoundCheck,
+    surface: "border-violet-200 bg-violet-50 hover:border-violet-300 hover:bg-violet-100 dark:border-violet-400/30 dark:bg-violet-400/10 dark:hover:border-violet-300/50 dark:hover:bg-violet-400/15",
+    iconSurface: "bg-violet-500/15 text-violet-700 dark:bg-violet-400/15 dark:text-violet-300",
+    title: "text-violet-950 dark:text-violet-100",
+    detail: "text-violet-800/85 dark:text-violet-100/75",
+  },
+};
 
 const displayDate = (value: string | null) => value
   ? new Intl.DateTimeFormat("en-GB", { dateStyle: "medium" }).format(new Date(`${value}T12:00:00`))
@@ -108,12 +141,12 @@ export default function AdminAgencyOverview() {
   }, [data, getDateFilter]);
 
   const alerts = useMemo(() => {
-    const result: Array<{ title: string; detail: string; href: string; tone: string }> = [];
-    if (metrics.unassigned.length) result.push({ title: `${metrics.unassigned.length} job${metrics.unassigned.length === 1 ? "" : "s"} need assignment`, detail: "Open Jobs & Schedule to assign available cleaners.", href: "/admin/jobs", tone: "border-amber-200 bg-amber-50" });
-    if (metrics.quality.length) result.push({ title: `${metrics.quality.length} job${metrics.quality.length === 1 ? "" : "s"} await quality review`, detail: "Review evidence before releasing cleaner earnings.", href: "/admin/quality", tone: "border-blue-200 bg-blue-50" });
-    if (data.notifications.length) result.push({ title: `${data.notifications.length} notification${data.notifications.length === 1 ? "" : "s"} need attention`, detail: "Inspect failed deliveries and retry attempts.", href: "/admin/email-templates", tone: "border-red-200 bg-red-50" });
-    if (data.issues.length) result.push({ title: `${data.issues.length} open quality issue${data.issues.length === 1 ? "" : "s"}`, detail: "Resolve complaints and jobs with held payouts.", href: "/admin/quality", tone: "border-red-200 bg-red-50" });
-    if (metrics.onboarding.length) result.push({ title: `${metrics.onboarding.length} cleaner application${metrics.onboarding.length === 1 ? "" : "s"} to review`, detail: "Complete onboarding and verification decisions.", href: "/admin/onboarding", tone: "border-violet-200 bg-violet-50" });
+    const result: Array<{ title: string; detail: string; href: string; tone: ActionTone }> = [];
+    if (metrics.unassigned.length) result.push({ title: `${metrics.unassigned.length} job${metrics.unassigned.length === 1 ? "" : "s"} need assignment`, detail: "Open Jobs & Schedule to assign available cleaners.", href: "/admin/jobs", tone: "warning" });
+    if (metrics.quality.length) result.push({ title: `${metrics.quality.length} job${metrics.quality.length === 1 ? "" : "s"} await quality review`, detail: "Review evidence before releasing cleaner earnings.", href: "/admin/quality", tone: "quality" });
+    if (data.notifications.length) result.push({ title: `${data.notifications.length} notification${data.notifications.length === 1 ? "" : "s"} need attention`, detail: "Inspect failed deliveries and retry attempts.", href: "/admin/email-templates", tone: "attention" });
+    if (data.issues.length) result.push({ title: `${data.issues.length} open quality issue${data.issues.length === 1 ? "" : "s"}`, detail: "Resolve complaints and jobs with held payouts.", href: "/admin/quality", tone: "attention" });
+    if (metrics.onboarding.length) result.push({ title: `${metrics.onboarding.length} cleaner application${metrics.onboarding.length === 1 ? "" : "s"} to review`, detail: "Complete onboarding and verification decisions.", href: "/admin/onboarding", tone: "review" });
     return result;
   }, [data.issues.length, data.notifications.length, metrics]);
 
@@ -145,7 +178,16 @@ export default function AdminAgencyOverview() {
             <Card>
               <CardHeader><CardTitle className="flex items-center gap-2"><AlertTriangle className="h-5 w-5" />Action centre</CardTitle><CardDescription>Items that currently require an admin decision.</CardDescription></CardHeader>
               <CardContent className="space-y-3">
-                {alerts.length ? alerts.map((alert) => <button key={alert.title} type="button" onClick={() => navigate(alert.href)} className={`w-full rounded-lg border p-4 text-left transition hover:shadow-sm ${alert.tone}`}><p className="font-semibold">{alert.title}</p><p className="mt-1 text-sm text-muted-foreground">{alert.detail}</p></button>) : <div className="rounded-lg border border-dashed p-8 text-center"><CheckCircle2 className="mx-auto mb-3 h-8 w-8 text-emerald-600" /><p className="font-medium">Operations are clear</p><p className="text-sm text-muted-foreground">There are no urgent items requiring action.</p></div>}
+                {alerts.length ? alerts.map((alert) => {
+                  const style = actionToneStyles[alert.tone];
+                  const Icon = style.icon;
+                  return <button key={alert.title} type="button" onClick={() => navigate(alert.href)} className={`group w-full rounded-xl border p-3.5 text-left transition duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:focus-visible:ring-offset-background ${style.surface}`}>
+                    <div className="flex items-start gap-3">
+                      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${style.iconSurface}`}><Icon className="h-4.5 w-4.5" /></span>
+                      <span className="min-w-0"><span className={`block text-sm font-semibold leading-5 ${style.title}`}>{alert.title}</span><span className={`mt-0.5 block text-[13px] leading-5 ${style.detail}`}>{alert.detail}</span></span>
+                    </div>
+                  </button>;
+                }) : <div className="rounded-lg border border-dashed p-8 text-center"><CheckCircle2 className="mx-auto mb-3 h-8 w-8 text-emerald-600" /><p className="font-medium">Operations are clear</p><p className="text-sm text-muted-foreground">There are no urgent items requiring action.</p></div>}
               </CardContent>
             </Card>
 
