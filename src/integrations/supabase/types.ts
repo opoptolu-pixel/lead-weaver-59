@@ -907,6 +907,7 @@ export type Database = {
           paid_at: string | null
           provider: string | null
           provider_reference: string | null
+          recurring_visit_id: string | null
           refund_amount_pence: number
           refund_reference: string | null
           refund_requested_at: string | null
@@ -924,6 +925,7 @@ export type Database = {
           paid_at?: string | null
           provider?: string | null
           provider_reference?: string | null
+          recurring_visit_id?: string | null
           refund_amount_pence?: number
           refund_reference?: string | null
           refund_requested_at?: string | null
@@ -941,6 +943,7 @@ export type Database = {
           paid_at?: string | null
           provider?: string | null
           provider_reference?: string | null
+          recurring_visit_id?: string | null
           refund_amount_pence?: number
           refund_reference?: string | null
           refund_requested_at?: string | null
@@ -955,6 +958,13 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_payments_recurring_visit_id_fkey"
+            columns: ["recurring_visit_id"]
+            isOneToOne: true
+            referencedRelation: "recurring_clean_visits"
             referencedColumns: ["id"]
           },
         ]
@@ -1882,6 +1892,8 @@ export type Database = {
           quality_review_status: string
           quality_reviewed_at: string | null
           quality_reviewed_by: string | null
+          recurring_plan_id: string | null
+          recurring_visit_id: string | null
           reference: string
           requirements: string | null
           schedule_confirmed_at: string | null
@@ -1914,6 +1926,8 @@ export type Database = {
           quality_review_status?: string
           quality_reviewed_at?: string | null
           quality_reviewed_by?: string | null
+          recurring_plan_id?: string | null
+          recurring_visit_id?: string | null
           reference: string
           requirements?: string | null
           schedule_confirmed_at?: string | null
@@ -1946,6 +1960,8 @@ export type Database = {
           quality_review_status?: string
           quality_reviewed_at?: string | null
           quality_reviewed_by?: string | null
+          recurring_plan_id?: string | null
+          recurring_visit_id?: string | null
           reference?: string
           requirements?: string | null
           schedule_confirmed_at?: string | null
@@ -1980,6 +1996,20 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_recurring_plan_id_fkey"
+            columns: ["recurring_plan_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_clean_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_recurring_visit_id_fkey"
+            columns: ["recurring_visit_id"]
+            isOneToOne: true
+            referencedRelation: "recurring_clean_visits"
             referencedColumns: ["id"]
           },
           {
@@ -2507,6 +2537,8 @@ export type Database = {
           notes: string | null
           payment_confirmation_sent_at: string | null
           payment_link_sent_at: string | null
+          recurring_plan_id: string | null
+          recurring_visit_id: string | null
           requirements: string | null
           scheduled_date: string | null
           sent_at: string | null
@@ -2531,6 +2563,8 @@ export type Database = {
           notes?: string | null
           payment_confirmation_sent_at?: string | null
           payment_link_sent_at?: string | null
+          recurring_plan_id?: string | null
+          recurring_visit_id?: string | null
           requirements?: string | null
           scheduled_date?: string | null
           sent_at?: string | null
@@ -2555,6 +2589,8 @@ export type Database = {
           notes?: string | null
           payment_confirmation_sent_at?: string | null
           payment_link_sent_at?: string | null
+          recurring_plan_id?: string | null
+          recurring_visit_id?: string | null
           requirements?: string | null
           scheduled_date?: string | null
           sent_at?: string | null
@@ -2572,6 +2608,20 @@ export type Database = {
             columns: ["address_id"]
             isOneToOne: false
             referencedRelation: "customer_addresses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_recurring_plan_id_fkey"
+            columns: ["recurring_plan_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_clean_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_recurring_visit_id_fkey"
+            columns: ["recurring_visit_id"]
+            isOneToOne: true
+            referencedRelation: "recurring_clean_visits"
             referencedColumns: ["id"]
           },
           {
@@ -2609,6 +2659,217 @@ export type Database = {
           window_start?: string
         }
         Relationships: []
+      }
+      recurring_clean_plans: {
+        Row: {
+          address_id: string
+          cancelled_at: string | null
+          cleaner_payout_pence: number
+          created_at: string
+          created_by: string | null
+          currency: string
+          customer_amount_pence: number
+          customer_id: string
+          expected_duration_minutes: number
+          frequency: string
+          id: string
+          internal_notes: string | null
+          interval_count: number
+          month_day: number | null
+          next_visit_date: string
+          paused_at: string | null
+          payment_collection_days_before: number
+          payment_setup_completed_at: string | null
+          payment_setup_sent_at: string | null
+          payment_setup_status: string
+          requirements: string | null
+          service_area_id: string
+          service_type_id: string
+          start_date: string
+          start_time: string | null
+          status: string
+          stripe_customer_id: string | null
+          stripe_payment_method_id: string | null
+          updated_at: string
+          weekday: number | null
+        }
+        Insert: {
+          address_id: string
+          cancelled_at?: string | null
+          cleaner_payout_pence: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_amount_pence: number
+          customer_id: string
+          expected_duration_minutes: number
+          frequency: string
+          id?: string
+          internal_notes?: string | null
+          interval_count?: number
+          month_day?: number | null
+          next_visit_date: string
+          paused_at?: string | null
+          payment_collection_days_before?: number
+          payment_setup_completed_at?: string | null
+          payment_setup_sent_at?: string | null
+          payment_setup_status?: string
+          requirements?: string | null
+          service_area_id: string
+          service_type_id: string
+          start_date: string
+          start_time?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_payment_method_id?: string | null
+          updated_at?: string
+          weekday?: number | null
+        }
+        Update: {
+          address_id?: string
+          cancelled_at?: string | null
+          cleaner_payout_pence?: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_amount_pence?: number
+          customer_id?: string
+          expected_duration_minutes?: number
+          frequency?: string
+          id?: string
+          internal_notes?: string | null
+          interval_count?: number
+          month_day?: number | null
+          next_visit_date?: string
+          paused_at?: string | null
+          payment_collection_days_before?: number
+          payment_setup_completed_at?: string | null
+          payment_setup_sent_at?: string | null
+          payment_setup_status?: string
+          requirements?: string | null
+          service_area_id?: string
+          service_type_id?: string
+          start_date?: string
+          start_time?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_payment_method_id?: string | null
+          updated_at?: string
+          weekday?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_clean_plans_address_id_fkey"
+            columns: ["address_id"]
+            isOneToOne: false
+            referencedRelation: "customer_addresses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_clean_plans_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_clean_plans_service_area_id_fkey"
+            columns: ["service_area_id"]
+            isOneToOne: false
+            referencedRelation: "service_areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_clean_plans_service_type_id_fkey"
+            columns: ["service_type_id"]
+            isOneToOne: false
+            referencedRelation: "service_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recurring_clean_visits: {
+        Row: {
+          charged_at: string | null
+          created_at: string
+          id: string
+          job_id: string | null
+          last_payment_error: string | null
+          occurrence_number: number
+          payment_attempts: number
+          payment_intent_id: string | null
+          plan_id: string
+          quote_id: string | null
+          scheduled_date: string
+          service_request_id: string | null
+          skipped_reason: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          charged_at?: string | null
+          created_at?: string
+          id?: string
+          job_id?: string | null
+          last_payment_error?: string | null
+          occurrence_number: number
+          payment_attempts?: number
+          payment_intent_id?: string | null
+          plan_id: string
+          quote_id?: string | null
+          scheduled_date: string
+          service_request_id?: string | null
+          skipped_reason?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          charged_at?: string | null
+          created_at?: string
+          id?: string
+          job_id?: string | null
+          last_payment_error?: string | null
+          occurrence_number?: number
+          payment_attempts?: number
+          payment_intent_id?: string | null
+          plan_id?: string
+          quote_id?: string | null
+          scheduled_date?: string
+          service_request_id?: string | null
+          skipped_reason?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_clean_visits_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_clean_visits_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_clean_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_clean_visits_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: true
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_clean_visits_service_request_id_fkey"
+            columns: ["service_request_id"]
+            isOneToOne: true
+            referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       scheduled_emails: {
         Row: {
@@ -3173,6 +3434,26 @@ export type Database = {
         }
         Returns: string
       }
+      create_recurring_clean_plan: {
+        Args: {
+          p_address_id: string
+          p_cleaner_payout_pence: number
+          p_customer_amount_pence: number
+          p_customer_id: string
+          p_expected_duration_minutes: number
+          p_frequency: string
+          p_internal_notes?: string
+          p_month_day?: number
+          p_payment_collection_days_before?: number
+          p_requirements?: string
+          p_service_area_id: string
+          p_service_type_id: string
+          p_start_date: string
+          p_start_time: string
+          p_weekday?: number
+        }
+        Returns: string
+      }
       deduct_credit_atomic: {
         Args: { p_lead_id: string; p_user_id: string }
         Returns: {
@@ -3280,6 +3561,10 @@ export type Database = {
       offer_job_to_cleaner: {
         Args: { p_cleaner_id: string; p_job_id: string }
         Returns: Json
+      }
+      pause_recurring_clean_plan: {
+        Args: { p_paused: boolean; p_plan_id: string }
+        Returns: boolean
       }
       record_customer_payment: {
         Args: {
