@@ -2729,6 +2729,63 @@ export type Database = {
           },
         ]
       }
+      recurring_clean_plan_addons: {
+        Row: {
+          addon_code: string
+          addon_id: string | null
+          addon_name: string
+          category: string
+          created_at: string
+          id: string
+          plan_id: string
+          quantity: number
+          unit_cleaner_payout_pence: number
+          unit_customer_price_pence: number
+          unit_duration_minutes: number
+        }
+        Insert: {
+          addon_code: string
+          addon_id?: string | null
+          addon_name: string
+          category: string
+          created_at?: string
+          id?: string
+          plan_id: string
+          quantity: number
+          unit_cleaner_payout_pence: number
+          unit_customer_price_pence: number
+          unit_duration_minutes?: number
+        }
+        Update: {
+          addon_code?: string
+          addon_id?: string | null
+          addon_name?: string
+          category?: string
+          created_at?: string
+          id?: string
+          plan_id?: string
+          quantity?: number
+          unit_cleaner_payout_pence?: number
+          unit_customer_price_pence?: number
+          unit_duration_minutes?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_clean_plan_addons_addon_id_fkey"
+            columns: ["addon_id"]
+            isOneToOne: false
+            referencedRelation: "service_addons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_clean_plan_addons_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_clean_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recurring_clean_plans: {
         Row: {
           address_id: string
@@ -3521,6 +3578,7 @@ export type Database = {
       }
       create_recurring_clean_plan: {
         Args: {
+          p_addons?: Json
           p_address_id: string
           p_billing_frequency: string
           p_cleaner_payout_pence: number
