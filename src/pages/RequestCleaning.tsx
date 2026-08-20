@@ -7,6 +7,9 @@ import {
   ArrowLeft,
   Home,
   Truck,
+  Droplets,
+  Sofa,
+  BedDouble,
   Building2,
   Layers,
   MapPin,
@@ -43,10 +46,25 @@ const fullCleaningTypes = [
   { id: "weekly-routine", label: "Weekly Routine Cleaning", icon: Calendar, color: "bg-green-100 text-green-600", value: "Manual quote", phase: 1 },
   { id: "post-construction", label: "Post-Construction Deep Cleaning", icon: Building2, color: "bg-slate-100 text-slate-600", value: "Manual quote", phase: 1 },
   { id: "airbnb-short-let", label: "Airbnb / Short-Let Cleaning", icon: Building2, color: "bg-teal-100 text-teal-600", value: "Manual quote", phase: 1 },
+  { id: "carpet-2-3-rooms", label: "Carpet Cleaning (2–3 Rooms)", icon: Layers, color: "bg-amber-100 text-amber-700", value: "Manual quote", phase: 1 },
+  { id: "sofa-carpet", label: "Sofa + Carpet Cleaning", icon: Sofa, color: "bg-violet-100 text-violet-700", value: "Manual quote", phase: 1 },
+  { id: "sofa-mattress", label: "Sofa + Mattress Cleaning", icon: BedDouble, color: "bg-rose-100 text-rose-700", value: "Manual quote", phase: 1 },
+  { id: "carpet-mattress", label: "Carpet + Mattress Cleaning", icon: Droplets, color: "bg-sky-100 text-sky-700", value: "Manual quote", phase: 1 },
+  { id: "deep-clean-3-plus-rooms", label: "Deep Clean (3+ Rooms)", icon: Sparkles, color: "bg-emerald-100 text-emerald-700", value: "Manual quote", phase: 1 },
+  { id: "post-tenancy-carpet-upholstery", label: "Post-Tenancy Carpet & Upholstery", icon: Layers, color: "bg-pink-100 text-pink-700", value: "Manual quote", phase: 1 },
+  { id: "office-carpet-upholstery", label: "Office Carpet + Upholstery Clean", icon: Building2, color: "bg-blue-100 text-blue-700", value: "Manual quote", phase: 2 },
+  { id: "large-property-window-interior", label: "Large Property Window + Interior", icon: Home, color: "bg-sky-100 text-sky-700", value: "Manual quote", phase: 2 },
+  { id: "multi-room-upholstery", label: "Multi-Room + Upholstery Deep Clean", icon: Sofa, color: "bg-purple-100 text-purple-700", value: "Manual quote", phase: 2 },
   { id: "student-accommodation", label: "Student Accommodation Cleaning", icon: Building2, color: "bg-violet-100 text-violet-600", value: "Manual quote", phase: 1 },
 ];
 
-const simplifiedCleaningTypes = fullCleaningTypes;
+const simplifiedCleaningTypes = fullCleaningTypes.filter((service) => [
+  "end-of-tenancy",
+  "move-in-move-out",
+  "one-off-deep",
+  "weekly-routine",
+  "post-construction",
+].includes(service.id));
 
 const TOTAL_STEPS = 6;
 

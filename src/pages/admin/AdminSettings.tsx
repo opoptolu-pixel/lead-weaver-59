@@ -625,7 +625,7 @@ export default function AdminSettings() {
                   )}
                 >
                   <p className="font-semibold text-foreground">Full Menu</p>
-                  <p className="text-sm text-muted-foreground mt-1">14 service types — carpet, sofa, deep clean, commercial, etc.</p>
+                  <p className="text-sm text-muted-foreground mt-1">Uses the complete managed-service catalogue when no custom service selection is saved.</p>
                   {formVariant === 'full' && (
                     <Badge className="mt-2 bg-primary/20 text-primary border-primary/30">Active</Badge>
                   )}
@@ -642,7 +642,7 @@ export default function AdminSettings() {
                   )}
                 >
                   <p className="font-semibold text-foreground">Simplified Menu</p>
-                  <p className="text-sm text-muted-foreground mt-1">5 key services — end of tenancy, move-in/out, deep clean, weekly, post-construction</p>
+                  <p className="text-sm text-muted-foreground mt-1">Fallback of five core services — end of tenancy, move-in/out, deep clean, weekly and post-construction.</p>
                   {formVariant === 'simplified' && (
                     <Badge className="mt-2 bg-primary/20 text-primary border-primary/30">Active</Badge>
                   )}
