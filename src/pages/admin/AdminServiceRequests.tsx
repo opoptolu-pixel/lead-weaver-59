@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   addMonths,
   eachDayOfInterval,
@@ -266,6 +266,7 @@ const REQUEST_KANBAN_COLUMNS = [
 
 export default function AdminServiceRequests() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [requests, setRequests] = useState<ManagedRequest[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [customerPayments, setCustomerPayments] = useState<CustomerPayment[]>([]);
@@ -1162,6 +1163,37 @@ export default function AdminServiceRequests() {
           payment.job_id === selectedBookingJob.id && payment.status === "paid",
       ) || null
     : null;
+  const nextRecurringDate = (date: string, frequency: string) => {
+    const next = new Date(`${date}T12:00:00`);
+    if (frequency === "fortnightly") next.setDate(next.getDate() + 14);
+    else if (frequency === "monthly") next.setMonth(next.getMonth() + 1);
+    else next.setDate(next.getDate() + 7);
+    return next.toISOString().slice(0, 10);
+  };
+  const startRecurringFromBooking = () => {
+    if (!selected || !selectedBookingJob) return;
+    navigate("/admin/recurring-cleans", {
+      state: {
+        recurringPreset: {
+          customerId: selected.customer.id,
+          addressId: selected.address.id,
+          serviceId: selected.service_type.id,
+          frequency: "weekly",
+          // The accepted booking is already paid and remains its own job. Start
+          // the recurring agreement at the following visit to prevent a second
+          // charge/job for the same clean.
+          date: nextRecurringDate(selectedBookingJob.scheduled_date, "weekly"),
+          time: selectedBookingJob.start_time?.slice(0, 5) || "09:00",
+          hours: selectedBookingJob.expected_duration_minutes
+            ? String(selectedBookingJob.expected_duration_minutes / 60)
+            : "",
+          price: String(selectedBookingJob.customer_amount_pence / 100),
+          payout: String(selectedBookingJob.cleaner_payout_pence / 100),
+          days: "3",
+        },
+      },
+    });
+  };
   const latestSelectedQuote = selected
     ? [...(selected.quotes || [])].sort((a, b) => b.version - a.version)[0] || null
     : null;
@@ -1907,13 +1939,22 @@ export default function AdminServiceRequests() {
                       </p>
                     </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    onClick={() => openJob(selectedBookingJob)}
-                    className="border-emerald-700 bg-white text-emerald-900 hover:bg-emerald-100"
-                  >
-                    View job
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => openJob(selectedBookingJob)}
+                      className="border-emerald-700 bg-white text-emerald-900 hover:bg-emerald-100"
+                    >
+                      View job
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={startRecurringFromBooking}
+                      className="border-emerald-700 bg-white text-emerald-900 hover:bg-emerald-100"
+                    >
+                      Set up recurring plan
+                    </Button>
+                  </div>
                 </div>
               )}
               {!selectedBookingJob && (
