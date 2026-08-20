@@ -24,7 +24,7 @@ serve(async (req) => {
 
     const db = createClient(url, serviceKey, { auth: { persistSession: false } });
     const { data: plan, error } = await db.from("recurring_clean_plans")
-      .select("id,status,stripe_customer_id,customer:customers(name,email),service_type:service_types(name)")
+      .select("id,status,stripe_customer_id,billing_frequency,customer:customers(name,email),service_type:service_types(name)")
       .eq("id", planId).single();
     if (error || !plan) throw new Error(error?.message || "Recurring plan not found");
     if (["cancelled", "active"].includes(plan.status) && plan.status !== "payment_setup_required") throw new Error("This plan cannot collect a new card");
@@ -45,7 +45,7 @@ serve(async (req) => {
     const resendKey = Deno.env.get("RESEND_API_KEY");
     if (resendKey) {
       const service = (plan.service_type as unknown as { name: string })?.name || "recurring clean";
-      await new Resend(resendKey).emails.send({ from: "Cleanda <hello@cleanda.co.uk>", to: [customer.email], subject: "Set up your recurring Cleanda payment", html: `<h1>Set up your recurring payment</h1><p>Hello ${customer.name}, please securely save the card you would like Cleanda to use for your ${service}. We charge each visit only when it is due.</p><p><a href="${session.url}">Securely save your card</a></p>` });
+      await new Resend(resendKey).emails.send({ from: "Cleanda <hello@cleanda.co.uk>", to: [customer.email], subject: "Set up your recurring Cleanda payment", html: `<h1>Set up your recurring payment</h1><p>Hello ${customer.name}, please securely save the card you would like Cleanda to use for your ${service}. Cleanda will charge your agreed ${plan.billing_frequency || "monthly"} billing cycle; your cleaner visits are scheduled separately.</p><p><a href="${session.url}">Securely save your card</a></p>` });
     }
     return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {
