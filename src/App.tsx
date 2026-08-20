@@ -59,6 +59,7 @@ const AdminDisputes = lazy(() => import("./pages/admin/AdminDisputes"));
 const AdminAnalytics = lazy(() => import("./pages/admin/AdminAgencyReports"));
 const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
 const AdminActivityLogs = lazy(() => import("./pages/admin/AdminActivityLogs"));
+const AdminAgencyAuditTrail = lazy(() => import("./pages/admin/AdminAgencyAuditTrail"));
 const AdminFraud = lazy(() => import("./pages/admin/AdminFraud"));
 const AdminInquiries = lazy(() => import("./pages/admin/AdminInquiries"));
 const AdminEmailTemplates = lazy(() => import("./pages/admin/AdminEmailTemplates"));
@@ -159,6 +160,7 @@ const App = () => (
                   <Route path="/admin/analytics" element={<AdminAnalytics />} />
                   <Route path="/admin/utm-builder" element={<AdminUtmBuilder />} />
                   <Route path="/admin/activity-logs" element={<AdminActivityLogs />} />
+                  <Route path="/admin/audit-trail" element={<AdminAgencyAuditTrail />} />
                   <Route path="/admin/settings" element={<AdminSettings />} />
                   <Route path="/admin/email-templates" element={<AdminEmailTemplates />} />
                   <Route path="/admin/subscribers" element={<AdminEmailSubscribers />} />

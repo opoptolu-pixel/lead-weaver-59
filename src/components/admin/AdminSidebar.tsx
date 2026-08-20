@@ -17,6 +17,7 @@ import {
   UserCheck,
   ClipboardCheck,
   Mail,
+  History,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,7 @@ const navItems = [
   { title: "Messages", url: "/admin/messages", icon: Headphones },
   { title: "Communications", url: "/admin/email-templates", icon: Mail },
   { title: "Reports", url: "/admin/reports", icon: BarChart3 },
+  { title: "Audit Trail", url: "/admin/audit-trail", icon: History },
   { title: "Settings", url: "/admin/settings", icon: Settings },
 ];
 

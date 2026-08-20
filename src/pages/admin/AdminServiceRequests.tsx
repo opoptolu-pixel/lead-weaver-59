@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { CleanerVettingPanel } from "@/components/admin/CleanerVettingPanel";
+import { CleanerAccountDialog } from "@/components/admin/CleanerAccountDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -191,6 +192,7 @@ interface DeliveryChecklist {
 
 interface Cleaner {
   id: string;
+  user_id: string;
   full_name: string | null;
   postcode: string | null;
   phone: string | null;
@@ -333,6 +335,7 @@ export default function AdminServiceRequests() {
   const [draggedRequestId, setDraggedRequestId] = useState<string | null>(null);
   const [requestMove, setRequestMove] = useState<{ request: ManagedRequest; target: string } | null>(null);
   const [requestStageReason, setRequestStageReason] = useState("");
+  const [selectedCleaner, setSelectedCleaner] = useState<Cleaner | null>(null);
 
   useEffect(() => {
     const timer = window.setInterval(() => setLiveNow(Date.now()), 30_000);
@@ -373,7 +376,7 @@ export default function AdminServiceRequests() {
       db
         .from("cleaner_profiles")
         .select(
-          "id,full_name,postcode,phone,application_status,operational_status,verification_status,payout_status,experience_summary,admin_notes,has_transport,created_at,vetting:cleaner_vetting_records(identity_status,address_status,right_to_work_status,submitted_at)",
+          "id,user_id,full_name,postcode,phone,application_status,operational_status,verification_status,payout_status,experience_summary,admin_notes,has_transport,created_at,vetting:cleaner_vetting_records(identity_status,address_status,right_to_work_status,submitted_at)",
         )
         .order("created_at", { ascending: false }),
       db
@@ -1631,6 +1634,7 @@ export default function AdminServiceRequests() {
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
+                    {!isOnboarding && <Button variant="outline" onClick={() => setSelectedCleaner(cleaner)}>Open full profile</Button>}
                     {isOnboarding && cleaner.application_status === "pending" && (
                       <>
                         <Button
@@ -1996,6 +2000,7 @@ export default function AdminServiceRequests() {
           )}
         </DialogContent>
       </Dialog>
+      <CleanerAccountDialog cleaner={selectedCleaner} open={!!selectedCleaner} onOpenChange={(open) => !open && setSelectedCleaner(null)} />
 
       <Dialog open={offlinePaymentDialogOpen} onOpenChange={setOfflinePaymentDialogOpen}>
         <DialogContent className="max-w-md">
