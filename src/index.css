@@ -109,13 +109,168 @@
     @apply border-border;
   }
 
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Inter', sans-serif;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-synthesis: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Poppins', sans-serif;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-synthesis: none;
+  }
+}
+
+/* Operational product shell -------------------------------------------------
+   These styles are deliberately scoped to the signed-in workspaces. They keep
+   public marketing pages untouched while giving admin and cleaner surfaces a
+   sharper, high-density product feel at desktop and TV-sized displays. */
+@layer components {
+  .admin-layout {
+    --radius: 0.875rem;
+    background:
+      radial-gradient(1100px 600px at 100% -10%, hsl(var(--secondary) / 0.06), transparent 65%),
+      hsl(var(--background));
+    letter-spacing: -0.01em;
+  }
+
+  .admin-layout main {
+    max-width: none;
+    font-size: 0.9375rem;
+  }
+
+  .admin-layout main > * {
+    max-width: 1680px;
+    margin-inline: auto;
+  }
+
+  .admin-layout .bg-card {
+    box-shadow: 0 1px 2px hsl(var(--navy) / 0.035), 0 14px 34px -30px hsl(var(--navy) / 0.3);
+  }
+
+  .admin-layout .rounded-xl {
+    border-radius: 1rem;
+  }
+
+  .admin-layout [data-radix-popper-content-wrapper],
+  .cleaner-dashboard [data-radix-popper-content-wrapper] {
+    filter: drop-shadow(0 18px 28px hsl(var(--navy) / 0.14));
+  }
+
+  .admin-layout table,
+  .cleaner-dashboard table {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .admin-layout thead,
+  .cleaner-dashboard thead {
+    background: hsl(var(--muted) / 0.62);
+  }
+
+  .admin-layout th,
+  .cleaner-dashboard th {
+    height: 3.25rem;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .admin-layout tbody tr,
+  .cleaner-dashboard tbody tr {
+    transition: background-color 150ms ease;
+  }
+
+  .admin-layout tbody tr:hover,
+  .cleaner-dashboard tbody tr:hover {
+    background: hsl(var(--secondary) / 0.045);
+  }
+
+  .admin-layout input,
+  .admin-layout textarea,
+  .cleaner-dashboard input,
+  .cleaner-dashboard textarea {
+    border-color: hsl(var(--border) / 0.9);
+    box-shadow: inset 0 1px 1px hsl(var(--navy) / 0.018);
+  }
+
+  .admin-layout input:focus,
+  .admin-layout textarea:focus,
+  .cleaner-dashboard input:focus,
+  .cleaner-dashboard textarea:focus {
+    border-color: hsl(var(--secondary) / 0.75);
+    box-shadow: 0 0 0 3px hsl(var(--secondary) / 0.12);
+  }
+
+  .admin-layout button,
+  .admin-layout [role="tab"],
+  .cleaner-dashboard button,
+  .cleaner-dashboard [role="tab"] {
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .cleaner-dashboard {
+    min-height: 100vh;
+    background:
+      radial-gradient(950px 500px at 8% -10%, hsl(var(--secondary) / 0.10), transparent 60%),
+      hsl(var(--muted) / 0.45);
+    letter-spacing: -0.01em;
+  }
+
+  .cleaner-dashboard header {
+    background: hsl(var(--primary) / 0.98);
+    box-shadow: 0 1px 0 hsl(0 0% 100% / 0.09);
+  }
+
+  .cleaner-dashboard main {
+    max-width: 1440px;
+    padding-top: clamp(2rem, 3vw, 3.75rem);
+    padding-bottom: clamp(2.5rem, 4vw, 5rem);
+  }
+
+  .cleaner-dashboard .bg-card {
+    box-shadow: 0 1px 2px hsl(var(--navy) / 0.04), 0 18px 40px -34px hsl(var(--navy) / 0.38);
+  }
+
+  .cleaner-dashboard [role="tablist"] {
+    gap: 0.25rem;
+  }
+
+  .cleaner-dashboard [role="tab"] {
+    min-height: 3rem;
+    color: hsl(var(--muted-foreground));
+    transition: background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+  }
+
+  .cleaner-dashboard [role="tab"][data-state="active"] {
+    box-shadow: 0 7px 16px -12px hsl(var(--primary) / 0.75);
+  }
+
+  @media (min-width: 1536px) {
+    .admin-layout main {
+      padding: 3.25rem 4rem 3.5rem;
+    }
+
+    .admin-layout h1,
+    .cleaner-dashboard h1 {
+      letter-spacing: -0.045em;
+    }
+
+    .admin-layout .text-sm,
+    .cleaner-dashboard .text-sm {
+      font-size: 0.9375rem;
+      line-height: 1.5;
+    }
   }
 }
 

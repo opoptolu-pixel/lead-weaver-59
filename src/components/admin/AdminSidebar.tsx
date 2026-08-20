@@ -191,13 +191,13 @@ export default function AdminSidebar({ onNavigate }: AdminSidebarProps) {
     <TooltipProvider>
       <aside
         className={cn(
-          "bg-card border-r border-border/30 h-screen flex flex-col transition-all duration-300 flex-shrink-0",
+          "bg-card/95 backdrop-blur-xl border-r border-border/50 h-screen flex flex-col transition-all duration-300 flex-shrink-0 shadow-[10px_0_30px_-28px_hsl(var(--navy)/0.45)]",
           collapsed ? "w-16" : "w-[17rem]"
         )}
       >
         {/* Logo */}
         <div className={cn(
-          "h-14 md:h-16 flex items-center border-b border-border flex-shrink-0",
+          "h-16 md:h-[4.5rem] flex items-center border-b border-border/70 flex-shrink-0",
           collapsed ? "justify-center px-2" : "justify-between px-4"
         )}>
           {!collapsed && (
@@ -238,7 +238,7 @@ export default function AdminSidebar({ onNavigate }: AdminSidebarProps) {
 
         {/* Navigation */}
         <ScrollArea className="flex-1">
-          <nav className="p-2 space-y-1">
+          <nav className="p-3 space-y-1">
             {navItems.map((item) => (
               <NavItem key={item.url} item={item} />
             ))}
