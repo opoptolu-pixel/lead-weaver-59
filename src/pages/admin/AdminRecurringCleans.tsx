@@ -16,7 +16,7 @@ const db = supabase as unknown as SupabaseClient;
 type Plan = { id:string; status:string; frequency:string; next_visit_date:string; start_time:string|null; customer_amount_pence:number; payment_setup_status:string; customer:{name:string;email:string}; service_type:{name:string} };
 type Row = {id:string;name?:string;email?:string;customer_id?:string;address_line_1?:string;city?:string;postcode?:string;service_area_id?:string|null};
 const GBP=(v:number)=>new Intl.NumberFormat("en-GB",{style:"currency",currency:"GBP"}).format(v/100);
-const blank={customerId:"",addressId:"",serviceId:"",areaId:"",frequency:"weekly",date:"",time:"09:00",hours:"3",price:"",payout:"",days:"3"};
+const blank={customerId:"",addressId:"",serviceId:"",areaId:"",frequency:"weekly",billingFrequency:"weekly",date:"",time:"09:00",hours:"3",price:"",payout:"",days:"3"};
 
 export default function AdminRecurringCleans(){
  const location=useLocation(), navigate=useNavigate();
