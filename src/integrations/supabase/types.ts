@@ -149,6 +149,45 @@ export type Database = {
         }
         Relationships: []
       }
+      agency_audit_events: {
+        Row: {
+          action: string
+          actor_type: string
+          actor_user_id: string | null
+          changes: Json
+          entity_id: string | null
+          entity_type: string
+          id: string
+          metadata: Json
+          occurred_at: string
+          subject_user_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_type?: string
+          actor_user_id?: string | null
+          changes?: Json
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          metadata?: Json
+          occurred_at?: string
+          subject_user_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_type?: string
+          actor_user_id?: string | null
+          changes?: Json
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          metadata?: Json
+          occurred_at?: string
+          subject_user_id?: string | null
+        }
+        Relationships: []
+      }
       business_inquiries: {
         Row: {
           admin_notes: string | null
@@ -3050,6 +3089,11 @@ export type Database = {
         Args: { p_decision: string; p_job_id: string; p_notes?: string }
         Returns: boolean
       }
+      agency_audit_changes: {
+        Args: { after_row: Json; before_row: Json }
+        Returns: Json
+      }
+      agency_audit_redact: { Args: { payload: Json }; Returns: Json }
       approve_cleaner_payout: {
         Args: { p_payout_id: string }
         Returns: boolean
