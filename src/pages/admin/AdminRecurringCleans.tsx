@@ -13,23 +13,94 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const db = supabase as unknown as SupabaseClient;
-type Plan = { id:string; status:string; frequency:string; next_visit_date:string; start_time:string|null; customer_amount_pence:number; payment_setup_status:string; customer:{name:string;email:string}; service_type:{name:string} };
-type Row = {id:string;name?:string;email?:string;customer_id?:string;address_line_1?:string;city?:string;postcode?:string;service_area_id?:string|null};
-const GBP=(v:number)=>new Intl.NumberFormat("en-GB",{style:"currency",currency:"GBP"}).format(v/100);
-const blank={customerId:"",addressId:"",serviceId:"",areaId:"",frequency:"weekly",date:"",time:"09:00",hours:"3",price:"",payout:"",days:"3"};
+type Plan = { id:string; status:string; frequency:string; billing_frequency:string; next_visit_date:string; next_billing_date:string; start_time:string|null; customer_amount_pence:number; payment_setup_status:string; customer:{name:string;email:string}; service_type:{name:string} };
+type Row = { id:string; name?:string; email?:string; customer_id?:string; address_line_1?:string; city?:string; postcode?:string; service_area_id?:string|null };
+type Form = { customerId:string; addressId:string; serviceId:string; areaId:string; frequency:string; billingFrequency:string; date:string; time:string; hours:string; price:string; payout:string; days:string };
+const blank: Form = { customerId:"", addressId:"", serviceId:"", areaId:"", frequency:"weekly", billingFrequency:"monthly", date:"", time:"09:00", hours:"3", price:"", payout:"", days:"3" };
+const GBP = (value:number) => new Intl.NumberFormat("en-GB", { style:"currency", currency:"GBP" }).format(value / 100);
 
-export default function AdminRecurringCleans(){
- const location=useLocation(), navigate=useNavigate();
- const [plans,setPlans]=useState<Plan[]>([]),[customers,setCustomers]=useState<Row[]>([]),[addresses,setAddresses]=useState<Row[]>([]),[services,setServices]=useState<Row[]>([]),[areas,setAreas]=useState<Row[]>([]),[form,setForm]=useState(blank),[open,setOpen]=useState(false),[busy,setBusy]=useState(""),[loading,setLoading]=useState(true);
- const addressesForCustomer=useMemo(()=>addresses.filter(a=>a.customer_id===form.customerId),[addresses,form.customerId]);
- const change=(key:keyof typeof blank,value:string)=>setForm(f=>({...f,[key]:value}));
- const load=async()=>{setLoading(true);const [p,c,a,s,r]=await Promise.all([db.from("recurring_clean_plans").select("id,status,frequency,next_visit_date,start_time,customer_amount_pence,payment_setup_status,customer:customers(name,email),service_type:service_types(name)").order("next_visit_date"),db.from("customers").select("id,name,email").order("name"),db.from("customer_addresses").select("id,customer_id,address_line_1,city,postcode,service_area_id"),db.from("service_types").select("id,name").order("name"),db.from("service_areas").select("id,name").order("name")]);setLoading(false);const error=p.error||c.error||a.error||s.error||r.error;if(error)return toast.error(error.message);setPlans((p.data||[]) as unknown as Plan[]);setCustomers((c.data||[]) as Row[]);setAddresses((a.data||[]) as Row[]);setServices((s.data||[]) as Row[]);setAreas((r.data||[]) as Row[])};
- useEffect(()=>{load()},[]);
- useEffect(()=>{const preset=location.state?.recurringPreset;if(!preset)return;const address=addresses.find((item)=>item.id===preset.addressId);setForm({...blank,...preset,areaId:preset.areaId||address?.service_area_id||""});setOpen(true);navigate(location.pathname,{replace:true,state:null})},[addresses,location.pathname,location.state,navigate]);
- const card=async(id:string)=>{setBusy(id);const {error}=await supabase.functions.invoke("send-recurring-payment-setup",{body:{planId:id}});setBusy("");if(error)toast.error(error.message);else{toast.success("Secure card-setup link sent");load()}};
- const pause=async(id:string,value:boolean)=>{setBusy(id);const {error}=await db.rpc("pause_recurring_clean_plan",{p_plan_id:id,p_paused:value});setBusy("");if(error)toast.error(error.message);else{toast.success(value?"Plan paused":"Plan restarted");load()}};
- const create=async()=>{if(Object.entries(form).some(([k,v])=>!["time"].includes(k)&&!v))return toast.error("Complete all agreement fields");const amount=Math.round(+form.price*100), payout=Math.round(+form.payout*100), mins=Math.round(+form.hours*60);if(mins<30||payout>amount)return toast.error("Check the duration and pricing");setBusy("create");const d=new Date(`${form.date}T12:00:00`);const {data,error}=await db.rpc("create_recurring_clean_plan",{p_customer_id:form.customerId,p_address_id:form.addressId,p_service_type_id:form.serviceId,p_service_area_id:form.areaId,p_frequency:form.frequency,p_start_date:form.date,p_start_time:form.time||null,p_expected_duration_minutes:mins,p_customer_amount_pence:amount,p_cleaner_payout_pence:payout,p_weekday:form.frequency==="monthly"?null:d.getDay(),p_month_day:form.frequency==="monthly"?d.getDate():null,p_payment_collection_days_before:+form.days,p_requirements:null,p_internal_notes:null});setBusy("");if(error)return toast.error(error.message);setOpen(false);setForm(blank);toast.success("Agreement created. Sending card-setup link…");await load();if(data)await card(data as string)};
- return <AdminLayout title="Recurring Cleans"><div className="space-y-6"><div className="flex flex-wrap justify-between gap-3"><div><h1 className="text-2xl font-bold">Recurring cleans</h1><p className="text-muted-foreground">Each visit becomes its own job, payment and cleaner payout.</p></div><div className="flex gap-2"><Button variant="outline" onClick={load}><RefreshCw className="mr-2 h-4 w-4"/>Refresh</Button><Button onClick={()=>setOpen(true)}><Plus className="mr-2 h-4 w-4"/>Set up recurring clean</Button></div></div><div className="grid gap-4 md:grid-cols-3">{[["Active",plans.filter(p=>p.status==="active").length],["Needs card setup",plans.filter(p=>p.payment_setup_status!=="ready").length],["Payment attention",plans.filter(p=>p.status==="payment_failed").length]].map(([l,n])=><div className="rounded-xl border p-5" key={String(l)}><p className="text-sm text-muted-foreground">{l}</p><p className="mt-1 text-3xl font-bold">{n}</p></div>)}</div><div className="rounded-xl border">{loading?<p className="p-6">Loading…</p>:plans.length===0?<p className="p-6 text-muted-foreground">No recurring agreements yet. Use “Set up recurring clean” to create one.</p>:<div className="divide-y">{plans.map(p=><div className="flex flex-wrap items-center justify-between gap-4 p-5" key={p.id}><div><div className="flex gap-2"><b>{p.customer.name} · {p.service_type.name}</b><Badge variant="outline">{p.status.replaceAll("_"," ")}</Badge></div><p className="text-sm text-muted-foreground">{p.frequency} · next {p.next_visit_date} {p.start_time?.slice(0,5)} · {GBP(p.customer_amount_pence)}</p><p className="text-xs text-muted-foreground">Card setup: {p.payment_setup_status.replaceAll("_"," ")} · {p.customer.email}</p></div><div className="flex gap-2">{p.payment_setup_status!=="ready"&&<Button size="sm" onClick={()=>card(p.id)} disabled={busy===p.id}><CreditCard className="mr-2 h-4 w-4"/>Send card link</Button>}{p.status==="active"?<Button size="sm" variant="outline" onClick={()=>pause(p.id,true)}><Pause className="mr-2 h-4 w-4"/>Pause</Button>:p.status==="paused"?<Button size="sm" variant="outline" onClick={()=>pause(p.id,false)}><Play className="mr-2 h-4 w-4"/>Restart</Button>:null}</div></div>)}</div>}</div>
- <Dialog open={open} onOpenChange={setOpen}><DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl"><DialogHeader><DialogTitle>Set up recurring clean</DialogTitle><DialogDescription>Agree the schedule and price first. The customer then receives a secure card-setup link; no money is taken now.</DialogDescription></DialogHeader><div className="grid gap-4 sm:grid-cols-2"><Field label="Customer *"><Select value={form.customerId} onValueChange={v=>setForm(f=>({...f,customerId:v,addressId:"",areaId:""}))}><SelectTrigger><SelectValue placeholder="Select customer"/></SelectTrigger><SelectContent>{customers.map(c=><SelectItem key={c.id} value={c.id}>{c.name} · {c.email}</SelectItem>)}</SelectContent></Select></Field><Field label="Property address *"><Select value={form.addressId} onValueChange={v=>{const a=addresses.find(x=>x.id===v);setForm(f=>({...f,addressId:v,areaId:a?.service_area_id||f.areaId}))}} disabled={!form.customerId}><SelectTrigger><SelectValue placeholder="Select customer first"/></SelectTrigger><SelectContent>{addressesForCustomer.map(a=><SelectItem key={a.id} value={a.id}>{a.address_line_1}, {a.city} · {a.postcode}</SelectItem>)}</SelectContent></Select></Field><Field label="Service *"><Pick value={form.serviceId} set={v=>change("serviceId",v)} rows={services}/></Field><Field label="Service area *"><Pick value={form.areaId} set={v=>change("areaId",v)} rows={areas}/></Field><Field label="Frequency *"><Select value={form.frequency} onValueChange={v=>change("frequency",v)}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="weekly">Weekly</SelectItem><SelectItem value="fortnightly">Fortnightly</SelectItem><SelectItem value="monthly">Monthly</SelectItem></SelectContent></Select></Field><Field label="First clean date *"><Input type="date" value={form.date} onChange={e=>change("date",e.target.value)}/></Field><Field label="Start time"><Input type="time" value={form.time} onChange={e=>change("time",e.target.value)}/></Field><Field label="Total duration (hours) *"><Input type="number" min="0.5" step="0.25" value={form.hours} onChange={e=>change("hours",e.target.value)}/></Field><Field label="Customer price (£) *"><Input type="number" min="0" step="0.01" value={form.price} onChange={e=>change("price",e.target.value)}/></Field><Field label="Cleaner payout (£) *"><Input type="number" min="0" step="0.01" value={form.payout} onChange={e=>change("payout",e.target.value)}/></Field><Field label="Charge days before *"><Input type="number" min="0" max="14" value={form.days} onChange={e=>change("days",e.target.value)}/></Field></div><DialogFooter><Button variant="outline" onClick={()=>setOpen(false)}>Cancel</Button><Button onClick={create} disabled={busy==="create"}>{busy==="create"?"Creating…":"Create & send card link"}</Button></DialogFooter></DialogContent></Dialog></div></AdminLayout>;
+export default function AdminRecurringCleans() {
+  const location = useLocation(), navigate = useNavigate();
+  const [plans, setPlans] = useState<Plan[]>([]), [customers, setCustomers] = useState<Row[]>([]), [addresses, setAddresses] = useState<Row[]>([]), [services, setServices] = useState<Row[]>([]), [areas, setAreas] = useState<Row[]>([]);
+  const [form, setForm] = useState<Form>(blank), [open, setOpen] = useState(false), [busy, setBusy] = useState(""), [loading, setLoading] = useState(true);
+  const addressesForCustomer = useMemo(() => addresses.filter((address) => address.customer_id === form.customerId), [addresses, form.customerId]);
+  const change = (key:keyof Form, value:string) => setForm((current) => ({ ...current, [key]:value }));
+
+  const load = async () => {
+    setLoading(true);
+    const [plansResult, customersResult, addressesResult, servicesResult, areasResult] = await Promise.all([
+      db.from("recurring_clean_plans").select("id,status,frequency,billing_frequency,next_visit_date,next_billing_date,start_time,customer_amount_pence,payment_setup_status,customer:customers(name,email),service_type:service_types(name)").order("next_visit_date"),
+      db.from("customers").select("id,name,email").order("name"),
+      db.from("customer_addresses").select("id,customer_id,address_line_1,city,postcode,service_area_id"),
+      db.from("service_types").select("id,name").order("name"),
+      db.from("service_areas").select("id,name").order("name"),
+    ]);
+    setLoading(false);
+    const error = plansResult.error || customersResult.error || addressesResult.error || servicesResult.error || areasResult.error;
+    if (error) return toast.error(error.message);
+    setPlans((plansResult.data || []) as unknown as Plan[]);
+    setCustomers((customersResult.data || []) as Row[]);
+    setAddresses((addressesResult.data || []) as Row[]);
+    setServices((servicesResult.data || []) as Row[]);
+    setAreas((areasResult.data || []) as Row[]);
+  };
+
+  useEffect(() => { void load(); }, []);
+  useEffect(() => {
+    const preset = location.state?.recurringPreset;
+    if (!preset) return;
+    const address = addresses.find((item) => item.id === preset.addressId);
+    setForm({ ...blank, ...preset, areaId:preset.areaId || address?.service_area_id || "" });
+    setOpen(true);
+    navigate(location.pathname, { replace:true, state:null });
+  }, [addresses, location.pathname, location.state, navigate]);
+
+  const sendCardLink = async (id:string) => {
+    setBusy(id);
+    const { error } = await supabase.functions.invoke("send-recurring-payment-setup", { body:{ planId:id } });
+    setBusy("");
+    if (error) toast.error(error.message); else { toast.success("Secure card-setup link sent"); void load(); }
+  };
+  const pause = async (id:string, value:boolean) => {
+    setBusy(id);
+    const { error } = await db.rpc("pause_recurring_clean_plan", { p_plan_id:id, p_paused:value });
+    setBusy("");
+    if (error) toast.error(error.message); else { toast.success(value ? "Plan paused" : "Plan restarted"); void load(); }
+  };
+  const create = async () => {
+    if (Object.entries(form).some(([key, value]) => key !== "time" && !value)) return toast.error("Complete all agreement fields");
+    const amount = Math.round(Number(form.price) * 100), payout = Math.round(Number(form.payout) * 100), minutes = Math.round(Number(form.hours) * 60);
+    if (minutes < 30 || payout > amount) return toast.error("Check the duration and pricing");
+    setBusy("create");
+    const date = new Date(`${form.date}T12:00:00`);
+    const { data, error } = await db.rpc("create_recurring_clean_plan", {
+      p_customer_id:form.customerId, p_address_id:form.addressId, p_service_type_id:form.serviceId, p_service_area_id:form.areaId,
+      p_frequency:form.frequency, p_billing_frequency:form.billingFrequency, p_start_date:form.date, p_start_time:form.time || null,
+      p_expected_duration_minutes:minutes, p_customer_amount_pence:amount, p_cleaner_payout_pence:payout,
+      p_weekday:form.frequency === "monthly" ? null : date.getDay(), p_month_day:form.frequency === "monthly" ? date.getDate() : null,
+      p_payment_collection_days_before:Number(form.days), p_requirements:null, p_internal_notes:null,
+    });
+    setBusy("");
+    if (error) return toast.error(error.message);
+    setOpen(false); setForm(blank); toast.success("Agreement created. Sending card-setup link…");
+    await load(); if (data) await sendCardLink(data as string);
+  };
+
+  return <AdminLayout title="Recurring Cleans"><div className="space-y-6">
+    <div className="flex flex-wrap justify-between gap-3"><div><h1 className="text-2xl font-bold">Recurring cleans</h1><p className="text-muted-foreground">Attendance controls cleaner jobs; billing controls when Cleanda charges the customer.</p></div><div className="flex gap-2"><Button variant="outline" onClick={load}><RefreshCw className="mr-2 h-4 w-4" />Refresh</Button><Button onClick={() => setOpen(true)}><Plus className="mr-2 h-4 w-4" />Set up recurring clean</Button></div></div>
+    <div className="grid gap-4 md:grid-cols-3">{[["Active", plans.filter((plan) => plan.status === "active").length], ["Needs card setup", plans.filter((plan) => plan.payment_setup_status !== "ready").length], ["Payment attention", plans.filter((plan) => plan.status === "payment_failed").length]].map(([label, count]) => <div className="rounded-xl border p-5" key={String(label)}><p className="text-sm text-muted-foreground">{label}</p><p className="mt-1 text-3xl font-bold">{count}</p></div>)}</div>
+    <div className="rounded-xl border">{loading ? <p className="p-6">Loading…</p> : plans.length === 0 ? <p className="p-6 text-muted-foreground">No recurring agreements yet. Use “Set up recurring clean” to create one.</p> : <div className="divide-y">{plans.map((plan) => <div className="flex flex-wrap items-center justify-between gap-4 p-5" key={plan.id}><div><div className="flex gap-2"><b>{plan.customer.name} · {plan.service_type.name}</b><Badge variant="outline">{plan.status.replaceAll("_", " ")}</Badge></div><p className="text-sm text-muted-foreground">Visits: {plan.frequency} · next {plan.next_visit_date} {plan.start_time?.slice(0, 5)} · {GBP(plan.customer_amount_pence)} per visit</p><p className="text-xs text-muted-foreground">Billing: {plan.billing_frequency} · next collection {plan.next_billing_date} · card setup {plan.payment_setup_status.replaceAll("_", " ")}</p></div><div className="flex gap-2">{plan.payment_setup_status !== "ready" && <Button size="sm" onClick={() => sendCardLink(plan.id)} disabled={busy === plan.id}><CreditCard className="mr-2 h-4 w-4" />Send card link</Button>}{plan.status === "active" ? <Button size="sm" variant="outline" onClick={() => pause(plan.id, true)}><Pause className="mr-2 h-4 w-4" />Pause</Button> : plan.status === "paused" ? <Button size="sm" variant="outline" onClick={() => pause(plan.id, false)}><Play className="mr-2 h-4 w-4" />Restart</Button> : null}</div></div>)}</div>}</div>
+    <Dialog open={open} onOpenChange={setOpen}><DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl"><DialogHeader><DialogTitle>Set up recurring clean</DialogTitle><DialogDescription>Attendance creates individual jobs. Billing charges the saved card once per selected billing period; no money is taken while the card is set up.</DialogDescription></DialogHeader><div className="grid gap-4 sm:grid-cols-2">
+      <Field label="Customer *"><Select value={form.customerId} onValueChange={(value) => setForm((current) => ({ ...current, customerId:value, addressId:"", areaId:"" }))}><SelectTrigger><SelectValue placeholder="Select customer" /></SelectTrigger><SelectContent>{customers.map((customer) => <SelectItem key={customer.id} value={customer.id}>{customer.name} · {customer.email}</SelectItem>)}</SelectContent></Select></Field>
+      <Field label="Property address *"><Select value={form.addressId} onValueChange={(value) => { const address = addresses.find((item) => item.id === value); setForm((current) => ({ ...current, addressId:value, areaId:address?.service_area_id || current.areaId })); }} disabled={!form.customerId}><SelectTrigger><SelectValue placeholder="Select customer first" /></SelectTrigger><SelectContent>{addressesForCustomer.map((address) => <SelectItem key={address.id} value={address.id}>{address.address_line_1}, {address.city} · {address.postcode}</SelectItem>)}</SelectContent></Select></Field>
+      <Field label="Service *"><Picker value={form.serviceId} set={(value) => change("serviceId", value)} rows={services} /></Field><Field label="Service area *"><Picker value={form.areaId} set={(value) => change("areaId", value)} rows={areas} /></Field>
+      <Field label="Cleaner attendance *"><Select value={form.frequency} onValueChange={(value) => change("frequency", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="weekly">Weekly</SelectItem><SelectItem value="fortnightly">Fortnightly</SelectItem><SelectItem value="monthly">Monthly</SelectItem></SelectContent></Select></Field>
+      <Field label="Customer billing *"><Select value={form.billingFrequency} onValueChange={(value) => change("billingFrequency", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="weekly">Weekly</SelectItem><SelectItem value="fortnightly">Fortnightly</SelectItem><SelectItem value="monthly">Monthly</SelectItem></SelectContent></Select></Field>
+      <Field label="First recurring visit *"><Input type="date" value={form.date} onChange={(event) => change("date", event.target.value)} /></Field><Field label="Start time"><Input type="time" value={form.time} onChange={(event) => change("time", event.target.value)} /></Field>
+      <Field label="Per-visit duration (hours) *"><Input type="number" min="0.5" step="0.25" value={form.hours} onChange={(event) => change("hours", event.target.value)} /></Field><Field label="Customer price per visit (£) *"><Input type="number" min="0" step="0.01" value={form.price} onChange={(event) => change("price", event.target.value)} /></Field>
+      <Field label="Cleaner payout per visit (£) *"><Input type="number" min="0" step="0.01" value={form.payout} onChange={(event) => change("payout", event.target.value)} /></Field><Field label="Collect payment days before *"><Input type="number" min="0" max="14" value={form.days} onChange={(event) => change("days", event.target.value)} /></Field>
+    </div><DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button onClick={create} disabled={busy === "create"}>{busy === "create" ? "Creating…" : "Create & send card link"}</Button></DialogFooter></DialogContent></Dialog>
+  </div></AdminLayout>;
 }
-function Field({label,children}:{label:string;children:React.ReactNode}){return <div className="space-y-2"><Label>{label}</Label>{children}</div>};function Pick({value,set,rows}:{value:string;set:(v:string)=>void;rows:Row[]}){return <Select value={value} onValueChange={set}><SelectTrigger><SelectValue placeholder="Select"/></SelectTrigger><SelectContent>{rows.map(r=><SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}</SelectContent></Select>}
+function Field({ label, children }:{ label:string; children:React.ReactNode }) { return <div className="space-y-2"><Label>{label}</Label>{children}</div>; }
+function Picker({ value, set, rows }:{ value:string; set:(value:string) => void; rows:Row[] }) { return <Select value={value} onValueChange={set}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{rows.map((row) => <SelectItem key={row.id} value={row.id}>{row.name}</SelectItem>)}</SelectContent></Select>; }
