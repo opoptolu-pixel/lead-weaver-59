@@ -907,6 +907,7 @@ export type Database = {
           paid_at: string | null
           provider: string | null
           provider_reference: string | null
+          recurring_billing_cycle_id: string | null
           recurring_visit_id: string | null
           refund_amount_pence: number
           refund_reference: string | null
@@ -925,6 +926,7 @@ export type Database = {
           paid_at?: string | null
           provider?: string | null
           provider_reference?: string | null
+          recurring_billing_cycle_id?: string | null
           recurring_visit_id?: string | null
           refund_amount_pence?: number
           refund_reference?: string | null
@@ -943,6 +945,7 @@ export type Database = {
           paid_at?: string | null
           provider?: string | null
           provider_reference?: string | null
+          recurring_billing_cycle_id?: string | null
           recurring_visit_id?: string | null
           refund_amount_pence?: number
           refund_reference?: string | null
@@ -958,6 +961,13 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_payments_recurring_billing_cycle_id_fkey"
+            columns: ["recurring_billing_cycle_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_clean_billing_cycles"
             referencedColumns: ["id"]
           },
           {
@@ -2660,9 +2670,69 @@ export type Database = {
         }
         Relationships: []
       }
+      recurring_clean_billing_cycles: {
+        Row: {
+          amount_pence: number
+          created_at: string
+          currency: string
+          id: string
+          last_payment_error: string | null
+          paid_at: string | null
+          payment_attempts: number
+          payment_intent_id: string | null
+          period_end: string
+          period_start: string
+          plan_id: string
+          scheduled_charge_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount_pence: number
+          created_at?: string
+          currency?: string
+          id?: string
+          last_payment_error?: string | null
+          paid_at?: string | null
+          payment_attempts?: number
+          payment_intent_id?: string | null
+          period_end: string
+          period_start: string
+          plan_id: string
+          scheduled_charge_date: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount_pence?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          last_payment_error?: string | null
+          paid_at?: string | null
+          payment_attempts?: number
+          payment_intent_id?: string | null
+          period_end?: string
+          period_start?: string
+          plan_id?: string
+          scheduled_charge_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_clean_billing_cycles_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_clean_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recurring_clean_plans: {
         Row: {
           address_id: string
+          billing_frequency: string
           cancelled_at: string | null
           cleaner_payout_pence: number
           created_at: string
@@ -2676,6 +2746,7 @@ export type Database = {
           internal_notes: string | null
           interval_count: number
           month_day: number | null
+          next_billing_date: string
           next_visit_date: string
           paused_at: string | null
           payment_collection_days_before: number
@@ -2695,6 +2766,7 @@ export type Database = {
         }
         Insert: {
           address_id: string
+          billing_frequency: string
           cancelled_at?: string | null
           cleaner_payout_pence: number
           created_at?: string
@@ -2708,6 +2780,7 @@ export type Database = {
           internal_notes?: string | null
           interval_count?: number
           month_day?: number | null
+          next_billing_date: string
           next_visit_date: string
           paused_at?: string | null
           payment_collection_days_before?: number
@@ -2727,6 +2800,7 @@ export type Database = {
         }
         Update: {
           address_id?: string
+          billing_frequency?: string
           cancelled_at?: string | null
           cleaner_payout_pence?: number
           created_at?: string
@@ -2740,6 +2814,7 @@ export type Database = {
           internal_notes?: string | null
           interval_count?: number
           month_day?: number | null
+          next_billing_date?: string
           next_visit_date?: string
           paused_at?: string | null
           payment_collection_days_before?: number
@@ -2790,6 +2865,7 @@ export type Database = {
       }
       recurring_clean_visits: {
         Row: {
+          billing_cycle_id: string | null
           charged_at: string | null
           created_at: string
           id: string
@@ -2807,6 +2883,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          billing_cycle_id?: string | null
           charged_at?: string | null
           created_at?: string
           id?: string
@@ -2824,6 +2901,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          billing_cycle_id?: string | null
           charged_at?: string | null
           created_at?: string
           id?: string
@@ -2841,6 +2919,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "recurring_clean_visits_billing_cycle_id_fkey"
+            columns: ["billing_cycle_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_clean_billing_cycles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "recurring_clean_visits_job_id_fkey"
             columns: ["job_id"]
@@ -3437,6 +3522,7 @@ export type Database = {
       create_recurring_clean_plan: {
         Args: {
           p_address_id: string
+          p_billing_frequency: string
           p_cleaner_payout_pence: number
           p_customer_amount_pence: number
           p_customer_id: string
