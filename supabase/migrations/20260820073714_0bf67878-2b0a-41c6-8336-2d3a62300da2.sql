@@ -1,0 +1,2 @@
+REVOKE ALL ON FUNCTION public.record_manual_customer_refund(uuid, text, timestamptz) FROM anon, PUBLIC;
+GRANT EXECUTE ON FUNCTION public.record_manual_customer_refund(uuid, text, timestamptz) TO authenticated;
