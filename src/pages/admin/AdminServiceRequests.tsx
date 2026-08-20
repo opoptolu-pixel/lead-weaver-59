@@ -124,6 +124,8 @@ interface CustomerPayment {
 interface Job {
   id: string;
   reference: string;
+  recurring_plan_id: string | null;
+  recurring_visit_id: string | null;
   service_request_id: string;
   status: string;
   scheduled_date: string;
@@ -366,7 +368,7 @@ export default function AdminServiceRequests() {
         .from("jobs")
         .select(
           `
-        id,reference,service_request_id,status,scheduled_date,start_time,expected_duration_minutes,requirements,
+        id,reference,recurring_plan_id,recurring_visit_id,service_request_id,status,scheduled_date,start_time,expected_duration_minutes,requirements,
         customer_amount_pence,cleaner_payout_pence,quality_review_status,quality_review_notes,cleaner_completion_notes,
         service_type:service_types(name),customer:customers(name,phone),address:customer_addresses(id,address_line_1,address_line_2,postcode,city,access_notes),
         accepted_quote:quotes!jobs_accepted_quote_id_fkey(id,add_ons:quote_addons(id,addon_id,addon_code,addon_name,category,quantity,unit_customer_price_pence,unit_cleaner_payout_pence,unit_duration_minutes)),
@@ -393,7 +395,7 @@ export default function AdminServiceRequests() {
         .from("jobs")
         .select(
           `
-        id,reference,service_request_id,status,scheduled_date,start_time,expected_duration_minutes,requirements,
+        id,reference,recurring_plan_id,recurring_visit_id,service_request_id,status,scheduled_date,start_time,expected_duration_minutes,requirements,
         customer_amount_pence,cleaner_payout_pence,
         service_type:service_types(name),customer:customers(name,phone),address:customer_addresses(id,address_line_1,address_line_2,postcode,city,access_notes),
         accepted_quote:quotes!jobs_accepted_quote_id_fkey(id,add_ons:quote_addons(id,addon_id,addon_code,addon_name,category,quantity,unit_customer_price_pence,unit_cleaner_payout_pence,unit_duration_minutes)),
@@ -1472,7 +1474,7 @@ export default function AdminServiceRequests() {
                             onClick={() => openJob(job)}
                             className="w-full cursor-grab rounded-lg border bg-card p-3 text-left shadow-sm transition hover:border-secondary active:cursor-grabbing"
                           >
-                            <div className="flex items-start justify-between gap-2"><strong className="text-sm">{job.reference}</strong><Badge variant="outline" className="text-[10px]">{job.status.replace(/_/g," ")}</Badge></div>
+                            <div className="flex items-start justify-between gap-2"><div className="flex flex-wrap gap-1"><strong className="text-sm">{job.reference}</strong>{job.recurring_plan_id && <Badge variant="secondary" className="text-[10px]">Recurring</Badge>}</div><Badge variant="outline" className="text-[10px]">{job.status.replace(/_/g," ")}</Badge></div>
                             <p className="mt-2 text-sm font-medium">{job.customer.name}</p>
                             <p className="mt-1 text-xs text-muted-foreground">{job.address.postcode} · {format(new Date(`${job.scheduled_date}T12:00:00`),"dd MMM")} {job.start_time?.slice(0,5) || "TBC"}</p>
                             <p className="mt-2 truncate text-xs">{assignment?.cleaner?.full_name || "No cleaner assigned"}</p>
@@ -1491,7 +1493,7 @@ export default function AdminServiceRequests() {
                 <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-semibold">{job.reference}</span>
+                      <span className="font-semibold">{job.reference}</span>{job.recurring_plan_id && <Badge variant="secondary">Recurring visit</Badge>}
                       <Badge variant="outline">{job.status}</Badge>
                       <span>{job.service_type.name}</span>
                     </div>
@@ -2091,7 +2093,7 @@ export default function AdminServiceRequests() {
           {selectedJob && (
             <div className="space-y-6">
               <div className="flex flex-wrap gap-2">
-                <Badge variant="outline">{selectedJob.status}</Badge>
+                <Badge variant="outline">{selectedJob.status}</Badge>{selectedJob.recurring_plan_id && <Badge variant="secondary">Recurring visit</Badge>}
                 <Badge variant="outline">
                   quality:{" "}
                   {selectedJob.quality_review_status?.replace(/_/g, " ")}

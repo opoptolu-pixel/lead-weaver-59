@@ -31,6 +31,25 @@ async function materializeVisit(db: ReturnType<typeof createClient>, plan: any, 
   if (!visit.quote_id) {
     const quote = await db.from("quotes").insert({ service_request_id: visit.service_request_id, version: 1, status: "sent", customer_amount_pence: plan.customer_amount_pence, cleaner_payout_pence: plan.cleaner_payout_pence, currency: plan.currency, scheduled_date: scheduledDate, start_time: plan.start_time, expected_duration_minutes: plan.expected_duration_minutes, sent_at: new Date().toISOString(), recurring_plan_id: plan.id, recurring_visit_id: visit.id }).select().single();
     if (quote.error) throw quote.error;
+    const { data: planAddOns, error: planAddOnsError } = await db
+      .from("recurring_clean_plan_addons")
+      .select("addon_id,addon_code,addon_name,category,quantity,unit_customer_price_pence,unit_cleaner_payout_pence,unit_duration_minutes")
+      .eq("plan_id", plan.id);
+    if (planAddOnsError) throw planAddOnsError;
+    if (planAddOns?.length) {
+      const { error: addOnCopyError } = await db.from("quote_addons").insert(planAddOns.map((addOn) => ({
+        quote_id: quote.data.id,
+        addon_id: addOn.addon_id,
+        addon_code: addOn.addon_code,
+        addon_name: addOn.addon_name,
+        category: addOn.category,
+        quantity: addOn.quantity,
+        unit_customer_price_pence: addOn.unit_customer_price_pence,
+        unit_cleaner_payout_pence: addOn.unit_cleaner_payout_pence,
+        unit_duration_minutes: addOn.unit_duration_minutes,
+      })));
+      if (addOnCopyError) throw addOnCopyError;
+    }
     const update = await db.from("recurring_clean_visits").update({ quote_id: quote.data.id }).eq("id", visit.id);
     if (update.error) throw update.error;
     visit.quote_id = quote.data.id;

@@ -21,14 +21,14 @@ interface Collection {
   provider_reference: string | null; paid_at: string | null;
   refund_status: string; refund_amount_pence: number; refund_reference: string | null;
   refund_requested_at: string | null; refunded_at: string | null;
-  job: { reference: string; scheduled_date: string; customer: { name: string }; service_type: { name: string } };
+  job: { reference: string; scheduled_date: string; recurring_plan_id: string | null; customer: { name: string }; service_type: { name: string } };
 }
 interface Payout {
   id: string; amount_pence: number; status: string; earning_week_start: string | null;
   scheduled_pay_date: string | null; held_reason: string | null; bank_transfer_reference: string | null;
   paid_at: string | null;
   cleaner: { id: string; full_name: string | null; bank_details_status: string; bank_sort_code_last2: string | null; bank_account_last4: string | null; bank_account: { account_holder_name: string; sort_code: string; account_number: string } | null };
-  job: { reference: string; scheduled_date: string; status: string; quality_review_status: string; customer_amount_pence: number; service_type: { name: string } };
+  job: { reference: string; scheduled_date: string; recurring_plan_id: string | null; status: string; quality_review_status: string; customer_amount_pence: number; service_type: { name: string } };
 }
 
 const payoutLabel = (payout: Payout) => {
@@ -90,8 +90,8 @@ export default function AdminAgencyPayments() {
   const fetchData = async () => {
     if (!loadedOnce.current) setLoading(true);
     const [collectionResult, payoutResult] = await Promise.all([
-      db.from("customer_payments").select("id,amount_pence,status,provider,provider_reference,paid_at,refund_status,refund_amount_pence,refund_reference,refund_requested_at,refunded_at,job:jobs(reference,scheduled_date,customer:customers(name),service_type:service_types(name))").order("created_at", { ascending: false }),
-      db.from("cleaner_payouts").select("id,amount_pence,status,earning_week_start,scheduled_pay_date,held_reason,bank_transfer_reference,paid_at,cleaner:cleaner_profiles(id,full_name,bank_details_status,bank_sort_code_last2,bank_account_last4,bank_account:cleaner_bank_accounts(account_holder_name,sort_code,account_number)),job:jobs(reference,scheduled_date,status,quality_review_status,customer_amount_pence,service_type:service_types(name))").order("scheduled_pay_date", { ascending: false }),
+      db.from("customer_payments").select("id,amount_pence,status,provider,provider_reference,paid_at,refund_status,refund_amount_pence,refund_reference,refund_requested_at,refunded_at,job:jobs(reference,scheduled_date,recurring_plan_id,customer:customers(name),service_type:service_types(name))").order("created_at", { ascending: false }),
+      db.from("cleaner_payouts").select("id,amount_pence,status,earning_week_start,scheduled_pay_date,held_reason,bank_transfer_reference,paid_at,cleaner:cleaner_profiles(id,full_name,bank_details_status,bank_sort_code_last2,bank_account_last4,bank_account:cleaner_bank_accounts(account_holder_name,sort_code,account_number)),job:jobs(reference,scheduled_date,recurring_plan_id,status,quality_review_status,customer_amount_pence,service_type:service_types(name))").order("scheduled_pay_date", { ascending: false }),
     ]);
     loadedOnce.current = true;
     setLoading(false);
