@@ -37,7 +37,7 @@ export function CleanerAccountDialog({ cleaner, open, onOpenChange }: { cleaner:
       ]);
       if (!alive) return;
       setData({
-        capabilities: (capabilities.data || []) as AccountData["capabilities"], areas: (areas.data || []) as AccountData["areas"], vetting: vetting.data as Record<string, unknown> | null,
+        capabilities: (capabilities.data || []) as unknown as AccountData["capabilities"], areas: (areas.data || []) as unknown as AccountData["areas"], vetting: vetting.data as Record<string, unknown> | null,
         assignments: assignments.data || [], payouts: payouts.data || [], audit: audit.data || [], legacyAudit: legacyAudit.data || [], email: (email.data as string | null) || null,
       });
       setLoading(false);
