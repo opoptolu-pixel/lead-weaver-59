@@ -291,6 +291,7 @@ export default function AdminServiceRequests() {
   const [customerResolutionTime, setCustomerResolutionTime] = useState("");
   const [customerResolutionDuration, setCustomerResolutionDuration] = useState("");
   const [customerRefundMethod, setCustomerRefundMethod] = useState<"stripe_full_refund" | "manual_refund_due">("manual_refund_due");
+  const [stripeRefundConfirmed, setStripeRefundConfirmed] = useState(false);
   const [assignmentChoices, setAssignmentChoices] = useState<
     Record<string, string>
   >({});
@@ -323,6 +324,7 @@ export default function AdminServiceRequests() {
   const [calendarMonth, setCalendarMonth] = useState(() => startOfMonth(new Date()));
   const loadedOnce = useRef(false);
   const selectedRequestIdRef = useRef<string | null>(null);
+  const selectedJobIdRef = useRef<string | null>(null);
   const knownJobIdsRef = useRef<Set<string>>(new Set());
   const realtimeRefreshTimerRef = useRef<number | null>(null);
   const [draggedJobId, setDraggedJobId] = useState<string | null>(null);
@@ -779,6 +781,7 @@ export default function AdminServiceRequests() {
       selectedJob.expected_duration_minutes ? String(selectedJob.expected_duration_minutes / 60) : "",
     );
     setCustomerRefundMethod("manual_refund_due");
+    setStripeRefundConfirmed(false);
     setCustomerResolutionDialogOpen(true);
   };
 
@@ -789,6 +792,9 @@ export default function AdminServiceRequests() {
     }
     if (customerResolutionAction === "reschedule" && (!customerResolutionDate || !customerResolutionTime || Number(customerResolutionDuration) < 0.5)) {
       return toast.error("Enter the new date, start time and duration in hours.");
+    }
+    if (customerResolutionAction === "cancel_refund" && customerRefundMethod === "stripe_full_refund" && !stripeRefundConfirmed) {
+      return toast.error("Confirm that you want to issue this Stripe refund before continuing.");
     }
 
     setSaving(true);
@@ -830,6 +836,7 @@ export default function AdminServiceRequests() {
   };
 
   const openJob = async (job: Job) => {
+    selectedJobIdRef.current = job.id;
     setSelectedJob(job);
     setJobEvents([]);
     setAddressLine1(job.address.address_line_1 || "");
@@ -874,6 +881,9 @@ export default function AdminServiceRequests() {
         .eq("job_id", job.id)
         .order("created_at", { ascending: false }),
     ]);
+    // Avoid late results from a previously opened job changing the current job's
+    // controls (particularly the no-show customer-resolution action).
+    if (selectedJobIdRef.current !== job.id) return;
     setDeliveryTimes((timeResult.data as DeliveryTime[]) || []);
     setDeliveryChecklist((checklistResult.data as DeliveryChecklist[]) || []);
     setJobEvents((eventResult.data as JobEvent[]) || []);
@@ -2020,7 +2030,13 @@ export default function AdminServiceRequests() {
 
       <Dialog
         open={!!selectedJob}
-        onOpenChange={(open) => !open && setSelectedJob(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            selectedJobIdRef.current = null;
+            setSelectedJob(null);
+            setJobEvents([]);
+          }
+        }}
       >
         <DialogContent className="max-h-[92vh] max-w-4xl overflow-y-auto">
           <DialogHeader>
@@ -2655,20 +2671,31 @@ export default function AdminServiceRequests() {
             {customerResolutionAction === "cancel_refund" && (
               <div className="space-y-3 rounded-lg border border-red-200 bg-red-50 p-4">
                 <div>
-                  <Label>Refund handling</Label>
+                  <Label>Refund handling — choose one</Label>
                   <Select value={customerRefundMethod} onValueChange={(value) => setCustomerRefundMethod(value as "stripe_full_refund" | "manual_refund_due")}>
                     <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="stripe_full_refund">Issue full Stripe refund now</SelectItem>
-                      <SelectItem value="manual_refund_due">Record manual refund due</SelectItem>
+                      <SelectItem value="stripe_full_refund">Stripe: issue full refund now</SelectItem>
+                      <SelectItem value="manual_refund_due">Manual: create refund task only (no payment sent)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <p className="text-sm text-red-950">
                   {customerRefundMethod === "stripe_full_refund"
-                    ? "This immediately sends a full refund to the original Stripe payment method. It cannot be undone here."
-                    : "This cancels the job and creates a manual-refund task in Payments & Payouts. Record the bank, cash or terminal reference there only after the money has been sent."}
+                    ? "This immediately sends one full refund to the original Stripe payment method. It cannot be undone here."
+                    : "This does not contact Stripe or send money. It only cancels the job and creates a manual-refund task in Payments & Payouts. Record the bank, cash or terminal reference there only after you have sent the money yourself."}
                 </p>
+                {customerRefundMethod === "stripe_full_refund" && (
+                  <label className="flex items-start gap-2 rounded-md border border-red-300 bg-white p-3 text-sm text-red-950">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5 h-4 w-4"
+                      checked={stripeRefundConfirmed}
+                      onChange={(event) => setStripeRefundConfirmed(event.target.checked)}
+                    />
+                    <span>I understand this sends the customer&apos;s full refund through Stripe now. It cannot be reversed here.</span>
+                  </label>
+                )}
               </div>
             )}
 
@@ -2683,9 +2710,9 @@ export default function AdminServiceRequests() {
             </div>
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setCustomerResolutionDialogOpen(false)} disabled={saving}>Cancel</Button>
-              <Button type="button" variant={customerResolutionAction === "cancel_refund" ? "destructive" : "default"} onClick={resolveNoShowCustomer} disabled={saving || customerResolutionReason.trim().length < 5}>
+              <Button type="button" variant={customerResolutionAction === "cancel_refund" ? "destructive" : "default"} onClick={resolveNoShowCustomer} disabled={saving || customerResolutionReason.trim().length < 5 || (customerResolutionAction === "cancel_refund" && customerRefundMethod === "stripe_full_refund" && !stripeRefundConfirmed)}>
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {customerResolutionAction === "cover" ? "Update customer" : customerResolutionAction === "reschedule" ? "Confirm reschedule" : "Cancel and process refund"}
+                {customerResolutionAction === "cover" ? "Update customer" : customerResolutionAction === "reschedule" ? "Confirm reschedule" : customerRefundMethod === "stripe_full_refund" ? "Cancel and issue Stripe refund" : "Cancel and record manual refund due"}
               </Button>
             </div>
           </div>

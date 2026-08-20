@@ -74,15 +74,41 @@ serve(async (req) => {
       if (refundMethod === "stripe_full_refund") {
         if (payment.provider !== "stripe" || !payment.provider_reference?.startsWith("pi_")) throw new Error("This payment cannot be automatically refunded through Stripe. Use the manual refund option instead.");
         if (!stripeKey) throw new Error("Stripe refunds are not configured");
-        const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
-        const refund = await stripe.refunds.create({ payment_intent: payment.provider_reference, amount: payment.amount_pence }, { idempotencyKey: `cleanda-no-show-refund-${payment.id}` });
+        // Claim the payment before calling Stripe. Only one invocation can move a
+        // paid, unrefunded row to processing; Stripe's matching idempotency key is
+        // a second protection if a network retry occurs after the claim succeeds.
+        const { data: claimedPayment, error: claimError } = await db
+          .from("customer_payments")
+          .update({ refund_status: "processing", refund_requested_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+          .eq("id", payment.id)
+          .eq("status", "paid")
+          .in("refund_status", ["not_requested", "failed"])
+          .select("id")
+          .maybeSingle();
+        if (claimError) throw claimError;
+        if (!claimedPayment) throw new Error("This refund has already been processed or is currently being processed. No second Stripe refund was created.");
+
+        let refund: Stripe.Response<Stripe.Refund>;
+        try {
+          const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+          refund = await stripe.refunds.create(
+            { payment_intent: payment.provider_reference, amount: payment.amount_pence },
+            { idempotencyKey: `cleanda-no-show-refund-${payment.id}` },
+          );
+        } catch (stripeError) {
+          await db.from("customer_payments").update({ refund_status: "failed", updated_at: new Date().toISOString() }).eq("id", payment.id).eq("refund_status", "processing");
+          throw stripeError;
+        }
         refundReference = refund.id;
         const { error: paymentUpdateError } = await db.from("customer_payments").update({ status: "refunded", refund_status: "refunded", refund_amount_pence: payment.amount_pence, refund_reference: refundReference, refund_requested_at: new Date().toISOString(), refunded_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("id", payment.id);
         if (paymentUpdateError) throw paymentUpdateError;
         refundOutcome = "Your full refund has been issued to your original payment method. Your bank may take a few working days to show it.";
       } else {
-        const { error: paymentUpdateError } = await db.from("customer_payments").update({ refund_status: "manual_due", refund_amount_pence: payment.amount_pence, refund_requested_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("id", payment.id);
+        // Manual means precisely that: do not invoke Stripe and do not send money.
+        // It simply creates a tracked internal task for staff to settle themselves.
+        const { data: manualClaim, error: paymentUpdateError } = await db.from("customer_payments").update({ refund_status: "manual_due", refund_amount_pence: payment.amount_pence, refund_requested_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("id", payment.id).eq("status", "paid").in("refund_status", ["not_requested", "failed"]).select("id").maybeSingle();
         if (paymentUpdateError) throw paymentUpdateError;
+        if (!manualClaim) throw new Error("This payment already has a refund outcome. No additional refund task was created.");
         refundOutcome = "We have recorded your full refund for manual payment. Our team will send it to your original agreed method and confirm the reference with you.";
       }
       const { error: cancelError } = await db.from("jobs").update({ status: "cancelled", updated_at: new Date().toISOString() }).eq("id", jobId).eq("status", "awaiting_assignment");
