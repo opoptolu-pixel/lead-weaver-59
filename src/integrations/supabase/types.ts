@@ -868,6 +868,11 @@ export type Database = {
           paid_at: string | null
           provider: string | null
           provider_reference: string | null
+          refund_amount_pence: number
+          refund_reference: string | null
+          refund_requested_at: string | null
+          refund_status: string
+          refunded_at: string | null
           status: string
           updated_at: string
         }
@@ -880,6 +885,11 @@ export type Database = {
           paid_at?: string | null
           provider?: string | null
           provider_reference?: string | null
+          refund_amount_pence?: number
+          refund_reference?: string | null
+          refund_requested_at?: string | null
+          refund_status?: string
+          refunded_at?: string | null
           status?: string
           updated_at?: string
         }
@@ -892,6 +902,11 @@ export type Database = {
           paid_at?: string | null
           provider?: string | null
           provider_reference?: string | null
+          refund_amount_pence?: number
+          refund_reference?: string | null
+          refund_requested_at?: string | null
+          refund_status?: string
+          refunded_at?: string | null
           status?: string
           updated_at?: string
         }
@@ -3228,6 +3243,14 @@ export type Database = {
           p_paid_at?: string
           p_payment_id: string
           p_reference: string
+        }
+        Returns: boolean
+      }
+      record_manual_customer_refund: {
+        Args: {
+          p_payment_id: string
+          p_reference: string
+          p_refunded_at?: string
         }
         Returns: boolean
       }
