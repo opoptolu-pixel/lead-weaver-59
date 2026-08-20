@@ -388,6 +388,169 @@
 .dark .text-cyan-600 { color: rgb(34 211 238); /* cyan-400 */ }
 .dark .text-sky-600 { color: rgb(56 189 248); /* sky-400 */ }
 
+/* ===== Operational workspaces: large-display contrast and type =====
+   Admin pages pre-date the shared product shell and a few still use literal
+   light Tailwind surfaces. Keep the correction scoped to signed-in tooling so
+   marketing pages retain their intentional visual treatment. */
+@layer components {
+  .dark .admin-layout,
+  .dark .cleaner-dashboard {
+    --background: 215 45% 7%;
+    --card: 215 36% 11%;
+    --popover: 215 36% 10%;
+    --muted: 215 25% 16%;
+    --border: 215 22% 24%;
+    --input: 215 22% 24%;
+    --foreground: 210 40% 98%;
+    --muted-foreground: 214 22% 73%;
+  }
+
+  .dark .admin-layout .bg-white,
+  .dark .admin-layout .bg-gray-50,
+  .dark .admin-layout .bg-slate-50,
+  .dark .admin-layout .bg-zinc-50,
+  .dark .admin-layout .bg-neutral-50,
+  .dark .admin-layout .bg-gray-100,
+  .dark .admin-layout .bg-slate-100,
+  .dark .admin-layout .bg-zinc-100,
+  .dark .admin-layout .bg-neutral-100 {
+    background-color: hsl(var(--card)) !important;
+  }
+
+  .dark .admin-layout .border-gray-100,
+  .dark .admin-layout .border-gray-200,
+  .dark .admin-layout .border-slate-100,
+  .dark .admin-layout .border-slate-200,
+  .dark .admin-layout .border-zinc-100,
+  .dark .admin-layout .border-zinc-200,
+  .dark .admin-layout .border-neutral-100,
+  .dark .admin-layout .border-neutral-200 {
+    border-color: hsl(var(--border)) !important;
+  }
+
+  .dark .admin-layout .text-gray-700,
+  .dark .admin-layout .text-slate-700,
+  .dark .admin-layout .text-zinc-700,
+  .dark .admin-layout .text-neutral-700,
+  .dark .admin-layout .text-gray-800,
+  .dark .admin-layout .text-slate-800,
+  .dark .admin-layout .text-zinc-800,
+  .dark .admin-layout .text-neutral-800,
+  .dark .admin-layout .text-gray-900,
+  .dark .admin-layout .text-slate-900,
+  .dark .admin-layout .text-zinc-900,
+  .dark .admin-layout .text-neutral-900 {
+    color: hsl(var(--foreground)) !important;
+  }
+
+  /* Portalled dialogs sit outside .admin-layout, so give their legacy white
+     panels the same dark surface and preserve readable semantic actions. */
+  .dark [role="dialog"] .bg-white,
+  .dark [role="dialog"] .bg-gray-50,
+  .dark [role="dialog"] .bg-slate-50 {
+    background-color: hsl(215 36% 11%) !important;
+  }
+
+  .dark [role="dialog"] .text-emerald-900,
+  .dark [role="dialog"] .text-amber-950,
+  .dark [role="dialog"] .text-red-950 {
+    color: hsl(var(--foreground)) !important;
+  }
+
+  .admin-layout,
+  .cleaner-dashboard {
+    font-kerning: normal;
+    font-optical-sizing: auto;
+    text-rendering: geometricPrecision;
+  }
+
+  .admin-layout main,
+  .cleaner-dashboard main {
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+
+  .admin-layout .bg-card,
+  .admin-layout [data-slot="card"],
+  .cleaner-dashboard .bg-card,
+  .cleaner-dashboard .dash-card,
+  .cleaner-dashboard .stat-card {
+    border-color: hsl(var(--border) / 0.78);
+    box-shadow: 0 1px 2px hsl(var(--foreground) / 0.045), 0 18px 45px -38px hsl(var(--foreground) / 0.32);
+  }
+
+  .admin-layout > div > header {
+    box-shadow: 0 1px 0 hsl(var(--border) / 0.9), 0 8px 28px -26px hsl(var(--foreground) / 0.45);
+  }
+
+  .dark .admin-layout > div > header,
+  .dark .admin-layout aside {
+    background-color: hsl(215 42% 9% / 0.97) !important;
+  }
+
+  .admin-layout aside nav button[aria-current="page"],
+  .admin-layout aside button:has(.text-secondary) {
+    box-shadow: inset 3px 0 0 hsl(var(--secondary)), 0 8px 18px -16px hsl(var(--secondary) / 0.9);
+  }
+
+  @media (min-width: 1536px) {
+    .admin-layout main,
+    .cleaner-dashboard main {
+      font-size: 1.0625rem;
+    }
+
+    .admin-layout h1,
+    .cleaner-dashboard h1 {
+      font-size: clamp(2.25rem, 2.15vw, 3rem);
+      letter-spacing: -0.052em;
+      line-height: 1.06;
+    }
+
+    .admin-layout h2,
+    .cleaner-dashboard h2 {
+      font-size: clamp(1.375rem, 1.25vw, 1.75rem);
+      line-height: 1.16;
+    }
+
+    .admin-layout h3,
+    .cleaner-dashboard h3 {
+      font-size: 1.1875rem;
+    }
+
+    .admin-layout .text-sm,
+    .cleaner-dashboard .text-sm {
+      font-size: 0.9375rem;
+      line-height: 1.55;
+    }
+
+    .admin-layout table,
+    .cleaner-dashboard table {
+      font-size: 0.9375rem;
+    }
+
+    .admin-layout table thead th,
+    .cleaner-dashboard table thead th {
+      font-size: 0.75rem;
+    }
+  }
+
+  @media (min-width: 2200px) {
+    .admin-layout main {
+      padding-inline: clamp(4rem, 5vw, 7.5rem);
+    }
+
+    .admin-layout main,
+    .cleaner-dashboard main {
+      font-size: 1.125rem;
+    }
+
+    .admin-layout p.text-muted-foreground,
+    .cleaner-dashboard .text-muted-foreground {
+      color: hsl(var(--muted-foreground));
+    }
+  }
+}
+
 /* ===== Admin — Premium Uber-grade polish ===== */
 
 /* System-level typography: crisp, tight, premium */
