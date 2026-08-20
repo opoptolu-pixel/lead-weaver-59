@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { 
   Sparkles, 
@@ -56,6 +56,7 @@ const fullCleaningTypes = [
   { id: "large-property-window-interior", label: "Large Property Window + Interior", icon: Home, color: "bg-sky-100 text-sky-700", value: "Manual quote", phase: 2 },
   { id: "multi-room-upholstery", label: "Multi-Room + Upholstery Deep Clean", icon: Sofa, color: "bg-purple-100 text-purple-700", value: "Manual quote", phase: 2 },
   { id: "student-accommodation", label: "Student Accommodation Cleaning", icon: Building2, color: "bg-violet-100 text-violet-600", value: "Manual quote", phase: 1 },
+  { id: "commercial-cleaning", label: "Commercial Cleaning", icon: Building2, color: "bg-slate-100 text-slate-700", value: "Manual quote", phase: 2 },
 ];
 
 const simplifiedCleaningTypes = fullCleaningTypes.filter((service) => [
@@ -67,6 +68,7 @@ const simplifiedCleaningTypes = fullCleaningTypes.filter((service) => [
 ].includes(service.id));
 
 const TOTAL_STEPS = 6;
+const COMMERCIAL_SERVICE_SLUG = "commercial-cleaning";
 
 // Property types for step 3
 const propertyTypes = [
@@ -111,6 +113,7 @@ const isValidPostcodePrefix = (postcode: string): boolean => {
 export default function RequestCleaning() {
   const navigate = useNavigate();
   const location = useLocation();
+  const formStartRef = useRef<HTMLDivElement>(null);
   
   // Initialize UTM tracking for attribution
   useUtmTracking();
@@ -151,6 +154,7 @@ export default function RequestCleaning() {
     const matchedType = fullCleaningTypes.find(t => t.id === typeParam);
     
     return {
+      serviceSlug: matchedType?.id || "",
       jobType: matchedType?.label || "",
       jobValue: matchedType?.value || "",
       postcode: postcodeParam,
@@ -174,10 +178,15 @@ export default function RequestCleaning() {
   const [phoneError, setPhoneError] = useState("");
   const [isValidatingPhone, setIsValidatingPhone] = useState(false);
 
-  // Scroll to top on page load only
+  // Keep the active form step and its action visible after a selection or navigation.
+  // This is especially important on smaller screens, where the previous step can be taller
+  // than the viewport and leave the next CTA below the fold.
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'instant' });
-  }, []);
+    const frame = window.requestAnimationFrame(() => {
+      formStartRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [currentStep]);
 
   // Fetch both public request-form settings. Service slugs are also checked against
   // the active catalogue so a deactivated service cannot remain customer-visible.
@@ -209,7 +218,14 @@ export default function RequestCleaning() {
     fetchRequestFormConfiguration();
   }, []);
 
-  const progress = (currentStep / TOTAL_STEPS) * 100;
+  const isCommercialService = formData.serviceSlug === COMMERCIAL_SERVICE_SLUG;
+  const visibleStepNumbers = isCommercialService
+    ? [1, 2, 5, 6]
+    : formData.propertyType === "commercial"
+      ? [1, 2, 3, 5, 6]
+      : [1, 2, 3, 4, 5, 6];
+  const visibleStepIndex = Math.max(0, visibleStepNumbers.indexOf(currentStep));
+  const progress = ((visibleStepIndex + 1) / visibleStepNumbers.length) * 100;
 
   // Validate phone number using Twilio Lookup
   const validatePhone = async (phone: string): Promise<boolean> => {
@@ -358,26 +374,30 @@ export default function RequestCleaning() {
     isValidPostcodePrefix(formData.postcode) && 
     !validatePostcode(formData.postcode);
 
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
   const stepNames = ['Service Type', 'Location', 'Property Type', 'Bedrooms', 'Contact Details', 'Preferred Dates'];
   
   // Should we skip the bedrooms step?
   const shouldSkipBedrooms = formData.propertyType === "commercial";
 
+  const getNextStep = (fromStep: number) => {
+    let nextStep = fromStep + 1;
+    if (isCommercialService && nextStep === 3) nextStep = 5;
+    if (nextStep === 4 && shouldSkipBedrooms) nextStep = 5;
+    return nextStep;
+  };
+
+  const getPreviousStep = (fromStep: number) => {
+    let previousStep = fromStep - 1;
+    if (isCommercialService && previousStep === 4) previousStep = 2;
+    if (previousStep === 4 && shouldSkipBedrooms) previousStep = 3;
+    return previousStep;
+  };
+
   const handleNext = () => {
     if (currentStep < TOTAL_STEPS) {
-      let nextStep = currentStep + 1;
-      
-      // Skip bedrooms step (4) if commercial property
-      if (nextStep === 4 && shouldSkipBedrooms) {
-        nextStep = 5; // Skip to Contact Details
-      }
+      const nextStep = getNextStep(currentStep);
       
       setCurrentStep(nextStep);
-      scrollToTop();
       // Track step progression
       trackFormStep({
         formName: 'cleaning_request',
@@ -391,29 +411,55 @@ export default function RequestCleaning() {
 
   const handleBack = () => {
     if (currentStep > 1) {
-      let prevStep = currentStep - 1;
-      
-      // Skip bedrooms step (4) if commercial property when going back
-      if (prevStep === 4 && shouldSkipBedrooms) {
-        prevStep = 3;
-      }
+      const prevStep = getPreviousStep(currentStep);
       
       setCurrentStep(prevStep);
-      scrollToTop();
     }
   };
 
   const handleJobTypeSelect = (type: typeof cleaningTypes[0]) => {
-    setFormData({ ...formData, jobType: type.label, jobValue: type.value });
+    const isCommercial = type.id === COMMERCIAL_SERVICE_SLUG;
+    setFormData({
+      ...formData,
+      serviceSlug: type.id,
+      jobType: type.label,
+      jobValue: type.value,
+      propertyType: isCommercial ? "commercial" : "",
+      propertyTypeOther: "",
+      bedrooms: "",
+      bedroomsOther: "",
+    });
     // Auto-advance to step 2 when selecting a cleaning type
     setCurrentStep(2);
-    scrollToTop();
     // Track step progression
     trackFormStep({
       formName: 'cleaning_request',
       stepNumber: 2,
       stepName: 'Location',
     });
+  };
+
+  const handlePropertyTypeSelect = (propertyType: string) => {
+    const nextFormData = {
+      ...formData,
+      propertyType,
+      bedrooms: propertyType === "commercial" ? "" : formData.bedrooms,
+      propertyTypeOther: propertyType !== "other" ? "" : formData.propertyTypeOther,
+    };
+    setFormData(nextFormData);
+    if (propertyType !== "other") {
+      const nextStep = propertyType === "commercial" ? 5 : 4;
+      setCurrentStep(nextStep);
+      trackFormStep({ formName: "cleaning_request", stepNumber: nextStep, stepName: stepNames[nextStep - 1] });
+    }
+  };
+
+  const handleBedroomSelect = (bedrooms: string) => {
+    setFormData({ ...formData, bedrooms, bedroomsOther: bedrooms !== "other" ? "" : formData.bedroomsOther });
+    if (bedrooms !== "other") {
+      setCurrentStep(5);
+      trackFormStep({ formName: "cleaning_request", stepNumber: 5, stepName: "Contact Details" });
+    }
   };
 
   // Get tomorrow's date as minimum date
@@ -444,7 +490,8 @@ export default function RequestCleaning() {
           "Weekly Routine Cleaning",
           "Post-Construction Deep Cleaning",
           "Airbnb / Short-Let Cleaning",
-          "Student Accommodation Cleaning"
+          "Student Accommodation Cleaning",
+          "Commercial Cleaning"
         ]
       },
       {
@@ -509,11 +556,11 @@ export default function RequestCleaning() {
           </div>
 
           {/* Step Indicator */}
-          <div className="text-center mb-6">
+          <div ref={formStartRef} className="scroll-mt-24 text-center mb-6">
             <span className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2">
               <Sparkles className="w-4 h-4 text-secondary" />
               <span className="text-white/90 text-sm font-medium">
-                Step {currentStep} of {TOTAL_STEPS}
+                Step {visibleStepIndex + 1} of {visibleStepNumbers.length}
               </span>
             </span>
           </div>
@@ -641,7 +688,7 @@ export default function RequestCleaning() {
                       <button
                         key={type.id}
                         type="button"
-                        onClick={() => setFormData({ ...formData, propertyType: type.id, bedrooms: type.id === "commercial" ? "" : formData.bedrooms, propertyTypeOther: type.id !== "other" ? "" : formData.propertyTypeOther })}
+                        onClick={() => handlePropertyTypeSelect(type.id)}
                         className={cn(
                           "flex items-center gap-3 p-4 rounded-xl border-2 transition-all duration-200 text-left group hover:border-primary hover:bg-primary/5",
                           isSelected 
@@ -720,7 +767,7 @@ export default function RequestCleaning() {
                             name="bedrooms"
                             value={option.id}
                             checked={isSelected}
-                            onChange={() => setFormData({ ...formData, bedrooms: option.id, bedroomsOther: option.id !== "other" ? "" : formData.bedroomsOther })}
+                            onChange={() => handleBedroomSelect(option.id)}
                             className="sr-only"
                           />
                         </label>
@@ -933,7 +980,7 @@ export default function RequestCleaning() {
               />
             </div>
             <p className="text-center text-white/60 text-sm mt-3">
-              {currentStep === TOTAL_STEPS ? "Almost done!" : `${Math.round(progress)}% complete`}
+              {visibleStepIndex + 1 === visibleStepNumbers.length ? "Almost done!" : `${Math.round(progress)}% complete`}
             </p>
           </div>
 
