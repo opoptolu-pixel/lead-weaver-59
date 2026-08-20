@@ -442,6 +442,7 @@ export type Database = {
           id: string
           job_id: string
           paid_at: string | null
+          pay_run_week_start: string | null
           provider: string | null
           provider_reference: string | null
           scheduled_pay_date: string | null
@@ -460,6 +461,7 @@ export type Database = {
           id?: string
           job_id: string
           paid_at?: string | null
+          pay_run_week_start?: string | null
           provider?: string | null
           provider_reference?: string | null
           scheduled_pay_date?: string | null
@@ -478,6 +480,7 @@ export type Database = {
           id?: string
           job_id?: string
           paid_at?: string | null
+          pay_run_week_start?: string | null
           provider?: string | null
           provider_reference?: string | null
           scheduled_pay_date?: string | null
@@ -3702,6 +3705,7 @@ export type Database = {
         Args: { p_bank_reference: string; p_payout_id: string }
         Returns: boolean
       }
+      next_cleaner_pay_date: { Args: { p_from_date?: string }; Returns: string }
       offer_job_to_cleaner: {
         Args: { p_cleaner_id: string; p_job_id: string }
         Returns: Json
