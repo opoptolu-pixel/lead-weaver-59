@@ -56,9 +56,28 @@ serve(async (req) => {
       const session = event.data.object as Stripe.Checkout.Session;
       const leadId = session.metadata?.lead_id;
       const agencyQuoteId = session.metadata?.agency_quote_id;
+      const recurringPlanId = session.metadata?.recurring_plan_id;
       const customerEmail = session.customer_details?.email;
 
       logStep("checkout.session.completed", { leadId, customerEmail, sessionId: session.id });
+
+      // A recurring plan first collects explicit permission to retain a card.
+      // No visit is charged here; each future visit remains a separate charge.
+      if (recurringPlanId && session.mode === "setup" && session.setup_intent) {
+        const setupIntent = await stripe.setupIntents.retrieve(String(session.setup_intent));
+        const paymentMethodId = typeof setupIntent.payment_method === "string" ? setupIntent.payment_method : setupIntent.payment_method?.id;
+        const customerId = typeof session.customer === "string" ? session.customer : session.customer?.id;
+        if (!paymentMethodId || !customerId) throw new Error("The recurring payment method was not available");
+        const { error: recurringError } = await supabaseClient.from("recurring_clean_plans").update({
+          stripe_customer_id: customerId,
+          stripe_payment_method_id: paymentMethodId,
+          payment_setup_status: "ready",
+          status: "active",
+          payment_setup_completed_at: new Date().toISOString(),
+        }).eq("id", recurringPlanId).neq("status", "cancelled");
+        if (recurringError) throw recurringError;
+        logStep("Recurring payment method saved", { recurringPlanId });
+      }
 
       if (agencyQuoteId && session.payment_status === "paid") {
         const { data: jobId, error: agencyError } = await supabaseClient.rpc("finalize_agency_quote_payment", {

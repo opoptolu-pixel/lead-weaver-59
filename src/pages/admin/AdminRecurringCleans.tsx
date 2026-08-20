@@ -1,0 +1,24 @@
+import { useEffect, useState } from "react";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { CreditCard, Pause, Play, RefreshCw } from "lucide-react";
+import AdminLayout from "@/components/admin/AdminLayout";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+const db = supabase as unknown as SupabaseClient;
+type Plan = { id: string; status: string; frequency: string; next_visit_date: string; start_time: string | null; customer_amount_pence: number; payment_setup_status: string; customer: { name: string; email: string }; service_type: { name: string } };
+const money = (pence: number) => new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(pence / 100);
+
+export default function AdminRecurringCleans() {
+  const [plans, setPlans] = useState<Plan[]>([]); const [loading, setLoading] = useState(true); const [working, setWorking] = useState("");
+  const load = async () => { setLoading(true); const { data, error } = await db.from("recurring_clean_plans").select("id,status,frequency,next_visit_date,start_time,customer_amount_pence,payment_setup_status,customer:customers(name,email),service_type:service_types(name)").order("next_visit_date"); setLoading(false); if (error) toast.error(error.message); else setPlans((data || []) as unknown as Plan[]); };
+  useEffect(() => { load(); }, []);
+  const sendCardSetup = async (id: string) => { setWorking(id); const { error } = await supabase.functions.invoke("send-recurring-payment-setup", { body: { planId: id } }); setWorking(""); if (error) toast.error(error.message); else { toast.success("Secure card-setup link sent to the customer"); load(); } };
+  const pause = async (id: string, paused: boolean) => { setWorking(id); const { error } = await db.rpc("pause_recurring_clean_plan", { p_plan_id: id, p_paused: paused }); setWorking(""); if (error) toast.error(error.message); else { toast.success(paused ? "Recurring plan paused" : "Recurring plan restarted"); load(); } };
+  return <AdminLayout title="Recurring Cleans"><div className="space-y-6"><div className="flex flex-wrap items-start justify-between gap-3"><div><h1 className="text-2xl font-bold">Recurring cleans</h1><p className="text-muted-foreground">Saved-card recurring agreements. Every visit remains its own job, customer payment and cleaner payout.</p></div><Button variant="outline" onClick={load}><RefreshCw className="mr-2 h-4 w-4" />Refresh</Button></div>
+    <div className="grid gap-4 md:grid-cols-3"><div className="rounded-xl border p-5"><p className="text-sm text-muted-foreground">Active</p><p className="mt-1 text-3xl font-bold">{plans.filter(p=>p.status === "active").length}</p></div><div className="rounded-xl border p-5"><p className="text-sm text-muted-foreground">Needs card setup</p><p className="mt-1 text-3xl font-bold">{plans.filter(p=>p.payment_setup_status !== "ready").length}</p></div><div className="rounded-xl border p-5"><p className="text-sm text-muted-foreground">Payment attention</p><p className="mt-1 text-3xl font-bold">{plans.filter(p=>p.status === "payment_failed").length}</p></div></div>
+    <div className="rounded-xl border">{loading ? <p className="p-6 text-muted-foreground">Loading recurring plans…</p> : plans.length === 0 ? <p className="p-6 text-muted-foreground">No recurring clean agreements yet. Create the agreement when confirming the customer’s repeat-cleaning requirements.</p> : <div className="divide-y">{plans.map(plan => <div key={plan.id} className="flex flex-wrap items-center justify-between gap-4 p-5"><div><div className="flex items-center gap-2"><p className="font-semibold">{plan.customer.name} · {plan.service_type.name}</p><Badge variant="outline">{plan.status.replaceAll("_", " ")}</Badge></div><p className="mt-1 text-sm text-muted-foreground">{plan.frequency} · next visit {plan.next_visit_date}{plan.start_time ? ` at ${plan.start_time.slice(0,5)}` : ""} · {money(plan.customer_amount_pence)}</p><p className="mt-1 text-xs text-muted-foreground">Card setup: {plan.payment_setup_status.replaceAll("_", " ")} · {plan.customer.email}</p></div><div className="flex flex-wrap gap-2">{plan.payment_setup_status !== "ready" && <Button size="sm" onClick={() => sendCardSetup(plan.id)} disabled={working === plan.id}><CreditCard className="mr-2 h-4 w-4" />Send card setup</Button>}{plan.status === "active" ? <Button size="sm" variant="outline" onClick={() => pause(plan.id, true)} disabled={working === plan.id}><Pause className="mr-2 h-4 w-4" />Pause</Button> : plan.status === "paused" ? <Button size="sm" variant="outline" onClick={() => pause(plan.id, false)} disabled={working === plan.id}><Play className="mr-2 h-4 w-4" />Restart</Button> : null}</div></div>)}</div>}</div>
+  </div></AdminLayout>;
+}

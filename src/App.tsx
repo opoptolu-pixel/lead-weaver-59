@@ -73,6 +73,7 @@ const AdminEmailSequences = lazy(() => import("./pages/admin/AdminEmailSequences
 const AdminServiceRequests = lazy(() => import("./pages/admin/AdminServiceRequests"));
 const AdminCustomers = lazy(() => import("./pages/admin/AdminCustomers"));
 const AdminAgencyPayments = lazy(() => import("./pages/admin/AdminAgencyPayments"));
+const AdminRecurringCleans = lazy(() => import("./pages/admin/AdminRecurringCleans"));
 const AdminQualityIssues = lazy(() => import("./pages/admin/AdminQualityIssues"));
 
 const queryClient = new QueryClient();
@@ -154,6 +155,7 @@ const App = () => (
                   <Route path="/admin/businesses" element={<AdminBusinesses />} />
                   <Route path="/admin/verifications" element={<AdminVerifications />} />
                   <Route path="/admin/payments" element={<AdminAgencyPayments />} />
+                  <Route path="/admin/recurring-cleans" element={<AdminRecurringCleans />} />
                   <Route path="/admin/accounting" element={<AdminAccounting />} />
                   <Route path="/admin/disputes" element={<AdminDisputes />} />
                   <Route path="/admin/fraud" element={<AdminFraud />} />

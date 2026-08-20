@@ -18,6 +18,7 @@ import {
   ClipboardCheck,
   Mail,
   History,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ const navItems = [
   { title: "Onboarding & Checks", url: "/admin/onboarding", icon: UserCheck },
   { title: "Customers", url: "/admin/customers", icon: BriefcaseBusiness },
   { title: "Payments & Payouts", url: "/admin/payments", icon: CreditCard },
+  { title: "Recurring Cleans", url: "/admin/recurring-cleans", icon: RefreshCw },
   { title: "Quality & Issues", url: "/admin/quality", icon: ClipboardCheck },
   { title: "Messages", url: "/admin/messages", icon: Headphones },
   { title: "Communications", url: "/admin/email-templates", icon: Mail },
