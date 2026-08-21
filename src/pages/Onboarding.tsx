@@ -1,469 +1,107 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  Building,
-  Phone,
-  MapPin,
-  CheckCircle2,
-  ArrowRight,
-  ArrowLeft,
-  Sparkles,
-  ShieldCheck,
-  Users,
-  Loader2,
-} from "lucide-react";
+import { Check, FileUp, Loader2, MapPin, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Logo } from "@/components/Logo";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Logo } from "@/components/Logo";
-import { cn } from "@/lib/utils";
-import {
-  EmailNotificationSettings,
-  EmailPreferences,
-  defaultEmailPreferences,
-} from "@/components/EmailNotificationSettings";
 
-const TOTAL_STEPS = 4;
-
-interface OnboardingData {
-  contactName: string;
-  businessName: string;
-  phone: string;
-  postcode: string;
-  whatsappOptin: boolean;
-  emailPreferences: EmailPreferences;
-}
+const services = [
+  { slug: "end-of-tenancy", name: "End of Tenancy Cleaning" },
+  { slug: "move-in-move-out", name: "Move-In / Move-Out Cleaning" },
+  { slug: "one-off-deep", name: "One-Off Deep Cleaning" },
+  { slug: "weekly-routine", name: "Weekly Routine Cleaning" },
+  { slug: "post-construction", name: "Post-Construction Deep Cleaning" },
+  { slug: "airbnb-short-let", name: "Airbnb / Short-Let Cleaning" },
+];
 
 export default function Onboarding() {
-  const { user, profile, refreshProfile, loading: authLoading } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [currentStep, setCurrentStep] = useState(1);
-  const [saving, setSaving] = useState(false);
-  const [data, setData] = useState<OnboardingData>({
-    contactName: "",
-    businessName: "",
-    phone: "",
-    postcode: "",
-    whatsappOptin: false,
-    emailPreferences: defaultEmailPreferences,
-  });
+  const [submitting, setSubmitting] = useState(false);
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [postcode, setPostcode] = useState("");
+  const [addressLine1, setAddressLine1] = useState("");
+  const [addressLine2, setAddressLine2] = useState("");
+  const [city, setCity] = useState("");
+  const [citizenshipRoute, setCitizenshipRoute] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [rightToWorkShareCode, setRightToWorkShareCode] = useState("");
+  const [identityFile, setIdentityFile] = useState<File | null>(null);
+  const [addressFile, setAddressFile] = useState<File | null>(null);
+  const [experienceSummary, setExperienceSummary] = useState("");
+  const [hasTransport, setHasTransport] = useState(false);
+  const [serviceSlugs, setServiceSlugs] = useState<string[]>([]);
 
-  // Redirect if not logged in
   useEffect(() => {
-    if (!authLoading && !user) {
-      navigate("/auth");
-    }
-  }, [user, authLoading, navigate]);
+    if (!loading && !user) navigate("/auth?mode=signup");
+  }, [loading, navigate, user]);
 
-  // Redirect if already onboarded (all 4 required fields present)
-  useEffect(() => {
-    if (
-      profile?.contact_name &&
-      profile?.business_name &&
-      profile?.phone &&
-      profile?.postcode
-    ) {
-      navigate("/dashboard");
-    }
-  }, [profile, navigate]);
-
-  // Populate with existing data
-  useEffect(() => {
-    if (profile) {
-      setData({
-        contactName: profile.contact_name || "",
-        businessName: profile.business_name || "",
-        phone: profile.phone || "",
-        postcode: profile.postcode || "",
-        whatsappOptin: profile.whatsapp_optin || false,
-        emailPreferences: defaultEmailPreferences,
-      });
-    }
-  }, [profile]);
-
-  const progress = (currentStep / TOTAL_STEPS) * 100;
-
-  const canProceed = () => {
-    switch (currentStep) {
-      case 1:
-        return data.contactName.trim().length >= 2;
-      case 2:
-        return data.businessName.trim().length >= 2;
-      case 3:
-        return data.phone.trim().length >= 10 && data.postcode.trim().length >= 5;
-      case 4:
-        return true; // Preferences step is optional
-      default:
-        return false;
-    }
+  const toggleService = (slug: string) => {
+    setServiceSlugs((current) => current.includes(slug) ? current.filter((item) => item !== slug) : [...current, slug]);
   };
 
-  const handleNext = () => {
-    if (currentStep < TOTAL_STEPS) {
-      setCurrentStep(currentStep + 1);
-    } else {
-      handleComplete();
-    }
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!user || !identityFile || !addressFile) return toast.error("Upload your identity and proof-of-address documents.");
+    const allowed = ["application/pdf","image/jpeg","image/png","image/webp"];
+    if ([identityFile,addressFile].some((file) => file.size > 5 * 1024 * 1024 || !allowed.includes(file.type))) return toast.error("Documents must be PDF, JPG, PNG or WebP and no larger than 5MB.");
+    setSubmitting(true);
+    const extension = (file: File) => file.name.split(".").pop()?.toLowerCase() || "bin";
+    const identityPath = `${user.id}/cleaner-vetting/identity-${crypto.randomUUID()}.${extension(identityFile)}`;
+    const addressPath = `${user.id}/cleaner-vetting/address-${crypto.randomUUID()}.${extension(addressFile)}`;
+    const [identityUpload,addressUpload] = await Promise.all([
+      supabase.storage.from("verification-documents").upload(identityPath, identityFile, { contentType: identityFile.type }),
+      supabase.storage.from("verification-documents").upload(addressPath, addressFile, { contentType: addressFile.type }),
+    ]);
+    if (identityUpload.error || addressUpload.error) { setSubmitting(false); return toast.error(identityUpload.error?.message || addressUpload.error?.message || "Documents could not be uploaded."); }
+    const { data, error } = await supabase.functions.invoke("submit-cleaner-application", {
+      body: { fullName, phone, postcode, addressLine1, addressLine2, city, citizenshipRoute, dateOfBirth, rightToWorkShareCode, identityPath, addressPath, experienceSummary, hasTransport, serviceSlugs },
+    });
+    setSubmitting(false);
+    if (error || data?.error) return toast.error(data?.error || error?.message || "Could not submit your application");
+    toast.success("Cleaner application submitted");
+    navigate("/dashboard");
   };
 
-  const handleBack = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
-
-  const handleComplete = async () => {
-    if (!user) return;
-    
-    setSaving(true);
-    try {
-      const isNewBusiness = !profile?.business_name;
-      
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          contact_name: data.contactName.trim(),
-          business_name: data.businessName.trim(),
-          phone: data.phone.trim(),
-          postcode: data.postcode.trim().toUpperCase(),
-          whatsapp_optin: data.whatsappOptin,
-        })
-        .eq("user_id", user.id);
-
-      if (error) throw error;
-
-      // Log business signup/onboarding activity
-      await supabase.from("activity_logs").insert({
-        user_id: user.id,
-        entity_type: "business",
-        entity_id: user.id,
-        action: isNewBusiness ? "signup" : "profile_update",
-        details: {
-          business_name: data.businessName.trim(),
-          contact_name: data.contactName.trim(),
-          postcode: data.postcode.trim().toUpperCase(),
-          whatsapp_optin: data.whatsappOptin,
-          phone: data.phone.trim(),
-        },
-      });
-
-      // Add to email_subscribers if new business signup
-      if (isNewBusiness && user.email) {
-        await supabase.from("email_subscribers").insert({
-          email: user.email,
-          name: data.contactName.trim() || data.businessName.trim(),
-          source: "business_signup",
-          source_id: user.id,
-        }).select().maybeSingle(); // Ignore if already exists
-
-        // Send welcome email to new business
-        try {
-          const { data: template } = await supabase
-            .from("email_templates")
-            .select("subject, body")
-            .eq("name", "welcome_business")
-            .eq("is_active", true)
-            .maybeSingle();
-
-          if (template) {
-            const variables: Record<string, string> = {
-              business_name: data.businessName.trim(),
-              contact_name: data.contactName.trim(),
-              dashboard_url: "https://cleanda.co.uk/dashboard",
-              verification_url: "https://cleanda.co.uk/verification",
-              support_email: "hello@cleanda.co.uk",
-              current_year: new Date().getFullYear().toString(),
-            };
-
-            let subject = template.subject;
-            let html = template.body;
-            
-            Object.entries(variables).forEach(([key, value]) => {
-              subject = subject.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
-              html = html.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
-            });
-
-            await supabase.functions.invoke("send-email", {
-              body: {
-                to: user.email,
-                subject,
-                html,
-                templateName: "welcome_business",
-              },
-            });
-          }
-        } catch (emailError) {
-          console.error("Failed to send welcome email:", emailError);
-          // Don't fail onboarding if email fails
-        }
-      }
-
-      await refreshProfile();
-      toast.success("Welcome to Cleanda! Your profile is set up.");
-      navigate("/dashboard");
-    } catch (error) {
-      console.error("Error saving profile:", error);
-      toast.error("Failed to save profile. Please try again.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-secondary" />
-      </div>
-    );
-  }
+  if (loading) return <div className="flex min-h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-primary to-primary/90 flex flex-col">
-      {/* Header */}
-      <header className="container mx-auto px-4 py-6">
-        <Logo size="md" variant="white" />
-      </header>
-
-      {/* Main content */}
-      <main className="flex-1 flex items-center justify-center px-4 py-8">
-        <div className="w-full max-w-lg">
-          {/* Progress indicator */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-primary-foreground/80 text-sm">
-                Step {currentStep} of {TOTAL_STEPS}
-              </span>
-              <span className="text-primary-foreground/80 text-sm">
-                {Math.round(progress)}% complete
-              </span>
-            </div>
-            <Progress value={progress} className="h-2 bg-primary-foreground/20" />
-          </div>
-
-          {/* Step card */}
-          <div className="bg-white rounded-3xl shadow-2xl p-8 md:p-10">
-            {/* Step 1: Your Name */}
-            {currentStep === 1 && (
-              <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-                <div className="w-14 h-14 rounded-2xl bg-secondary/10 flex items-center justify-center mb-6">
-                  <Users className="w-7 h-7 text-secondary" />
-                </div>
-                <h1 className="font-heading text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-                  Welcome! What's your name?
-                </h1>
-                <p className="text-gray-500 mb-8">
-                  We'll use this to personalize your experience
-                </p>
-
-                <div className="space-y-2">
-                  <Label htmlFor="contactName" className="text-gray-700">Your full name</Label>
-                  <Input
-                    id="contactName"
-                    placeholder="e.g., John Smith"
-                    value={data.contactName}
-                    onChange={(e) => setData({ ...data, contactName: e.target.value })}
-                    className="h-12 text-lg border-2 border-gray-200 focus:border-primary rounded-xl"
-                    autoFocus
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Step 2: Business Name */}
-            {currentStep === 2 && (
-              <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-                <div className="w-14 h-14 rounded-2xl bg-secondary/10 flex items-center justify-center mb-6">
-                  <Building className="w-7 h-7 text-secondary" />
-                </div>
-                <h1 className="font-heading text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-                  What's your business called?
-                </h1>
-                <p className="text-gray-500 mb-8">
-                  This will appear on your profile and communications
-                </p>
-
-                <div className="space-y-2">
-                  <Label htmlFor="businessName" className="text-gray-700">Business name</Label>
-                  <Input
-                    id="businessName"
-                    placeholder="e.g., Sparkle Clean Services"
-                    value={data.businessName}
-                    onChange={(e) => setData({ ...data, businessName: e.target.value })}
-                    className="h-12 text-lg border-2 border-gray-200 focus:border-primary rounded-xl"
-                    autoFocus
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Step 3: Contact & Location */}
-            {currentStep === 3 && (
-              <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-                <div className="w-14 h-14 rounded-2xl bg-secondary/10 flex items-center justify-center mb-6">
-                  <MapPin className="w-7 h-7 text-secondary" />
-                </div>
-                <h1 className="font-heading text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-                  Where are you based?
-                </h1>
-                <p className="text-gray-500 mb-8">
-                  We'll show you leads in your service area
-                </p>
-
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="phone" className="text-gray-700">Phone number (with country code)</Label>
-                    <div className="relative">
-                      <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                      <Input
-                        id="phone"
-                        type="tel"
-                        placeholder="+447700900000"
-                        value={data.phone}
-                        onChange={(e) => setData({ ...data, phone: e.target.value })}
-                        className="pl-12 h-12 text-lg border-2 border-gray-200 focus:border-primary rounded-xl"
-                        autoFocus
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="postcode" className="text-gray-700">Service area postcode</Label>
-                    <div className="relative">
-                      <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                      <Input
-                        id="postcode"
-                        placeholder="SW1A 1AA"
-                        value={data.postcode}
-                        onChange={(e) => setData({ ...data, postcode: e.target.value.toUpperCase() })}
-                        className="pl-12 h-12 text-lg border-2 border-gray-200 focus:border-primary rounded-xl uppercase"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Step 4: Preferences */}
-            {currentStep === 4 && (
-              <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-                <div className="w-14 h-14 rounded-2xl bg-secondary/10 flex items-center justify-center mb-6">
-                  <Sparkles className="w-7 h-7 text-secondary" />
-                </div>
-                <h1 className="font-heading text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-                  Almost done!
-                </h1>
-                <p className="text-gray-500 mb-8">
-                  Set up your notification preferences
-                </p>
-
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between p-4 rounded-xl border-2 border-gray-200 hover:border-secondary/50 transition-colors">
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
-                        <Phone className="w-5 h-5 text-green-600" />
-                      </div>
-                      <div>
-                        <Label className="text-gray-900 font-medium cursor-pointer">
-                          WhatsApp Notifications
-                        </Label>
-                        <p className="text-gray-500 text-sm">
-                          Get instant alerts for new leads
-                        </p>
-                      </div>
-                    </div>
-                    <Switch
-                      checked={data.whatsappOptin}
-                      onCheckedChange={(checked) => setData({ ...data, whatsappOptin: checked })}
-                    />
-                  </div>
-
-                  {/* Email Notification Settings */}
-                  <EmailNotificationSettings
-                    preferences={data.emailPreferences}
-                    onChange={(prefs) => setData({ ...data, emailPreferences: prefs })}
-                    compact
-                  />
-
-                  {/* Benefits summary */}
-                  <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-                    <p className="text-gray-700 font-medium text-sm">You're all set to:</p>
-                    <div className="space-y-2">
-                      {[
-                        "Browse exclusive cleaning leads",
-                        "Unlock customer contact details",
-                        "Track job status and performance",
-                      ].map((benefit, i) => (
-                        <div key={i} className="flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-green-500" />
-                          <span className="text-gray-600 text-sm">{benefit}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Navigation */}
-            <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-100">
-              {currentStep > 1 ? (
-                <Button
-                  variant="ghost"
-                  onClick={handleBack}
-                  className="gap-2 text-gray-600"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Back
-                </Button>
-              ) : (
-                <div />
-              )}
-
-              <Button
-                variant="cta"
-                size="lg"
-                onClick={handleNext}
-                disabled={!canProceed() || saving}
-                className="gap-2 min-w-[140px]"
-              >
-                {saving ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : currentStep === TOTAL_STEPS ? (
-                  <>
-                    Get Started
-                    <CheckCircle2 className="w-5 h-5" />
-                  </>
-                ) : (
-                  <>
-                    Continue
-                    <ArrowRight className="w-5 h-5" />
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-
+    <div className="min-h-screen bg-muted/30">
+      <header className="border-b bg-primary px-4 py-4"><div className="mx-auto max-w-4xl"><Logo variant="white" size="md" /></div></header>
+      <main className="mx-auto max-w-3xl px-4 py-10">
+        <div className="mb-8 text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary/15"><Sparkles className="h-7 w-7 text-secondary" /></div>
+          <h1 className="text-3xl font-bold">Apply to clean with Cleanda</h1>
+          <p className="mt-3 text-muted-foreground">Get managed cleaning jobs across Greater Manchester. There are no lead fees or monthly subscriptions.</p>
         </div>
+        <form onSubmit={submit} className="space-y-6 rounded-2xl border bg-card p-6 shadow-sm sm:p-8">
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div><Label htmlFor="full-name">Full name</Label><Input id="full-name" value={fullName} onChange={(event) => setFullName(event.target.value)} required className="mt-2" /></div>
+            <div><Label htmlFor="phone">Mobile number</Label><Input id="phone" type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="07..." required className="mt-2" /></div>
+          </div>
+          <div><Label htmlFor="postcode">Home postcode</Label><div className="relative mt-2"><MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input id="postcode" value={postcode} onChange={(event) => setPostcode(event.target.value.toUpperCase())} className="pl-10" required /></div><p className="mt-1 text-xs text-muted-foreground">The launch area is Greater Manchester. Admins will confirm the jobs you can reasonably cover.</p></div>
+          <fieldset className="space-y-4 rounded-xl border p-4"><legend className="px-2 font-semibold">Home address</legend><div><Label htmlFor="address-1">Address line 1</Label><Input id="address-1" value={addressLine1} onChange={(event)=>setAddressLine1(event.target.value)} required className="mt-2" /></div><div><Label htmlFor="address-2">Address line 2 (optional)</Label><Input id="address-2" value={addressLine2} onChange={(event)=>setAddressLine2(event.target.value)} className="mt-2" /></div><div><Label htmlFor="city">Town or city</Label><Input id="city" value={city} onChange={(event)=>setCity(event.target.value)} required className="mt-2" /></div></fieldset>
+          <fieldset className="space-y-4 rounded-xl border p-4"><legend className="px-2 font-semibold">Identity and right to work</legend><div><Label>Citizenship/right-to-work route</Label><Select value={citizenshipRoute} onValueChange={setCitizenshipRoute} required><SelectTrigger className="mt-2"><SelectValue placeholder="Select your route" /></SelectTrigger><SelectContent><SelectItem value="british">British citizen</SelectItem><SelectItem value="irish">Irish citizen</SelectItem><SelectItem value="other">Other nationality or immigration status</SelectItem></SelectContent></Select><p className="mt-1 text-xs text-muted-foreground">British and Irish applicants do not need a share code. Their identity evidence is reviewed as continuous right-to-work evidence.</p></div>{citizenshipRoute === "other" && <div className="grid gap-4 sm:grid-cols-2"><div><Label htmlFor="dob">Date of birth</Label><Input id="dob" type="date" value={dateOfBirth} onChange={(event)=>setDateOfBirth(event.target.value)} required className="mt-2" /></div><div><Label htmlFor="share-code">Right-to-work share code</Label><Input id="share-code" value={rightToWorkShareCode} onChange={(event)=>setRightToWorkShareCode(event.target.value.toUpperCase())} placeholder="W12345678" maxLength={11} required className="mt-2" /><p className="mt-1 text-xs text-muted-foreground">Use the code generated specifically for a right-to-work check.</p></div></div>}</fieldset>
+          <fieldset className="space-y-4 rounded-xl border p-4"><legend className="px-2 font-semibold">Required documents</legend><DocumentInput id="identity-document" label="Identity document" help="Passport, driving licence, or accepted identity evidence." file={identityFile} setFile={setIdentityFile} /><DocumentInput id="address-document" label="Proof of address" help="A recent bank statement, utility bill or council-tax statement." file={addressFile} setFile={setAddressFile} /><p className="text-xs text-muted-foreground">DBS evidence is optional and can be supplied later. It does not block activation.</p></fieldset>
+          <div><Label>Cleaning services you can perform</Label><div className="mt-3 grid gap-3 sm:grid-cols-2">{services.map((service) => <label key={service.slug} className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-muted/50"><Checkbox checked={serviceSlugs.includes(service.slug)} onCheckedChange={() => toggleService(service.slug)} /><span className="text-sm">{service.name}</span></label>)}</div></div>
+          <div><Label htmlFor="experience">Experience</Label><Textarea id="experience" value={experienceSummary} onChange={(event) => setExperienceSummary(event.target.value)} rows={4} placeholder="Briefly describe your cleaning experience and the type of work you have completed." className="mt-2" /></div>
+          <label className="flex items-start gap-3 rounded-lg bg-muted/50 p-4"><Checkbox checked={hasTransport} onCheckedChange={(checked) => setHasTransport(checked === true)} /><span><span className="block font-medium">I have reliable transport</span><span className="text-sm text-muted-foreground">This helps Cleanda assess suitable locations but is not an automatic requirement.</span></span></label>
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900"><p className="font-medium"><Check className="mr-2 inline h-4 w-4" />What happens next</p><p className="mt-1">Cleanda reviews your application. If approved, you will be able to receive jobs showing the service, area, schedule and cleaner payout before accepting.</p></div>
+          <Button type="submit" size="lg" className="w-full" disabled={submitting || serviceSlugs.length === 0}>{submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Submit cleaner application</Button>
+        </form>
       </main>
-
-      {/* Trust badges */}
-      <footer className="container mx-auto px-4 py-6">
-        <div className="flex items-center justify-center gap-6 text-primary-foreground/60 text-sm">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4" />
-            <span>Secure & Private</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            <span>500+ Businesses</span>
-          </div>
-        </div>
-      </footer>
     </div>
   );
+}
+
+function DocumentInput({ id, label, help, file, setFile }: { id:string; label:string; help:string; file:File|null; setFile:(file:File|null)=>void }) {
+  return <div><Label htmlFor={id}>{label}</Label><label htmlFor={id} className="mt-2 flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-dashed p-4 hover:bg-muted/50"><span><span className="block text-sm font-medium">{file?.name || "Choose PDF or image"}</span><span className="text-xs text-muted-foreground">{help} Maximum 5MB.</span></span><FileUp className="h-5 w-5 text-primary" /></label><Input id={id} className="hidden" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" required onChange={(event)=>setFile(event.target.files?.[0] || null)} /></div>;
 }

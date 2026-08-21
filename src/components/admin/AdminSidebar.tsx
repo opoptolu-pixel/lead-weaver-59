@@ -1,4 +1,4 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   FileText,
@@ -10,16 +10,15 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  Activity,
-  ShieldAlert,
-  Inbox,
   Headphones,
-  Mail,
-  PoundSterling,
-  MessageSquare,
   X,
-  Link2,
-  Zap,
+  BriefcaseBusiness,
+  CalendarDays,
+  UserCheck,
+  ClipboardCheck,
+  Mail,
+  History,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -36,23 +35,18 @@ import { supabase } from "@/integrations/supabase/client";
 
 const navItems = [
   { title: "Overview", url: "/admin", icon: LayoutDashboard },
-  { title: "Live Data", url: "/admin/live", icon: Activity },
-  { title: "Lead Pipeline", url: "/admin/leads", icon: FileText },
-  { title: "Business Inquiries", url: "/admin/inquiries", icon: Inbox },
-  { title: "Contact Messages", url: "/admin/contact", icon: MessageSquare },
-  { title: "Businesses", url: "/admin/businesses", icon: Users },
-  { title: "Verifications", url: "/admin/verifications", icon: Shield },
-  { title: "Accounting", url: "/admin/accounting", icon: PoundSterling },
-  { title: "Payments", url: "/admin/payments", icon: CreditCard },
-  { title: "Disputes", url: "/admin/disputes", icon: AlertTriangle },
-  { title: "Fraud & Risk", url: "/admin/fraud", icon: ShieldAlert },
-  { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
-  { title: "UTM Builder", url: "/admin/utm-builder", icon: Link2 },
-  { title: "Email Templates", url: "/admin/email-templates", icon: Mail },
-  { title: "Email Sequences", url: "/admin/email-sequences", icon: Zap },
-  { title: "Support", url: "/admin/support", icon: Headphones },
-  { title: "Subscribers", url: "/admin/subscribers", icon: Users },
-  { title: "Activity Logs", url: "/admin/activity-logs", icon: Activity },
+  { title: "Cleaning Requests", url: "/admin/cleaning-requests", icon: FileText },
+  { title: "Jobs & Schedule", url: "/admin/jobs", icon: CalendarDays },
+  { title: "Cleaners", url: "/admin/cleaners", icon: Users },
+  { title: "Onboarding & Checks", url: "/admin/onboarding", icon: UserCheck },
+  { title: "Customers", url: "/admin/customers", icon: BriefcaseBusiness },
+  { title: "Payments & Payouts", url: "/admin/payments", icon: CreditCard },
+  { title: "Recurring Cleans", url: "/admin/recurring-cleans", icon: RefreshCw },
+  { title: "Quality & Issues", url: "/admin/quality", icon: ClipboardCheck },
+  { title: "Messages", url: "/admin/messages", icon: Headphones },
+  { title: "Communications", url: "/admin/email-templates", icon: Mail },
+  { title: "Reports", url: "/admin/reports", icon: BarChart3 },
+  { title: "Audit Trail", url: "/admin/audit-trail", icon: History },
   { title: "Settings", url: "/admin/settings", icon: Settings },
 ];
 
@@ -137,8 +131,8 @@ export default function AdminSidebar({ onNavigate }: AdminSidebarProps) {
 
   const NavItem = ({ item }: { item: typeof navItems[0] }) => {
     const active = isActive(item.url);
-    const showBadge = item.url === "/admin/support" && unreadSupportCount > 0;
-    const showVerificationBadge = item.url === "/admin/verifications" && expiringVerificationsCount > 0;
+    const showBadge = item.url === "/admin/messages" && unreadSupportCount > 0;
+    const showVerificationBadge = item.url === "/admin/onboarding" && expiringVerificationsCount > 0;
     const badgeCount = showBadge ? unreadSupportCount : showVerificationBadge ? expiringVerificationsCount : 0;
     const hasBadge = showBadge || showVerificationBadge;
     const badgeColor = showVerificationBadge ? "bg-amber-500 text-white" : "bg-destructive text-destructive-foreground";
@@ -197,13 +191,13 @@ export default function AdminSidebar({ onNavigate }: AdminSidebarProps) {
     <TooltipProvider>
       <aside
         className={cn(
-          "bg-card border-r border-border/30 h-screen flex flex-col transition-all duration-300 flex-shrink-0",
+          "bg-card/95 backdrop-blur-xl border-r border-border/50 h-screen flex flex-col transition-all duration-300 flex-shrink-0 shadow-[10px_0_30px_-28px_hsl(var(--navy)/0.45)]",
           collapsed ? "w-16" : "w-[17rem]"
         )}
       >
         {/* Logo */}
         <div className={cn(
-          "h-14 md:h-16 flex items-center border-b border-border flex-shrink-0",
+          "h-16 md:h-[4.5rem] flex items-center border-b border-border/70 flex-shrink-0",
           collapsed ? "justify-center px-2" : "justify-between px-4"
         )}>
           {!collapsed && (
@@ -244,7 +238,7 @@ export default function AdminSidebar({ onNavigate }: AdminSidebarProps) {
 
         {/* Navigation */}
         <ScrollArea className="flex-1">
-          <nav className="p-2 space-y-1">
+          <nav className="p-3 space-y-1">
             {navItems.map((item) => (
               <NavItem key={item.url} item={item} />
             ))}

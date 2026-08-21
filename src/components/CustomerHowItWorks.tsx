@@ -1,4 +1,4 @@
-import { Search, Users, MessageSquare, Sparkles } from "lucide-react";
+import { Search, BadgePoundSterling, CalendarCheck, Sparkles } from "lucide-react";
 
 const steps = [
   {
@@ -8,16 +8,16 @@ const steps = [
     description: "Select your cleaning type and enter your postcode. It takes just 30 seconds.",
   },
   {
-    icon: Users,
+    icon: BadgePoundSterling,
     number: "02",
-    title: "We Match You",
-    description: "We connect you with a verified local cleaning partner who specialises in your service.",
+    title: "Cleanda Confirms the Price",
+    description: "Our team reviews the requirements and provides the price for your approval.",
   },
   {
-    icon: MessageSquare,
+    icon: CalendarCheck,
     number: "03",
-    title: "Get Your Quote",
-    description: "Your cleaning partner will contact you to discuss your needs and provide a quote.",
+    title: "We Arrange Your Cleaner",
+    description: "Cleanda secures the booking and assigns a suitable vetted cleaner.",
   },
   {
     icon: Sparkles,
@@ -43,10 +43,10 @@ export const CustomerHowItWorks = () => {
             Simple 4-Step Process
           </span>
           <h2 id="how-it-works-heading" className="font-heading text-3xl md:text-5xl font-bold text-foreground tracking-tight">
-            How to Find a Cleaner
+            Cleaning Managed by Cleanda
           </h2>
           <p className="text-muted-foreground text-lg mt-4 max-w-md mx-auto">
-            Get matched with verified cleaning professionals in minutes
+            One team manages your quote, booking, cleaner and support
           </p>
         </div>
 

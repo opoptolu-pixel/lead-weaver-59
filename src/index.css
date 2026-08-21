@@ -109,13 +109,168 @@
     @apply border-border;
   }
 
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Inter', sans-serif;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-synthesis: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Poppins', sans-serif;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-synthesis: none;
+  }
+}
+
+/* Operational product shell -------------------------------------------------
+   These styles are deliberately scoped to the signed-in workspaces. They keep
+   public marketing pages untouched while giving admin and cleaner surfaces a
+   sharper, high-density product feel at desktop and TV-sized displays. */
+@layer components {
+  .admin-layout {
+    --radius: 0.875rem;
+    background:
+      radial-gradient(1100px 600px at 100% -10%, hsl(var(--secondary) / 0.06), transparent 65%),
+      hsl(var(--background));
+    letter-spacing: -0.01em;
+  }
+
+  .admin-layout main {
+    max-width: none;
+    font-size: 0.9375rem;
+  }
+
+  .admin-layout main > * {
+    max-width: 1680px;
+    margin-inline: auto;
+  }
+
+  .admin-layout .bg-card {
+    box-shadow: 0 1px 2px hsl(var(--navy) / 0.035), 0 14px 34px -30px hsl(var(--navy) / 0.3);
+  }
+
+  .admin-layout .rounded-xl {
+    border-radius: 1rem;
+  }
+
+  .admin-layout [data-radix-popper-content-wrapper],
+  .cleaner-dashboard [data-radix-popper-content-wrapper] {
+    filter: drop-shadow(0 18px 28px hsl(var(--navy) / 0.14));
+  }
+
+  .admin-layout table,
+  .cleaner-dashboard table {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .admin-layout thead,
+  .cleaner-dashboard thead {
+    background: hsl(var(--muted) / 0.62);
+  }
+
+  .admin-layout th,
+  .cleaner-dashboard th {
+    height: 3.25rem;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .admin-layout tbody tr,
+  .cleaner-dashboard tbody tr {
+    transition: background-color 150ms ease;
+  }
+
+  .admin-layout tbody tr:hover,
+  .cleaner-dashboard tbody tr:hover {
+    background: hsl(var(--secondary) / 0.045);
+  }
+
+  .admin-layout input,
+  .admin-layout textarea,
+  .cleaner-dashboard input,
+  .cleaner-dashboard textarea {
+    border-color: hsl(var(--border) / 0.9);
+    box-shadow: inset 0 1px 1px hsl(var(--navy) / 0.018);
+  }
+
+  .admin-layout input:focus,
+  .admin-layout textarea:focus,
+  .cleaner-dashboard input:focus,
+  .cleaner-dashboard textarea:focus {
+    border-color: hsl(var(--secondary) / 0.75);
+    box-shadow: 0 0 0 3px hsl(var(--secondary) / 0.12);
+  }
+
+  .admin-layout button,
+  .admin-layout [role="tab"],
+  .cleaner-dashboard button,
+  .cleaner-dashboard [role="tab"] {
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .cleaner-dashboard {
+    min-height: 100vh;
+    background:
+      radial-gradient(950px 500px at 8% -10%, hsl(var(--secondary) / 0.10), transparent 60%),
+      hsl(var(--muted) / 0.45);
+    letter-spacing: -0.01em;
+  }
+
+  .cleaner-dashboard header {
+    background: hsl(var(--primary) / 0.98);
+    box-shadow: 0 1px 0 hsl(0 0% 100% / 0.09);
+  }
+
+  .cleaner-dashboard main {
+    max-width: 1440px;
+    padding-top: clamp(2rem, 3vw, 3.75rem);
+    padding-bottom: clamp(2.5rem, 4vw, 5rem);
+  }
+
+  .cleaner-dashboard .bg-card {
+    box-shadow: 0 1px 2px hsl(var(--navy) / 0.04), 0 18px 40px -34px hsl(var(--navy) / 0.38);
+  }
+
+  .cleaner-dashboard [role="tablist"] {
+    gap: 0.25rem;
+  }
+
+  .cleaner-dashboard [role="tab"] {
+    min-height: 3rem;
+    color: hsl(var(--muted-foreground));
+    transition: background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+  }
+
+  .cleaner-dashboard [role="tab"][data-state="active"] {
+    box-shadow: 0 7px 16px -12px hsl(var(--primary) / 0.75);
+  }
+
+  @media (min-width: 1536px) {
+    .admin-layout main {
+      padding: 3.25rem 4rem 3.5rem;
+    }
+
+    .admin-layout h1,
+    .cleaner-dashboard h1 {
+      letter-spacing: -0.045em;
+    }
+
+    .admin-layout .text-sm,
+    .cleaner-dashboard .text-sm {
+      font-size: 0.9375rem;
+      line-height: 1.5;
+    }
   }
 }
 
@@ -232,6 +387,169 @@
 .dark .text-slate-600 { color: rgb(148 163 184); /* slate-400 */ }
 .dark .text-cyan-600 { color: rgb(34 211 238); /* cyan-400 */ }
 .dark .text-sky-600 { color: rgb(56 189 248); /* sky-400 */ }
+
+/* ===== Operational workspaces: large-display contrast and type =====
+   Admin pages pre-date the shared product shell and a few still use literal
+   light Tailwind surfaces. Keep the correction scoped to signed-in tooling so
+   marketing pages retain their intentional visual treatment. */
+@layer components {
+  .dark .admin-layout,
+  .dark .cleaner-dashboard {
+    --background: 215 45% 7%;
+    --card: 215 36% 11%;
+    --popover: 215 36% 10%;
+    --muted: 215 25% 16%;
+    --border: 215 22% 24%;
+    --input: 215 22% 24%;
+    --foreground: 210 40% 98%;
+    --muted-foreground: 214 22% 73%;
+  }
+
+  .dark .admin-layout .bg-white,
+  .dark .admin-layout .bg-gray-50,
+  .dark .admin-layout .bg-slate-50,
+  .dark .admin-layout .bg-zinc-50,
+  .dark .admin-layout .bg-neutral-50,
+  .dark .admin-layout .bg-gray-100,
+  .dark .admin-layout .bg-slate-100,
+  .dark .admin-layout .bg-zinc-100,
+  .dark .admin-layout .bg-neutral-100 {
+    background-color: hsl(var(--card)) !important;
+  }
+
+  .dark .admin-layout .border-gray-100,
+  .dark .admin-layout .border-gray-200,
+  .dark .admin-layout .border-slate-100,
+  .dark .admin-layout .border-slate-200,
+  .dark .admin-layout .border-zinc-100,
+  .dark .admin-layout .border-zinc-200,
+  .dark .admin-layout .border-neutral-100,
+  .dark .admin-layout .border-neutral-200 {
+    border-color: hsl(var(--border)) !important;
+  }
+
+  .dark .admin-layout .text-gray-700,
+  .dark .admin-layout .text-slate-700,
+  .dark .admin-layout .text-zinc-700,
+  .dark .admin-layout .text-neutral-700,
+  .dark .admin-layout .text-gray-800,
+  .dark .admin-layout .text-slate-800,
+  .dark .admin-layout .text-zinc-800,
+  .dark .admin-layout .text-neutral-800,
+  .dark .admin-layout .text-gray-900,
+  .dark .admin-layout .text-slate-900,
+  .dark .admin-layout .text-zinc-900,
+  .dark .admin-layout .text-neutral-900 {
+    color: hsl(var(--foreground)) !important;
+  }
+
+  /* Portalled dialogs sit outside .admin-layout, so give their legacy white
+     panels the same dark surface and preserve readable semantic actions. */
+  .dark [role="dialog"] .bg-white,
+  .dark [role="dialog"] .bg-gray-50,
+  .dark [role="dialog"] .bg-slate-50 {
+    background-color: hsl(215 36% 11%) !important;
+  }
+
+  .dark [role="dialog"] .text-emerald-900,
+  .dark [role="dialog"] .text-amber-950,
+  .dark [role="dialog"] .text-red-950 {
+    color: hsl(var(--foreground)) !important;
+  }
+
+  .admin-layout,
+  .cleaner-dashboard {
+    font-kerning: normal;
+    font-optical-sizing: auto;
+    text-rendering: geometricPrecision;
+  }
+
+  .admin-layout main,
+  .cleaner-dashboard main {
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+
+  .admin-layout .bg-card,
+  .admin-layout [data-slot="card"],
+  .cleaner-dashboard .bg-card,
+  .cleaner-dashboard .dash-card,
+  .cleaner-dashboard .stat-card {
+    border-color: hsl(var(--border) / 0.78);
+    box-shadow: 0 1px 2px hsl(var(--foreground) / 0.045), 0 18px 45px -38px hsl(var(--foreground) / 0.32);
+  }
+
+  .admin-layout > div > header {
+    box-shadow: 0 1px 0 hsl(var(--border) / 0.9), 0 8px 28px -26px hsl(var(--foreground) / 0.45);
+  }
+
+  .dark .admin-layout > div > header,
+  .dark .admin-layout aside {
+    background-color: hsl(215 42% 9% / 0.97) !important;
+  }
+
+  .admin-layout aside nav button[aria-current="page"],
+  .admin-layout aside button:has(.text-secondary) {
+    box-shadow: inset 3px 0 0 hsl(var(--secondary)), 0 8px 18px -16px hsl(var(--secondary) / 0.9);
+  }
+
+  @media (min-width: 1536px) {
+    .admin-layout main,
+    .cleaner-dashboard main {
+      font-size: 1.0625rem;
+    }
+
+    .admin-layout h1,
+    .cleaner-dashboard h1 {
+      font-size: clamp(2.25rem, 2.15vw, 3rem);
+      letter-spacing: -0.052em;
+      line-height: 1.06;
+    }
+
+    .admin-layout h2,
+    .cleaner-dashboard h2 {
+      font-size: clamp(1.375rem, 1.25vw, 1.75rem);
+      line-height: 1.16;
+    }
+
+    .admin-layout h3,
+    .cleaner-dashboard h3 {
+      font-size: 1.1875rem;
+    }
+
+    .admin-layout .text-sm,
+    .cleaner-dashboard .text-sm {
+      font-size: 0.9375rem;
+      line-height: 1.55;
+    }
+
+    .admin-layout table,
+    .cleaner-dashboard table {
+      font-size: 0.9375rem;
+    }
+
+    .admin-layout table thead th,
+    .cleaner-dashboard table thead th {
+      font-size: 0.75rem;
+    }
+  }
+
+  @media (min-width: 2200px) {
+    .admin-layout main {
+      padding-inline: clamp(4rem, 5vw, 7.5rem);
+    }
+
+    .admin-layout main,
+    .cleaner-dashboard main {
+      font-size: 1.125rem;
+    }
+
+    .admin-layout p.text-muted-foreground,
+    .cleaner-dashboard .text-muted-foreground {
+      color: hsl(var(--muted-foreground));
+    }
+  }
+}
 
 /* ===== Admin — Premium Uber-grade polish ===== */
 

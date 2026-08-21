@@ -81,7 +81,7 @@ export const TestimonialsSection = () => {
             What Our Customers Say
           </h2>
           <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-            Join thousands of happy customers across the UK
+            Feedback from customers who have used Cleanda
           </p>
         </div>
 

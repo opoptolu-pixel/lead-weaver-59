@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { CheckCircle, Clock, Phone, ArrowRight } from "lucide-react";
+import { CheckCircle, Clock, Phone, ArrowRight, BadgePoundSterling } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
 import { SEOHead } from "@/components/SEOHead";
@@ -11,7 +11,7 @@ const RequestCleaningThankYou = () => {
 
   // Fire conversion events on page load
   useEffect(() => {
-    const state = location.state as { jobType?: string; postcode?: string; estimatedValue?: string } | null;
+    const state = location.state as { jobType?: string; postcode?: string; estimatedValue?: string; referenceId?: string } | null;
     if (state?.jobType) {
       trackCleaningRequest({
         jobType: state.jobType,
@@ -35,7 +35,7 @@ const RequestCleaningThankYou = () => {
     <>
       <SEOHead
         title="Thank You | Your Cleaning Request is Submitted | Cleanda"
-        description="Your cleaning request has been submitted. Verified local cleaners will contact you within 24 hours with quotes."
+        description="Cleanda has received your Greater Manchester cleaning request and will contact you to confirm the requirements and price."
         canonical="https://cleanda.co.uk/request-cleaning/thank-you"
         noIndex={true}
       />
@@ -52,55 +52,55 @@ const RequestCleaningThankYou = () => {
 
         {/* Main Message */}
         <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-          You're Almost There! 📱
+          Request received
         </h1>
         <p className="text-xl text-gray-600 mb-8">
-          We've received your details, but your request isn't live yet.
+          Cleanda will review your requirements and contact you to confirm the price and booking.
         </p>
 
-        {/* Confirmation Required Box */}
+        {/* Managed service confirmation */}
         <div className="bg-white rounded-2xl p-6 shadow-lg border-2 border-amber-200 mb-8 text-left">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
               <Phone className="w-5 h-5 text-amber-600" />
             </div>
-            <h2 className="font-semibold text-gray-900 text-lg">Confirm Your Request</h2>
+            <h2 className="font-semibold text-gray-900 text-lg">What happens next</h2>
           </div>
           
           <p className="text-gray-700 mb-4">
-            We've sent you a <span className="font-semibold text-emerald-600">text message</span>.
+            Our Greater Manchester team will check the job details and contact you if anything needs clarification.
           </p>
           
           <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl p-4 border border-emerald-200">
             <p className="text-gray-800 font-medium text-center">
-              Simply reply <span className="inline-block bg-emerald-500 text-white px-3 py-1 rounded-full font-bold text-lg mx-1">"YES"</span> to confirm
+              Your request is with Cleanda
             </p>
             <p className="text-gray-600 text-sm text-center mt-2">
-              and your request will go live to local cleaners
+              Nothing is booked or charged until the price and arrangements are confirmed.
             </p>
           </div>
         </div>
 
-        {/* What happens after confirmation */}
+        {/* Managed journey */}
         <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 mb-8 text-left">
-          <h2 className="font-semibold text-gray-900 mb-4 text-lg">After you confirm:</h2>
+          <h2 className="font-semibold text-gray-900 mb-4 text-lg">Your Cleanda journey:</h2>
           <div className="space-y-4">
             <div className="flex items-start gap-4">
               <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
                 <CheckCircle className="w-5 h-5 text-emerald-600" />
               </div>
               <div>
-                <p className="font-medium text-gray-900">Your request goes live</p>
-                <p className="text-gray-600 text-sm">Local cleaners in your area will receive your request</p>
+                <p className="font-medium text-gray-900">We confirm the requirements</p>
+                <p className="text-gray-600 text-sm">Cleanda reviews the property, service and preferred date.</p>
               </div>
             </div>
             <div className="flex items-start gap-4">
               <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <Phone className="w-5 h-5 text-blue-600" />
+                <BadgePoundSterling className="w-5 h-5 text-blue-600" />
               </div>
               <div>
-                <p className="font-medium text-gray-900">A cleaner will be in touch</p>
-                <p className="text-gray-600 text-sm">A verified local cleaner will contact you to discuss your requirements</p>
+                <p className="font-medium text-gray-900">Cleanda provides the price</p>
+                <p className="text-gray-600 text-sm">Once accepted, Cleanda secures the booking and arranges a vetted cleaner.</p>
               </div>
             </div>
           </div>
