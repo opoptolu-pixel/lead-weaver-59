@@ -81,7 +81,12 @@ Deno.serve(async (req) => {
     // Send a welcome email (no action required — not a confirmation gate)
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
 
-    if (resendApiKey) {
+    const { data: signupClosed } = await supabaseAdmin.rpc("is_closed_account_email", { _email: email });
+    if (signupClosed) {
+      console.log("Blocked welcome email: recipient account is closed");
+    }
+
+    if (resendApiKey && !signupClosed) {
       const currentYear = new Date().getFullYear().toString();
       const userName = email.split("@")[0];
 
