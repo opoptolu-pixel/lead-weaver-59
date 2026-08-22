@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { 
   Sparkles, 
@@ -38,36 +38,37 @@ import { SEOHead } from "@/components/SEOHead";
 import { trackCleaningRequest, trackFormStep } from "@/lib/analytics";
 import { useUtmTracking, getLeadSource } from "@/hooks/useUtmTracking";
 
-// Phase 1 + Phase 2 Job Types - Bundled jobs that exceed £100
+// Cleanda's managed services for the Greater Manchester launch.
 const fullCleaningTypes = [
-  // Phase 1 - Core Services (£100+) - Most popular at top
-  { id: "end-of-tenancy", label: "End of Tenancy Clean", icon: Home, color: "bg-indigo-100 text-indigo-600", value: "from £150", phase: 1 },
-  { id: "airbnb-refresh", label: "Airbnb / Short-Let Refresh", icon: Building2, color: "bg-teal-100 text-teal-600", value: "from £130", phase: 1 },
-  { id: "carpet-2-3-rooms", label: "Carpet Cleaning (2–3 Rooms)", icon: Layers, color: "bg-amber-100 text-amber-600", value: "from £100", phase: 1 },
-  { id: "sofa-carpet", label: "Sofa + Carpet Cleaning", icon: Sofa, color: "bg-violet-100 text-violet-600", value: "from £120", phase: 1 },
-  { id: "sofa-mattress", label: "Sofa + Mattress Cleaning", icon: BedDouble, color: "bg-rose-100 text-rose-600", value: "from £100", phase: 1 },
-  { id: "carpet-mattress", label: "Carpet + Mattress Cleaning", icon: Droplets, color: "bg-sky-100 text-sky-600", value: "from £110", phase: 1 },
-  { id: "3-rooms-deep-clean", label: "Deep Clean (3+ Rooms)", icon: Sparkles, color: "bg-emerald-100 text-emerald-600", value: "from £140", phase: 1 },
-  { id: "move-in-out", label: "Move-In / Move-Out Clean", icon: Truck, color: "bg-orange-100 text-orange-600", value: "from £140", phase: 1 },
-  { id: "post-tenancy-upholstery", label: "Post-Tenancy Carpet & Upholstery", icon: Layers, color: "bg-pink-100 text-pink-600", value: "from £120", phase: 1 },
-  { id: "one-off-deep", label: "One-Off Deep Clean", icon: Sparkles, color: "bg-cyan-100 text-cyan-600", value: "from £100", phase: 1 },
-  // Phase 2 - Commercial & Specialist (£120+)
-  { id: "office-carpet-upholstery", label: "Office Carpet + Upholstery Clean", icon: Building2, color: "bg-blue-100 text-blue-600", value: "from £150", phase: 2 },
-  { id: "post-construction", label: "Post-Construction Deep Clean", icon: Truck, color: "bg-slate-100 text-slate-600", value: "from £200", phase: 2 },
-  { id: "large-window-interior", label: "Large Property Window + Interior", icon: Home, color: "bg-sky-100 text-sky-600", value: "from £180", phase: 2 },
-  { id: "multi-room-upholstery", label: "Multi-Room + Upholstery Deep Clean", icon: Sofa, color: "bg-purple-100 text-purple-600", value: "from £160", phase: 2 },
+  { id: "end-of-tenancy", label: "End of Tenancy Cleaning", icon: Home, color: "bg-indigo-100 text-indigo-600", value: "Manual quote", phase: 1 },
+  { id: "move-in-move-out", label: "Move-In / Move-Out Cleaning", icon: Truck, color: "bg-orange-100 text-orange-600", value: "Manual quote", phase: 1 },
+  { id: "one-off-deep", label: "One-Off Deep Cleaning", icon: Sparkles, color: "bg-cyan-100 text-cyan-600", value: "Manual quote", phase: 1 },
+  { id: "weekly-routine", label: "Weekly Routine Cleaning", icon: Calendar, color: "bg-green-100 text-green-600", value: "Manual quote", phase: 1 },
+  { id: "post-construction", label: "Post-Construction Deep Cleaning", icon: Building2, color: "bg-slate-100 text-slate-600", value: "Manual quote", phase: 1 },
+  { id: "airbnb-short-let", label: "Airbnb / Short-Let Cleaning", icon: Building2, color: "bg-teal-100 text-teal-600", value: "Manual quote", phase: 1 },
+  { id: "carpet-2-3-rooms", label: "Carpet Cleaning (2–3 Rooms)", icon: Layers, color: "bg-amber-100 text-amber-700", value: "Manual quote", phase: 1 },
+  { id: "sofa-carpet", label: "Sofa + Carpet Cleaning", icon: Sofa, color: "bg-violet-100 text-violet-700", value: "Manual quote", phase: 1 },
+  { id: "sofa-mattress", label: "Sofa + Mattress Cleaning", icon: BedDouble, color: "bg-rose-100 text-rose-700", value: "Manual quote", phase: 1 },
+  { id: "carpet-mattress", label: "Carpet + Mattress Cleaning", icon: Droplets, color: "bg-sky-100 text-sky-700", value: "Manual quote", phase: 1 },
+  { id: "deep-clean-3-plus-rooms", label: "Deep Clean (3+ Rooms)", icon: Sparkles, color: "bg-emerald-100 text-emerald-700", value: "Manual quote", phase: 1 },
+  { id: "post-tenancy-carpet-upholstery", label: "Post-Tenancy Carpet & Upholstery", icon: Layers, color: "bg-pink-100 text-pink-700", value: "Manual quote", phase: 1 },
+  { id: "office-carpet-upholstery", label: "Office Carpet + Upholstery Clean", icon: Building2, color: "bg-blue-100 text-blue-700", value: "Manual quote", phase: 2 },
+  { id: "large-property-window-interior", label: "Large Property Window + Interior", icon: Home, color: "bg-sky-100 text-sky-700", value: "Manual quote", phase: 2 },
+  { id: "multi-room-upholstery", label: "Multi-Room + Upholstery Deep Clean", icon: Sofa, color: "bg-purple-100 text-purple-700", value: "Manual quote", phase: 2 },
+  { id: "student-accommodation", label: "Student Accommodation Cleaning", icon: Building2, color: "bg-violet-100 text-violet-600", value: "Manual quote", phase: 1 },
+  { id: "commercial-cleaning", label: "Commercial Cleaning", icon: Building2, color: "bg-slate-100 text-slate-700", value: "Manual quote", phase: 2 },
 ];
 
-// Simplified variant - 5 key services
-const simplifiedCleaningTypes = [
-  { id: "end-of-tenancy", label: "End of Tenancy Clean", icon: Home, color: "bg-indigo-100 text-indigo-600", value: "from £150", phase: 1 },
-  { id: "move-in-out", label: "Move-In / Move-Out Clean", icon: Truck, color: "bg-orange-100 text-orange-600", value: "from £140", phase: 1 },
-  { id: "one-off-deep", label: "One-Off Deep Clean", icon: Sparkles, color: "bg-cyan-100 text-cyan-600", value: "from £100", phase: 1 },
-  { id: "weekly-routine", label: "Weekly Routine Clean", icon: Calendar, color: "bg-green-100 text-green-600", value: "from £80", phase: 1 },
-  { id: "post-construction", label: "Post-Construction Deep Clean", icon: Truck, color: "bg-slate-100 text-slate-600", value: "from £200", phase: 2 },
-];
+const simplifiedCleaningTypes = fullCleaningTypes.filter((service) => [
+  "end-of-tenancy",
+  "move-in-move-out",
+  "one-off-deep",
+  "weekly-routine",
+  "post-construction",
+].includes(service.id));
 
 const TOTAL_STEPS = 6;
+const COMMERCIAL_SERVICE_SLUG = "commercial-cleaning";
 
 // Property types for step 3
 const propertyTypes = [
@@ -112,16 +113,20 @@ const isValidPostcodePrefix = (postcode: string): boolean => {
 export default function RequestCleaning() {
   const navigate = useNavigate();
   const location = useLocation();
+  const formStartRef = useRef<HTMLDivElement>(null);
   
   // Initialize UTM tracking for attribution
   useUtmTracking();
   
   // Form variant state
   const [formVariant, setFormVariant] = useState<'full' | 'simplified' | null>(null);
+  const [enabledServiceSlugs, setEnabledServiceSlugs] = useState<string[] | null>(null);
   const variantLoaded = formVariant !== null;
 
-  // Derive active cleaning types from variant
-  const cleaningTypes = formVariant === 'simplified' ? simplifiedCleaningTypes : fullCleaningTypes;
+  // Form configuration can narrow the menu to selected active services. The legacy
+  // full/simplified setting remains a fallback until an admin saves a selection.
+  const variantServices = formVariant === 'simplified' ? simplifiedCleaningTypes : fullCleaningTypes;
+  const cleaningTypes = enabledServiceSlugs ? fullCleaningTypes.filter((service) => enabledServiceSlugs.includes(service.id)) : variantServices;
 
   // Initialize state directly from location.state - runs once before first render
   const [currentStep, setCurrentStep] = useState(() => {
@@ -149,6 +154,7 @@ export default function RequestCleaning() {
     const matchedType = fullCleaningTypes.find(t => t.id === typeParam);
     
     return {
+      serviceSlug: matchedType?.id || "",
       jobType: matchedType?.label || "",
       jobValue: matchedType?.value || "",
       postcode: postcodeParam,
@@ -172,35 +178,54 @@ export default function RequestCleaning() {
   const [phoneError, setPhoneError] = useState("");
   const [isValidatingPhone, setIsValidatingPhone] = useState(false);
 
-  // Scroll to top on page load only
+  // Keep the active form step and its action visible after a selection or navigation.
+  // This is especially important on smaller screens, where the previous step can be taller
+  // than the viewport and leave the next CTA below the fold.
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'instant' });
-  }, []);
+    const frame = window.requestAnimationFrame(() => {
+      formStartRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [currentStep]);
 
-  // Fetch form variant setting
+  // Fetch both public request-form settings. Service slugs are also checked against
+  // the active catalogue so a deactivated service cannot remain customer-visible.
   useEffect(() => {
-    const fetchVariant = async () => {
+    const fetchRequestFormConfiguration = async () => {
       try {
-        const { data } = await supabase
-          .from("admin_settings")
-          .select("value")
-          .eq("key", "request_form_variant")
-          .maybeSingle();
+        const [variantResult, servicesSettingResult, activeServicesResult] = await Promise.all([
+          supabase.from("admin_settings").select("value").eq("key", "request_form_variant").maybeSingle(),
+          supabase.from("admin_settings").select("value").eq("key", "request_form_services").maybeSingle(),
+          supabase.from("service_types").select("slug").eq("is_active", true),
+        ]);
+        const data = variantResult.data;
         
         if (data?.value && typeof data.value === 'object' && 'variant' in data.value) {
           setFormVariant((data.value as { variant: string }).variant === 'simplified' ? 'simplified' : 'full');
         } else {
           setFormVariant('full');
         }
+        const configuredSlugs = servicesSettingResult.data?.value && typeof servicesSettingResult.data.value === "object" && Array.isArray((servicesSettingResult.data.value as { serviceSlugs?: unknown }).serviceSlugs)
+          ? (servicesSettingResult.data.value as { serviceSlugs: unknown[] }).serviceSlugs.filter((slug): slug is string => typeof slug === "string")
+          : null;
+        const activeSlugs = new Set((activeServicesResult.data || []).map((service) => service.slug));
+        setEnabledServiceSlugs(configuredSlugs ? configuredSlugs.filter((slug) => activeSlugs.has(slug)) : null);
       } catch (err) {
-        console.error("Failed to fetch form variant:", err);
+        console.error("Failed to fetch request form configuration:", err);
         setFormVariant('full');
       }
     };
-    fetchVariant();
+    fetchRequestFormConfiguration();
   }, []);
 
-  const progress = (currentStep / TOTAL_STEPS) * 100;
+  const isCommercialService = formData.serviceSlug === COMMERCIAL_SERVICE_SLUG;
+  const visibleStepNumbers = isCommercialService
+    ? [1, 2, 5, 6]
+    : formData.propertyType === "commercial"
+      ? [1, 2, 3, 5, 6]
+      : [1, 2, 3, 4, 5, 6];
+  const visibleStepIndex = Math.max(0, visibleStepNumbers.indexOf(currentStep));
+  const progress = ((visibleStepIndex + 1) / visibleStepNumbers.length) * 100;
 
   // Validate phone number using Twilio Lookup
   const validatePhone = async (phone: string): Promise<boolean> => {
@@ -247,10 +272,10 @@ export default function RequestCleaning() {
         return;
       }
 
-      // Get lead source attribution data
+      // Preserve acquisition attribution for the managed service request.
       const leadSourceData = getLeadSource();
 
-      const { data, error } = await supabase.functions.invoke("submit-cleaning-request", {
+      const { data, error } = await supabase.functions.invoke("submit-service-request", {
         body: {
           ...formData,
           customerAddress: formData.postcode,
@@ -271,8 +296,12 @@ export default function RequestCleaning() {
         },
       });
 
+      if (data?.error === "OUTSIDE_SERVICE_AREA") {
+        toast.error(data.message);
+        return;
+      }
       if (error) throw error;
-      if (data.error) throw new Error(data.message || data.error);
+      if (data?.error) throw new Error(data.message || data.error);
 
       toast.success("Your cleaning request has been submitted!");
       // Pass form data via state for tracking on thank you page
@@ -282,10 +311,12 @@ export default function RequestCleaning() {
           postcode: formData.postcode,
           estimatedValue: formData.jobValue,
           source: leadSourceData.source,
+          referenceId: data.referenceId,
         }
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error submitting request:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to submit request";
       
       // Client-side fallback: save to failed_submissions table so no data is lost
       try {
@@ -296,12 +327,12 @@ export default function RequestCleaning() {
             preferredDate: formData.dateFrom,
             source: getLeadSource().source,
           },
-          error_message: error.message || "Edge function failed",
+          error_message: errorMessage,
         });
         toast.error("We saved your request but encountered an issue. Our team will process it shortly.");
       } catch (fallbackError) {
         console.error("Fallback save also failed:", fallbackError);
-        toast.error(error.message || "Failed to submit request. Please try again.");
+        toast.error(errorMessage || "Failed to submit request. Please try again.");
       }
     } finally {
       setIsSubmitting(false);
@@ -343,26 +374,30 @@ export default function RequestCleaning() {
     isValidPostcodePrefix(formData.postcode) && 
     !validatePostcode(formData.postcode);
 
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
   const stepNames = ['Service Type', 'Location', 'Property Type', 'Bedrooms', 'Contact Details', 'Preferred Dates'];
   
   // Should we skip the bedrooms step?
   const shouldSkipBedrooms = formData.propertyType === "commercial";
 
+  const getNextStep = (fromStep: number) => {
+    let nextStep = fromStep + 1;
+    if (isCommercialService && nextStep === 3) nextStep = 5;
+    if (nextStep === 4 && shouldSkipBedrooms) nextStep = 5;
+    return nextStep;
+  };
+
+  const getPreviousStep = (fromStep: number) => {
+    let previousStep = fromStep - 1;
+    if (isCommercialService && previousStep === 4) previousStep = 2;
+    if (previousStep === 4 && shouldSkipBedrooms) previousStep = 3;
+    return previousStep;
+  };
+
   const handleNext = () => {
     if (currentStep < TOTAL_STEPS) {
-      let nextStep = currentStep + 1;
-      
-      // Skip bedrooms step (4) if commercial property
-      if (nextStep === 4 && shouldSkipBedrooms) {
-        nextStep = 5; // Skip to Contact Details
-      }
+      const nextStep = getNextStep(currentStep);
       
       setCurrentStep(nextStep);
-      scrollToTop();
       // Track step progression
       trackFormStep({
         formName: 'cleaning_request',
@@ -376,29 +411,55 @@ export default function RequestCleaning() {
 
   const handleBack = () => {
     if (currentStep > 1) {
-      let prevStep = currentStep - 1;
-      
-      // Skip bedrooms step (4) if commercial property when going back
-      if (prevStep === 4 && shouldSkipBedrooms) {
-        prevStep = 3;
-      }
+      const prevStep = getPreviousStep(currentStep);
       
       setCurrentStep(prevStep);
-      scrollToTop();
     }
   };
 
   const handleJobTypeSelect = (type: typeof cleaningTypes[0]) => {
-    setFormData({ ...formData, jobType: type.label, jobValue: type.value });
+    const isCommercial = type.id === COMMERCIAL_SERVICE_SLUG;
+    setFormData({
+      ...formData,
+      serviceSlug: type.id,
+      jobType: type.label,
+      jobValue: type.value,
+      propertyType: isCommercial ? "commercial" : "",
+      propertyTypeOther: "",
+      bedrooms: "",
+      bedroomsOther: "",
+    });
     // Auto-advance to step 2 when selecting a cleaning type
     setCurrentStep(2);
-    scrollToTop();
     // Track step progression
     trackFormStep({
       formName: 'cleaning_request',
       stepNumber: 2,
       stepName: 'Location',
     });
+  };
+
+  const handlePropertyTypeSelect = (propertyType: string) => {
+    const nextFormData = {
+      ...formData,
+      propertyType,
+      bedrooms: propertyType === "commercial" ? "" : formData.bedrooms,
+      propertyTypeOther: propertyType !== "other" ? "" : formData.propertyTypeOther,
+    };
+    setFormData(nextFormData);
+    if (propertyType !== "other") {
+      const nextStep = propertyType === "commercial" ? 5 : 4;
+      setCurrentStep(nextStep);
+      trackFormStep({ formName: "cleaning_request", stepNumber: nextStep, stepName: stepNames[nextStep - 1] });
+    }
+  };
+
+  const handleBedroomSelect = (bedrooms: string) => {
+    setFormData({ ...formData, bedrooms, bedroomsOther: bedrooms !== "other" ? "" : formData.bedroomsOther });
+    if (bedrooms !== "other") {
+      setCurrentStep(5);
+      trackFormStep({ formName: "cleaning_request", stepNumber: 5, stepName: "Contact Details" });
+    }
   };
 
   // Get tomorrow's date as minimum date
@@ -412,21 +473,24 @@ export default function RequestCleaning() {
       {
         "@type": "Service",
         "name": "Professional Cleaning Service Request",
-        "description": "Request free quotes from verified local cleaners for deep cleaning, end of tenancy, carpet cleaning and more across the UK.",
+        "description": "Request professional cleaning managed by Cleanda across Greater Manchester.",
         "provider": {
           "@type": "Organization",
           "name": "Cleanda",
           "@id": "https://cleanda.co.uk/#organization"
         },
         "areaServed": {
-          "@type": "Country",
-          "name": "United Kingdom"
+          "@type": "AdministrativeArea",
+          "name": "Greater Manchester"
         },
         "serviceType": [
-          "Deep Cleaning",
-          "End of Tenancy Cleaning", 
-          "Carpet Cleaning",
-          "Upholstery Cleaning",
+          "End of Tenancy Cleaning",
+          "Move-In / Move-Out Cleaning",
+          "One-Off Deep Cleaning",
+          "Weekly Routine Cleaning",
+          "Post-Construction Deep Cleaning",
+          "Airbnb / Short-Let Cleaning",
+          "Student Accommodation Cleaning",
           "Commercial Cleaning"
         ]
       },
@@ -434,8 +498,8 @@ export default function RequestCleaning() {
         "@type": "WebPage",
         "@id": "https://cleanda.co.uk/request-cleaning#webpage",
         "url": "https://cleanda.co.uk/request-cleaning",
-        "name": "Request a Free Cleaning Quote | Cleanda",
-        "description": "Get free quotes from verified local cleaners. Request deep cleaning, end of tenancy, carpet cleaning and more.",
+        "name": "Request Cleaning in Greater Manchester | Cleanda",
+        "description": "Tell Cleanda what you need cleaned. We confirm the requirements and price, then manage the booking and cleaner.",
         "isPartOf": { "@id": "https://cleanda.co.uk/#website" },
         "breadcrumb": {
           "@type": "BreadcrumbList",
@@ -462,7 +526,7 @@ export default function RequestCleaning() {
     <div className="min-h-screen bg-primary flex flex-col">
       <SEOHead
         title="Get Free Cleaning Quotes in Minutes | Request a Cleaner | Cleanda"
-        description="Request free quotes from verified local cleaners. Choose your service, enter your postcode, and get contacted within 24 hours. No obligation, 100% free."
+        description="Request professional cleaning managed by Cleanda across Greater Manchester. Tell us what you need and our team will confirm the requirements and price."
         canonical="https://cleanda.co.uk/request-cleaning"
         structuredData={structuredData}
       />
@@ -487,16 +551,16 @@ export default function RequestCleaning() {
               Get Your Home <span className="text-secondary">Sparkling Clean</span>
             </h1>
             <p className="text-white/80 text-lg lg:text-xl max-w-lg mx-auto">
-              Connect with verified local cleaners. Get free quotes within 24 hours.
+              Professional cleaning across Greater Manchester, managed by Cleanda from request to completion.
             </p>
           </div>
 
           {/* Step Indicator */}
-          <div className="text-center mb-6">
+          <div ref={formStartRef} className="scroll-mt-24 text-center mb-6">
             <span className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2">
               <Sparkles className="w-4 h-4 text-secondary" />
               <span className="text-white/90 text-sm font-medium">
-                Step {currentStep} of {TOTAL_STEPS}
+                Step {visibleStepIndex + 1} of {visibleStepNumbers.length}
               </span>
             </span>
           </div>
@@ -613,7 +677,7 @@ export default function RequestCleaning() {
                   What kind of property needs cleaning?
                 </h2>
                 <p className="text-gray-500 text-center mb-8">
-                  Get quotes for cleaners today!
+                  Request your Cleanda cleaning service
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
@@ -624,7 +688,7 @@ export default function RequestCleaning() {
                       <button
                         key={type.id}
                         type="button"
-                        onClick={() => setFormData({ ...formData, propertyType: type.id, bedrooms: type.id === "commercial" ? "" : formData.bedrooms, propertyTypeOther: type.id !== "other" ? "" : formData.propertyTypeOther })}
+                        onClick={() => handlePropertyTypeSelect(type.id)}
                         className={cn(
                           "flex items-center gap-3 p-4 rounded-xl border-2 transition-all duration-200 text-left group hover:border-primary hover:bg-primary/5",
                           isSelected 
@@ -703,7 +767,7 @@ export default function RequestCleaning() {
                             name="bedrooms"
                             value={option.id}
                             checked={isSelected}
-                            onChange={() => setFormData({ ...formData, bedrooms: option.id, bedroomsOther: option.id !== "other" ? "" : formData.bedroomsOther })}
+                            onChange={() => handleBedroomSelect(option.id)}
                             className="sr-only"
                           />
                         </label>
@@ -734,7 +798,7 @@ export default function RequestCleaning() {
                   How can cleaners reach you?
                 </h2>
                 <p className="text-gray-500 text-center mb-8">
-                  Enter your contact details for quotes
+                  Enter your details so Cleanda can confirm your requirements
                 </p>
 
                 <div className="flex-1">
@@ -893,7 +957,7 @@ export default function RequestCleaning() {
                     </>
                   ) : currentStep === TOTAL_STEPS ? (
                     <>
-                      Get Free Quotes
+                      Submit Request
                       <ArrowRight className="w-5 h-5" />
                     </>
                   ) : (
@@ -916,7 +980,7 @@ export default function RequestCleaning() {
               />
             </div>
             <p className="text-center text-white/60 text-sm mt-3">
-              {currentStep === TOTAL_STEPS ? "Almost done!" : `${Math.round(progress)}% complete`}
+              {visibleStepIndex + 1 === visibleStepNumbers.length ? "Almost done!" : `${Math.round(progress)}% complete`}
             </p>
           </div>
 
@@ -924,7 +988,7 @@ export default function RequestCleaning() {
           <div className="flex items-center justify-center gap-6 mt-8 text-white/60 text-sm">
             <span className="flex items-center gap-2">
               <span className="w-2 h-2 bg-secondary rounded-full" />
-              100% Free
+              Managed by Cleanda
             </span>
             <span className="flex items-center gap-2">
               <span className="w-2 h-2 bg-secondary rounded-full" />
@@ -960,7 +1024,7 @@ export default function RequestCleaning() {
                 Save Hours of Searching
               </h3>
               <p className="text-gray-600 text-sm">
-                No more endless scrolling through directories. Get multiple quotes from verified cleaners in one request.
+                Tell Cleanda what you need once. We manage the quote, booking, cleaner and customer support.
               </p>
             </div>
 
@@ -983,10 +1047,10 @@ export default function RequestCleaning() {
                 <BadgeCheck className="w-7 h-7 text-emerald-600" />
               </div>
               <h3 className="font-heading font-semibold text-lg text-gray-900 mb-2">
-                Competitive Quotes
+                Clear Cleanda Pricing
               </h3>
               <p className="text-gray-600 text-sm">
-                Cleaners compete for your job, so you get the best price. Compare and choose with confidence.
+                Cleanda confirms the customer price before booking and shows the agreed payout to the assigned cleaner.
               </p>
             </div>
 
@@ -996,10 +1060,10 @@ export default function RequestCleaning() {
                 <ThumbsUp className="w-7 h-7 text-violet-600" />
               </div>
               <h3 className="font-heading font-semibold text-lg text-gray-900 mb-2">
-                100% Free for You
+                One Point of Support
               </h3>
               <p className="text-gray-600 text-sm">
-                Our service is completely free for homeowners. No hidden fees, no obligations—just great cleaning.
+                Cleanda manages the booking and remains your point of contact if plans change or something needs attention.
               </p>
             </div>
           </div>
@@ -1011,7 +1075,7 @@ export default function RequestCleaning() {
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
               className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 h-12 rounded-xl font-semibold"
             >
-              Get Free Quotes Now
+              Request Cleaning Now
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
           </div>

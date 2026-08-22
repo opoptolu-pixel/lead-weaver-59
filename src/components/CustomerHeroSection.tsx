@@ -6,33 +6,18 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { trackCTAClick } from "@/lib/analytics";
-import { Json } from "@/integrations/supabase/types";
 
 // Cleaning types matching request cleaning page
 const fullCleaningTypes = [
-  { id: "carpet-2-3-rooms", label: "Carpet Cleaning (2-3 Rooms)" },
-  { id: "sofa-carpet", label: "Sofa + Carpet Cleaning" },
-  { id: "sofa-mattress", label: "Sofa + Mattress Cleaning" },
-  { id: "carpet-mattress", label: "Carpet + Mattress Cleaning" },
-  { id: "3-rooms-deep-clean", label: "Deep Clean (3+ Rooms)" },
-  { id: "end-of-tenancy", label: "End of Tenancy Clean" },
-  { id: "airbnb-refresh", label: "Airbnb / Short-Let Refresh" },
-  { id: "move-in-out", label: "Move-In / Move-Out Clean" },
-  { id: "post-tenancy-upholstery", label: "Post-Tenancy Carpet & Upholstery" },
-  { id: "one-off-deep", label: "One-Off Deep Clean" },
-  { id: "office-carpet-upholstery", label: "Office Carpet + Upholstery Clean" },
-  { id: "post-construction", label: "Post-Construction Deep Clean" },
-  { id: "large-window-interior", label: "Large Property Window + Interior" },
-  { id: "multi-room-upholstery", label: "Multi-Room + Upholstery Deep Clean" },
+  { id: "end-of-tenancy", label: "End of Tenancy Cleaning" },
+  { id: "move-in-move-out", label: "Move-In / Move-Out Cleaning" },
+  { id: "one-off-deep", label: "One-Off Deep Cleaning" },
+  { id: "weekly-routine", label: "Weekly Routine Cleaning" },
+  { id: "post-construction", label: "Post-Construction Deep Cleaning" },
+  { id: "airbnb-short-let", label: "Airbnb / Short-Let Cleaning" },
 ];
 
-const simplifiedCleaningTypes = [
-  { id: "end-of-tenancy", label: "End of Tenancy Clean" },
-  { id: "move-in-out", label: "Move-In / Move-Out Clean" },
-  { id: "one-off-deep", label: "One-Off Deep Clean" },
-  { id: "weekly-routine", label: "Weekly Routine Clean" },
-  { id: "post-construction", label: "Post-Construction Deep Clean" },
-];
+const simplifiedCleaningTypes = fullCleaningTypes;
 
 interface UKLocation {
   postcode: string;
@@ -81,7 +66,7 @@ export const CustomerHeroSection = () => {
           .eq("key", "request_form_variant")
           .maybeSingle();
         
-        if (data?.value && typeof data.value === 'object' && 'variant' in (data.value as Record<string, Json>)) {
+        if (data?.value && typeof data.value === 'object' && 'variant' in (data.value as Record<string, unknown>)) {
           const variant = (data.value as { variant: string }).variant;
           setFormVariant(variant === 'simplified' ? 'simplified' : 'full');
           // Update selected type to first of active list
@@ -133,7 +118,7 @@ export const CustomerHeroSection = () => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (postcode.trim()) {
-      trackCTAClick("Get Quotes", "hero_section");
+      trackCTAClick("Request Cleaning", "hero_section");
       
       // If a city was selected (not a full postcode), navigate to step 2 for postcode entry
       // Otherwise navigate with the full postcode to step 3
@@ -186,18 +171,18 @@ export const CustomerHeroSection = () => {
           <div className="inline-flex items-center gap-2 bg-secondary/20 backdrop-blur-sm border border-secondary/30 rounded-full px-4 py-2 mb-8">
             <Sparkles className="w-4 h-4 text-secondary" aria-hidden="true" />
             <span className="text-secondary-foreground text-sm font-medium">
-              Get Free Quotes in 24 Hours
+              Now serving Greater Manchester
             </span>
           </div>
 
           {/* Main headline - Customer focused with strong SEO keywords */}
           <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground mb-6 leading-tight">
-            Find Trusted <span className="text-secondary">Cleaning Services</span> Near You
+            Professional <span className="text-secondary">Cleaning in Greater Manchester</span>
           </h1>
 
           {/* Subheadline with SEO-friendly copy */}
           <p className="text-lg md:text-xl text-primary-foreground/80 mb-10 max-w-xl mx-auto">
-            Connect with verified local cleaners for deep cleaning, end of tenancy, carpet cleaning and more. Fast, free, and no obligation.
+            Tell Cleanda what you need. We confirm the price, arrange a vetted cleaner and manage your booking from start to finish.
           </p>
 
           {/* Search form - Type + Postcode */}
@@ -308,7 +293,7 @@ export const CustomerHeroSection = () => {
                 disabled={!postcode.trim()}
               >
                 <Search className="w-5 h-5 mr-2" />
-                Get Quotes
+                Request Cleaning
               </Button>
               </div>
             </div>
@@ -318,11 +303,11 @@ export const CustomerHeroSection = () => {
             <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-primary-foreground/70 text-sm">
               <div className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-secondary" />
-                <span>100% Free</span>
+                <span>No lead fees</span>
               </div>
               <div className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-secondary" />
-                <span>Verified Partners</span>
+                <span>Vetted cleaners</span>
               </div>
               <div className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-secondary" />
@@ -330,7 +315,7 @@ export const CustomerHeroSection = () => {
               </div>
               <div className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-secondary" />
-                <span>No Obligation</span>
+                <span>Managed by Cleanda</span>
               </div>
             </div>
           )}

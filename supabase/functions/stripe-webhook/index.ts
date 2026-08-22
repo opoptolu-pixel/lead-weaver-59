@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "npm:stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { Resend } from "npm:resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,6 +12,15 @@ const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[STRIPE-WEBHOOK] ${step}${detailsStr}`);
 };
+
+const escapeHtml = (value: unknown) =>
+  String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+const renderTemplate = (value: string, variables: Record<string, string>) => Object.entries(variables).reduce((output,[key,replacement]) => output.replaceAll(`{{${key}}}`,replacement),value);
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -45,9 +55,100 @@ serve(async (req) => {
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
       const leadId = session.metadata?.lead_id;
+      const agencyQuoteId = session.metadata?.agency_quote_id;
+      const recurringPlanId = session.metadata?.recurring_plan_id;
       const customerEmail = session.customer_details?.email;
 
       logStep("checkout.session.completed", { leadId, customerEmail, sessionId: session.id });
+
+      // A recurring plan first collects explicit permission to retain a card.
+      // No visit is charged here; each future visit remains a separate charge.
+      if (recurringPlanId && session.mode === "setup" && session.setup_intent) {
+        const setupIntent = await stripe.setupIntents.retrieve(String(session.setup_intent));
+        const paymentMethodId = typeof setupIntent.payment_method === "string" ? setupIntent.payment_method : setupIntent.payment_method?.id;
+        const customerId = typeof session.customer === "string" ? session.customer : session.customer?.id;
+        if (!paymentMethodId || !customerId) throw new Error("The recurring payment method was not available");
+        const { error: recurringError } = await supabaseClient.from("recurring_clean_plans").update({
+          stripe_customer_id: customerId,
+          stripe_payment_method_id: paymentMethodId,
+          payment_setup_status: "ready",
+          status: "active",
+          payment_setup_completed_at: new Date().toISOString(),
+        }).eq("id", recurringPlanId).neq("status", "cancelled");
+        if (recurringError) throw recurringError;
+        logStep("Recurring payment method saved", { recurringPlanId });
+      }
+
+      if (agencyQuoteId && session.payment_status === "paid") {
+        const { data: jobId, error: agencyError } = await supabaseClient.rpc("finalize_agency_quote_payment", {
+          p_quote_id: agencyQuoteId,
+          p_payment_reference: session.id,
+          p_payment_intent_id: typeof session.payment_intent === "string" ? session.payment_intent : null,
+          p_provider: "stripe",
+        });
+        if (agencyError) throw agencyError;
+        logStep("Agency quote paid and job created", { agencyQuoteId, jobId });
+
+        const { data: claimedQuote, error: claimError } = await supabaseClient
+          .from("quotes")
+          .update({ payment_confirmation_sent_at: new Date().toISOString() })
+          .eq("id", agencyQuoteId)
+          .is("payment_confirmation_sent_at", null)
+          .select("id,customer_amount_pence,currency,scheduled_date,start_time,expected_duration_minutes,request:service_requests(reference,customer:customers(name,email),service_type:service_types(name))")
+          .maybeSingle();
+        if (claimError) throw claimError;
+
+        if (claimedQuote) {
+          try {
+            const resendKey = Deno.env.get("RESEND_API_KEY");
+            if (!resendKey) throw new Error("RESEND_API_KEY is not configured");
+            const request = claimedQuote.request as unknown as {
+              reference: string;
+              customer: { name: string; email: string };
+              service_type: { name: string };
+            };
+            if (!request?.customer?.email) {
+              throw new Error("The booking customer does not have an email address");
+            }
+            const { data: job } = await supabaseClient
+              .from("jobs")
+              .select("reference")
+              .eq("id", jobId)
+              .single();
+            const price = (claimedQuote.customer_amount_pence / 100).toLocaleString("en-GB", {
+              style: "currency",
+              currency: claimedQuote.currency || "GBP",
+            });
+            const duration = claimedQuote.expected_duration_minutes
+              ? `${claimedQuote.expected_duration_minutes / 60} hour${claimedQuote.expected_duration_minutes === 60 ? "" : "s"}`
+              : "To be confirmed";
+            const resend = new Resend(resendKey);
+            const variables = {customer_name:escapeHtml(request.customer.name),service_name:escapeHtml(request.service_type.name),customer_price:escapeHtml(price),scheduled_date:escapeHtml(claimedQuote.scheduled_date),start_time:escapeHtml(claimedQuote.start_time?.slice(0,5)||"To be confirmed"),duration:escapeHtml(duration),request_reference:escapeHtml(request.reference),job_reference:escapeHtml(job?.reference||"Created")};
+            const {data:messageTemplate}=await supabaseClient.from("email_templates").select("subject,body,is_active").eq("name","agency_payment_confirmation").maybeSingle();
+            if(messageTemplate&&!messageTemplate.is_active)throw new Error("The payment confirmation template is disabled");
+            const { error: confirmationError } = await resend.emails.send({
+              from: "Cleanda <hello@cleanda.co.uk>",
+              to: [request.customer.email],
+              subject: messageTemplate?renderTemplate(messageTemplate.subject,variables):`Your Cleanda booking is confirmed — ${request.reference}`,
+              html: messageTemplate?renderTemplate(messageTemplate.body,variables):`<h1>Booking confirmed</h1><p>Hello ${escapeHtml(request.customer.name)}, your payment of ${escapeHtml(price)} has been received.</p>`,
+            });
+            if (confirmationError) throw confirmationError;
+            logStep("Agency payment confirmation email sent", {
+              agencyQuoteId,
+              jobId,
+            });
+          } catch (emailError) {
+            await supabaseClient
+              .from("quotes")
+              .update({ payment_confirmation_sent_at: null })
+              .eq("id", agencyQuoteId);
+            logStep("Agency payment confirmation email failed", {
+              agencyQuoteId,
+              error: emailError instanceof Error ? emailError.message : String(emailError),
+            });
+          }
+        }
+      }
 
       if (leadId && session.payment_status === "paid") {
         // Check if lead is already unlocked (verify-payment may have beaten us)

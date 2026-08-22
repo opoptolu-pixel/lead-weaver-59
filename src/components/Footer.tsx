@@ -30,14 +30,14 @@ export const Footer = forwardRef<HTMLElement, FooterProps>(({ hideCta = false, v
               {variant === 'cleaner' ? (
                 <>
                   <h2 className="font-heading text-3xl md:text-4xl font-bold text-primary-foreground mb-4">
-                    Ready to Grow Your Business?
+                    Want Flexible Cleaning Work?
                   </h2>
                   <p className="text-primary-foreground/70 text-lg mb-8 max-w-xl mx-auto">
-                    Join Cleanda today and start receiving quality leads in your area. No upfront fees—pay only for the leads you want.
+                    Cleanda brings the customers and manages the bookings. You focus on delivering excellent cleaning across Greater Manchester.
                   </p>
                   <Link to="/auth">
                     <Button variant="cta" size="lg" className="shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-0.5">
-                      Register Your Business
+                      Apply as a Cleaner
                       <ArrowRight className="w-5 h-5 ml-2" />
                     </Button>
                   </Link>
@@ -48,11 +48,11 @@ export const Footer = forwardRef<HTMLElement, FooterProps>(({ hideCta = false, v
                     Ready for a Sparkling Clean Home?
                   </h2>
                   <p className="text-primary-foreground/70 text-lg mb-8 max-w-xl mx-auto">
-                    Get matched with a verified local cleaner today. It's free, fast, and hassle-free.
+                    Tell Cleanda what you need and we will manage the quote, booking and cleaner.
                   </p>
                   <Link to="/request-cleaning">
                     <Button variant="cta" size="lg" className="shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-0.5">
-                      Get Your Free Quote
+                      Request Cleaning
                       <ArrowRight className="w-5 h-5 ml-2" />
                     </Button>
                   </Link>
@@ -72,10 +72,10 @@ export const Footer = forwardRef<HTMLElement, FooterProps>(({ hideCta = false, v
               <Logo size="md" variant="white" linkTo="/" />
             </div>
             <p className="text-primary-foreground/70 text-sm mb-4 max-w-sm leading-relaxed">
-              Cleanda is a platform that connects customers with independent cleaning businesses. We do not provide cleaning services directly.
+              Cleanda manages professional cleaning services for customers across Greater Manchester.
             </p>
             <p className="text-primary-foreground/70 text-sm mb-6 max-w-sm leading-relaxed">
-              Get free quotes from verified local cleaning partners across the UK.
+              We handle requirements, pricing, booking, cleaner assignment and customer support.
             </p>
             <div className="space-y-3 mb-6">
               <a href={email ? `mailto:${email}` : "#"} className="flex items-center gap-3 text-sm text-primary-foreground/70 hover:text-secondary transition-colors group">
@@ -111,7 +111,7 @@ export const Footer = forwardRef<HTMLElement, FooterProps>(({ hideCta = false, v
             <ul className="space-y-3 text-sm">
               <li>
                 <Link to="/request-cleaning" className="text-primary-foreground/70 hover:text-secondary transition-colors">
-                  Get Free Quotes
+                  Request Cleaning
                 </Link>
               </li>
               <li>
@@ -144,9 +144,7 @@ export const Footer = forwardRef<HTMLElement, FooterProps>(({ hideCta = false, v
                 </Link>
               </li>
               <li>
-                <Link to="/leads" className="text-primary-foreground/70 hover:text-secondary transition-colors">
-                  Browse Leads
-                </Link>
+                <Link to="/for-cleaners" className="text-primary-foreground/70 hover:text-secondary transition-colors">How Cleaner Jobs Work</Link>
               </li>
               <li>
                 <Link to="/auth" className="text-primary-foreground/70 hover:text-secondary transition-colors">
@@ -154,9 +152,7 @@ export const Footer = forwardRef<HTMLElement, FooterProps>(({ hideCta = false, v
                 </Link>
               </li>
               <li>
-                <Link to="/for-cleaners#pricing" className="text-primary-foreground/70 hover:text-secondary transition-colors">
-                  Pricing
-                </Link>
+                <span className="text-primary-foreground/70">No lead fees</span>
               </li>
             </ul>
           </div>

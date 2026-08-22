@@ -8,28 +8,28 @@ import { HelpCircle } from "lucide-react";
 
 const faqs = [
   {
-    question: "Is it free to request a quote?",
-    answer: "Yes, completely free! There are no hidden fees or charges for using our service to find a cleaner.",
+    question: "How do I get a price?",
+    answer: "Submit the cleaning details and Cleanda will review the requirements and provide the price. Nothing is booked or charged until you accept.",
   },
   {
     question: "How quickly will I hear back?",
-    answer: "Most customers are contacted by their cleaning partner within 24 hours of submitting their request.",
+    answer: "Cleanda aims to review new requests promptly. We will contact you if we need more details before confirming the price.",
   },
   {
     question: "Are the cleaners verified?",
-    answer: "Yes, all cleaning partners on our platform are verified professionals. We check their credentials and insurance before they can join our network.",
+    answer: "Cleanda reviews cleaners before they receive managed jobs and monitors fulfilment quality.",
   },
   {
-    question: "How does the matching work?",
-    answer: "When you submit your request, we match you with a cleaning partner in your area who specialises in the service you need. They'll contact you directly to discuss your requirements and provide a quote.",
+    question: "Who manages my booking?",
+    answer: "Cleanda manages your requirements, price, booking, cleaner assignment and customer support. Your cleaner focuses on completing the clean.",
   },
   {
     question: "What if I'm not happy with the service?",
-    answer: "Customer satisfaction is important to us. If you're not happy with the service, contact us and we'll work with you and the cleaning partner to resolve the issue.",
+    answer: "Contact Cleanda directly. We own the customer relationship and will review the issue and arrange an appropriate resolution.",
   },
   {
     question: "What areas do you cover?",
-    answer: "We have cleaning partners across the UK, covering most major cities and surrounding areas. Enter your postcode to check availability in your area.",
+    answer: "Cleanda currently operates across Greater Manchester. Enter your full postcode and we will confirm whether it falls within the active service area.",
   },
 ];
 
@@ -53,7 +53,7 @@ export const CustomerFAQ = () => {
               Cleaning Services FAQ
             </h2>
             <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-              Common questions about finding and booking cleaners in the UK
+              Common questions about booking Cleanda in Greater Manchester
             </p>
           </div>
 
