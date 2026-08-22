@@ -60,6 +60,17 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
+    // HARD BLOCK: closed accounts must never receive any communication
+    const { data: closedProfile } = await supabaseAdmin
+      .from("profiles")
+      .select("is_closed")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (closedProfile?.is_closed) {
+      logStep("Blocked: account is closed", { userId: user.id });
+      throw new Error("This account is closed.");
+    }
+
     // Check if this phone number is already verified by another user
     const { data: existingProfile, error: existingError } = await supabaseAdmin
       .from("profiles")

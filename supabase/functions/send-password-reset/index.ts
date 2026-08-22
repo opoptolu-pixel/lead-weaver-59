@@ -27,6 +27,16 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // HARD BLOCK: closed business accounts must never receive any communication
+    const { data: isClosedAccount } = await supabaseAdmin.rpc("is_closed_account_email", { _email: email });
+    if (isClosedAccount) {
+      console.log("Blocked password reset: account closed");
+      return new Response(
+        JSON.stringify({ message: "If an account exists, a reset link has been sent." }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Generate the password reset link via admin API
     const { data: linkData, error: linkError } =
       await supabaseAdmin.auth.admin.generateLink({

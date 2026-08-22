@@ -85,6 +85,20 @@ serve(async (req) => {
     // Generate plain text version if not provided
     const plainText = text || htmlToPlainText(html);
 
+    // HARD BLOCK: closed business accounts must never receive any communication
+    const { data: isClosedAccount } = await supabase.rpc("is_closed_account_email", { _email: to });
+    if (isClosedAccount) {
+      logStep("Blocked: recipient account is closed", { to });
+      return new Response(JSON.stringify({
+        success: false,
+        skipped: true,
+        reason: "Recipient account is closed",
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
     // Check if recipient has unsubscribed or is suppressed (skip for test emails)
     if (!isTest) {
       const [subscriberResult, suppressionResult] = await Promise.all([

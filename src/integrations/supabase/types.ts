@@ -3693,6 +3693,8 @@ export type Database = {
         Returns: undefined
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_closed_account_email: { Args: { _email: string }; Returns: boolean }
+      is_closed_account_phone: { Args: { _phone: string }; Returns: boolean }
       is_lead_access_expired: {
         Args: { unlocked_at_param: string }
         Returns: boolean

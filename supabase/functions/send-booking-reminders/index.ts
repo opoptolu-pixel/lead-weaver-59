@@ -129,11 +129,13 @@ serve(async (req) => {
       if (cleanerReminderType && lead.unlocked_by) {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("phone, whatsapp_optin, business_name")
+          .select("phone, whatsapp_optin, business_name, is_closed")
           .eq("user_id", lead.unlocked_by)
           .single();
 
-        if (profile?.phone && profile?.whatsapp_optin) {
+        if (profile?.is_closed) {
+          results.push({ leadId: lead.id, status: "skipped", reason: "account_closed", recipient: "cleaner" });
+        } else if (profile?.phone && profile?.whatsapp_optin) {
           try {
             await sendSMS(formatPhoneNumber(profile.phone), cleanerMessage);
             sentReminders.push(cleanerReminderType);

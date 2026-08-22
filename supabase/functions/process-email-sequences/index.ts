@@ -142,6 +142,19 @@ Deno.serve(async (req) => {
           }
         }
 
+        // HARD BLOCK: closed business accounts must never receive any communication
+        const { data: isClosedAccount } = await supabase.rpc("is_closed_account_email", {
+          _email: enrollment.recipient_email,
+        });
+        if (isClosedAccount) {
+          logStep("Blocked: recipient account is closed", { email: enrollment.recipient_email });
+          await supabase
+            .from("email_sequence_enrollments")
+            .update({ status: "unsubscribed", next_send_at: null })
+            .eq("id", enrollment.id);
+          continue;
+        }
+
         // Check if recipient is suppressed before sending
         const { data: suppressed } = await supabase
           .from("email_suppressions")

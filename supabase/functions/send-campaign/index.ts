@@ -167,6 +167,15 @@ serve(async (req: Request) => {
       
       const emailPromises = batch.map(async (subscriber) => {
         try {
+          // HARD BLOCK: closed business accounts must never receive any communication
+          const { data: isClosedAccount } = await adminClient.rpc("is_closed_account_email", {
+            _email: subscriber.email,
+          });
+          if (isClosedAccount) {
+            console.log("Blocked campaign send: account closed");
+            return;
+          }
+
           const unsubscribeUrl = generateUnsubscribeUrl(subscriber.email);
           const htmlWithUnsubscribe = appendUnsubscribeLink(html_body, unsubscribeUrl);
           const plainText = htmlToPlainText(htmlWithUnsubscribe);
