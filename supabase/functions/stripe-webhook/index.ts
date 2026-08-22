@@ -93,6 +93,11 @@ serve(async (req) => {
 
                     const magicLink = magicLinkData?.properties?.action_link;
                     if (magicLink) {
+                      const { data: swClosed } = await supabaseClient.rpc("is_closed_account_email", { _email: customerEmail });
+                      if (swClosed) {
+                        logStep("Blocked welcome email: recipient account is closed");
+                        throw new Error("__CLOSED_ACCOUNT_SKIP__");
+                      }
                       await resend.emails.send({
                         from: "Cleanda <hello@cleanda.co.uk>",
                         to: [customerEmail],

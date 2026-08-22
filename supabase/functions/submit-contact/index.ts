@@ -269,6 +269,12 @@ const handler = async (req: Request): Promise<Response> => {
       
       const userPlainText = `Thank You, ${name}!\n\nWe have received your message and will get back to you within 1-2 business days.\n\nYour message summary:\nSubject: ${subject}\n${message.substring(0, 200)}${message.length > 200 ? "..." : ""}\n\nIf your inquiry is urgent, please call us at 07757 188 197.\n\nBest regards,\nThe Cleanda Team\n\nCleanda is a trading name of Orbit Shade Limited (Company No. 15337705)\nFirst Floor, Swan Buildings, 20 Swan Street, Manchester, M4 5JW\nUnsubscribe: ${unsubscribeUrl}`;
       
+      // HARD BLOCK: closed business accounts must never receive any communication
+      const { data: contactClosed } = await supabase.rpc("is_closed_account_email", { _email: email });
+      if (contactClosed) {
+        console.log("Blocked auto-reply: recipient account is closed");
+        throw new Error("__CLOSED_ACCOUNT_SKIP__");
+      }
       const userEmailResponse = await resend.emails.send({
         from: "Cleanda <hello@cleanda.co.uk>",
         to: [email],

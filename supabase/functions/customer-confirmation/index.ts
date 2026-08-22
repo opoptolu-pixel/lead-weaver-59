@@ -98,6 +98,16 @@ serve(async (req) => {
     const autoPublishAt = new Date();
     autoPublishAt.setHours(autoPublishAt.getHours() + autoPublishHours);
 
+    // HARD BLOCK: closed business accounts must never receive any communication
+    const { data: ccClosed } = await supabase.rpc("is_closed_account_phone", { _phone: formattedPhone });
+    if (ccClosed) {
+      logStep("Blocked SMS: recipient account is closed", { formattedPhone });
+      return new Response(JSON.stringify({ success: false, skipped: true, reason: "Recipient account is closed" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Send SMS confirmation
     await sendSMSMessage(formattedPhone, message);
 

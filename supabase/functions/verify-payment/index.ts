@@ -112,6 +112,12 @@ serve(async (req) => {
           const magicLink = magicLinkData.properties?.action_link;
           const emailSubject = "Welcome to Cleanda - Access Your Account";
           
+          const { data: vpClosed } = await supabaseClient.rpc("is_closed_account_email", { _email: customerEmail });
+          if (vpClosed) {
+            logStep("Blocked welcome email: recipient account is closed");
+            throw new Error("__CLOSED_ACCOUNT_SKIP__");
+          }
+
           const emailResponse = await resend.emails.send({
             from: "Cleanda <hello@cleanda.co.uk>",
             to: [customerEmail],
