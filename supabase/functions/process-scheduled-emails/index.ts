@@ -89,6 +89,19 @@ Deno.serve(async (req) => {
       try {
         logStep("Sending scheduled email", { id: scheduled.id, to: scheduled.recipient_email });
 
+        // HARD BLOCK: closed business accounts must never receive any communication
+        const { data: isClosedAccount } = await supabase.rpc("is_closed_account_email", {
+          _email: scheduled.recipient_email,
+        });
+        if (isClosedAccount) {
+          logStep("Blocked: recipient account is closed", { email: scheduled.recipient_email });
+          await supabase
+            .from("scheduled_emails")
+            .update({ status: "cancelled", error_message: "Recipient account is closed" })
+            .eq("id", scheduled.id);
+          continue;
+        }
+
         // Check if recipient has unsubscribed or is suppressed before sending
         const [subscriberResult, suppressionResult] = await Promise.all([
           supabase
