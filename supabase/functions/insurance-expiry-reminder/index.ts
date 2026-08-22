@@ -76,7 +76,7 @@ serve(async (req) => {
           
           const { data: profile } = await supabase
             .from("profiles")
-            .select("business_name, contact_name")
+            .select("business_name, contact_name, is_closed")
             .eq("user_id", doc.user_id)
             .maybeSingle();
 
@@ -84,6 +84,13 @@ serve(async (req) => {
             logStep("No email found for user", { userId: doc.user_id });
             continue;
           }
+
+          // HARD BLOCK: closed business accounts must never receive any communication
+          if (profile?.is_closed) {
+            logStep("Blocked: account is closed", { userId: doc.user_id });
+            continue;
+          }
+
 
           const businessName = profile?.business_name || profile?.contact_name || "Business Owner";
           const contactName = profile?.contact_name || businessName;
