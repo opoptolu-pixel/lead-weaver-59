@@ -152,9 +152,43 @@ export default function AdminPayments() {
         job_type: lead.job_type,
         postcode: lead.postcode,
         credit_type: (lead as any).credit_type || "purchased",
+        kind: "lead",
       }));
 
-      setPurchases(purchasesData);
+      // Fetch credit pack purchases (cash paid up-front, not tied to a lead)
+      const { data: creditLogs } = await supabase
+        .from("activity_logs")
+        .select("id, created_at, details")
+        .eq("action", "credits_purchased")
+        .gte("created_at", startISO)
+        .lte("created_at", endISO)
+        .order("created_at", { ascending: false });
+
+      const creditPurchases: Purchase[] = (creditLogs || [])
+        .map((log) => {
+          const details = (log.details || {}) as Record<string, unknown>;
+          const amount = Number(details.amount_paid) || 0;
+          const credits = Number(details.credits_added) || 0;
+          return {
+            id: log.id,
+            business_name: (details.business_name as string) || "Unknown Business",
+            lead_id: log.id,
+            amount,
+            status: "purchased",
+            unlocked_at: log.created_at,
+            job_type: credits ? `Credit pack (${credits} credits)` : "Credit pack",
+            postcode: "—",
+            credit_type: "purchased",
+            kind: "credit" as const,
+          };
+        })
+        .filter((p) => p.amount > 0);
+
+      setPurchases(
+        [...purchasesData, ...creditPurchases].sort(
+          (a, b) => new Date(b.unlocked_at).getTime() - new Date(a.unlocked_at).getTime()
+        )
+      );
 
       // Fetch fraud flags
       const { data: fraudData, error: fraudError } = await supabase
