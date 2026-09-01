@@ -421,19 +421,23 @@ export default function AdminPayments() {
                         {purchasesPagination.paginatedData.map((purchase) => (
                           <TableRow key={purchase.id}>
                             <TableCell className="font-medium">{purchase.business_name}</TableCell>
-                            <TableCell className="font-mono text-sm">{purchase.lead_id.slice(0, 8)}...</TableCell>
+                            <TableCell className="font-mono text-sm">
+                              {purchase.kind === "credit" ? "—" : `${purchase.lead_id.slice(0, 8)}...`}
+                            </TableCell>
                             <TableCell>{purchase.job_type}</TableCell>
                             <TableCell>{purchase.postcode}</TableCell>
                             <TableCell>£{purchase.amount}</TableCell>
                             <TableCell>
                               <Badge 
                                 variant="outline" 
-                                className={purchase.credit_type === "granted" 
+                                className={purchase.kind === "credit"
+                                  ? "border-amber-500/50 text-amber-600 bg-amber-500/10"
+                                  : purchase.credit_type === "granted" 
                                   ? "border-teal-500/50 text-teal-600 bg-teal-500/10" 
                                   : "border-primary/50 text-primary bg-primary/10"
                                 }
                               >
-                                {purchase.credit_type === "granted" ? "Granted" : "Paid"}
+                                {purchase.kind === "credit" ? "Credit pack" : purchase.credit_type === "granted" ? "Granted" : "Paid"}
                               </Badge>
                             </TableCell>
                             <TableCell>{getStatusBadge(purchase.status)}</TableCell>
