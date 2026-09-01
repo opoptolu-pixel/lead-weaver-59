@@ -2250,6 +2250,33 @@ export type Database = {
         }
         Relationships: []
       }
+      legacy_cleanup_snapshots: {
+        Row: {
+          batch_id: string
+          created_at: string
+          id: string
+          object_key: string
+          object_type: string
+          previous_state: Json
+        }
+        Insert: {
+          batch_id: string
+          created_at?: string
+          id?: string
+          object_key: string
+          object_type: string
+          previous_state: Json
+        }
+        Update: {
+          batch_id?: string
+          created_at?: string
+          id?: string
+          object_key?: string
+          object_type?: string
+          previous_state?: Json
+        }
+        Relationships: []
+      }
       login_history: {
         Row: {
           city: string | null
