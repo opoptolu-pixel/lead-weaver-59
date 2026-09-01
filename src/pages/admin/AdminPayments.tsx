@@ -38,6 +38,7 @@ interface Purchase {
   job_type: string;
   postcode: string;
   credit_type?: string;
+  kind?: "lead" | "credit";
 }
 
 interface FraudFlag {
