@@ -38,11 +38,11 @@ serve(async (req) => {
     // Normalize phone number (remove + sign)
     const normalizedPhone = from.replace("+", "");
     
-    // Find lead with this phone number that's pending confirmation
+    // Find the latest pending or recently confirmed lead for this number.
     const { data: leads, error: searchError } = await supabase
       .from("leads")
       .select("*")
-      .eq("lead_status", "pending_confirmation")
+      .in("lead_status", ["pending_confirmation", "published"])
       .order("confirmation_sent_at", { ascending: false });
 
     if (searchError) {
@@ -55,6 +55,11 @@ serve(async (req) => {
       const leadPhoneWithCode = leadPhone.startsWith("44") ? leadPhone : `44${leadPhone.startsWith("0") ? leadPhone.slice(1) : leadPhone}`;
       return normalizedPhone.endsWith(leadPhone) || normalizedPhone === leadPhoneWithCode || leadPhone.endsWith(normalizedPhone.slice(-10));
     });
+
+    const isAlreadyConfirmed = matchingLead?.lead_status === "published" &&
+      matchingLead.confirmation_response &&
+      matchingLead.published_at &&
+      Date.now() - new Date(matchingLead.published_at).getTime() < 15 * 60 * 1000;
 
     if (!matchingLead) {
       logStep("No matching lead found for phone", { normalizedPhone });
@@ -70,6 +75,16 @@ serve(async (req) => {
             "Content-Type": "application/xml" 
           } 
         }
+      );
+    }
+
+    if (isAlreadyConfirmed) {
+      return new Response(
+        `<?xml version="1.0" encoding="UTF-8"?>
+        <Response>
+          <Message>We have received and confirmed your cleaning request. Local cleaning professionals will contact you soon.</Message>
+        </Response>`,
+        { headers: { ...corsHeaders, "Content-Type": "application/xml" } }
       );
     }
 
@@ -130,7 +145,8 @@ serve(async (req) => {
     const { error: updateError } = await supabase
       .from("leads")
       .update(updateData)
-      .eq("id", matchingLead.id);
+      .eq("id", matchingLead.id)
+      .eq("lead_status", "pending_confirmation");
 
     if (updateError) {
       throw new Error(`Update error: ${updateError.message}`);

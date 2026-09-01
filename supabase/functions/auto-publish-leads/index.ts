@@ -56,18 +56,26 @@ serve(async (req) => {
 
     for (const lead of leadsToPublish) {
       // Update lead to published
-      const { error: updateError } = await supabase
+      const { data: publishedLead, error: updateError } = await supabase
         .from("leads")
         .update({
           lead_status: "published",
           published_at: new Date().toISOString(),
           confirmation_response: "auto_published_timeout",
         })
-        .eq("id", lead.id);
+        .eq("id", lead.id)
+        .eq("lead_status", "pending_confirmation")
+        .select("id")
+        .maybeSingle();
 
       if (updateError) {
         logStep("Failed to update lead", { leadId: lead.id, error: updateError.message });
         results.push({ leadId: lead.id, success: false, error: updateError.message });
+        continue;
+      }
+
+      if (!publishedLead) {
+        results.push({ leadId: lead.id, success: true, skipped: true, reason: "already_processed" });
         continue;
       }
 
