@@ -273,6 +273,26 @@ export default function AdminOverview() {
 
     const outstandingCredits = profiles?.reduce((sum, p) => sum + (p.credits || 0), 0) || 0;
 
+    // Cash actually received from credit-pack / pay-as-you-go purchases.
+    // These are logged in activity_logs and were previously invisible on the overview,
+    // because lead-level revenue is only recognised when a credit is spent.
+    const { data: creditPurchases } = await supabase
+      .from("activity_logs")
+      .select("created_at, details")
+      .eq("action", "credits_purchased")
+      .gte("created_at", mtdStart.toISOString())
+      .lte("created_at", todayEnd.toISOString());
+
+    const sumCreditCash = (rows: typeof creditPurchases, from: Date) =>
+      (rows || []).reduce((sum, row) => {
+        if (new Date(row.created_at) < from) return sum;
+        const details = (row.details || {}) as Record<string, unknown>;
+        return sum + (Number(details.amount_paid) || 0);
+      }, 0);
+
+    const mtdCreditCash = sumCreditCash(creditPurchases, mtdStart);
+    const todayCreditCash = sumCreditCash(creditPurchases, todayStart);
+
     setTodayAccounting({
       netRevenue,
       refundRate,
@@ -280,6 +300,8 @@ export default function AdminOverview() {
       mtdRevenue,
       pendingDisputeValue,
       outstandingCredits,
+      todayCreditCash,
+      mtdCreditCash,
     });
   };
 
