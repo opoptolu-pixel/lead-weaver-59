@@ -147,6 +147,8 @@ export default function AdminOverview() {
     mtdRevenue: 0,
     pendingDisputeValue: 0,
     outstandingCredits: 0,
+    todayCreditCash: 0,
+    mtdCreditCash: 0,
   });
 
   // Calculate net profit (revenue - refunds - ad spend)
