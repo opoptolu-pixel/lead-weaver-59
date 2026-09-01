@@ -452,14 +452,16 @@ export default function AdminPayments() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => handleDownloadReceipt(purchase.lead_id)}>
-                                    {downloadingReceipt === purchase.lead_id ? (
-                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    ) : (
-                                      <Download className="mr-2 h-4 w-4" />
-                                    )}
-                                    Download Receipt
-                                  </DropdownMenuItem>
+                                  {purchase.kind !== "credit" && (
+                                    <DropdownMenuItem onClick={() => handleDownloadReceipt(purchase.lead_id)}>
+                                      {downloadingReceipt === purchase.lead_id ? (
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      ) : (
+                                        <Download className="mr-2 h-4 w-4" />
+                                      )}
+                                      Download Receipt
+                                    </DropdownMenuItem>
+                                  )}
                                   <DropdownMenuItem>
                                     <Eye className="mr-2 h-4 w-4" />
                                     View Details
