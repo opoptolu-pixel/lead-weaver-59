@@ -194,8 +194,16 @@ serve(async (req) => {
         `- Cleanda`;
 
       const results = [];
+      const seenPhones = new Set<string>();
       for (const profile of profiles || []) {
         if (!profile.phone || !profile.postcode) continue;
+
+        const formattedPhone = formatPhoneNumber(profile.phone);
+        if (seenPhones.has(formattedPhone)) {
+          results.push({ userId: profile.user_id, status: "skipped", reason: "duplicate_phone" });
+          continue;
+        }
+        seenPhones.add(formattedPhone);
 
         // Check distance if we have lead coordinates
         if (leadCoords) {
@@ -226,10 +234,24 @@ serve(async (req) => {
         }
 
         try {
-          const formattedPhone = formatPhoneNumber(profile.phone);
+          const { error: reservationError } = await supabase
+            .from("lead_sms_notification_deliveries")
+            .insert({ lead_id: lead.id, phone: formattedPhone });
+
+          if (reservationError?.code === "23505") {
+            results.push({ userId: profile.user_id, status: "skipped", reason: "already_notified" });
+            continue;
+          }
+          if (reservationError) throw reservationError;
+
           await sendSMS(formattedPhone, message);
           results.push({ userId: profile.user_id, status: "sent" });
         } catch (err: any) {
+          await supabase
+            .from("lead_sms_notification_deliveries")
+            .delete()
+            .eq("lead_id", lead.id)
+            .eq("phone", formattedPhone);
           logStep("Failed to send to user", { userId: profile.user_id, error: err.message });
           results.push({ userId: profile.user_id, status: "failed", error: err.message });
         }

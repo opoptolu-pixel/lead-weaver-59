@@ -2086,6 +2086,32 @@ export type Database = {
           },
         ]
       }
+      lead_sms_notification_deliveries: {
+        Row: {
+          created_at: string
+          lead_id: string
+          phone: string
+        }
+        Insert: {
+          created_at?: string
+          lead_id: string
+          phone: string
+        }
+        Update: {
+          created_at?: string
+          lead_id?: string
+          phone?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_sms_notification_deliveries_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           admin_notes: string | null
