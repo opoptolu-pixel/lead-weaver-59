@@ -786,6 +786,18 @@ export default function AdminOverview() {
             <p className="text-xs text-muted-foreground">MTD Revenue</p>
           </div>
           <div className="text-center p-3 bg-muted/30 rounded-lg">
+            <p className="text-2xl font-bold text-green-500">
+              £{todayAccounting.todayCreditCash.toLocaleString()}
+            </p>
+            <p className="text-xs text-muted-foreground">Credit Sales Today</p>
+          </div>
+          <div className="text-center p-3 bg-muted/30 rounded-lg">
+            <p className="text-2xl font-bold text-green-500">
+              £{todayAccounting.mtdCreditCash.toLocaleString()}
+            </p>
+            <p className="text-xs text-muted-foreground">MTD Credit Sales</p>
+          </div>
+          <div className="text-center p-3 bg-muted/30 rounded-lg">
             <p className="text-2xl font-bold text-amber-500">£{adMetrics.totalSpend.toFixed(0)}</p>
             <p className="text-xs text-muted-foreground">Ad Spend</p>
           </div>
