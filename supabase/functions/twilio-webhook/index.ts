@@ -142,14 +142,26 @@ serve(async (req) => {
       updateData.published_at = new Date().toISOString();
     }
 
-    const { error: updateError } = await supabase
+    const { data: transitionedLead, error: updateError } = await supabase
       .from("leads")
       .update(updateData)
       .eq("id", matchingLead.id)
-      .eq("lead_status", "pending_confirmation");
+      .eq("lead_status", "pending_confirmation")
+      .select("id")
+      .maybeSingle();
 
     if (updateError) {
       throw new Error(`Update error: ${updateError.message}`);
+    }
+
+    if (!transitionedLead) {
+      return new Response(
+        `<?xml version="1.0" encoding="UTF-8"?>
+        <Response>
+          <Message>We have received and confirmed your cleaning request. Local cleaning professionals will contact you soon.</Message>
+        </Response>`,
+        { headers: { ...corsHeaders, "Content-Type": "application/xml" } }
+      );
     }
 
     // Log activity
