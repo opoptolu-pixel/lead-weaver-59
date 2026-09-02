@@ -1,5 +1,12 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import {
+  AUTH_REQUIRED,
+  buildNewLeadMessage,
+  sendSingleRecipientNotification,
+  SingleRecipientError,
+  type SingleRecipientRequest,
+} from "./single-recipient.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,10 +17,11 @@ const logStep = (step: string, details?: any) => {
   console.log(`[SMS-NOTIFICATION] ${step}`, details ? JSON.stringify(details) : "");
 };
 
-interface SMSNotificationRequest {
+interface SMSNotificationRequest extends Partial<SingleRecipientRequest> {
   type: "new_lead" | "lead_unlocked";
   leadId: string;
   userId?: string;
+  mode?: "single_recipient";
 }
 
 interface PostcodeCoords {
@@ -61,6 +69,10 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * c;
 }
 
+function maskPhone(phone: string): string {
+  return phone.length > 4 ? `***${phone.slice(-4)}` : "***";
+}
+
 async function sendSMS(to: string, body: string) {
   const accountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
   const authToken = Deno.env.get("TWILIO_AUTH_TOKEN");
@@ -75,13 +87,12 @@ async function sendSMS(to: string, body: string) {
   }
 
   const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
-  
   const formData = new URLSearchParams();
   formData.append("To", to);
   formData.append("From", from);
   formData.append("Body", body);
 
-  logStep("Sending SMS", { to, bodyLength: body.length });
+  logStep("Sending SMS", { recipient: maskPhone(to), bodyLength: body.length });
 
   const response = await fetch(url, {
     method: "POST",
@@ -93,9 +104,9 @@ async function sendSMS(to: string, body: string) {
   });
 
   const result = await response.json();
-  
+
   if (!response.ok) {
-    logStep("Twilio SMS error", result);
+    logStep("Twilio SMS rejected", { status: response.status, code: result.code });
     throw new Error(`Twilio error: ${result.message || result.code || "Unknown error"}`);
   }
 
@@ -143,9 +154,109 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const request = await req.json() as SMSNotificationRequest;
+    const { type, leadId, userId } = request;
+    logStep("Received request", { type, leadId, mode: request.mode ?? "fan_out" });
 
-    const { type, leadId, userId }: SMSNotificationRequest = await req.json();
-    logStep("Received request", { type, leadId, userId });
+    if (request.mode === "single_recipient") {
+      const singleRequest = request as SingleRecipientRequest;
+      const authorization = req.headers.get("Authorization");
+
+      // Authenticate BEFORE any database read, so an unauthenticated caller
+      // cannot use this endpoint as an eligibility oracle.
+      if (!supabaseServiceKey || authorization !== `Bearer ${supabaseServiceKey}`) {
+        logStep("Single-recipient request rejected", { reason: AUTH_REQUIRED });
+        return new Response(JSON.stringify({ success: false, outcome: "rejected", reason: AUTH_REQUIRED }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const [leadResult, profileResult, recipientsResult, intentResult] = await Promise.all([
+        supabase
+          .from("leads")
+          .select("id, postcode, job_type, display_value, lead_status")
+          .eq("id", singleRequest.leadId)
+          .maybeSingle(),
+        supabase
+          .from("profiles")
+          .select("user_id, phone, postcode, whatsapp_optin, is_closed, is_suspended")
+          .eq("user_id", singleRequest.userId)
+          .maybeSingle(),
+        supabase.rpc("lead_notification_recipients", { p_lead_id: singleRequest.leadId }),
+        supabase
+          .from("notification_intents")
+          .select("id, lead_id, notification_type, recipient, recipient_user_id, status")
+          .eq("id", singleRequest.idempotencyKey)
+          .maybeSingle(),
+      ]);
+
+      // A lookup error is NOT a definite rejection: fail with 503 so the caller
+      // classifies it as indeterminate rather than a permanent failure.
+      if (leadResult.error || profileResult.error || recipientsResult.error || intentResult.error) {
+        logStep("Single-recipient eligibility lookup failed", { leadId: singleRequest.leadId });
+        return new Response(JSON.stringify({ success: false, outcome: "indeterminate", reason: "eligibility_lookup_failed" }), {
+          status: 503,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const singleLead = leadResult.data;
+      const singleProfile = profileResult.data;
+
+      // Authoritative distance rule, resolved server-side for this one recipient.
+      const leadCoords = singleLead?.postcode ? await getPostcodeCoords(singleLead.postcode) : null;
+      const recipientCoords = singleProfile?.postcode ? await getPostcodeCoords(singleProfile.postcode) : null;
+      const withinLocationRule = Boolean(leadCoords && recipientCoords) &&
+        calculateDistance(
+          leadCoords!.latitude,
+          leadCoords!.longitude,
+          recipientCoords!.latitude,
+          recipientCoords!.longitude,
+        ) <= MAX_DISTANCE_MILES;
+
+      const message = singleLead ? buildNewLeadMessage(singleLead) : "";
+
+      try {
+        const result = await sendSingleRecipientNotification(singleRequest, {
+          serviceRoleKey: supabaseServiceKey,
+          authorization,
+          getLead: () => Promise.resolve(singleLead),
+          getProfile: () => Promise.resolve(singleProfile),
+          getEligibleRecipients: () => Promise.resolve(withinLocationRule ? (recipientsResult.data || []) : []),
+          getIntent: () => Promise.resolve(intentResult.data),
+          send: (recipientPhone, notificationMessage) =>
+            sendSMS(formatPhoneNumber(recipientPhone), notificationMessage),
+        }, message);
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            outcome: "sent",
+            providerReference: result.providerReference,
+            userId: result.userId,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      } catch (error) {
+        if (error instanceof SingleRecipientError) {
+          // Every eligibility failure happens BEFORE the provider is contacted,
+          // so 422 is a definite, non-retryable rejection.
+          logStep("Single-recipient request rejected", { reason: error.reason });
+          return new Response(JSON.stringify({ success: false, outcome: "rejected", reason: error.reason }), {
+            status: error.reason === AUTH_REQUIRED ? 401 : 422,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        // The provider call itself failed or timed out: the message may already
+        // have been accepted, so this must never be treated as a rejection.
+        logStep("Single-recipient dispatch outcome unknown", { leadId: singleRequest.leadId });
+        return new Response(JSON.stringify({ success: false, outcome: "indeterminate", reason: "provider_outcome_unknown" }), {
+          status: 502,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     // Get lead details
     const { data: lead, error: leadError } = await supabase
