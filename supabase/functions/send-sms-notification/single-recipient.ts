@@ -82,6 +82,32 @@ export function normalizeRecipientPhone(phone: string): string {
   return `44${digits}`;
 }
 
+export function getOutwardCode(postcode: string | null): string {
+  if (!postcode) return "your area";
+  const trimmed = postcode.trim().toUpperCase();
+  if (trimmed.includes(" ")) return trimmed.split(" ")[0];
+  if (trimmed.length > 4) return trimmed.slice(0, -3);
+  return trimmed;
+}
+
+export function extractValue(displayValue: string | null): string {
+  if (!displayValue) return "Contact for quote";
+  return displayValue.replace(/^from\s+/i, "").trim();
+}
+
+/** One shared message body for both the fan-out and single-recipient paths. */
+export function buildNewLeadMessage(lead: {
+  postcode: string | null;
+  job_type: string | null;
+  display_value: string | null;
+}): string {
+  return `New lead in ${getOutwardCode(lead.postcode)}!\n\n` +
+    `${lead.job_type ?? "Cleaning job"}\n` +
+    `Value: ${extractValue(lead.display_value)}\n\n` +
+    `Login to Cleanda to view and unlock this lead.\n\n` +
+    `- Cleanda`;
+}
+
 /** Constant-time comparison so a bearer token cannot be probed byte by byte. */
 function timingSafeEqual(left: string, right: string): boolean {
   const a = new TextEncoder().encode(left);
