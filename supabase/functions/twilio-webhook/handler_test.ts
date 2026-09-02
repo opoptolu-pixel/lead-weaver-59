@@ -60,7 +60,10 @@ function deps(db: FakeDb, provider: FakeProvider, env: Record<string, unknown> =
 }
 
 const success = (): ProviderOutcome => ({ kind: "success", reference: "provider-ref" });
-const rejected = (): ProviderOutcome => ({ kind: "rejected", error: "invalid phone number" });
+/** A definite pre-acceptance rejection that must NOT be retried automatically. */
+const rejected = (): ProviderOutcome => ({ kind: "rejected", retryable: false, error: "recipient_not_eligible" });
+/** A definite pre-acceptance failure that a controlled reconciliation may retry. */
+const rejectedRetryable = (): ProviderOutcome => ({ kind: "rejected", retryable: true, error: "transient rejection" });
 const indeterminate = (): ProviderOutcome => ({ kind: "indeterminate", error: "provider timeout" });
 
 function seed(recipients = 2) {
