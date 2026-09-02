@@ -9,7 +9,9 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "verify:isolation": "node scripts/verify-legacy-isolation.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:twilio": "deno test --allow-none supabase/functions/twilio-webhook/",
+    "verify:all": "npm run lint && npm run verify:isolation && npm run build"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
