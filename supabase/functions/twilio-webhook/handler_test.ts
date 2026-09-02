@@ -8,6 +8,7 @@ import {
   POSITIVE_MESSAGE,
   UNMATCHED_MESSAGE,
   handleTwilioWebhook as handler,
+  dispatchNotificationIntents,
 } from "./handler.ts";
 import type { ProviderOutcome } from "./ports.ts";
 import { FakeDb, FakeProvider, makeLead } from "./test_doubles.ts";
