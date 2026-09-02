@@ -6,11 +6,11 @@
 - Domain: `https://cleanda.co.uk`
 - Repository: `opoptolu-pixel/lead-weaver-59`
 - Live backend project: `jqyhiekqqcffiwpctzsi`
-- Observable published deployment: `e2b349e3-5ecf-44e9-4b78-e5ae0b5e912c`
+- Observable published deployment: `e2b349e3-5ecf-44e5-9b78-e5ae0b5e912c`
 - Published commit SHA: unknown; the available deployment metadata does not expose a commit mapping. Frontend publication is therefore blocked.
 - Expected pre-work HEAD: `58d8a0b`
-- Actual inspected commit: `2b3b513e8897cf45c8c6346fa9ac6a223331d2cb`
-- Commit state: pushed, because it is contained by `origin/main` (`4305a6f`); the working tree was clean before local implementation.
+- Inspected commit for the type-syntax question: `2b3b513e8897cf45c8c6346fa9ac6a223331d2cb` (present on `origin/main`)
+- Current local HEAD at time of writing: `90018ca`, three commits ahead of `origin/main`, working tree clean
 
 ## Commit inspection
 
@@ -33,9 +33,12 @@ Required legacy marketplace source is present for: `submit-cleaning-request`, `c
 
 `process-cleaner-job-notifications` is the only conclusively verified agency-only function with repository source and has been changed locally to a non-mutating HTTP 410 gate. The other named agency-only functions (`process-cleaner-compliance-reminders`, `process-recurring-clean-visits`, `send-agency-quote`, `submit-service-request`, `resolve-no-show-customer`, `process-agency-balances`, `send-recurring-payment-setup`, and `send-inbox-email`) were not present in repository source, and no gate is proposed without authoritative deployed metadata. Their classification remains ambiguous at the deployment level.
 
-## Proposed, not applied migration
+## Inbound receipt migration (APPLIED to the live legacy project)
 
-Filename: `20260902110000_create_twilio_inbound_receipts.sql`
+Filename: `20260902104048_645c091a-4cc4-4824-b48a-f7f68b94d4a0.sql`
+
+This migration was applied to the live legacy project during this release by the managed migration tool. It must not be reapplied. The live table was verified read-only: RLS enabled, no policies, `anon` and `authenticated` have no SELECT privilege, `service_role` does. Automated retention cleanup for `retention_expires_at` is not yet implemented.
+
 
 ```sql
 BEGIN;
@@ -63,13 +66,14 @@ ALTER TABLE public.twilio_inbound_receipts ENABLE ROW LEVEL SECURITY;
 COMMIT;
 ```
 
-Safety properties: unique `MessageSid` claim, service-role-only access, no message body, no notification trigger, retention metadata, no client writes, and no migration execution during this release.
+Safety properties: unique `MessageSid` claim, service-role-only access, no message body, no notification trigger, retention metadata, and no client reads or writes.
 
 ## Local test plan and rollback
 
 - Signature tests cover valid, missing, tampered, and payload-mismatch signatures.
 - Reply tests cover YES/NO and ambiguous text.
 - Idempotency tests cover concurrent same-SID claim and one completion.
+- Known test gaps: no in-handler signature-header test, no in-flight duplicate test against the real claim path, and no URL/query-string signature variant test.
 - No test contacts Twilio, Resend, Stripe, postcodes.io, WhatsApp, or any external provider.
-- Proposed backend-only deployment scope: the inbound-receipts migration, `twilio-webhook`, the one 410 gate for `process-cleaner-job-notifications`, the isolation check, mocked tests, and this audit document. No frontend publication.
-- Rollback: before migration application, revert local files only. After a future approved deployment, restore the prior `twilio-webhook` source and gate source; leave the receipt table in place for audit history, or remove it only through a separately approved migration after confirming no receipts are needed.
+- Remaining backend-only deployment scope: `twilio-webhook`, the 410 gate for `process-cleaner-job-notifications`, the isolation check, mocked tests, and this audit document. The receipt migration is already live and must not be reapplied. No frontend publication.
+- Rollback: for local-only work, revert the files. After a future approved deployment, restore the prior `twilio-webhook` and gate sources; leave the receipt table in place for audit history, or remove it only through a separately approved migration after confirming no receipts are needed.
