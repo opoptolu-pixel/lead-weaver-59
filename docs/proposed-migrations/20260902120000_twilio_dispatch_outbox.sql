@@ -194,7 +194,8 @@ $$;
 
 CREATE OR REPLACE FUNCTION public.twilio_claim_notification_intent(
   p_intent_id uuid,
-  p_lease_seconds integer DEFAULT 120
+  p_lease_seconds integer DEFAULT 120,
+  p_reconciliation_audit_id text DEFAULT NULL
 )
 RETURNS boolean
 LANGUAGE plpgsql
@@ -204,17 +205,24 @@ AS $$
 DECLARE
   v_id uuid;
 BEGIN
-  -- Only never-started ('pending') or definitively-rejected ('failed_retryable')
-  -- intents may be claimed. A 'claimed' row already has dispatch_started_at set and
-  -- is never automatically reclaimed; 'outcome_unknown' and 'dispatched' are terminal.
+  -- Never-started pending intents may be claimed by the inbound webhook.
+  -- failed_retryable is only claimable with a non-empty audit reference from a
+  -- separately authenticated reconciliation process. outcome_unknown, dispatched
+  -- and permanently_failed are terminal and can never be reclaimed here.
   UPDATE public.notification_intents
   SET status = 'claimed',
       attempt_count = attempt_count + 1,
       dispatch_started_at = now(),
       lease_expires_at = now() + make_interval(secs => p_lease_seconds),
-      attempt_history = attempt_history || jsonb_build_object('claimed_at', now())
+      attempt_history = attempt_history || jsonb_build_object(
+        'claimed_at', now(),
+        'reconciliation_audit_id', p_reconciliation_audit_id
+      )
   WHERE id = p_intent_id
-    AND status IN ('pending', 'failed_retryable')
+    AND (
+      status = 'pending'
+      OR (status = 'failed_retryable' AND nullif(trim(p_reconciliation_audit_id), '') IS NOT NULL)
+    )
   RETURNING id INTO v_id;
 
   RETURN v_id IS NOT NULL;
@@ -290,6 +298,15 @@ END;
 $$;
 
 -- 7. Recipient resolution ----------------------------------------------------
+--
+-- LEGACY MARKETPLACE ONLY. Recipients are cleaning businesses in public.profiles.
+-- The managed-agency tables (cleaner_profiles, cleaner_service_areas,
+-- cleaner_service_capabilities) are contained and must NOT be referenced here:
+-- doing so would re-couple the legacy dispatch path to the Manchester project.
+--
+-- Phone numbers are normalised to a UK E.164 digit string so that one physical
+-- handset can never receive two notifications for the same lead, whatever
+-- format each profile stored.
 
 CREATE OR REPLACE FUNCTION public.lead_notification_recipients(p_lead_id uuid)
 RETURNS TABLE(recipient text, recipient_user_id uuid)
@@ -298,21 +315,36 @@ STABLE
 SECURITY DEFINER
 SET search_path = public
 AS $$
-  SELECT DISTINCT ON (regexp_replace(p.phone, '\D', '', 'g'))
-         regexp_replace(p.phone, '\D', '', 'g') AS recipient,
-         p.user_id AS recipient_user_id
-  FROM public.profiles p
-  WHERE p.whatsapp_optin = true
-    AND p.phone IS NOT NULL
-    AND p.postcode IS NOT NULL
-    AND coalesce(p.is_closed, false) = false
-    AND EXISTS (SELECT 1 FROM public.leads l WHERE l.id = p_lead_id)
-  ORDER BY regexp_replace(p.phone, '\D', '', 'g'), p.user_id;
+  WITH normalised AS (
+    SELECT
+      CASE
+        WHEN regexp_replace(p.phone, '\D', '', 'g') LIKE '44%'
+          THEN regexp_replace(p.phone, '\D', '', 'g')
+        WHEN regexp_replace(p.phone, '\D', '', 'g') LIKE '0%'
+          THEN '44' || substr(regexp_replace(p.phone, '\D', '', 'g'), 2)
+        ELSE '44' || regexp_replace(p.phone, '\D', '', 'g')
+      END AS recipient,
+      p.user_id AS recipient_user_id
+    FROM public.profiles p
+    WHERE p.whatsapp_optin = true
+      AND p.phone IS NOT NULL
+      AND length(regexp_replace(p.phone, '\D', '', 'g')) >= 10
+      AND p.postcode IS NOT NULL
+      AND coalesce(p.is_closed, false) = false
+      AND coalesce(p.is_suspended, false) = false
+      AND EXISTS (
+        SELECT 1 FROM public.leads l
+        WHERE l.id = p_lead_id AND l.lead_status = 'published'
+      )
+  )
+  SELECT DISTINCT ON (recipient) recipient, recipient_user_id
+  FROM normalised
+  ORDER BY recipient, recipient_user_id;
 $$;
 
 REVOKE ALL ON FUNCTION public.twilio_claim_inbound_receipt(text, integer) FROM anon, authenticated;
 REVOKE ALL ON FUNCTION public.twilio_transition_lead_and_create_intents(text, uuid, text, text, text, jsonb) FROM anon, authenticated;
-REVOKE ALL ON FUNCTION public.twilio_claim_notification_intent(uuid, integer) FROM anon, authenticated;
+REVOKE ALL ON FUNCTION public.twilio_claim_notification_intent(uuid, integer, text) FROM anon, authenticated;
 REVOKE ALL ON FUNCTION public.twilio_record_notification_outcome(uuid, text, text, text) FROM anon, authenticated;
 REVOKE ALL ON FUNCTION public.twilio_finalize_inbound_receipt(uuid, text, uuid, text, text, text, boolean, text) FROM anon, authenticated;
 REVOKE ALL ON FUNCTION public.lead_notification_recipients(uuid) FROM anon, authenticated;

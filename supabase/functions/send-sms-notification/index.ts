@@ -151,8 +151,14 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return new Response(JSON.stringify({ error: "Notification backend is not configured" }), {
+        status: 503,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const request = await req.json() as SMSNotificationRequest;
     const { type, leadId, userId } = request;
@@ -207,12 +213,12 @@ serve(async (req) => {
       // Authoritative distance rule, resolved server-side for this one recipient.
       const leadCoords = singleLead?.postcode ? await getPostcodeCoords(singleLead.postcode) : null;
       const recipientCoords = singleProfile?.postcode ? await getPostcodeCoords(singleProfile.postcode) : null;
-      const withinLocationRule = Boolean(leadCoords && recipientCoords) &&
+      const withinLocationRule = leadCoords !== null && recipientCoords !== null &&
         calculateDistance(
-          leadCoords!.latitude,
-          leadCoords!.longitude,
-          recipientCoords!.latitude,
-          recipientCoords!.longitude,
+          leadCoords.latitude,
+          leadCoords.longitude,
+          recipientCoords.latitude,
+          recipientCoords.longitude,
         ) <= MAX_DISTANCE_MILES;
 
       const message = singleLead ? buildNewLeadMessage(singleLead) : "";

@@ -99,7 +99,11 @@ export async function dispatchNotificationIntents(
     if (intent.status === "permanently_failed") { summary.failed += 1; continue; }
     if (intent.status === "failed_retryable" && !allowFailedRetry) { summary.failed += 1; continue; }
 
-    const claimed = await deps.db.claimIntent(intent.id, INTENT_LEASE_SECONDS);
+    const claimed = await deps.db.claimIntent(
+      intent.id,
+      INTENT_LEASE_SECONDS,
+      allowFailedRetry ? options.reconciliationAuditId : undefined,
+    );
     if (!claimed) {
       summary.unknown += intent.status === "claimed" ? 1 : 0;
       continue;

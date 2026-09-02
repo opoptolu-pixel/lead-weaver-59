@@ -65,10 +65,11 @@ export function createSupabaseDb(client: SupabaseClient): DbPort {
       return (data || []) as IntentRecord[];
     },
 
-    async claimIntent(intentId, leaseSeconds) {
+    async claimIntent(intentId, leaseSeconds, reconciliationAuditId) {
       const { data, error } = await client.rpc("twilio_claim_notification_intent", {
         p_intent_id: intentId,
         p_lease_seconds: leaseSeconds,
+        p_reconciliation_audit_id: reconciliationAuditId ?? null,
       });
       if (error) throw error;
       return data === true;
@@ -133,12 +134,15 @@ export function createSmsProvider(options: {
           try { payload = JSON.parse(text) as typeof payload; } catch { /* response body is optional */ }
           return { kind: "success", reference: payload.providerReference ?? intent.id };
         }
-        // Only a documented, pre-acceptance failure may be retried. The
-        // single-recipient endpoint's 4xx responses are definitive rejections.
-        if (response.status >= 400 && response.status < 500) {
+        // Rate limits and most provider errors are ambiguous: the provider may
+        // have accepted the request before returning an error. Never retry them
+        // automatically. Only statuses that definitively reject before queueing
+        // are terminal rejections.
+        const definitiveRejections = new Set([400, 401, 403, 404, 422]);
+        if (definitiveRejections.has(response.status)) {
           return { kind: "rejected", retryable: false, error: `provider permanently rejected with ${response.status}` };
         }
-        return { kind: "indeterminate", error: `provider returned ${response.status}: ${text.slice(0, 200)}` };
+        return { kind: "indeterminate", error: `provider outcome unknown (${response.status})` };
       } catch (error) {
         return {
           kind: "indeterminate",

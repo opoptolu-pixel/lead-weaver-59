@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "verify:isolation": "node scripts/verify-legacy-isolation.mjs",
     "preview": "vite preview",
-    "test:twilio": "deno test --allow-none supabase/functions/twilio-webhook/",
+    "test:twilio": "deno test supabase/functions/twilio-webhook/ supabase/functions/send-sms-notification/single_recipient_test.ts",
     "verify:all": "npm run lint && npm run verify:isolation && npm run build"
   },
   "dependencies": {

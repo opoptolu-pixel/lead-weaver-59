@@ -144,9 +144,10 @@ export class FakeDb implements DbPort {
     return Promise.resolve(this.intentsFor(messageSid, leadId, notificationType));
   }
 
-  claimIntent(intentId: string, _leaseSeconds: number) {
+  claimIntent(intentId: string, _leaseSeconds: number, reconciliationAuditId?: string) {
     const intent = this.intents.find((candidate) => candidate.id === intentId);
     if (!intent) return Promise.resolve(false);
+    if (intent.status === "failed_retryable" && !reconciliationAuditId) return Promise.resolve(false);
     if (intent.status !== "pending" && intent.status !== "failed_retryable") return Promise.resolve(false);
     intent.status = "claimed";
     intent.dispatch_started_at = new Date(this.now()).toISOString();

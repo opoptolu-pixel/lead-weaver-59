@@ -1,4 +1,4 @@
-import { assert, assertEquals, assertFalse } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { assert, assertEquals, assertFalse, assertRejects } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { buildTwilioSignature } from "./logic.ts";
 import {
   DECLINE_MESSAGE,
@@ -60,7 +60,10 @@ function deps(db: FakeDb, provider: FakeProvider, env: Record<string, unknown> =
 }
 
 const success = (): ProviderOutcome => ({ kind: "success", reference: "provider-ref" });
-const rejected = (): ProviderOutcome => ({ kind: "rejected", error: "invalid phone number" });
+/** A definite pre-acceptance rejection that must NOT be retried automatically. */
+const rejected = (): ProviderOutcome => ({ kind: "rejected", retryable: false, error: "recipient_not_eligible" });
+/** A definite pre-acceptance failure that a controlled reconciliation may retry. */
+const rejectedRetryable = (): ProviderOutcome => ({ kind: "rejected", retryable: true, error: "transient rejection" });
 const indeterminate = (): ProviderOutcome => ({ kind: "indeterminate", error: "provider timeout" });
 
 function seed(recipients = 2) {
@@ -288,9 +291,34 @@ Deno.test("per-recipient uniqueness holds across repeated intent creation", asyn
   assertEquals(new Set(db.intents.map((intent) => intent.recipient)).size, 2);
 });
 
-Deno.test("provider definite rejection is retryable exactly once per claim, without duplicate dispatch", async () => {
+Deno.test("a non-retryable provider rejection is terminal and never dispatched again", async () => {
   const db = seed(1);
   const rejecting = new FakeProvider(rejected);
+  await handleTwilioWebhook(await signedRequest(baseParams()), deps(db, rejecting)).then((r) => r.text());
+
+  assertEquals(db.intents[0].status, "permanently_failed");
+  assertEquals(rejecting.calls.length, 1);
+
+  // Neither a later webhook nor a reconciliation sweep may retry it.
+  const laterWebhookProvider = new FakeProvider(success);
+  await handleTwilioWebhook(
+    await signedRequest(baseParams({ MessageSid: "SM00000000000000000000000000000003" })),
+    deps(db, laterWebhookProvider),
+  ).then((r) => r.text());
+  assertEquals(laterWebhookProvider.calls.length, 0);
+
+  const reconciler = new FakeProvider(success);
+  await dispatchNotificationIntents(deps(db, reconciler), [...db.intents], {
+    allowFailedRetry: true,
+    reconciliationAuditId: "audit-1",
+  });
+  assertEquals(reconciler.calls.length, 0);
+  assertEquals(db.intents[0].status, "permanently_failed");
+});
+
+Deno.test("failed_retryable is retried only through an audited reconciliation, exactly once", async () => {
+  const db = seed(1);
+  const rejecting = new FakeProvider(rejectedRetryable);
   await handleTwilioWebhook(await signedRequest(baseParams()), deps(db, rejecting)).then((r) => r.text());
 
   assertEquals(db.intents[0].status, "failed_retryable");
@@ -305,10 +333,18 @@ Deno.test("provider definite rejection is retryable exactly once per claim, with
   assertEquals(laterWebhookProvider.calls.length, 0);
   assertEquals(db.intents[0].status, "failed_retryable");
 
-  // Controlled retry path (reconciliation): the intent is re-claimed atomically
-  // and dispatched exactly once more, with no new intent created.
+  // Reconciliation without an audit id is refused.
+  const unaudited = new FakeProvider(success);
+  await dispatchNotificationIntents(deps(db, unaudited), [...db.intents], { allowFailedRetry: true });
+  assertEquals(unaudited.calls.length, 0);
+  assertEquals(db.intents[0].status, "failed_retryable");
+
+  // Audited reconciliation re-claims atomically and dispatches exactly once more.
   const retryProvider = new FakeProvider(success);
-  const summary = await dispatchNotificationIntents(deps(db, retryProvider), [...db.intents]);
+  const summary = await dispatchNotificationIntents(deps(db, retryProvider), [...db.intents], {
+    allowFailedRetry: true,
+    reconciliationAuditId: "audit-1",
+  });
 
   assertEquals(summary.dispatched, 1);
   assertEquals(db.intents.length, 1, "no second intent is created for the same recipient batch");
@@ -317,9 +353,13 @@ Deno.test("provider definite rejection is retryable exactly once per claim, with
 
   // Re-running reconciliation must not dispatch again.
   const idleProvider = new FakeProvider(success);
-  await dispatchNotificationIntents(deps(db, idleProvider), [...db.intents]);
+  await dispatchNotificationIntents(deps(db, idleProvider), [...db.intents], {
+    allowFailedRetry: true,
+    reconciliationAuditId: "audit-2",
+  });
   assertEquals(idleProvider.calls.length, 0);
 });
+
 
 
 Deno.test("provider timeout marks outcome_unknown and is never retried automatically", async () => {
@@ -352,4 +392,19 @@ Deno.test("provider throwing is treated as indeterminate, not as failure", async
   });
   await handler(await signedRequest(baseParams()), deps(db, throwing)).then((r) => r.text());
   assertEquals(db.intents[0].status, "outcome_unknown");
+});
+
+Deno.test("provider 429 is never converted into an automatic retry", async () => {
+  const db = seed(1);
+  const rateLimited: ProviderOutcome = { kind: "indeterminate", error: "provider outcome unknown (429)" };
+  await handler(await signedRequest(baseParams()), deps(db, new FakeProvider(() => rateLimited))).then((r) => r.text());
+
+  assertEquals(db.intents[0].status, "outcome_unknown");
+  const retryProvider = new FakeProvider(success);
+  const summary = await dispatchNotificationIntents(deps(db, retryProvider), [...db.intents], {
+    allowFailedRetry: true,
+    reconciliationAuditId: "audit-429",
+  });
+  assertEquals(summary.unknown, 1);
+  assertEquals(retryProvider.calls.length, 0);
 });

@@ -94,7 +94,7 @@ export interface DbPort {
     recipients: Recipient[];
   }): Promise<{ transitioned: boolean; intents: IntentRecord[] }>;
   listIntents(messageSid: string, leadId: string, notificationType: string): Promise<IntentRecord[]>;
-  claimIntent(intentId: string, leaseSeconds: number): Promise<boolean>;
+  claimIntent(intentId: string, leaseSeconds: number, reconciliationAuditId?: string): Promise<boolean>;
   recordIntentOutcome(
     intentId: string,
     status: Exclude<IntentStatus, "pending" | "claimed">,
