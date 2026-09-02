@@ -393,3 +393,18 @@ Deno.test("provider throwing is treated as indeterminate, not as failure", async
   await handler(await signedRequest(baseParams()), deps(db, throwing)).then((r) => r.text());
   assertEquals(db.intents[0].status, "outcome_unknown");
 });
+
+Deno.test("provider 429 is never converted into an automatic retry", async () => {
+  const db = seed(1);
+  const rateLimited: ProviderOutcome = { kind: "indeterminate", error: "provider outcome unknown (429)" };
+  await handler(await signedRequest(baseParams()), deps(db, new FakeProvider(() => rateLimited))).then((r) => r.text());
+
+  assertEquals(db.intents[0].status, "outcome_unknown");
+  const retryProvider = new FakeProvider(success);
+  const summary = await dispatchNotificationIntents(deps(db, retryProvider), [...db.intents], {
+    allowFailedRetry: true,
+    reconciliationAuditId: "audit-429",
+  });
+  assertEquals(summary.unknown, 1);
+  assertEquals(retryProvider.calls.length, 0);
+});

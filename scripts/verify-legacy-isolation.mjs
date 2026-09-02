@@ -84,14 +84,24 @@ const requiredSchemaObjects = [
   "twilio_finalize_inbound_receipt",
   "lead_notification_recipients",
 ];
+const proposedOutbox = readFileSync(
+  join(root, "docs/proposed-migrations/20260902120000_twilio_dispatch_outbox.sql"),
+  "utf8",
+);
 const missingSchema = requiredSchemaObjects.filter(
   (object) => webhookSource.includes(object) && !appliedMigrations.includes(object),
+);
+const missingProposedObjects = requiredSchemaObjects.filter(
+  (object) => webhookSource.includes(object) && !proposedOutbox.includes(object),
 );
 if (missingSchema.length) {
   fail(
     `twilio-webhook depends on schema objects that no applied migration provides (deployment blocked): ${missingSchema.join(", ")}. ` +
     "Apply docs/proposed-migrations/20260902120000_twilio_dispatch_outbox.sql first.",
   );
+}
+if (missingProposedObjects.length) {
+  fail(`twilio-webhook dependencies missing from the proposed outbox migration: ${missingProposedObjects.join(", ")}`);
 }
 
 // The handler must never fall back to a proxy-rewritten URL in production wiring.
