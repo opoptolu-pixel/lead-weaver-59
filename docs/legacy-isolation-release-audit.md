@@ -6,11 +6,11 @@
 - Domain: `https://cleanda.co.uk`
 - Repository: `opoptolu-pixel/lead-weaver-59`
 - Live backend project: `jqyhiekqqcffiwpctzsi`
-- Observable published deployment: `e2b349e3-5ecf-44e9-4b78-e5ae0b5e912c`
+- Observable published deployment: `e2b349e3-5ecf-44e5-9b78-e5ae0b5e912c`
 - Published commit SHA: unknown; the available deployment metadata does not expose a commit mapping. Frontend publication is therefore blocked.
 - Expected pre-work HEAD: `58d8a0b`
-- Actual inspected commit: `2b3b513e8897cf45c8c6346fa9ac6a223331d2cb`
-- Commit state: pushed, because it is contained by `origin/main` (`4305a6f`); the working tree was clean before local implementation.
+- Inspected commit for the type-syntax question: `2b3b513e8897cf45c8c6346fa9ac6a223331d2cb` (present on `origin/main`)
+- Current local HEAD at time of writing: `90018ca`, three commits ahead of `origin/main`, working tree clean
 
 ## Commit inspection
 
@@ -33,9 +33,12 @@ Required legacy marketplace source is present for: `submit-cleaning-request`, `c
 
 `process-cleaner-job-notifications` is the only conclusively verified agency-only function with repository source and has been changed locally to a non-mutating HTTP 410 gate. The other named agency-only functions (`process-cleaner-compliance-reminders`, `process-recurring-clean-visits`, `send-agency-quote`, `submit-service-request`, `resolve-no-show-customer`, `process-agency-balances`, `send-recurring-payment-setup`, and `send-inbox-email`) were not present in repository source, and no gate is proposed without authoritative deployed metadata. Their classification remains ambiguous at the deployment level.
 
-## Proposed, not applied migration
+## Inbound receipt migration (APPLIED to the live legacy project)
 
-Filename: `20260902110000_create_twilio_inbound_receipts.sql`
+Filename: `20260902104048_645c091a-4cc4-4824-b48a-f7f68b94d4a0.sql`
+
+This migration was applied to the live legacy project during this release by the managed migration tool. It must not be reapplied. The live table was verified read-only: RLS enabled, no policies, `anon` and `authenticated` have no SELECT privilege, `service_role` does. Automated retention cleanup for `retention_expires_at` is not yet implemented.
+
 
 ```sql
 BEGIN;
