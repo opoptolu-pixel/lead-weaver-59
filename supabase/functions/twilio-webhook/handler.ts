@@ -84,7 +84,7 @@ interface DispatchSummary {
  * guarantees at-most-once automatic dispatch per (MessageSid, lead, type,
  * recipient) and escalates indeterminate outcomes to human reconciliation.
  */
-async function dispatchIntents(deps: HandlerDeps, intents: IntentRecord[]): Promise<DispatchSummary> {
+export async function dispatchNotificationIntents(deps: HandlerDeps, intents: IntentRecord[]): Promise<DispatchSummary> {
   const summary: DispatchSummary = { dispatched: 0, unknown: 0, failed: 0, skipped: 0 };
 
   for (const intent of intents) {
@@ -207,7 +207,7 @@ export async function handleTwilioWebhook(req: Request, deps: HandlerDeps): Prom
       // A previously published lead may still hold un-dispatched intents from an
       // abandoned attempt with this same MessageSid; those are resumed, never duplicated.
       const existing = await deps.db.listIntents(messageSid, matchingLead.id, NOTIFICATION_TYPE);
-      const summary = await dispatchIntents(deps, existing);
+      const summary = await dispatchNotificationIntents(deps, existing);
       await deps.db.finalizeReceipt(receipt.id, {
         status: summary.unknown > 0 ? "outcome_unknown" : "completed",
         leadId: matchingLead.id,
@@ -247,7 +247,7 @@ export async function handleTwilioWebhook(req: Request, deps: HandlerDeps): Prom
       ? result.intents
       : await deps.db.listIntents(messageSid, matchingLead.id, NOTIFICATION_TYPE);
 
-    const summary = await dispatchIntents(deps, intents);
+    const summary = await dispatchNotificationIntents(deps, intents);
 
     if (!result.transitioned) {
       await deps.db.finalizeReceipt(receipt.id, {
