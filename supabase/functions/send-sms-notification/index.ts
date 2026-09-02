@@ -13,7 +13,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const logStep = (step: string, details?: any) => {
+const logStep = (step: string, details?: unknown) => {
   console.log(`[SMS-NOTIFICATION] ${step}`, details ? JSON.stringify(details) : "");
 };
 
@@ -50,8 +50,8 @@ async function getPostcodeCoords(postcode: string): Promise<PostcodeCoords | nul
       };
     }
     return null;
-  } catch (err: any) {
-    logStep("Postcode lookup error", { postcode, error: err.message });
+  } catch (err: unknown) {
+    logStep("Postcode lookup error", { postcode, error: err instanceof Error ? err.message : "unknown error" });
     return null;
   }
 }
@@ -363,14 +363,15 @@ serve(async (req) => {
 
           await sendSMS(formattedPhone, message);
           results.push({ userId: profile.user_id, status: "sent" });
-        } catch (err: any) {
+        } catch (err: unknown) {
           await supabase
             .from("lead_sms_notification_deliveries")
             .delete()
             .eq("lead_id", lead.id)
             .eq("phone", formattedPhone);
-          logStep("Failed to send to user", { userId: profile.user_id, error: err.message });
-          results.push({ userId: profile.user_id, status: "failed", error: err.message });
+          const errorMessage = err instanceof Error ? err.message : "unknown error";
+          logStep("Failed to send to user", { userId: profile.user_id, error: errorMessage });
+          results.push({ userId: profile.user_id, status: "failed", error: errorMessage });
         }
       }
 
@@ -427,9 +428,10 @@ serve(async (req) => {
 
     throw new Error("Invalid notification type");
 
-  } catch (error: any) {
-    logStep("Error", { message: error.message });
-    return new Response(JSON.stringify({ error: error.message }), {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "unknown error";
+    logStep("Error", { message: errorMessage });
+    return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
