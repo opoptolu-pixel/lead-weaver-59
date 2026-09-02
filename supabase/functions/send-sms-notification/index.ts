@@ -207,12 +207,12 @@ serve(async (req) => {
       // Authoritative distance rule, resolved server-side for this one recipient.
       const leadCoords = singleLead?.postcode ? await getPostcodeCoords(singleLead.postcode) : null;
       const recipientCoords = singleProfile?.postcode ? await getPostcodeCoords(singleProfile.postcode) : null;
-      const withinLocationRule = Boolean(leadCoords && recipientCoords) &&
+      const withinLocationRule = leadCoords !== null && recipientCoords !== null &&
         calculateDistance(
-          leadCoords!.latitude,
-          leadCoords!.longitude,
-          recipientCoords!.latitude,
-          recipientCoords!.longitude,
+          leadCoords.latitude,
+          leadCoords.longitude,
+          recipientCoords.latitude,
+          recipientCoords.longitude,
         ) <= MAX_DISTANCE_MILES;
 
       const message = singleLead ? buildNewLeadMessage(singleLead) : "";

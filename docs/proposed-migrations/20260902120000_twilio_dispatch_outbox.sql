@@ -194,7 +194,8 @@ $$;
 
 CREATE OR REPLACE FUNCTION public.twilio_claim_notification_intent(
   p_intent_id uuid,
-  p_lease_seconds integer DEFAULT 120
+  p_lease_seconds integer DEFAULT 120,
+  p_reconciliation_audit_id text DEFAULT NULL
 )
 RETURNS boolean
 LANGUAGE plpgsql
@@ -204,17 +205,24 @@ AS $$
 DECLARE
   v_id uuid;
 BEGIN
-  -- Only never-started ('pending') or definitively-rejected ('failed_retryable')
-  -- intents may be claimed. A 'claimed' row already has dispatch_started_at set and
-  -- is never automatically reclaimed; 'outcome_unknown' and 'dispatched' are terminal.
+  -- Never-started pending intents may be claimed by the inbound webhook.
+  -- failed_retryable is only claimable with a non-empty audit reference from a
+  -- separately authenticated reconciliation process. outcome_unknown, dispatched
+  -- and permanently_failed are terminal and can never be reclaimed here.
   UPDATE public.notification_intents
   SET status = 'claimed',
       attempt_count = attempt_count + 1,
       dispatch_started_at = now(),
       lease_expires_at = now() + make_interval(secs => p_lease_seconds),
-      attempt_history = attempt_history || jsonb_build_object('claimed_at', now())
+      attempt_history = attempt_history || jsonb_build_object(
+        'claimed_at', now(),
+        'reconciliation_audit_id', p_reconciliation_audit_id
+      )
   WHERE id = p_intent_id
-    AND status IN ('pending', 'failed_retryable')
+    AND (
+      status = 'pending'
+      OR (status = 'failed_retryable' AND nullif(trim(p_reconciliation_audit_id), '') IS NOT NULL)
+    )
   RETURNING id INTO v_id;
 
   RETURN v_id IS NOT NULL;
