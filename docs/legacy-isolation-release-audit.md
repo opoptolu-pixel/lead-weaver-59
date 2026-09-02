@@ -66,13 +66,14 @@ ALTER TABLE public.twilio_inbound_receipts ENABLE ROW LEVEL SECURITY;
 COMMIT;
 ```
 
-Safety properties: unique `MessageSid` claim, service-role-only access, no message body, no notification trigger, retention metadata, no client writes, and no migration execution during this release.
+Safety properties: unique `MessageSid` claim, service-role-only access, no message body, no notification trigger, retention metadata, and no client reads or writes.
 
 ## Local test plan and rollback
 
 - Signature tests cover valid, missing, tampered, and payload-mismatch signatures.
 - Reply tests cover YES/NO and ambiguous text.
 - Idempotency tests cover concurrent same-SID claim and one completion.
+- Known test gaps: no in-handler signature-header test, no in-flight duplicate test against the real claim path, and no URL/query-string signature variant test.
 - No test contacts Twilio, Resend, Stripe, postcodes.io, WhatsApp, or any external provider.
-- Proposed backend-only deployment scope: the inbound-receipts migration, `twilio-webhook`, the one 410 gate for `process-cleaner-job-notifications`, the isolation check, mocked tests, and this audit document. No frontend publication.
-- Rollback: before migration application, revert local files only. After a future approved deployment, restore the prior `twilio-webhook` source and gate source; leave the receipt table in place for audit history, or remove it only through a separately approved migration after confirming no receipts are needed.
+- Remaining backend-only deployment scope: `twilio-webhook`, the 410 gate for `process-cleaner-job-notifications`, the isolation check, mocked tests, and this audit document. The receipt migration is already live and must not be reapplied. No frontend publication.
+- Rollback: for local-only work, revert the files. After a future approved deployment, restore the prior `twilio-webhook` and gate sources; leave the receipt table in place for audit history, or remove it only through a separately approved migration after confirming no receipts are needed.
