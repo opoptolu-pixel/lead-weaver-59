@@ -49,6 +49,8 @@ export interface IntentRecord {
   provider_reference: string | null;
   dispatch_started_at: string | null;
   dispatched_at: string | null;
+  outcome_unknown_reason?: string | null;
+  last_error?: string | null;
 }
 
 export interface LeadRecord {
@@ -103,7 +105,7 @@ export interface DbPort {
 
 export type ProviderOutcome =
   | { kind: "success"; reference: string | null }
-  | { kind: "rejected"; error: string }
+  | { kind: "rejected"; error: string; retryable: boolean }
   | { kind: "indeterminate"; error: string }
   | { kind: "skipped"; reason: string };
 

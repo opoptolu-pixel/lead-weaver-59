@@ -76,28 +76,31 @@ interface DispatchSummary {
 }
 
 /**
- * At-most-once dispatch.
+ * At-most-once automatic dispatch.
  *
  * Exactly-once delivery across PostgreSQL and an external messaging provider is
  * impossible without provider-supported idempotency keys: the provider can accept
- * a message and the acknowledgement can still be lost. This routine therefore
- * guarantees at-most-once automatic dispatch per (MessageSid, lead, type,
- * recipient) and escalates indeterminate outcomes to human reconciliation.
+ * a message and the acknowledgement can still be lost. Webhook processing only
+ * claims never-started intents. Failed retries require a separate authenticated
+ * reconciliation path with an audit record and must opt in explicitly.
  */
-export async function dispatchNotificationIntents(deps: HandlerDeps, intents: IntentRecord[]): Promise<DispatchSummary> {
+export async function dispatchNotificationIntents(
+  deps: HandlerDeps,
+  intents: IntentRecord[],
+  options: { allowFailedRetry?: boolean; reconciliationAuditId?: string } = {},
+): Promise<DispatchSummary> {
   const summary: DispatchSummary = { dispatched: 0, unknown: 0, failed: 0, skipped: 0 };
+  const allowFailedRetry = options.allowFailedRetry === true && Boolean(options.reconciliationAuditId);
 
   for (const intent of intents) {
-    // Terminal / in-flight intents are never touched again automatically.
     if (intent.status === "dispatched") { summary.dispatched += 1; continue; }
     if (intent.status === "outcome_unknown") { summary.unknown += 1; continue; }
     if (intent.status === "skipped") { summary.skipped += 1; continue; }
     if (intent.status === "permanently_failed") { summary.failed += 1; continue; }
+    if (intent.status === "failed_retryable" && !allowFailedRetry) { summary.failed += 1; continue; }
 
-    // Atomic claim: records dispatch_started_at before any provider contact.
     const claimed = await deps.db.claimIntent(intent.id, INTENT_LEASE_SECONDS);
     if (!claimed) {
-      // Another worker owns it, or it is in a state that forbids automatic retry.
       summary.unknown += intent.status === "claimed" ? 1 : 0;
       continue;
     }
@@ -106,7 +109,6 @@ export async function dispatchNotificationIntents(deps: HandlerDeps, intents: In
     try {
       outcome = await deps.provider.dispatch(intent);
     } catch (error) {
-      // A thrown error is indeterminate: the request may already have been accepted.
       outcome = { kind: "indeterminate" as const, error: error instanceof Error ? error.message : String(error) };
     }
 
@@ -120,8 +122,11 @@ export async function dispatchNotificationIntents(deps: HandlerDeps, intents: In
         summary.skipped += 1;
         break;
       case "rejected":
-        // Definitive rejection before acceptance: a controlled retry may re-claim.
-        await deps.db.recordIntentOutcome(intent.id, "failed_retryable", { error: outcome.error });
+        await deps.db.recordIntentOutcome(
+          intent.id,
+          outcome.retryable ? "failed_retryable" : "permanently_failed",
+          { error: outcome.error },
+        );
         summary.failed += 1;
         break;
       case "indeterminate":
@@ -204,17 +209,14 @@ export async function handleTwilioWebhook(req: Request, deps: HandlerDeps): Prom
     const replyKind = classifyReply(body);
 
     if (alreadyConfirmed) {
-      // A previously published lead may still hold un-dispatched intents from an
-      // abandoned attempt with this same MessageSid; those are resumed, never duplicated.
-      const existing = await deps.db.listIntents(messageSid, matchingLead.id, NOTIFICATION_TYPE);
-      const summary = await dispatchNotificationIntents(deps, existing);
+      // A new or duplicate webhook for an already-published lead must never
+      // sweep and resend notification intents. Reconciliation owns retries.
       await deps.db.finalizeReceipt(receipt.id, {
-        status: summary.unknown > 0 ? "outcome_unknown" : "completed",
+        status: "completed",
         leadId: matchingLead.id,
         transitionStatus: "unchanged",
         responseKind: "already_confirmed",
         acknowledgement: POSITIVE_MESSAGE,
-        notificationDispatched: summary.dispatched > 0,
       });
       return twiml(POSITIVE_MESSAGE);
     }

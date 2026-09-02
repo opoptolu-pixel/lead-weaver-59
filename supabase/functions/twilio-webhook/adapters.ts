@@ -121,18 +121,23 @@ export function createSmsProvider(options: {
           headers: { Authorization: `Bearer ${options.serviceKey}`, "Content-Type": "application/json" },
           body: JSON.stringify({
             type: "new_lead",
+            mode: "single_recipient",
             leadId: intent.lead_id,
             userId: intent.recipient_user_id,
-            recipientPhone: intent.recipient,
             idempotencyKey: intent.id,
           }),
         });
         const text = await response.text();
-        if (response.ok) return { kind: "success", reference: intent.id };
-        if (response.status >= 400 && response.status < 500) {
-          return { kind: "rejected", error: `provider rejected with ${response.status}` };
+        if (response.ok) {
+          let payload: { providerReference?: string | null } = {};
+          try { payload = JSON.parse(text) as typeof payload; } catch { /* response body is optional */ }
+          return { kind: "success", reference: payload.providerReference ?? intent.id };
         }
-        // 5xx: the downstream may already have handed the message to Twilio.
+        // Only a documented, pre-acceptance failure may be retried. The
+        // single-recipient endpoint's 4xx responses are definitive rejections.
+        if (response.status >= 400 && response.status < 500) {
+          return { kind: "rejected", retryable: false, error: `provider permanently rejected with ${response.status}` };
+        }
         return { kind: "indeterminate", error: `provider returned ${response.status}: ${text.slice(0, 200)}` };
       } catch (error) {
         return {
