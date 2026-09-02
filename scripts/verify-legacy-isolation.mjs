@@ -103,6 +103,56 @@ if (!/TWILIO_WEBHOOK_URL/.test(indexSource)) {
   fail("twilio-webhook production wiring must read TWILIO_WEBHOOK_URL");
 }
 
+// --- Single-recipient dispatch contract -------------------------------------
+
+const smsDir = join(root, "supabase/functions/send-sms-notification");
+const singleRecipientPath = join(smsDir, "single-recipient.ts");
+const adaptersSource = readFileSync(join(root, "supabase/functions/twilio-webhook/adapters.ts"), "utf8");
+
+if (!existsSync(singleRecipientPath)) {
+  fail("send-sms-notification is missing the single-recipient dispatch module");
+} else {
+  const singleSource = readFileSync(singleRecipientPath, "utf8");
+  const smsIndexSource = readFileSync(join(smsDir, "index.ts"), "utf8");
+
+  if (!/mode\s*===\s*"single_recipient"/.test(smsIndexSource)) {
+    fail("send-sms-notification must implement an explicit single_recipient mode");
+  }
+  if (!/timingSafeEqual/.test(singleSource)) {
+    fail("single-recipient authentication must use a timing-safe comparison");
+  }
+  if (!/recipientPhone\s*!==\s*undefined/.test(singleSource)) {
+    fail("single-recipient mode must reject a client-supplied recipient phone number");
+  }
+  if (!/maskPhone/.test(smsIndexSource)) {
+    fail("send-sms-notification must mask phone numbers before logging");
+  }
+  // The dispatcher must address one recipient by verified user ID only.
+  if (/recipientPhone:/.test(adaptersSource)) {
+    fail("twilio-webhook must not send a caller-chosen recipient phone to the SMS function");
+  }
+  if (!/mode:\s*"single_recipient"/.test(adaptersSource)) {
+    fail("twilio-webhook must dispatch through the single_recipient mode, never the fan-out batch");
+  }
+  // Legacy dispatch must not reach into contained managed-agency tables.
+  for (const [file, text] of [
+    ["single-recipient.ts", singleSource],
+    ["send-sms-notification/index.ts", smsIndexSource],
+    ["twilio-webhook/adapters.ts", adaptersSource],
+  ]) {
+    if (/from\(["'`]cleaner_(?:profiles|service_areas|service_capabilities)["'`]\)/.test(text)) {
+      fail(`legacy dispatch path references a contained managed-agency table: ${file}`);
+    }
+  }
+}
+
+// The dispatcher must classify indeterminate provider outcomes distinctly and
+// must never turn a possible acceptance into an automatic retry.
+const handlerSource = readFileSync(join(root, "supabase/functions/twilio-webhook/handler.ts"), "utf8");
+if (!/outcome_unknown/.test(handlerSource) || !/allowFailedRetry/.test(handlerSource)) {
+  fail("twilio-webhook dispatcher must keep outcome_unknown terminal and gate retries behind reconciliation");
+}
+
 // --- Contained cron / trigger / template configuration must stay contained --
 
 const containmentPatterns = [

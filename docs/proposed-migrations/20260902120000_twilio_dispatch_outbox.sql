@@ -290,6 +290,15 @@ END;
 $$;
 
 -- 7. Recipient resolution ----------------------------------------------------
+--
+-- LEGACY MARKETPLACE ONLY. Recipients are cleaning businesses in public.profiles.
+-- The managed-agency tables (cleaner_profiles, cleaner_service_areas,
+-- cleaner_service_capabilities) are contained and must NOT be referenced here:
+-- doing so would re-couple the legacy dispatch path to the Manchester project.
+--
+-- Phone numbers are normalised to a UK E.164 digit string so that one physical
+-- handset can never receive two notifications for the same lead, whatever
+-- format each profile stored.
 
 CREATE OR REPLACE FUNCTION public.lead_notification_recipients(p_lead_id uuid)
 RETURNS TABLE(recipient text, recipient_user_id uuid)
@@ -298,16 +307,31 @@ STABLE
 SECURITY DEFINER
 SET search_path = public
 AS $$
-  SELECT DISTINCT ON (regexp_replace(p.phone, '\D', '', 'g'))
-         regexp_replace(p.phone, '\D', '', 'g') AS recipient,
-         p.user_id AS recipient_user_id
-  FROM public.profiles p
-  WHERE p.whatsapp_optin = true
-    AND p.phone IS NOT NULL
-    AND p.postcode IS NOT NULL
-    AND coalesce(p.is_closed, false) = false
-    AND EXISTS (SELECT 1 FROM public.leads l WHERE l.id = p_lead_id)
-  ORDER BY regexp_replace(p.phone, '\D', '', 'g'), p.user_id;
+  WITH normalised AS (
+    SELECT
+      CASE
+        WHEN regexp_replace(p.phone, '\D', '', 'g') LIKE '44%'
+          THEN regexp_replace(p.phone, '\D', '', 'g')
+        WHEN regexp_replace(p.phone, '\D', '', 'g') LIKE '0%'
+          THEN '44' || substr(regexp_replace(p.phone, '\D', '', 'g'), 2)
+        ELSE '44' || regexp_replace(p.phone, '\D', '', 'g')
+      END AS recipient,
+      p.user_id AS recipient_user_id
+    FROM public.profiles p
+    WHERE p.whatsapp_optin = true
+      AND p.phone IS NOT NULL
+      AND length(regexp_replace(p.phone, '\D', '', 'g')) >= 10
+      AND p.postcode IS NOT NULL
+      AND coalesce(p.is_closed, false) = false
+      AND coalesce(p.is_suspended, false) = false
+      AND EXISTS (
+        SELECT 1 FROM public.leads l
+        WHERE l.id = p_lead_id AND l.lead_status = 'published'
+      )
+  )
+  SELECT DISTINCT ON (recipient) recipient, recipient_user_id
+  FROM normalised
+  ORDER BY recipient, recipient_user_id;
 $$;
 
 REVOKE ALL ON FUNCTION public.twilio_claim_inbound_receipt(text, integer) FROM anon, authenticated;
