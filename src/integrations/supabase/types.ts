@@ -3470,6 +3470,59 @@ export type Database = {
         }
         Relationships: []
       }
+      twilio_inbound_receipts: {
+        Row: {
+          completed_at: string | null
+          id: string
+          last_error: string | null
+          lead_id: string | null
+          message_sid: string
+          notification_dispatched: boolean
+          processing_started_at: string | null
+          received_at: string
+          response_kind: string
+          retention_expires_at: string
+          status: string
+          transition_status: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          id?: string
+          last_error?: string | null
+          lead_id?: string | null
+          message_sid: string
+          notification_dispatched?: boolean
+          processing_started_at?: string | null
+          received_at?: string
+          response_kind: string
+          retention_expires_at?: string
+          status?: string
+          transition_status?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          id?: string
+          last_error?: string | null
+          lead_id?: string | null
+          message_sid?: string
+          notification_dispatched?: boolean
+          processing_started_at?: string | null
+          received_at?: string
+          response_kind?: string
+          retention_expires_at?: string
+          status?: string
+          transition_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "twilio_inbound_receipts_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
