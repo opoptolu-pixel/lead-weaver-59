@@ -295,18 +295,31 @@ Deno.test("provider definite rejection is retryable exactly once per claim, with
   assertEquals(db.intents[0].status, "failed_retryable");
   assertEquals(rejecting.calls.length, 1);
 
-  // Controlled retry: a fresh MessageSid re-enters the handler; the failed_retryable
-  // intent is re-claimed atomically and dispatched exactly once more.
-  const retryProvider = new FakeProvider(success);
+  // A later inbound webhook must NOT sweep another MessageSid's failed intent.
+  const laterWebhookProvider = new FakeProvider(success);
   await handleTwilioWebhook(
     await signedRequest(baseParams({ MessageSid: "SM00000000000000000000000000000003" })),
-    deps(db, retryProvider),
+    deps(db, laterWebhookProvider),
   ).then((r) => r.text());
+  assertEquals(laterWebhookProvider.calls.length, 0);
+  assertEquals(db.intents[0].status, "failed_retryable");
 
+  // Controlled retry path (reconciliation): the intent is re-claimed atomically
+  // and dispatched exactly once more, with no new intent created.
+  const retryProvider = new FakeProvider(success);
+  const summary = await dispatchNotificationIntents(deps(db, retryProvider), [...db.intents]);
+
+  assertEquals(summary.dispatched, 1);
   assertEquals(db.intents.length, 1, "no second intent is created for the same recipient batch");
   assertEquals(db.intents[0].status, "dispatched");
   assertEquals(retryProvider.calls.length, 1);
+
+  // Re-running reconciliation must not dispatch again.
+  const idleProvider = new FakeProvider(success);
+  await dispatchNotificationIntents(deps(db, idleProvider), [...db.intents]);
+  assertEquals(idleProvider.calls.length, 0);
 });
+
 
 Deno.test("provider timeout marks outcome_unknown and is never retried automatically", async () => {
   const db = seed(1);
