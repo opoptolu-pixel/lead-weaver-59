@@ -344,7 +344,7 @@ $$;
 
 REVOKE ALL ON FUNCTION public.twilio_claim_inbound_receipt(text, integer) FROM anon, authenticated;
 REVOKE ALL ON FUNCTION public.twilio_transition_lead_and_create_intents(text, uuid, text, text, text, jsonb) FROM anon, authenticated;
-REVOKE ALL ON FUNCTION public.twilio_claim_notification_intent(uuid, integer) FROM anon, authenticated;
+REVOKE ALL ON FUNCTION public.twilio_claim_notification_intent(uuid, integer, text) FROM anon, authenticated;
 REVOKE ALL ON FUNCTION public.twilio_record_notification_outcome(uuid, text, text, text) FROM anon, authenticated;
 REVOKE ALL ON FUNCTION public.twilio_finalize_inbound_receipt(uuid, text, uuid, text, text, text, boolean, text) FROM anon, authenticated;
 REVOKE ALL ON FUNCTION public.lead_notification_recipients(uuid) FROM anon, authenticated;
