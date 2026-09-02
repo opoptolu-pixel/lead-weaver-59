@@ -209,11 +209,8 @@ Deno.test("lead must exist and be published", async () => {
 });
 
 Deno.test("a provider failure propagates instead of being reported as sent", async () => {
-  const { deps, sends } = harness({
-    send: () => {
-      sends.length; // touch closure
-      return Promise.reject(new Error("provider timeout"));
-    },
+  const { deps } = harness({
+    send: () => Promise.reject(new Error("provider timeout")),
   });
   await assertRejects(() => sendSingleRecipientNotification(request(), deps, MESSAGE), Error, "provider timeout");
 });

@@ -84,25 +84,30 @@ const requiredSchemaObjects = [
   "twilio_finalize_inbound_receipt",
   "lead_notification_recipients",
 ];
-const proposedOutbox = readFileSync(
-  join(root, "docs/proposed-migrations/20260902120000_twilio_dispatch_outbox.sql"),
-  "utf8",
-);
+const outboxMigrationName = "20260902150000_twilio_dispatch_outbox.sql";
+const outboxMigrationPath = join(root, "supabase/migrations", outboxMigrationName);
+if (!existsSync(outboxMigrationPath)) {
+  fail(`the deployable outbox migration is missing: supabase/migrations/${outboxMigrationName}`);
+}
+const outboxMigration = existsSync(outboxMigrationPath) ? readFileSync(outboxMigrationPath, "utf8") : "";
+if (existsSync(join(root, "docs/proposed-migrations"))) {
+  fail("docs/proposed-migrations still exists: there must be exactly one executable copy of the outbox migration");
+}
 const missingSchema = requiredSchemaObjects.filter(
   (object) => webhookSource.includes(object) && !appliedMigrations.includes(object),
 );
-const missingProposedObjects = requiredSchemaObjects.filter(
-  (object) => webhookSource.includes(object) && !proposedOutbox.includes(object),
+const missingOutboxObjects = requiredSchemaObjects.filter(
+  (object) => webhookSource.includes(object) && !outboxMigration.includes(object),
 );
 if (missingSchema.length) {
   fail(
-    `twilio-webhook depends on schema objects that no applied migration provides (deployment blocked): ${missingSchema.join(", ")}. ` +
-    "Apply docs/proposed-migrations/20260902120000_twilio_dispatch_outbox.sql first.",
+    `twilio-webhook depends on schema objects that no migration in supabase/migrations provides (deployment blocked): ${missingSchema.join(", ")}.`,
   );
 }
-if (missingProposedObjects.length) {
-  fail(`twilio-webhook dependencies missing from the proposed outbox migration: ${missingProposedObjects.join(", ")}`);
+if (missingOutboxObjects.length) {
+  fail(`twilio-webhook dependencies missing from the deployable outbox migration: ${missingOutboxObjects.join(", ")}`);
 }
+
 
 // The handler must never fall back to a proxy-rewritten URL in production wiring.
 const indexSource = readFileSync(join(root, "supabase/functions/twilio-webhook/index.ts"), "utf8");
