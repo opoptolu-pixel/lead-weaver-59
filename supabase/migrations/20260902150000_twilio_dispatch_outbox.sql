@@ -1,7 +1,5 @@
--- PROPOSED, NOT APPLIED.
 -- Corrective at-most-once inbound webhook + notification outbox design.
--- This file is deliberately stored outside supabase/migrations so that it cannot be
--- picked up or executed without explicit approval.
+-- Validated twice against a fresh disposable database before promotion.
 
 BEGIN;
 
