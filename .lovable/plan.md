@@ -1,70 +1,25 @@
+# Why sign-in stalled, and how to stop it happening again
 
+## What caused it
+- The backend ran out of its disk read/write allowance at 03:37 UTC today ("IO budget less than 50%" alert). When that allowance runs out, the database slows to a crawl, and sign-in stopped working for everyone.
+- The main cause: the scheduled-task history log has grown to **682 MB out of the 710 MB total database**. Nothing ever clears it.
+- That log grows every minute. The "process scheduled emails" task runs every minute (about 1,440 times a day), and other tasks run every 5 minutes or every hour. Each run adds a row and writes to disk.
+- Your real business data is small (everything else is under 10 MB). Memory, connections and disk space are fine right now (13% disk, 45% memory).
 
-## Store Actual Amount Paid Per Lead + Price Change to £12
+## Fix
+1. **One-off cleanup:** delete scheduled-task history older than 7 days, then reclaim the space. This should take the database from about 710 MB down to under 50 MB.
+2. **Automatic daily cleanup:** add a nightly task (03:00 UTC) that deletes task history older than 7 days, so the log can never grow like this again.
+3. **Less frequent email checks:** run "process scheduled emails" every 5 minutes instead of every minute. That's 80% fewer runs. Scheduled emails may go out up to 5 minutes later. (Skip this step if emails must go out within a minute.)
+4. **Check the result:** confirm the database size has dropped and the read/write alert doesn't come back. Then re-check database health over the next day.
 
-### Problem
-Revenue calculations use a hardcoded `LEAD_PRICE = 20` constant. Changing it to 12 would retroactively misreport historical £20 sales. We need to store the actual price paid on each lead so accounting is always accurate.
+## Optional, only if alerts return
+- Move the backend to a larger size. I don't recommend this yet: the cause is the history log, not traffic.
 
-### Approach
+## Not touched
+- No changes to the app's screens, lead logic, payments, or anything on the Manchester managed side.
 
-**Phase 1: Database — Add `amount_paid` column to `leads` table**
-
-Add a new nullable integer column `amount_paid` (in pounds) to the `leads` table, defaulting to NULL. Then backfill all existing unlocked leads with `amount_paid = 20` (since every historical purchase was £20). Going forward, new purchases at £12 will store `amount_paid = 12`.
-
-**Phase 2: Edge functions — Write `amount_paid` on purchase**
-
-Update these 4 edge functions to set `amount_paid` when unlocking a lead:
-
-| File | Change |
-|------|--------|
-| `supabase/functions/verify-payment/index.ts` | Add `amount_paid: 12` to the lead update; change log `"£20"` → `"£12"` |
-| `supabase/functions/stripe-webhook/index.ts` | Add `amount_paid: 12` to the lead update; change log `"£20"` → `"£12"` |
-| `supabase/functions/unlock-lead/index.ts` | Set `amount_paid: 12` on the lead update (credit-based unlock) |
-| `supabase/functions/use-credit/index.ts` | Set `amount_paid: 12` on the lead update (if applicable) |
-
-Also update `deduct_credit_atomic` DB function to set `amount_paid = 12` on the lead.
-
-**Phase 3: Admin dashboards — Use `amount_paid` instead of constant**
-
-| File | Change |
-|------|--------|
-| `AdminAccounting.tsx` | Replace `LEAD_PRICE` constant with `lead.amount_paid \|\| 20` fallback; sum actual amounts instead of `count * 20` |
-| `AdminOverview.tsx` | Replace all `* 20` revenue/refund calculations with sum of `amount_paid` from query results |
-| `AdminAnalytics.tsx` | Replace `* 20` spend calculations with sum of `amount_paid` |
-| `AdminPayments.tsx` | Use `lead.amount_paid \|\| 20` instead of hardcoded `amount: 20` |
-| `Billing.tsx` | Use `lead.amount_paid \|\| 20` instead of hardcoded `amount: 20` |
-| `ConversionNotifications.tsx` | Use `amount_paid` from lead data instead of `"+£20"` |
-| `LiveCheckoutsPanel.tsx` | Change `* 20` to `* 12` (checkout estimates, not historical) |
-
-**Phase 4: Frontend pricing — Update £20 → £12 everywhere**
-
-| File | Change |
-|------|--------|
-| `Pricing.tsx` | Pay As You Go: £12; 5-pack: £50 (£10/lead, save £10); 10-pack: £90 (£9/lead, save £30); new Stripe price IDs |
-| `HeroSection.tsx` | "£20 Per Lead" → "£12 Per Lead" |
-| `ServicesGrid.tsx` | "£20 to unlock" → "£12 to unlock" |
-| `Leads.tsx` | All "£20" references → "£12" |
-| `ForCleaners.tsx` | SEO/FAQ pricing text |
-| `Dashboard.tsx` | Credit pack modal prices |
-| `AdminLeads.tsx` | "Paid £20" → "Paid £12" |
-
-**Phase 5: Stripe — New price objects**
-
-Create 3 new Stripe prices:
-- Pay As You Go: £12
-- 5 Lead Bundle: £50
-- 10 Lead Bundle: £90
-
-Update `buy-credits/index.ts` and `unlock-lead/index.ts` with new price IDs.
-
-**Phase 6: Fix existing build errors**
-
-| File | Fix |
-|------|-----|
-| `ErrorBoundary.tsx` | `process.env.NODE_ENV` → `import.meta.env.DEV` |
-| `useCheckoutActivity.ts` | `NodeJS.Timeout` → `ReturnType<typeof setTimeout>` |
-| `useLeadReservations.ts` | `NodeJS.Timeout` → `ReturnType<typeof setTimeout>` |
-
-### Key detail
-The `|| 20` fallback ensures any lead missing `amount_paid` (pre-migration edge case) still reports correctly. The backfill migration sets all existing unlocked leads to 20, so the fallback is just a safety net.
-
+## Technical details
+- `cron.job_run_details` is 682 MB, `n_live_tup` reported as 0 because stats were reset when the backend restarted.
+- Cleanup: `DELETE FROM cron.job_run_details WHERE end_time < now() - interval '7 days'; VACUUM FULL cron.job_run_details;`. Run this through run_sql, not a migration, because VACUUM can't run inside a transaction.
+- Schedule: `cron.schedule('purge-cron-history-daily','0 3 * * *', $$DELETE FROM cron.job_run_details WHERE end_time < now() - interval '7 days'$$)`.
+- `cron.alter_job` on `process-scheduled-emails` to `*/5 * * * *`.
